@@ -178,7 +178,7 @@ Contributions are very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - How to open a good issue or PR
 - Security vulnerability reporting
 
-**Good first issues** are labelled [`good first issue`](https://github.com/claudehecker/isms-builder/issues?q=label%3A%22good+first+issue%22) in the issue tracker.
+**Good first issues** are labelled [`good first issue`](https://github.com/coolstartnow/isms-builder/issues?q=label%3A%22good+first+issue%22) in the issue tracker.
 
 ---
 
@@ -194,6 +194,26 @@ Contributions are very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 | 🔜 Next | Audit-log anomaly detection (LLM batch) |
 | 🚀 Later | ownCloud / Nextcloud integration |
 | 🚀 Later | English UI mirror |
+
+---
+
+## About the Author
+
+**Claude Hecker** has been working in IT for over 35 years. After roughly 15 years as CIO,
+he transitioned into the roles of CISO and Data Protection Officer (DSO/DSB). During his career
+he has designed and implemented enterprise-wide IT infrastructure and wide-area network connectivity
+(VPN, MPLS) for a major European corporation — responsible for reliable, secure operations across
+multiple sites and jurisdictions.
+
+ISMS Builder grew directly out of that experience: building and maintaining a compliant ISMS in the
+real world, across real audits, with real regulatory pressure. The tool reflects what practitioners
+actually need — not what a product manager thinks they need.
+
+**Why open source?**
+SMEs deserve access to a proper ISMS platform without five-figure licence fees. The onboarding effort
+is real regardless of which tool you choose — but that cost should not be compounded by vendor
+lock-in or data leaving your own infrastructure. This project stands for software freedom and the
+principle that your compliance data belongs to you.
 
 ---
 
