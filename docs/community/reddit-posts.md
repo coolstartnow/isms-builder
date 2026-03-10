@@ -47,6 +47,11 @@ npm start   # https://localhost:3000
 
 Demo credentials in the repo (admin/adminpass — change on first login).
 
+**Current state:** Functional and actively used, but not a finished product.
+Some features are still missing or incomplete — this is a one-person project
+so far and it needs time or more hands. Contributions, feedback, and ideas
+are very welcome.
+
 License: AGPL-3.0
 
 GitHub: https://github.com/coolstartnow/isms-builder
@@ -104,8 +109,12 @@ data anywhere.
 
 https://github.com/coolstartnow/isms-builder
 
-If you're dealing with NIS2 implementation or ISO 27001 prep and want to
-avoid vendor lock-in, this might save you some pain.
+**Honest disclaimer:** This is a one-person project, functional and actively
+developed, but not a finished product. Some features are still missing or
+rough around the edges. If you have specific requirements I haven't covered
+yet — open an issue or contribute. That's exactly why I open-sourced it.
+
+https://github.com/coolstartnow/isms-builder
 ```
 
 **Flair:** `Tool`
@@ -197,6 +206,10 @@ touched. DATA_DIR env variable overrides all store paths at module load time.
 
 If anyone wants to review the auth code specifically:
 https://github.com/coolstartnow/isms-builder/blob/main/server/auth.js
+
+**Caveat:** This is a one-person project, not a finished product. Some areas
+need more work — PostgreSQL backend, English UI, more framework mappings.
+Security review of the auth layer would be especially appreciated.
 ```
 
 ---

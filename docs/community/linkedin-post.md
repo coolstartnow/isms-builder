@@ -38,10 +38,15 @@ Was es kann:
 Für alle die NIS2 umsetzen müssen, eine ISO 27001 Zertifizierung vorbereiten
 oder einfach ihre Compliance-Daten selbst in der Hand behalten wollen.
 
-👉 https://github.com/coolstartnow/isms-builder
+Eine ehrliche Einschätzung: Das System ist funktionsfähig und im aktiven
+Einsatz, aber kein Fertigprodukt. Es gibt noch Features die fehlen, Bereiche
+die ausgebaut werden müssen, und sicher auch Ecken die verbessert werden
+können. Dafür brauche ich Zeit — oder Unterstützung.
 
-Feedback, Fragen, Kritik — alles willkommen. Und wer das Projekt
-ausprobiert: ich freue mich über jedes Sternchen ⭐ und jeden Erfahrungsbericht.
+Wer Lust hat mitzumachen: jeder Beitrag ist willkommen, ob Code, Ideen,
+Dokumentation oder einfach Feedback aus der Praxis.
+
+👉 https://github.com/coolstartnow/isms-builder
 
 #ISMS #ISO27001 #NIS2 #DSGVO #CISO #OpenSource #SelfHosted #Compliance #ITSicherheit
 ```
@@ -60,6 +65,9 @@ Also: selbst bauen.
 
 ISMS Builder — eine self-hosted Plattform für ISO 27001, NIS2 und DSGVO.
 Open source. Eure Daten bleiben bei euch.
+
+Noch kein Fertigprodukt — aber ein solider Anfang, der weiter wächst.
+Wer mitbauen möchte: herzlich willkommen.
 
 👉 https://github.com/coolstartnow/isms-builder
 

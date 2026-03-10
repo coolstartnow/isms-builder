@@ -11,6 +11,13 @@
 
 ---
 
+> **Status: Active development — not yet a finished product.**
+> The core modules are functional and in use, but some features are incomplete
+> and the platform is still growing. Contributions, feedback and real-world
+> testing are very welcome — that is exactly why this was open-sourced.
+
+---
+
 ## What is ISMS Builder?
 
 ISMS Builder is a **self-hosted web platform** for managing an Information Security Management System (ISMS).
