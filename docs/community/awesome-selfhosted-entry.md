@@ -25,7 +25,7 @@ It covers the full lifecycle: policy authoring → risk management → audit evi
 - [x] The project is open source (AGPL-3.0)
 - [x] The project has a working demo / clear Quick Start
 - [x] No commercial or freemium model — fully free and open
-- [x] CI passing: https://github.com/claudehecker/isms-builder/actions
+- [x] CI passing: https://github.com/coolstartnow/isms-builder/actions
 ```
 
 ---
@@ -35,7 +35,7 @@ It covers the full lifecycle: policy authoring → risk management → audit evi
 Paste into the correct alphabetical position in the relevant category section:
 
 ```markdown
-- [ISMS Builder](https://github.com/claudehecker/isms-builder) - Self-hosted Information Security Management System (ISMS) platform for ISO 27001:2022, NIS2, GDPR/DSGVO and BSI IT-Grundschutz. Covers policy management, risk register, Statement of Applicability (313 controls, 8 frameworks), GDPR modules, asset management, BCM, supplier management, reporting and optional local AI search via Ollama. `AGPL-3.0` `Nodejs`
+- [ISMS Builder](https://github.com/coolstartnow/isms-builder) - Self-hosted Information Security Management System (ISMS) platform for ISO 27001:2022, NIS2, GDPR/DSGVO and BSI IT-Grundschutz. Covers policy management, risk register, Statement of Applicability (313 controls, 8 frameworks), GDPR modules, asset management, BCM, supplier management, reporting and optional local AI search via Ollama. `AGPL-3.0` `Nodejs`
 ```
 
 ---
@@ -57,13 +57,24 @@ Paste into the correct alphabetical position in the relevant category section:
 
 Sehr geehrte Redaktion,
 
-ich möchte Ihnen ein Open-Source-Projekt vorstellen, das eine Lücke im Markt schließt:
-**ISMS Builder** — eine selbst gehostete Plattform für das Management von Informationssicherheits­managementsystemen (ISMS) nach ISO 27001:2022, NIS2 und DSGVO.
+ich möchte Ihnen ein Open-Source-Projekt vorstellen, das aus über 35 Jahren IT-Praxis entstanden
+ist und eine echte Marktlücke schließt: **ISMS Builder** — eine selbst gehostete Plattform für das
+Management von Informationssicherheitsmanagementsystemen (ISMS) nach ISO 27001:2022, NIS2 und DSGVO.
+
+**Zur Person:**
+Ich bin seit mehr als 35 Jahren in der IT tätig — zunächst rund 15 Jahre als CIO, anschließend als
+CISO und Datenschutzbeauftragter (DSO). In dieser Zeit habe ich unter anderem für einen europäischen
+Konzern die gesamte IT-Infrastruktur sowie die standortübergreifende Vernetzung mittels VPN und
+MPLS aufgebaut und verantwortet. Aus dieser Kombination aus technischer Tiefe und Führungs­verantwortung
+heraus kenne ich die Anforderungen an ein praxistaugliches ISMS aus allen Perspektiven: als
+Architekt, als Betreiber und als Verantwortlicher gegenüber Aufsichtsbehörden.
 
 **Die Problemstellung:**
 KMU und mittelständische IT-Teams stehen vor der Wahl zwischen teuren SaaS-Lösungen
 (oft 5.000–30.000 € / Jahr) oder selbst gebauten Excel-Lösungen, die weder auditierbar
-noch wartbar sind. Eine praxistaugliche Open-Source-Alternative fehlte bisher.
+noch wartbar sind. Wer als CISO oder DSO Compliance nachweisen muss, braucht ein Werkzeug,
+das den gesamten Lebenszyklus abbildet — von der Policy bis zum Audit-Log — ohne dabei
+Daten in fremde Hände zu geben. Eine praxistaugliche Open-Source-Alternative fehlte bisher.
 
 **Was ISMS Builder bietet:**
 - Vollständiger Policy-Lebenszyklus (draft → review → approved → archived)
@@ -81,12 +92,15 @@ noch wartbar sind. Eine praxistaugliche Open-Source-Alternative fehlte bisher.
 Mögliche Artikelwinkel:
 1. *"Open-Source-ISMS: ISO 27001 ohne Vendor Lock-in"* — Praxis-Tutorial für Administratoren
 2. *"NIS2 umsetzen ohne Budget: Was Open-Source-Tools leisten können"* — Marktüberblick + Deep-Dive
-3. *"Lokale KI im Compliance-Einsatz: ISMS Builder + Ollama"* — KI-Trend meets Datenschutz
+3. *"35 Jahre IT-Praxis in einem Open-Source-Tool: ISMS Builder"* — Erfahrungsbericht eines CISO/DSO
+4. *"Lokale KI im Compliance-Einsatz: ISMS Builder + Ollama"* — KI-Trend meets Datenschutz
 
-Ich stelle gerne eine Demo-Instanz bereit und bin für ein Hintergrundgespräch verfügbar.
+Ich stehe gerne für ein Hintergrundgespräch zur Verfügung, kann eine Demo-Instanz bereitstellen
+und bringe als langjähriger CISO und DSO konkrete Praxiserfahrung aus dem Enterprise-Umfeld mit.
 
 Mit freundlichen Grüßen,
 Claude Hecker
+CISO / DSO | 35+ Jahre IT-Erfahrung
 
-GitHub: https://github.com/claudehecker/isms-builder
-Dokumentation: https://github.com/claudehecker/isms-builder/blob/main/docs/ISMS-build-documentation.md
+GitHub: https://github.com/coolstartnow/isms-builder
+Dokumentation: https://github.com/coolstartnow/isms-builder/blob/main/docs/ISMS-build-documentation.md
