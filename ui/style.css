@@ -218,8 +218,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0; }
    ═══════════════════════════════════════════════════════════ */
 .editor {
   margin-left: var(--sidebar-w); flex: 1; padding: 20px 24px;
-  overflow-y: auto; min-height: 100%;
-  transition: margin-left .2s ease;
+  overflow-y: auto; height: calc(100vh - var(--topbar-h));
+  transition: margin-left .2s ease; box-sizing: border-box;
 }
 .sidebar.collapsed ~ .editor { margin-left: 0; }
 
