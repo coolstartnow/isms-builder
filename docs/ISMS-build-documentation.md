@@ -1,5 +1,5 @@
 <!-- © 2026 Claude Hecker — ISMS Builder V 1.28 — AGPL-3.0 -->
-![ISMS Builder Banner](../docs/isms-builder-banner.png)
+![ISMS Builder Banner](isms-builder-banner.png)
 
 # ISMS Builder – Dokumentation & Architektur
 
