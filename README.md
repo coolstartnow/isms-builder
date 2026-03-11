@@ -1,8 +1,6 @@
 <!-- © 2026 Claude Hecker — ISMS Builder V 1.29 — AGPL-3.0 -->
 ![ISMS Builder Banner](isms-builder-banner.png)
-# isms-builder
 
-Dies ist die bestehende Überschrift deines Projekts...
 # ISMS Builder
 
 **Self-hosted Information Security Management System — open source, no cloud required**
