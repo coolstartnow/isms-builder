@@ -1,0 +1,1291 @@
+{
+  "exportedAt": "2026-03-11T13:25:49.308Z",
+  "version": "1.30",
+  "lang": "nl",
+  "files": {
+    "risks.json": [
+      {
+        "id": "risk_nl_001",
+        "title": "Ransomware-aanval op productiesystemen",
+        "description": "Versleuteling van bedrijfskritieke data door ransomware. Treft ERP-systeem, productiebesturing en back-upinfrastructuur.",
+        "category": "technical",
+        "threat": "Ransomware / versleuselingstrojaan",
+        "vulnerability": "Ontbrekende netwerksegmentatie, onvoldoende offline back-ups",
+        "probability": 4,
+        "impact": 5,
+        "score": 20,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f",
+          "BSI-CON.3"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-10T09:00:00.000Z",
+        "updatedAt": "2026-01-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_nl_002",
+        "title": "Ongeoorloofde toegang tot klantgegevens",
+        "description": "Beveiligingslek in webapplicatie maakt ongeoorloofde toegang tot persoonsgegevens van klanten mogelijk (datalek art. 33 AVG).",
+        "category": "technical",
+        "threat": "Datalek, reputatieschade, boete AP",
+        "vulnerability": "Ontbrekende WAF, niet-gepatchte webapplicatie",
+        "probability": 3,
+        "impact": 5,
+        "score": 15,
+        "treatmentOption": "reduce",
+        "owner": "FG",
+        "dueDate": "2026-04-30",
+        "reviewDate": "2026-03-15",
+        "status": "in_treatment",
+        "linkedControls": [
+          "NIS2-a",
+          "EUCS-LOG.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-12T09:00:00.000Z",
+        "updatedAt": "2026-01-12T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_nl_003",
+        "title": "Phishing-aanval op medewerkers (CEO-fraude)",
+        "description": "Gericht phishing-aanval via vervalste e-mails van leidinggevenden om medewerkers geld over te laten maken.",
+        "category": "human",
+        "threat": "Financieel verlies, reputatieschade",
+        "vulnerability": "Onvoldoende bewustzijn medewerkers",
+        "probability": 4,
+        "impact": 4,
+        "score": 16,
+        "treatmentOption": "reduce",
+        "owner": "Security Awareness Lead",
+        "dueDate": "2026-05-31",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "ISO-6.3",
+          "NIS2-d"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-14T09:00:00.000Z",
+        "updatedAt": "2026-01-14T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_nl_004",
+        "title": "Uitval van kritieke clouddiensten",
+        "description": "Uitval van Microsoft 365 of Azure services leidt tot bedrijfsonderbreking voor alle medewerkers.",
+        "category": "operational",
+        "threat": "Bedrijfsonderbreking, productiviteitsverlies",
+        "vulnerability": "Afhankelijkheid van één cloudleverancier, ontbrekende offline fallback",
+        "probability": 2,
+        "impact": 4,
+        "score": 8,
+        "treatmentOption": "accept",
+        "owner": "IT Manager",
+        "dueDate": "2026-12-31",
+        "reviewDate": "2026-09-30",
+        "status": "accepted",
+        "linkedControls": [
+          "ISO-8.14"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-20T09:00:00.000Z",
+        "updatedAt": "2026-01-20T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_nl_005",
+        "title": "Menselijke fouten bij gegevensverwerking",
+        "description": "Onopzettelijke vrijgave of verwijdering van persoonsgegevens door medewerkers (insider-risico).",
+        "category": "human",
+        "threat": "Datalek, boete AP",
+        "vulnerability": "Onvoldoende training, geen four-eyes-principe",
+        "probability": 3,
+        "impact": 3,
+        "score": 9,
+        "treatmentOption": "reduce",
+        "owner": "FG",
+        "dueDate": "2026-07-31",
+        "reviewDate": "2026-05-01",
+        "status": "open",
+        "linkedControls": [
+          "ISO-6.3",
+          "ISO-8.3"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-22T09:00:00.000Z",
+        "updatedAt": "2026-01-22T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_nl_006",
+        "title": "Verouderde software en ontbrekende patches",
+        "description": "Systemen draaien op niet-ondersteunde softwareversies, waardoor bekende kwetsbaarheden niet worden gedicht.",
+        "category": "technical",
+        "threat": "Exploitatie van bekende kwetsbaarheden",
+        "vulnerability": "Ontbrekend patchbeheerproces",
+        "probability": 3,
+        "impact": 4,
+        "score": 12,
+        "treatmentOption": "reduce",
+        "owner": "IT Manager",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-30",
+        "status": "in_treatment",
+        "linkedControls": [
+          "ISO-8.8"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-01T09:00:00.000Z",
+        "updatedAt": "2026-02-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_nl_007",
+        "title": "Verlies van mobiele apparaten met gevoelige data",
+        "description": "Verlies of diefstal van laptops of smartphones met niet-versleutelde bedrijfsdata.",
+        "category": "physical",
+        "threat": "Gegevensverlies, GDPR-meldplicht",
+        "vulnerability": "Ontbrekende apparaatversleuteling, geen remote wipe",
+        "probability": 3,
+        "impact": 3,
+        "score": 9,
+        "treatmentOption": "reduce",
+        "owner": "IT Manager",
+        "dueDate": "2026-05-31",
+        "reviewDate": "2026-04-15",
+        "status": "open",
+        "linkedControls": [
+          "ISO-8.1",
+          "ISO-7.9"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-05T09:00:00.000Z",
+        "updatedAt": "2026-02-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_nl_008",
+        "title": "Leveranciersfalen – continuïteitsrisico",
+        "description": "Faillissement of ernstige storingen bij een kritieke leverancier bedreigen de bedrijfscontinuïteit.",
+        "category": "third_party",
+        "threat": "Bedrijfsonderbreking, contractbreuk",
+        "vulnerability": "Onvoldoende leveranciersdiversificatie, ontbrekende exitstrategie",
+        "probability": 2,
+        "impact": 5,
+        "score": 10,
+        "treatmentOption": "reduce",
+        "owner": "BCM Manager",
+        "dueDate": "2026-09-30",
+        "reviewDate": "2026-06-30",
+        "status": "open",
+        "linkedControls": [
+          "ISO-5.19",
+          "ISO-5.20"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-10T09:00:00.000Z",
+        "updatedAt": "2026-02-10T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "goals.json": [
+      {
+        "id": "goal_nl_001",
+        "title": "Patchrate verhogen naar 95 %",
+        "description": "Minimaal 95 % van alle systemen heeft kritieke patches binnen 30 dagen na uitgifte geïnstalleerd.",
+        "targetValue": 95,
+        "currentValue": 76,
+        "unit": "%",
+        "priority": "high",
+        "status": "in_progress",
+        "owner": "IT Manager",
+        "dueDate": "2026-09-30",
+        "reviewDate": "2026-06-30",
+        "linkedControls": [
+          "ISO-8.8"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-15T09:00:00.000Z",
+        "updatedAt": "2026-02-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_nl_002",
+        "title": "MFA invoeren voor alle beheerdersaccounts",
+        "description": "Meerfactorauthenticatie activeren voor alle bevoorrechte gebruikersaccounts in alle systemen en clouddiensten.",
+        "targetValue": 100,
+        "currentValue": 60,
+        "unit": "%",
+        "priority": "critical",
+        "status": "in_progress",
+        "owner": "CISO",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-30",
+        "linkedControls": [
+          "ISO-8.5"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-15T09:00:00.000Z",
+        "updatedAt": "2026-02-15T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_nl_003",
+        "title": "ISO 27001-certificering behalen",
+        "description": "Succesvol doorlopen van ISO 27001:2022 Stage 1 en Stage 2 audits en certificering behalen vóór einde 2026.",
+        "targetValue": 1,
+        "currentValue": 0,
+        "unit": "cert",
+        "priority": "high",
+        "status": "planned",
+        "owner": "CISO",
+        "dueDate": "2026-12-31",
+        "reviewDate": "2026-10-01",
+        "linkedControls": [
+          "ISO-5.1"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-15T09:00:00.000Z",
+        "updatedAt": "2026-01-15T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_nl_004",
+        "title": "Phishing-klikpercentage verlagen naar minder dan 5 %",
+        "description": "Door regelmatige phishing-simulaties en bewustzijnstraining het klikpercentage van medewerkers terugbrengen naar onder 5 %.",
+        "targetValue": 5,
+        "currentValue": 16,
+        "unit": "%",
+        "priority": "medium",
+        "status": "in_progress",
+        "owner": "Security Awareness Lead",
+        "dueDate": "2026-12-31",
+        "reviewDate": "2026-09-30",
+        "linkedControls": [
+          "ISO-6.3"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-15T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "training.json": [
+      {
+        "id": "training_nl_001",
+        "title": "Informatiebeveiliging – basistraining",
+        "description": "Verplichte jaarlijkse basistraining voor alle medewerkers over informatiebeveiliging, wachtwoordbeleid en veilig e-mailgebruik.",
+        "trainingType": "e-learning",
+        "targetAudience": "all_staff",
+        "dueDate": "2026-04-30",
+        "completionRate": 62,
+        "status": "active",
+        "provider": "intern",
+        "linkedControls": [
+          "ISO-6.3"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "training_nl_002",
+        "title": "AVG-opfrissing – jaarlijkse herhaling",
+        "description": "Jaarlijkse opfrissing van de Algemene Verordening Gegevensbescherming voor alle medewerkers die persoonsgegevens verwerken.",
+        "trainingType": "e-learning",
+        "targetAudience": "data_handlers",
+        "dueDate": "2026-05-31",
+        "completionRate": 45,
+        "status": "active",
+        "provider": "intern",
+        "linkedControls": [
+          "ISO-5.12"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-10T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "training_nl_003",
+        "title": "Phishing-bewustzijnstraining",
+        "description": "Praktische training met gesimuleerde phishing-aanvallen om medewerkers te leren verdachte e-mails te herkennen en te melden.",
+        "trainingType": "simulation",
+        "targetAudience": "all_staff",
+        "dueDate": "2026-06-30",
+        "completionRate": 30,
+        "status": "planned",
+        "provider": "extern",
+        "linkedControls": [
+          "ISO-6.3"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-02-01T09:00:00.000Z",
+        "updatedAt": "2026-02-01T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "assets.json": [
+      {
+        "id": "asset_nl_001",
+        "name": "ERP-systeem (Microsoft Dynamics 365)",
+        "description": "Centraal ERP-systeem voor financiële administratie, inkoop en productieplanning.",
+        "category": "software",
+        "classification": "confidential",
+        "criticality": "critical",
+        "owner": "IT Manager",
+        "location": "Azure West Europe",
+        "vendor": "Microsoft",
+        "purchaseDate": "2022-06-01",
+        "eolDate": "2029-12-31",
+        "linkedControls": [
+          "ISO-8.9"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "asset_nl_002",
+        "name": "Productieserver – Vestiging Amsterdam",
+        "description": "Primaire applicatieserver voor productiebesturing en real-time procesmonitoring.",
+        "category": "hardware",
+        "classification": "restricted",
+        "criticality": "critical",
+        "owner": "IT Manager",
+        "location": "Serverruimte Amsterdam",
+        "vendor": "HPE",
+        "purchaseDate": "2021-03-15",
+        "eolDate": "2027-03-15",
+        "linkedControls": [
+          "ISO-8.1"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "asset_nl_003",
+        "name": "Active Directory / LDAP",
+        "description": "Centrale directory-service voor identiteits- en toegangsbeheer voor alle systemen en gebruikers.",
+        "category": "software",
+        "classification": "restricted",
+        "criticality": "critical",
+        "owner": "IT Manager",
+        "location": "On-premise DC Amsterdam",
+        "vendor": "Microsoft",
+        "purchaseDate": "2020-01-01",
+        "eolDate": "2030-12-31",
+        "linkedControls": [
+          "ISO-8.5"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "asset_nl_004",
+        "name": "Klantendatabase CRM",
+        "description": "Database met klantgegevens, contacthistorie en salesinformatie. Bevat persoonsgegevens (AVG van toepassing).",
+        "category": "data",
+        "classification": "confidential",
+        "criticality": "high",
+        "owner": "Sales Director",
+        "location": "Azure West Europe",
+        "vendor": "Salesforce",
+        "purchaseDate": "2021-09-01",
+        "eolDate": "2028-08-31",
+        "linkedControls": [
+          "ISO-8.10",
+          "ISO-5.12"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "asset_nl_005",
+        "name": "Beheerd SOC (extern)",
+        "description": "Extern beheerd Security Operations Center voor 24/7 dreigingsdetectie en incidentrespons.",
+        "category": "service",
+        "classification": "restricted",
+        "criticality": "high",
+        "owner": "CISO",
+        "location": "Extern (dienstverlener)",
+        "vendor": "Atos SE",
+        "purchaseDate": "2025-04-01",
+        "eolDate": "2028-03-31",
+        "linkedControls": [
+          "ISO-8.16"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "suppliers.json": [
+      {
+        "id": "supplier_nl_001",
+        "name": "Microsoft Nederland BV",
+        "category": "cloud",
+        "description": "Leverancier van Microsoft 365, Azure en Entra ID. Kritieke cloudinfrastructuur voor samenwerking en identiteitsbeheer.",
+        "contactPerson": "Account Manager",
+        "contactEmail": "accountmanager@microsoft.com",
+        "riskLevel": "high",
+        "status": "active",
+        "contractStart": "2025-01-01",
+        "contractEnd": "2027-12-31",
+        "nextAudit": "2026-07-01",
+        "linkedControls": [
+          "ISO-5.19"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "supplier_nl_002",
+        "name": "KPN N.V.",
+        "category": "telecom",
+        "description": "Internetverbindingen en telefonie voor alle vestigingen. Kritieke infrastructuur voor dagelijks bedrijfsverkeer.",
+        "contactPerson": "Relatiemanager",
+        "contactEmail": "zakelijk@kpn.com",
+        "riskLevel": "medium",
+        "status": "active",
+        "contractStart": "2024-01-01",
+        "contractEnd": "2027-12-31",
+        "nextAudit": "2026-10-15",
+        "linkedControls": [
+          "ISO-5.19"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "supplier_nl_003",
+        "name": "Atos SE – Cybersecurity",
+        "category": "security",
+        "description": "Beheerd SOC-dienstverlener voor 24/7 dreigingsmonitoring, SIEM-as-a-Service en incidentrespons.",
+        "contactPerson": "Service Delivery Manager",
+        "contactEmail": "soc@atos.net",
+        "riskLevel": "high",
+        "status": "active",
+        "contractStart": "2025-04-01",
+        "contractEnd": "2028-03-31",
+        "nextAudit": "2026-05-20",
+        "linkedControls": [
+          "ISO-5.22"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "supplier_nl_004",
+        "name": "Sogeti Nederland BV",
+        "category": "consulting",
+        "description": "IT-consultancy en penetratietestdiensten. Uitvoerder van jaarlijkse beveiligingsaudit en kwetsbaarheidsscans.",
+        "contactPerson": "Projectmanager",
+        "contactEmail": "info@sogeti.nl",
+        "riskLevel": "medium",
+        "status": "active",
+        "contractStart": "2026-01-01",
+        "contractEnd": "2026-12-31",
+        "nextAudit": "2026-09-01",
+        "linkedControls": [
+          "ISO-5.20"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "templates.json": [
+      {
+        "id": "tmpl_nl_001",
+        "title": "Informatiebeveiligingsbeleid",
+        "type": "Policy",
+        "status": "approved",
+        "language": "nl",
+        "version": 2,
+        "content": "Dit Informatiebeveiligingsbeleid definieert het kader voor de bescherming van informatiemiddelen van Demo BV. Het is van toepassing op alle medewerkers, aannemers en derden. Het beleid is afgestemd op ISO 27001:2022 en wordt jaarlijks herzien.",
+        "linkedControls": [
+          "ISO-5.1"
+        ],
+        "applicableEntities": [],
+        "attachments": [],
+        "nextReviewDate": "2027-01-01",
+        "createdAt": "2025-03-01T09:00:00.000Z",
+        "updatedAt": "2026-01-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tmpl_nl_002",
+        "title": "Procedure voor incidentrespons",
+        "type": "Procedure",
+        "status": "approved",
+        "language": "nl",
+        "version": 1,
+        "content": "Deze procedure beschrijft het proces voor detectie, classificatie, escalatie en afhandeling van informatiebeveiligingsincidenten. Ernst-niveaus: Kritiek, Hoog, Medium, Laag. Escalatiepad: Servicedesk → CISO → Directie.",
+        "linkedControls": [
+          "ISO-5.26"
+        ],
+        "applicableEntities": [],
+        "attachments": [],
+        "nextReviewDate": "2027-01-01",
+        "createdAt": "2025-06-01T09:00:00.000Z",
+        "updatedAt": "2026-01-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tmpl_nl_003",
+        "title": "Beleid voor acceptabel gebruik van IT-middelen",
+        "type": "Policy",
+        "status": "approved",
+        "language": "nl",
+        "version": 1,
+        "content": "Dit beleid beschrijft de regels voor aanvaardbaar gebruik van IT-systemen, apparaten en gegevens van Demo BV door medewerkers en contractors. Verboden gebruik wordt uitdrukkelijk vermeld. Overtreding kan leiden tot disciplinaire maatregelen.",
+        "linkedControls": [
+          "ISO-5.10"
+        ],
+        "applicableEntities": [],
+        "attachments": [],
+        "nextReviewDate": "2027-01-01",
+        "createdAt": "2025-09-01T09:00:00.000Z",
+        "updatedAt": "2026-01-10T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "guidance.json": [
+      {
+        "id": "guidance_nl_001",
+        "title": "ISMS Build – Systeemhandboek",
+        "category": "systemhandbuch",
+        "content": "# ISMS Build – Systeemhandboek\n\nDit handboek beschrijft de architectuur, configuratie en het beheer van het ISMS Build-platform voor Demo BV.\n\n## Modules\n- Risicobeheer\n- AVG & Gegevensbescherming\n- Leveranciersbeheer\n- Bedrijfscontinuïteit\n\n## Toegangsbeheer\nGebaseerd op rolgebaseerde toegangscontrole (RBAC).",
+        "status": "published",
+        "owner": "CISO",
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "attachments": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-01-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "guidance_nl_002",
+        "title": "Rollen en verantwoordelijkheden",
+        "category": "rollen",
+        "content": "# Rollen en verantwoordelijkheden\n\n## CISO\nVerantwoordelijk voor de algehele informatiebeveiliging en het ISMS.\n\n## FG (Functionaris Gegevensbescherming)\nToezicht op AVG-naleving en contactpersoon voor de Autoriteit Persoonsgegevens.\n\n## IT Manager\nTechnische uitvoering van beveiligingsmaatregelen.\n\n## Afdelingshoofden\nEigenaarschap van risico's en beleidsimplementatie binnen hun afdeling.",
+        "status": "published",
+        "owner": "CISO",
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "attachments": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-01-01T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "public-incidents.json": [
+      {
+        "id": "INC-2026-0001",
+        "ref": "INC-2026-0001",
+        "reportedAt": "2026-02-14T10:23:00.000Z",
+        "reporterName": "J. de Vries",
+        "reporterEmail": "j.devries@extern.nl",
+        "incidentType": "phishing",
+        "severity": "medium",
+        "description": "Meerdere medewerkers ontvingen verdachte phishing-e-mails met vervalste afzender van de directeur, met verzoek om spoedbetaling.",
+        "affectedSystems": "E-mail",
+        "status": "closed",
+        "assignedTo": "CISO",
+        "notes": "Geen betalingen verricht. Medewerkers geïnformeerd. Spamfilter aangescherpt."
+      },
+      {
+        "id": "INC-2026-0002",
+        "ref": "INC-2026-0002",
+        "reportedAt": "2026-03-02T08:45:00.000Z",
+        "reporterName": "Anoniem",
+        "reporterEmail": "",
+        "incidentType": "unauthorized_access",
+        "severity": "high",
+        "description": "Onbekende partij heeft meerdere mislukte inlogpogingen op de VPN-portal uitgevoerd vanuit een buitenlands IP-adres.",
+        "affectedSystems": "VPN",
+        "status": "in_review",
+        "assignedTo": "IT Manager",
+        "notes": "IP geblokkeerd. Onderzoek naar gecompromitteerde credentials loopt."
+      },
+      {
+        "id": "INC-2026-0003",
+        "ref": "INC-2026-0003",
+        "reportedAt": "2026-03-08T14:00:00.000Z",
+        "reporterName": "HR Medewerker",
+        "reporterEmail": "hr@demo.example",
+        "incidentType": "data_loss",
+        "severity": "medium",
+        "description": "Medewerker heeft per ongeluk een spreadsheet met personeelsgegevens (naam, salaris, BSN) naar een extern e-mailadres gestuurd.",
+        "affectedSystems": "E-mail, HR-systeem",
+        "status": "open",
+        "assignedTo": "FG",
+        "notes": "AVG-melding overwogen. Termijn 72 uur loopt."
+      }
+    ],
+    "bcm.json": {
+      "bia": [
+        {
+          "id": "bia_nl_001",
+          "process": "ERP & Financiële Systemen",
+          "owner": "CFO",
+          "criticality": "critical",
+          "rto": 4,
+          "rpo": 1,
+          "dependencies": [
+            "Active Directory",
+            "Azure West Europe"
+          ],
+          "impactDescription": "Geen financiële boekingen, inkooporders of facturatie mogelijk.",
+          "createdAt": "2026-01-10T09:00:00.000Z",
+          "updatedAt": "2026-01-10T09:00:00.000Z",
+          "createdBy": "admin"
+        },
+        {
+          "id": "bia_nl_002",
+          "process": "Productiebesturing",
+          "owner": "Operations Director",
+          "criticality": "critical",
+          "rto": 2,
+          "rpo": 0.5,
+          "dependencies": [
+            "Productieserver",
+            "ICS-netwerk"
+          ],
+          "impactDescription": "Productiestilstand leidt tot directe omzetderving en leveringsvertragingen.",
+          "createdAt": "2026-01-10T09:00:00.000Z",
+          "updatedAt": "2026-01-10T09:00:00.000Z",
+          "createdBy": "admin"
+        },
+        {
+          "id": "bia_nl_003",
+          "process": "E-mail & Samenwerking (M365)",
+          "owner": "IT Manager",
+          "criticality": "high",
+          "rto": 8,
+          "rpo": 4,
+          "dependencies": [
+            "Microsoft 365",
+            "Internet"
+          ],
+          "impactDescription": "Communicatie uitgevallen, samenwerking via Teams niet mogelijk.",
+          "createdAt": "2026-01-10T09:00:00.000Z",
+          "updatedAt": "2026-01-10T09:00:00.000Z",
+          "createdBy": "admin"
+        }
+      ],
+      "plans": [
+        {
+          "id": "plan_nl_001",
+          "title": "BCP – ERP Uitval",
+          "scope": "Herstel van ERP-systeem na uitval",
+          "owner": "IT Manager",
+          "status": "approved",
+          "lastTested": "2025-10-15",
+          "nextTest": "2026-10-15",
+          "steps": [
+            "Activeer noodprocedures",
+            "Schakel over naar back-upsysteem",
+            "Herstel vanuit last-known-good snapshot",
+            "Valideer dataintegriteit"
+          ],
+          "createdAt": "2026-01-15T09:00:00.000Z",
+          "updatedAt": "2026-01-15T09:00:00.000Z",
+          "createdBy": "admin"
+        },
+        {
+          "id": "plan_nl_002",
+          "title": "BCP – Ransomware Respons",
+          "scope": "Gecoördineerde respons op ransomware-aanval",
+          "owner": "CISO",
+          "status": "approved",
+          "lastTested": "2025-11-20",
+          "nextTest": "2026-11-20",
+          "steps": [
+            "Isoleer getroffen systemen",
+            "Activeer incidentrespons-team",
+            "Herstel vanuit offline back-ups",
+            "Informeer toezichthouder indien nodig"
+          ],
+          "createdAt": "2026-01-15T09:00:00.000Z",
+          "updatedAt": "2026-01-15T09:00:00.000Z",
+          "createdBy": "admin"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "ex_nl_001",
+          "title": "Tabletop: Ransomware-scenario",
+          "type": "tabletop",
+          "date": "2026-05-14",
+          "owner": "CISO",
+          "status": "planned",
+          "participants": [
+            "CISO",
+            "IT Manager",
+            "CFO",
+            "Operations Director"
+          ],
+          "findings": "",
+          "createdAt": "2026-01-20T09:00:00.000Z",
+          "updatedAt": "2026-01-20T09:00:00.000Z",
+          "createdBy": "admin"
+        },
+        {
+          "id": "ex_nl_002",
+          "title": "Technische test: ERP-failover",
+          "type": "technical",
+          "date": "2026-10-15",
+          "owner": "IT Manager",
+          "status": "planned",
+          "participants": [
+            "IT Manager",
+            "Systeembeheer"
+          ],
+          "findings": "",
+          "createdAt": "2026-01-20T09:00:00.000Z",
+          "updatedAt": "2026-01-20T09:00:00.000Z",
+          "createdBy": "admin"
+        }
+      ]
+    },
+    "governance.json": {
+      "reviews": [
+        {
+          "id": "rev_nl_001",
+          "title": "Managementbeoordeling ISMS Q1 2026",
+          "reviewType": "management_review",
+          "date": "2026-03-25",
+          "owner": "CISO",
+          "status": "planned",
+          "participants": [
+            "CEO",
+            "CISO",
+            "FG",
+            "IT Manager"
+          ],
+          "agenda": [
+            "KPI-rapportage",
+            "Risicoregister",
+            "Auditbevindingen",
+            "Doelstellingen 2026"
+          ],
+          "createdAt": "2026-02-01T09:00:00.000Z",
+          "updatedAt": "2026-02-01T09:00:00.000Z",
+          "createdBy": "admin"
+        }
+      ],
+      "actions": [
+        {
+          "id": "action_nl_001",
+          "title": "Patchbeheerproces documenteren",
+          "description": "Formele procedure voor patchbeheer opstellen en goedkeuren.",
+          "owner": "IT Manager",
+          "dueDate": "2026-04-30",
+          "status": "open",
+          "priority": "high",
+          "linkedRisk": "risk_nl_006",
+          "createdAt": "2026-02-01T09:00:00.000Z",
+          "updatedAt": "2026-02-01T09:00:00.000Z",
+          "createdBy": "admin"
+        },
+        {
+          "id": "action_nl_002",
+          "title": "MFA uitrollen voor alle admins",
+          "description": "Meerfactorauthenticatie activeren voor alle bevoorrechte accounts vóór 30 juni 2026.",
+          "owner": "CISO",
+          "dueDate": "2026-06-30",
+          "status": "in_progress",
+          "priority": "critical",
+          "linkedRisk": "risk_nl_001",
+          "createdAt": "2026-02-01T09:00:00.000Z",
+          "updatedAt": "2026-03-01T09:00:00.000Z",
+          "createdBy": "admin"
+        },
+        {
+          "id": "action_nl_003",
+          "title": "Leveranciersregister actualiseren",
+          "description": "Alle actieve leveranciers controleren op contractstatus en AVG-verwerkersovereenkomsten.",
+          "owner": "FG",
+          "dueDate": "2026-05-31",
+          "status": "open",
+          "priority": "medium",
+          "linkedRisk": "risk_nl_008",
+          "createdAt": "2026-02-05T09:00:00.000Z",
+          "updatedAt": "2026-02-05T09:00:00.000Z",
+          "createdBy": "admin"
+        }
+      ],
+      "meetings": [
+        {
+          "id": "meeting_nl_001",
+          "title": "ISMS Stuurgroep – Maart 2026",
+          "date": "2026-03-18",
+          "owner": "CISO",
+          "attendees": [
+            "CISO",
+            "FG",
+            "IT Manager",
+            "HR Directeur"
+          ],
+          "agenda": [
+            "Voortgang doelstellingen",
+            "Open actiepunten",
+            "Risico-updates"
+          ],
+          "minutes": "",
+          "createdAt": "2026-03-01T09:00:00.000Z",
+          "updatedAt": "2026-03-01T09:00:00.000Z",
+          "createdBy": "admin"
+        }
+      ]
+    }
+  },
+  "gdpr": {
+    "vvt.json": [
+      {
+        "id": "vvt_nl_001",
+        "name": "CRM – Klantgegevensbeheer",
+        "purpose": "Beheer van klantrelaties, contacthistorie en verkoopkansen.",
+        "legalBasis": "legitimate_interest",
+        "dataCategories": [
+          "Contactgegevens",
+          "Bedrijfsinformatie"
+        ],
+        "dataSubjects": [
+          "Klanten",
+          "Contactpersonen"
+        ],
+        "retentionPeriod": "7 jaar na einde relatie",
+        "recipients": [
+          "Salesteam",
+          "Klantenservice"
+        ],
+        "transfers": [],
+        "dpia": false,
+        "linkedAv": [],
+        "createdAt": "2026-01-10T09:00:00.000Z",
+        "updatedAt": "2026-01-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "vvt_nl_002",
+        "name": "HR – Personeelsadministratie",
+        "purpose": "Salarisadministratie, personeelsdossiers en arbeidsrechtelijke verplichtingen.",
+        "legalBasis": "contract",
+        "dataCategories": [
+          "NAW-gegevens",
+          "BSN",
+          "Salarisgegevens",
+          "Gezondheidsgegevens"
+        ],
+        "dataSubjects": [
+          "Medewerkers",
+          "Ex-medewerkers"
+        ],
+        "retentionPeriod": "7 jaar na uitdiensttreding (financieel), 2 jaar overig",
+        "recipients": [
+          "HR",
+          "Salarisverwerker",
+          "Belastingdienst"
+        ],
+        "transfers": [],
+        "dpia": false,
+        "linkedAv": [
+          "av_nl_001"
+        ],
+        "createdAt": "2026-01-10T09:00:00.000Z",
+        "updatedAt": "2026-01-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "vvt_nl_003",
+        "name": "IT-loggen en toegangsbeheer",
+        "purpose": "Beveiliging van informatiesystemen, detectie van ongeoorloofde toegang en forensisch onderzoek.",
+        "legalBasis": "legitimate_interest",
+        "dataCategories": [
+          "Inloggegevens",
+          "IP-adressen",
+          "Toegangslogs"
+        ],
+        "dataSubjects": [
+          "Medewerkers",
+          "Aannemers"
+        ],
+        "retentionPeriod": "90 dagen (toegangslogs), 1 jaar (beveiligingslogs)",
+        "recipients": [
+          "IT-afdeling",
+          "SOC"
+        ],
+        "transfers": [],
+        "dpia": false,
+        "linkedAv": [],
+        "createdAt": "2026-01-12T09:00:00.000Z",
+        "updatedAt": "2026-01-12T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "toms.json": [
+      {
+        "id": "tom_nl_001",
+        "title": "Toegangscontrole en authenticatie",
+        "category": "technical",
+        "description": "RBAC voor alle systemen. MFA voor bevoorrechte accounts. Automatische sessietime-out na 15 minuten inactiviteit.",
+        "status": "implemented",
+        "linkedControls": [
+          "ISO-8.5"
+        ],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_nl_002",
+        "title": "Versleuteling van data in rust en in transit",
+        "category": "technical",
+        "description": "AES-256 versleuteling voor data in rust. TLS 1.3 verplicht voor alle dataoverdrachten. Volledige schijfversleuteling op laptops (BitLocker).",
+        "status": "implemented",
+        "linkedControls": [
+          "ISO-8.24"
+        ],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_nl_003",
+        "title": "Pseudonimisering van testdata",
+        "category": "technical",
+        "description": "Productiedata wordt gepseudonimiseerd vóór gebruik in testomgevingen. Mapping-sleutels worden apart opgeslagen met strikte toegangscontrole.",
+        "status": "partial",
+        "linkedControls": [
+          "ISO-8.33"
+        ],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_nl_004",
+        "title": "Bewustzijns- en privacytraining",
+        "category": "organisational",
+        "description": "Jaarlijkse AVG-basistraining verplicht voor alle medewerkers. Aanvullende training voor gegevensverwerkers en HR.",
+        "status": "implemented",
+        "linkedControls": [
+          "ISO-6.3"
+        ],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_nl_005",
+        "title": "Verwerkersovereenkomsten",
+        "category": "organisational",
+        "description": "AVG-conforme verwerkersovereenkomsten afgesloten met alle externe verwerkers. Jaarlijkse controle op naleving.",
+        "status": "implemented",
+        "linkedControls": [
+          "ISO-5.19"
+        ],
+        "createdAt": "2026-01-05T09:00:00.000Z",
+        "updatedAt": "2026-01-05T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "av.json": [
+      {
+        "id": "av_nl_001",
+        "processorName": "ADP Nederland BV",
+        "purpose": "Salarisverwerking en loonadministratie",
+        "dataCategories": [
+          "BSN",
+          "Salarisgegevens",
+          "Bankgegevens"
+        ],
+        "contractDate": "2024-01-01",
+        "expiryDate": "2027-12-31",
+        "status": "active",
+        "subProcessors": [],
+        "linkedVvt": [
+          "vvt_nl_002"
+        ],
+        "createdAt": "2026-01-10T09:00:00.000Z",
+        "updatedAt": "2026-01-10T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "dsfa.json": [
+      {
+        "id": "dsfa_nl_001",
+        "title": "DPIA – Medewerkersmonigoringsysteem",
+        "status": "completed",
+        "riskLevel": "high",
+        "description": "Beoordeling van privacyrisico's bij invoering van productiviteitsmonitoringsoftware voor thuiswerkers.",
+        "dataTypes": [
+          "Activiteitenlogs",
+          "Schermopnames",
+          "Locatiedata"
+        ],
+        "mitigations": [
+          "Medewerkersraad betrokken",
+          "Minimale dataverzameling",
+          "Transparante communicatie"
+        ],
+        "completedAt": "2025-11-30",
+        "reviewDate": "2026-11-30",
+        "createdAt": "2025-10-01T09:00:00.000Z",
+        "updatedAt": "2025-11-30T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "dsar.json": [
+      {
+        "id": "dsar_nl_001",
+        "ref": "DSAR-2026-001",
+        "requestDate": "2026-02-10",
+        "deadline": "2026-03-10",
+        "status": "completed",
+        "requestType": "access",
+        "requesterName": "Klant K.",
+        "description": "Verzoek om inzage in alle opgeslagen persoonsgegevens.",
+        "resolution": "Volledige inzage verstrekt binnen wettelijke termijn.",
+        "createdAt": "2026-02-10T09:00:00.000Z",
+        "updatedAt": "2026-03-08T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "dsar_nl_002",
+        "ref": "DSAR-2026-002",
+        "requestDate": "2026-03-05",
+        "deadline": "2026-04-04",
+        "status": "open",
+        "requestType": "erasure",
+        "requesterName": "Anoniem",
+        "description": "Verzoek tot verwijdering van alle persoonsgegevens na beëindiging klantrelatie.",
+        "resolution": "",
+        "createdAt": "2026-03-05T09:00:00.000Z",
+        "updatedAt": "2026-03-05T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "incidents.json": [
+      {
+        "id": "gdpr_inc_nl_001",
+        "ref": "GDPR-INC-2026-001",
+        "discoveredAt": "2026-02-20T09:00:00.000Z",
+        "reportedToAP": false,
+        "severity": "low",
+        "description": "Papieren dossier met persoonsgegevens per ongeluk in openbare prullenbak gegooid.",
+        "affectedPersons": 3,
+        "measures": "Bewustzijnscommunicatie verstuurd, shredderbeleid herbevestigd.",
+        "status": "closed",
+        "createdAt": "2026-02-20T09:00:00.000Z",
+        "updatedAt": "2026-02-22T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "gdpr_inc_nl_002",
+        "ref": "GDPR-INC-2026-002",
+        "discoveredAt": "2026-03-08T14:00:00.000Z",
+        "reportedToAP": false,
+        "severity": "medium",
+        "description": "Medewerker heeft spreadsheet met personeelsgegevens (BSN, salaris) naar extern e-mailadres verzonden.",
+        "affectedPersons": 45,
+        "measures": "Incident onderzocht. AVG-meldbaarheid beoordeeld. Melding aan AP overwogen.",
+        "status": "under_review",
+        "createdAt": "2026-03-08T14:00:00.000Z",
+        "updatedAt": "2026-03-09T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "deletionLog.json": []
+  },
+  "legal": {
+    "contracts.json": [
+      {
+        "id": "contract_nl_001",
+        "title": "IT-outsourcingcontract – Databeheer",
+        "contractType": "service",
+        "counterparty": "KPN N.V.",
+        "description": "Levering van zakelijke internetverbindingen en telefoniediensten voor alle vestigingen van Demo BV.",
+        "startDate": "2024-01-01",
+        "endDate": "2027-12-31",
+        "autoRenew": true,
+        "noticePeriodDays": 90,
+        "owner": "IT Manager",
+        "status": "active",
+        "value": "96000",
+        "currency": "EUR",
+        "notes": "SLA: uptime 99,8 %. Jaarlijkse dienstbeoordeling.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2023-12-01T09:00:00.000Z",
+        "updatedAt": "2024-01-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "contract_nl_002",
+        "title": "Microsoft 365 Enterprise E3 Licentieovereenkomst",
+        "contractType": "license",
+        "counterparty": "Microsoft Nederland BV",
+        "description": "Bedrijfslicentie voor 350 gebruikers inclusief Exchange Online, Teams, SharePoint en compliance-tools.",
+        "startDate": "2025-01-01",
+        "endDate": "2027-12-31",
+        "autoRenew": false,
+        "noticePeriodDays": 60,
+        "owner": "IT Manager",
+        "status": "active",
+        "value": "189000",
+        "currency": "EUR",
+        "notes": "Inclusief Entra ID P1 en Defender for Endpoint.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2024-11-15T10:00:00.000Z",
+        "updatedAt": "2025-01-01T08:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "contract_nl_003",
+        "title": "Beheerd SOC-diensten – 24/7 beveiligingsmonitoring",
+        "contractType": "service",
+        "counterparty": "Atos SE – Cybersecurity Division",
+        "description": "Beheerd SOC voor 24/7 dreigingsdetectie, incidenttriage en maandelijkse rapportage inclusief SIEM-as-a-Service.",
+        "startDate": "2025-04-01",
+        "endDate": "2028-03-31",
+        "autoRenew": true,
+        "noticePeriodDays": 180,
+        "owner": "CISO",
+        "status": "active",
+        "value": "144000",
+        "currency": "EUR",
+        "notes": "SLA: kritieke meldingen binnen 15 minuten.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2025-03-01T09:00:00.000Z",
+        "updatedAt": "2025-04-01T08:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "ndas.json": [
+      {
+        "id": "nda_nl_001",
+        "title": "NDA – Penetratietestdienstverlener 2026",
+        "ndaType": "bilateral",
+        "counterparty": "Sogeti Nederland BV",
+        "signingDate": "2026-02-10",
+        "expiryDate": "2028-02-10",
+        "scope": "Alle bevindingen, kwetsbaarheden en interne infrastructuurinformatie verkregen tijdens penetratietestopdrachen.",
+        "owner": "CISO",
+        "status": "active",
+        "applicableEntities": [],
+        "notes": "Jaarlijkse pentest gepland Q2 2026.",
+        "attachments": [],
+        "createdAt": "2026-02-10T09:00:00.000Z",
+        "updatedAt": "2026-02-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "nda_nl_002",
+        "title": "NDA – ISO 27001-certificeringsinstantie",
+        "ndaType": "unilateral",
+        "counterparty": "Lloyd's Register Nederland BV",
+        "signingDate": "2026-01-15",
+        "expiryDate": "2029-01-15",
+        "scope": "Alle interne documentatie, risicobeoordelingen en auditbevindingen gedeeld tijdens Stage 1 en Stage 2 certificeringsaudits.",
+        "owner": "CISO",
+        "status": "active",
+        "applicableEntities": [],
+        "notes": "Stage 1: juni 2026. Stage 2: september 2026.",
+        "attachments": [],
+        "createdAt": "2026-01-15T09:00:00.000Z",
+        "updatedAt": "2026-01-15T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "privacy-policies.json": [
+      {
+        "id": "pp_nl_001",
+        "title": "Privacyverklaring – Website & online diensten",
+        "policyType": "privacy_notice",
+        "description": "Publieke privacyverklaring conform art. 13/14 AVG voor websitebezoekers en gebruikers van online diensten.",
+        "content": "Wij verwerken uw persoonsgegevens in overeenstemming met de AVG. Verwerkingsverantwoordelijke: Demo BV, Herengracht 1, 1017 BN Amsterdam. FG: fg@demo.example.",
+        "publishedAt": "2025-05-25",
+        "nextReviewDate": "2026-05-25",
+        "url": "https://demo.example/privacy",
+        "owner": "FG",
+        "status": "active",
+        "version": "3.1",
+        "applicableEntities": [],
+        "notes": "Laatste update mei 2025.",
+        "attachments": [],
+        "createdAt": "2025-05-25T09:00:00.000Z",
+        "updatedAt": "2025-05-25T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "pp_nl_002",
+        "title": "Privacybeleid medewerkers",
+        "policyType": "internal_policy",
+        "description": "Intern beleid voor de verwerking van persoonsgegevens van medewerkers, inclusief HR-gegevens, toegangslogs en monitoring.",
+        "content": "Verwerking vindt plaats op grond van art. 6 lid 1 sub b en c AVG en art. 7:611 BW. Medewerkers hebben recht op inzage, rectificatie en wissing van hun gegevens binnen de wettelijke bewaartermijnen.",
+        "publishedAt": "2025-01-15",
+        "nextReviewDate": "2026-01-15",
+        "url": "",
+        "owner": "FG",
+        "status": "active",
+        "version": "2.0",
+        "applicableEntities": [],
+        "notes": "Beoordeeld door juridische afdeling januari 2025.",
+        "attachments": [],
+        "createdAt": "2025-01-15T08:00:00.000Z",
+        "updatedAt": "2025-01-15T08:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ]
+  }
+}

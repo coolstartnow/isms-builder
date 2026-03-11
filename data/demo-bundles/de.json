@@ -1,0 +1,1729 @@
+{
+  "exportedAt": "2026-03-11T13:25:49.305Z",
+  "version": "1.30",
+  "lang": "de",
+  "files": {
+    "risks.json": [
+      {
+        "id": "risk_demo_de_001",
+        "title": "Ransomware-Angriff auf Produktionssysteme",
+        "description": "Verschlüsselung geschäftskritischer Daten durch Ransomware-Angriff. Betrifft ERP-System, Produktionssteuerung und Backup-Infrastruktur. Erpressung mit Bitcoin-Forderung.",
+        "category": "technical",
+        "threat": "Ransomware / Verschlüsselungstrojaner",
+        "vulnerability": "Fehlende Netzwerksegmentierung, unzureichende Offline-Backups",
+        "probability": 4,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f",
+          "EUCS-GOV.3",
+          "BSI-CON.3"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-10T09:00:00.000Z",
+        "updatedAt": "2026-01-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_de_002",
+        "title": "Unbefugter Zugriff auf Kundendaten",
+        "description": "Sicherheitslücke in einer Web-Applikation ermöglicht unbefugten Dritten den Zugriff auf personenbezogene Kundendaten (Datenpanne nach Art. 33 DSGVO).",
+        "category": "technical",
+        "threat": "Datenpanne, Reputationsverlust, Bußgeld",
+        "vulnerability": "Fehlende WAF, ungepatchte Web-Applikation",
+        "probability": 3,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "DSB",
+        "dueDate": "2026-04-30",
+        "reviewDate": "2026-03-15",
+        "status": "in_treatment",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f",
+          "EUCS-GOV.3",
+          "EUCS-LOG.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-15T10:00:00.000Z",
+        "updatedAt": "2026-02-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_de_003",
+        "title": "Phishing-Angriff auf Mitarbeiter (CEO-Fraud)",
+        "description": "Gezielter Spear-Phishing-Angriff auf Führungskräfte und Finanzabteilung zur Initiierung betrügerischer Überweisungen oder Diebstahl von Zugangsdaten.",
+        "category": "human",
+        "threat": "Social Engineering, Business Email Compromise (BEC)",
+        "vulnerability": "Fehlende Mehr-Faktor-Authentisierung, unzureichende Schulung",
+        "probability": 4,
+        "impact": 4,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-05-31",
+        "reviewDate": "2026-06-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-ORP.3"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-20T09:00:00.000Z",
+        "updatedAt": "2026-01-20T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_de_004",
+        "title": "Datenverlust durch Hardware-Ausfall ohne geprüfte Backups",
+        "description": "Backups werden erstellt, aber nicht regelmäßig auf Wiederherstellbarkeit geprüft. Im Notfall könnten Backups beschädigt oder unvollständig sein.",
+        "category": "technical",
+        "threat": "Datenverlust, Betriebsunterbrechung",
+        "vulnerability": "Kein Backup-Restore-Testprozess, fehlende Monitoring-Alertierung",
+        "probability": 3,
+        "impact": 3,
+        "treatmentOption": "reduce",
+        "owner": "IT-Betrieb",
+        "dueDate": "2026-04-30",
+        "reviewDate": "2026-03-31",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-CON.3"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-25T09:00:00.000Z",
+        "updatedAt": "2026-01-25T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_de_005",
+        "title": "Compliance-Verstoß DSGVO – fehlende Dokumentation",
+        "description": "Fehlende oder unvollständige Verzeichnisse der Verarbeitungstätigkeiten (Art. 30 DSGVO) und technisch-organisatorischer Maßnahmen (Art. 32 DSGVO) führen zu Bußgeldrisiken.",
+        "category": "compliance",
+        "threat": "Bußgeld bis 20 Mio. EUR oder 4% des Jahresumsatzes",
+        "vulnerability": "Unvollständiges VVT, fehlende TOM-Dokumentation",
+        "probability": 3,
+        "impact": 4,
+        "treatmentOption": "reduce",
+        "owner": "DSB",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-01T09:00:00.000Z",
+        "updatedAt": "2026-02-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_de_006",
+        "title": "Insiderbedrohung durch privilegierte Benutzer",
+        "description": "Administratoren oder Entwickler mit übermäßigen Zugriffsrechten könnten absichtlich oder fahrlässig Daten exfiltrieren oder Systeme manipulieren.",
+        "category": "organizational",
+        "threat": "Insiderangriff, Datenleck, Sabotage",
+        "vulnerability": "Fehlende Least-Privilege-Durchsetzung, unzureichendes Privileged Access Management (PAM)",
+        "probability": 3,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-07-31",
+        "reviewDate": "2026-05-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "EUCS-GOV.3",
+          "EUCS-LOG.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-05T09:00:00.000Z",
+        "updatedAt": "2026-02-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_de_007",
+        "title": "Verstoß gegen NIS2-Meldepflicht",
+        "description": "Ein Sicherheitsvorfall wird nicht innerhalb der geforderten 24-Stunden-Frühwarnung an das BSI gemeldet, was zu erheblichen Bußgeldern führt.",
+        "category": "compliance",
+        "threat": "Regulatorische Sanktion, Bußgeld bis 10 Mio. EUR oder 2% des Jahresumsatzes",
+        "vulnerability": "Kein dokumentierter NIS2-Meldeprozess, unklare Zuständigkeiten",
+        "probability": 3,
+        "impact": 4,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-05-31",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-10T09:00:00.000Z",
+        "updatedAt": "2026-02-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_de_008",
+        "title": "Lieferkettenangriff auf kritische Software",
+        "description": "Ein kritischer Software-Lieferant wird kompromittiert und verteilt Schadsoftware über legitime Update-Kanäle (SolarWinds-Szenario).",
+        "category": "organizational",
+        "threat": "Supply-Chain-Angriff, vertrauenswürdige Schadsoftware",
+        "vulnerability": "Fehlende Lieferanten-Sicherheitsbewertung, kein Integritätscheck von Updates",
+        "probability": 2,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-09-30",
+        "reviewDate": "2026-06-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-d",
+          "CRA-5.3",
+          "EUCS-SCM.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-15T09:00:00.000Z",
+        "updatedAt": "2026-02-15T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "goals.json": [
+      {
+        "id": "goal_demo_de_001",
+        "title": "Patching-Rate auf 95% erhöhen",
+        "description": "Erreichung und Aufrechterhaltung einer Patch-Compliance-Rate von 95% über alle verwalteten Systeme innerhalb von 90 Tagen nach Patch-Veröffentlichung.",
+        "owner": "IT-Betrieb",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-01",
+        "status": "in_progress",
+        "priority": "high",
+        "targetValue": 95,
+        "currentValue": 84,
+        "unit": "%",
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-OPS.1.1"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_demo_de_002",
+        "title": "2FA für alle Admin-Konten einführen",
+        "description": "Durchsetzung von Mehr-Faktor-Authentisierung für alle privilegierten (Admin-)Konten bis Ende Q2.",
+        "owner": "CISO",
+        "dueDate": "2026-04-30",
+        "reviewDate": "2026-05-01",
+        "status": "in_progress",
+        "priority": "critical",
+        "targetValue": 100,
+        "currentValue": 72,
+        "unit": "%",
+        "linkedControls": [
+          "NIS2-a",
+          "EUCS-GOV.3"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_demo_de_003",
+        "title": "ISO 27001-Zertifizierung erreichen",
+        "description": "Abschluss von Stage-1- und Stage-2-Audit durch externen Zertifizierer (TÜV Rheinland) und Erhalt des ISO 27001-Zertifikats.",
+        "owner": "CISO",
+        "dueDate": "2026-09-30",
+        "reviewDate": "2026-09-30",
+        "status": "open",
+        "priority": "critical",
+        "targetValue": 1,
+        "currentValue": 0,
+        "unit": "Zertifikat",
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-ORP.1"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-01-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_demo_de_004",
+        "title": "Phishing-Klickrate unter 5% senken",
+        "description": "Reduzierung der Mitarbeiter-Klickrate in simulierten Phishing-Kampagnen von aktuell 14% auf unter 5% durch gezieltes Awareness-Training.",
+        "owner": "IT-Sicherheit",
+        "dueDate": "2026-12-31",
+        "reviewDate": "2026-09-30",
+        "status": "in_progress",
+        "priority": "high",
+        "targetValue": 5,
+        "currentValue": 14,
+        "unit": "%",
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-ORP.3"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "training.json": [
+      {
+        "id": "training_demo_de_001",
+        "title": "Informationssicherheit Grundlagenschulung",
+        "description": "Jährliche Pflichtschulung für alle Mitarbeiter zu den Grundlagen der Informationssicherheit, sicherer Passwortverwendung und Meldepflichten.",
+        "category": "security_awareness",
+        "status": "planned",
+        "dueDate": "2026-04-30",
+        "completedDate": null,
+        "instructor": "IT-Sicherheitsteam",
+        "assignees": "Alle Mitarbeiter",
+        "applicableEntities": [],
+        "evidence": "",
+        "mandatory": true,
+        "createdBy": "admin",
+        "createdAt": "2026-01-01T08:00:00.000Z",
+        "updatedAt": "2026-01-01T08:00:00.000Z"
+      },
+      {
+        "id": "training_demo_de_002",
+        "title": "DSGVO Auffrischungstraining",
+        "description": "Jährliche Auffrischungsschulung zur Datenschutz-Grundverordnung gemäß Art. 39 DSGVO. Schwerpunkte: Betroffenenrechte, Meldepflichten, Datenpannen.",
+        "category": "gdpr",
+        "status": "completed",
+        "dueDate": "2026-02-28",
+        "completedDate": "2026-02-20",
+        "instructor": "Datenschutzbeauftragte",
+        "assignees": "HR-Abteilung, neue Mitarbeiter Q1",
+        "applicableEntities": [],
+        "evidence": "Teilnehmerliste und Zertifikat in SharePoint abgelegt.",
+        "mandatory": true,
+        "createdBy": "admin",
+        "createdAt": "2026-01-01T08:00:00.000Z",
+        "updatedAt": "2026-02-20T10:00:00.000Z"
+      },
+      {
+        "id": "training_demo_de_003",
+        "title": "Phishing-Awareness Training",
+        "description": "Praktische Schulung zur Erkennung von Phishing-E-Mails, Social-Engineering-Angriffen und CEO-Fraud. Enthält Live-Demo und simulierte Angriffe.",
+        "category": "security_awareness",
+        "status": "in_progress",
+        "dueDate": "2026-05-31",
+        "completedDate": null,
+        "instructor": "Externer Sicherheitsberater",
+        "assignees": "Finanzabteilung, Führungskräfte, Sekretariate",
+        "applicableEntities": [],
+        "evidence": "",
+        "mandatory": true,
+        "createdBy": "admin",
+        "createdAt": "2026-02-01T08:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z"
+      },
+      {
+        "id": "training_demo_de_004",
+        "title": "ISO 27001 Lead Auditor Zertifizierung",
+        "description": "Externe Zertifizierungsschulung für ISMS-Verantwortliche. Bereitet auf die Prüfung zum zertifizierten Lead Auditor vor.",
+        "category": "iso27001",
+        "status": "planned",
+        "dueDate": "2026-06-30",
+        "completedDate": null,
+        "instructor": "TÜV Rheinland",
+        "assignees": "ISMS-Team (2 Personen)",
+        "applicableEntities": [],
+        "evidence": "",
+        "mandatory": false,
+        "createdBy": "admin",
+        "createdAt": "2026-02-15T08:00:00.000Z",
+        "updatedAt": "2026-02-15T08:00:00.000Z"
+      }
+    ],
+    "bcm.json": {
+      "bia": [
+        {
+          "id": "bia_demo_de_001",
+          "title": "ERP-System (SAP S/4HANA)",
+          "processOwner": "Dipl.-Ing. Klaus Bauer (CIO)",
+          "department": "IT",
+          "criticality": "critical",
+          "rto": 4,
+          "rpo": 1,
+          "mtpd": 8,
+          "dependencies": [
+            "Netzwerk",
+            "Rechenzentrum-Stromversorgung",
+            "Oracle DB"
+          ],
+          "affectedSystems": [
+            "SAP S/4HANA",
+            "SAP PI/PO",
+            "SAP BW"
+          ],
+          "status": "approved",
+          "lastReviewDate": "2025-11-15",
+          "notes": "Kernprozess: Auftragsabwicklung, Finanzbuchhaltung, Personalwesen. Ausfall führt direkt zu Produktionsstillstand.",
+          "entityId": "",
+          "createdAt": "2025-06-01T09:00:00.000Z",
+          "updatedAt": "2025-11-15T14:30:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bia_demo_de_002",
+          "title": "Produktionslinie Werk A",
+          "processOwner": "Maria Hofmann (Werkleiterin)",
+          "department": "Produktion",
+          "criticality": "critical",
+          "rto": 2,
+          "rpo": 0,
+          "mtpd": 4,
+          "dependencies": [
+            "Gebäudeleittechnik",
+            "Stromversorgung",
+            "SAP PP"
+          ],
+          "affectedSystems": [
+            "MES Siemens",
+            "SPS-Steuerungen",
+            "SCADA-System"
+          ],
+          "status": "approved",
+          "lastReviewDate": "2025-10-20",
+          "notes": "Höchste Kritikalität — sofortiger Umsatzverlust bei Ausfall. RTO=2h, RPO=0.",
+          "entityId": "",
+          "createdAt": "2025-06-01T09:10:00.000Z",
+          "updatedAt": "2025-10-20T10:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bia_demo_de_003",
+          "title": "E-Mail & Kommunikation (Microsoft 365)",
+          "processOwner": "Thomas Klein (IT-Leiter)",
+          "department": "IT",
+          "criticality": "high",
+          "rto": 8,
+          "rpo": 4,
+          "mtpd": 24,
+          "dependencies": [
+            "Internetanbindung",
+            "Azure AD",
+            "DNS"
+          ],
+          "affectedSystems": [
+            "Microsoft 365",
+            "Exchange Online",
+            "Teams"
+          ],
+          "status": "approved",
+          "lastReviewDate": "2025-09-10",
+          "notes": "Ausfall betrifft alle Abteilungen. Fallback: Mobiltelefone, Notfallkontaktliste.",
+          "entityId": "",
+          "createdAt": "2025-06-02T10:00:00.000Z",
+          "updatedAt": "2025-09-10T08:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bia_demo_de_004",
+          "title": "Personalverwaltung & Lohnbuchhaltung",
+          "processOwner": "Sandra Meier (Personalleiterin)",
+          "department": "HR",
+          "criticality": "high",
+          "rto": 24,
+          "rpo": 4,
+          "mtpd": 72,
+          "dependencies": [
+            "SAP HCM",
+            "DATEV",
+            "Bankschnittstelle"
+          ],
+          "affectedSystems": [
+            "SAP HCM",
+            "DATEV Lohn und Gehalt"
+          ],
+          "status": "reviewed",
+          "lastReviewDate": "2025-08-15",
+          "notes": "Kritisch für Gehaltsläufe (monatlich). Gesetzliche Frist: Gehaltszahlung bis Monatsende.",
+          "entityId": "",
+          "createdAt": "2025-06-02T10:30:00.000Z",
+          "updatedAt": "2025-08-15T12:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        }
+      ],
+      "plans": [
+        {
+          "id": "bcp_demo_de_001",
+          "title": "IT-Wiederanlaufplan (IWP) SAP",
+          "type": "itp",
+          "scope": "SAP S/4HANA, SAP PI/PO, SAP BW – alle Produktivmandanten",
+          "planOwner": "Dipl.-Ing. Klaus Bauer (CIO)",
+          "status": "tested",
+          "version": "3.1",
+          "lastTested": "2025-09-10",
+          "nextTest": "2026-03-10",
+          "testResult": "pass",
+          "linkedBiaIds": [
+            "bia_demo_de_001"
+          ],
+          "procedures": "1. IT-Notfallteam aktivieren\n2. Failover auf DR-Rechenzentrum (RZ2)\n3. SAP-Neustart nach Prioritätsliste\n4. Funktionstest der Kernprozesse\n5. Freigabe durch CIO\n6. Kommunikation an Fachbereiche",
+          "entityId": "",
+          "createdAt": "2025-01-15T09:00:00.000Z",
+          "updatedAt": "2025-09-10T16:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bcp_demo_de_002",
+          "title": "Notfallplan Cyberangriff / Ransomware",
+          "type": "drp",
+          "scope": "Gesamte IT-Infrastruktur inkl. OT-Netzwerk",
+          "planOwner": "Claudia Meier (CISO)",
+          "status": "approved",
+          "version": "2.2",
+          "lastTested": "2025-09-01",
+          "nextTest": "2026-03-01",
+          "testResult": "pass",
+          "linkedBiaIds": [
+            "bia_demo_de_001",
+            "bia_demo_de_003"
+          ],
+          "procedures": "1. Betroffene Systeme isolieren\n2. Incident-Response-Team aktivieren\n3. BSI / Behörden benachrichtigen (falls meldepflichtig)\n4. Forensik und Schadensausmaß ermitteln\n5. Wiederherstellung aus Offline-Backups\n6. Post-Incident-Review",
+          "entityId": "",
+          "createdAt": "2025-02-01T09:00:00.000Z",
+          "updatedAt": "2025-09-01T15:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        }
+      ],
+      "exercises": [
+        {
+          "id": "bex_demo_de_001",
+          "title": "Tabletop-Übung Ransomware-Szenario",
+          "type": "tabletop",
+          "date": "2025-09-05",
+          "conductor": "Claudia Meier (CISO)",
+          "participants": [
+            "IT-Leiter",
+            "CIO",
+            "CISO",
+            "Rechtsabteilung",
+            "Datenschutzbeauftragte"
+          ],
+          "linkedPlanId": "bcp_demo_de_002",
+          "result": "pass",
+          "findings": "Kommunikationskette funktionierte gut. BSI-Meldeprozess korrekt durchgespielt. Verbesserungsbedarf bei Zugriff auf Offline-Backups.",
+          "actions": "Offline-Backup-Prozedur aktualisieren (bis 30.11.2025). BSI-Kontaktliste ergänzen.",
+          "nextExercise": "2026-03-01",
+          "createdAt": "2025-09-05T18:00:00.000Z",
+          "updatedAt": "2025-09-06T09:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bex_demo_de_002",
+          "title": "Geplante Krisenkomitee-Simulation",
+          "type": "simulation",
+          "date": "2026-06-10",
+          "conductor": "Claudia Meier (CISO)",
+          "participants": [
+            "Vorstand",
+            "CISO",
+            "CIO",
+            "CFO",
+            "Personalleiterin",
+            "Pressesprecherin"
+          ],
+          "linkedPlanId": "bcp_demo_de_002",
+          "result": "planned",
+          "findings": "",
+          "actions": "Szenario-Vorbereitung bis 15.05.2026 abschließen. Externe Moderation beauftragen.",
+          "nextExercise": "",
+          "createdAt": "2025-12-01T10:00:00.000Z",
+          "updatedAt": "2025-12-01T10:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        }
+      ]
+    },
+    "assets.json": [
+      {
+        "id": "asset_demo_de_001",
+        "name": "ERP-System (SAP S/4HANA)",
+        "category": "software",
+        "type": "software_saas",
+        "description": "Zentrales ERP-System für Finanzbuchhaltung, Controlling, Einkauf und Produktion. Betrieben als SaaS über SAP Business Technology Platform.",
+        "owner": "Claudia Maier",
+        "ownerEmail": "claudia.maier@mustermann-gmbh.de",
+        "custodian": "IT-Betrieb / ERP-Team",
+        "entityId": "",
+        "location": "SAP BTP EU10 (Frankfurt)",
+        "classification": "confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "SAP SE",
+        "version": "S/4HANA 2023",
+        "serialNumber": "",
+        "purchaseDate": "2022-01-01",
+        "endOfLifeDate": "2030-12-31",
+        "tags": [
+          "erp",
+          "sap",
+          "finanzen",
+          "produktion"
+        ],
+        "notes": "Kritisches System – SLA 99,9% vereinbart. Notfallplan vorhanden.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_de_002",
+        "name": "Active Directory / LDAP",
+        "category": "software",
+        "type": "software_app",
+        "description": "Microsoft Active Directory Domain Services und LDAP-Verzeichnis für die gesamte Konzernstruktur. Zentrales Identity- und Access-Management (IAM).",
+        "owner": "Markus Schneider",
+        "ownerEmail": "markus.schneider@mustermann-gmbh.de",
+        "custodian": "IT-Sicherheit / IAM-Team",
+        "entityId": "",
+        "location": "Rechenzentrum Frankfurt, Zone A (redundant)",
+        "classification": "strictly_confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "Microsoft",
+        "version": "Windows Server 2022 / AD DS",
+        "serialNumber": "",
+        "purchaseDate": "2018-09-01",
+        "endOfLifeDate": "2031-10-14",
+        "tags": [
+          "iam",
+          "active-directory",
+          "ldap",
+          "identitaet",
+          "zugriff"
+        ],
+        "notes": "Tier-0-Asset. Privilegierter Zugriff ausschließlich über PAM-System. Quartalsweise Überprüfung.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_de_003",
+        "name": "Kundendatenbank CRM",
+        "category": "data",
+        "type": "data_database",
+        "description": "PostgreSQL-Datenbank mit Kunden-Stammdaten, Umsatzhistorie und Kontaktdaten. Ca. 650.000 Datensätze, davon 180.000 mit personenbezogenen Daten (DSGVO-relevant).",
+        "owner": "Julia Brandt",
+        "ownerEmail": "julia.brandt@mustermann-gmbh.de",
+        "custodian": "IT-Betrieb / Datenbankteam",
+        "entityId": "",
+        "location": "Rechenzentrum Frankfurt, Zone B",
+        "classification": "strictly_confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "Open-Source (PostgreSQL)",
+        "version": "PostgreSQL 16",
+        "serialNumber": "",
+        "purchaseDate": "",
+        "endOfLifeDate": "",
+        "tags": [
+          "crm",
+          "kundendaten",
+          "dsgvo",
+          "datenbank",
+          "postgresql"
+        ],
+        "notes": "VVT-Eintrag vorhanden (Art. 30 DSGVO). Verschlüsselung at-rest und in-transit aktiviert.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_de_004",
+        "name": "Firewall-Cluster (Perimeter)",
+        "category": "hardware",
+        "type": "hardware_network",
+        "description": "Fortinet FortiGate HA-Cluster als zentrale Perimeter-Firewall. Trennt Internet, DMZ und internes Netzwerk. NGFW mit IPS/IDS und SSL-Inspection.",
+        "owner": "Markus Schneider",
+        "ownerEmail": "markus.schneider@mustermann-gmbh.de",
+        "custodian": "IT-Sicherheit / Netzwerkteam",
+        "entityId": "",
+        "location": "Rechenzentrum Frankfurt, Zone A, Rack A-01/A-02",
+        "classification": "confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "Fortinet",
+        "version": "FortiGate 600F, FortiOS 7.4",
+        "serialNumber": "FW-RZ-FRA-2023-001",
+        "purchaseDate": "2023-02-01",
+        "endOfLifeDate": "2028-02-28",
+        "tags": [
+          "firewall",
+          "netzwerk",
+          "perimeter",
+          "fortinet"
+        ],
+        "notes": "HA-Cluster aktiv/passiv. Failover-Zeit < 10 s. Jährlicher Penetrationstest.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_de_005",
+        "name": "Microsoft 365 (E3-Lizenzierung)",
+        "category": "software",
+        "type": "software_saas",
+        "description": "Microsoft 365 E3 für alle Konzernmitarbeiter: Exchange Online, Teams, SharePoint, OneDrive, Office-Apps. Datenresidenz EU (Niederlande).",
+        "owner": "Claudia Maier",
+        "ownerEmail": "claudia.maier@mustermann-gmbh.de",
+        "custodian": "IT-Arbeitsplatz / Cloud-Team",
+        "entityId": "",
+        "location": "Microsoft Azure EU North (Amsterdam)",
+        "classification": "confidential",
+        "criticality": "high",
+        "status": "active",
+        "vendor": "Microsoft",
+        "version": "Microsoft 365 E3",
+        "serialNumber": "",
+        "purchaseDate": "2021-04-01",
+        "endOfLifeDate": "",
+        "tags": [
+          "m365",
+          "teams",
+          "exchange",
+          "sharepoint",
+          "cloud"
+        ],
+        "notes": "MFA für alle Benutzer verpflichtend. AVV mit Microsoft abgeschlossen (DSGVO).",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      }
+    ],
+    "suppliers.json": [
+      {
+        "id": "sup_demo_de_001",
+        "name": "Microsoft Deutschland GmbH",
+        "type": "cloud",
+        "criticality": "critical",
+        "status": "active",
+        "country": "DE",
+        "contactName": "Microsoft Support",
+        "contactEmail": "support@microsoft.com",
+        "website": "https://www.microsoft.com/de-de",
+        "description": "Microsoft-Dienste für Cloud, Zusammenarbeit und Produktivität. Kernanbieter für E-Mail, Videokonferenz, Office-Suite und Azure-Cloud-Infrastruktur. Zertifiziert nach ISO 27001, SOC 2 und BSI C5.",
+        "products": "Microsoft 365 (Exchange, Teams, SharePoint), Azure Cloud Services, Microsoft Defender",
+        "dataAccess": true,
+        "dataCategories": [
+          "Kommunikationsdaten",
+          "Mitarbeiterdaten",
+          "Geschäftsdokumente"
+        ],
+        "securityRequirements": [
+          "ISO 27001",
+          "SOC 2 Type II",
+          "BSI C5",
+          "DSGVO-Konformität",
+          "AVV abgeschlossen"
+        ],
+        "lastAuditDate": "2025-11-01",
+        "nextAuditDate": "2026-05-01",
+        "auditResult": "passed",
+        "contractId": "",
+        "avContractId": "av_demo_de_001",
+        "riskScore": 12,
+        "notes": "Kritischer Cloud-Anbieter. AVV über Microsoft Data Protection Addendum abgeschlossen. Jährliche Überprüfung der Compliance-Berichte.",
+        "linkedControls": [
+          "NIS2-d",
+          "EUCS-SCM.1",
+          "EUCS-SCM.2"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-11-01T10:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      },
+      {
+        "id": "sup_demo_de_002",
+        "name": "DATEV eG",
+        "type": "software",
+        "criticality": "critical",
+        "status": "active",
+        "country": "DE",
+        "contactName": "DATEV Kundenservice",
+        "contactEmail": "info@datev.de",
+        "website": "https://www.datev.de",
+        "description": "Steuerberatungs- und Buchhaltungssoftware für KMU. Verarbeitet hochsensible Finanz- und Lohndaten. Genossenschaft mit eigener ISO 27001-Zertifizierung.",
+        "products": "DATEV Unternehmen online, Lohn und Gehalt, DATEV DMS",
+        "dataAccess": true,
+        "dataCategories": [
+          "Finanzdaten",
+          "Lohndaten",
+          "Personaldaten",
+          "Steuerdaten"
+        ],
+        "securityRequirements": [
+          "ISO 27001",
+          "DSGVO-Konformität",
+          "IDW PS 951",
+          "AVV abgeschlossen"
+        ],
+        "lastAuditDate": "2025-09-15",
+        "nextAuditDate": "2026-03-15",
+        "auditResult": "passed",
+        "contractId": "",
+        "avContractId": "",
+        "riskScore": 15,
+        "notes": "Verarbeitet sensible Lohn- und Finanzdaten. AVV gemäß DSGVO Art. 28 abgeschlossen.",
+        "linkedControls": [
+          "NIS2-d"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-09-15T10:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      },
+      {
+        "id": "sup_demo_de_003",
+        "name": "Hetzner Online GmbH",
+        "type": "cloud",
+        "criticality": "high",
+        "status": "active",
+        "country": "DE",
+        "contactName": "Hetzner Support",
+        "contactEmail": "support@hetzner.com",
+        "website": "https://www.hetzner.com",
+        "description": "Deutschen Hosting- und Cloud-Anbieter. Betreibt dedizierte Server und Cloud-VMs für Test- und Entwicklungsumgebungen. Rechenzentren ausschließlich in Deutschland und Finnland.",
+        "products": "Dedicated Root Server, Hetzner Cloud, Hetzner Object Storage",
+        "dataAccess": true,
+        "dataCategories": [
+          "Entwicklungsdaten",
+          "Backup-Daten",
+          "Testdaten"
+        ],
+        "securityRequirements": [
+          "ISO 27001",
+          "DSGVO-Konformität",
+          "AVV abgeschlossen"
+        ],
+        "lastAuditDate": "",
+        "nextAuditDate": "2026-04-15",
+        "auditResult": "pending",
+        "contractId": "",
+        "avContractId": "",
+        "riskScore": 10,
+        "notes": "Rechenzentren in Falkenstein/Nürnberg (DE) und Helsinki (FI) – vollständig EU-basiert.",
+        "linkedControls": [
+          "NIS2-d",
+          "EUCS-SCM.1"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-10-15T09:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      },
+      {
+        "id": "sup_demo_de_004",
+        "name": "TÜV Rheinland AG",
+        "type": "consulting",
+        "criticality": "low",
+        "status": "active",
+        "country": "DE",
+        "contactName": "Dr. Sandra Hofmann",
+        "contactEmail": "sandra.hofmann@de.tuv.com",
+        "website": "https://www.tuv.com",
+        "description": "Akkreditierte Zertifizierungsstelle für ISO 27001. Führt externe ISMS-Audits (Stufe 1 + Stufe 2) durch und stellt das ISO 27001-Zertifikat aus.",
+        "products": "ISO 27001-Zertifizierung (Stufe 1 + Stufe 2), Überwachungsaudit, Rezertifizierungsaudit",
+        "dataAccess": false,
+        "dataCategories": [],
+        "securityRequirements": [
+          "NDA für Auditinformationen",
+          "DAkkS-Akkreditierung"
+        ],
+        "lastAuditDate": "2023-09-15",
+        "nextAuditDate": "2026-09-01",
+        "auditResult": "not_scheduled",
+        "contractId": "",
+        "avContractId": "",
+        "riskScore": 2,
+        "notes": "Externer Auditor für ISO 27001-Rezertifizierung 2026 (3-Jahres-Zyklus).",
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-09-01T09:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      }
+    ],
+    "governance.json": {
+      "reviews": [
+        {
+          "id": "mgmt_demo_de_001",
+          "title": "Management-Review 2025 – Jahresbewertung",
+          "type": "annual",
+          "date": "2025-11-14",
+          "nextReviewDate": "2026-11-13",
+          "status": "approved",
+          "chair": "Dr. Hans-Werner Mustermann (Geschäftsführer)",
+          "participants": "Claudia Maier (CISO), Petra Vogel (DSB), Thomas Becker (IT-Leiter), Sandra Hoffmann (Kaufmännische Leiterin)",
+          "inputAuditResults": "Internes ISO 27001-Audit Q3/2025: 3 geringfügige Abweichungen identifiziert (Zugriffsrechtsprüfung, Patch-Management-Dokumentation, Lieferanten-Sicherheitsklauseln). Alle Feststellungen als Maßnahmen erfasst.",
+          "inputStakeholderFeedback": "Kundenbefragung 2025: 92% Zufriedenheit mit Datenschutzpraktiken. 3 Kunden nannten ISO 27001-Zertifikat als Auswahlkriterium.",
+          "inputPerformance": "Sicherheitsziele 2025: 6 von 9 Ziele erreicht. Awareness-Trainingsrate: 82% (Ziel: 90%). Patch-Compliance: 91% (Ziel: 95%).",
+          "inputNonconformities": "3 geringfügige Abweichungen aus internem Audit. 1 Datenpanne (interner Bericht versehentlich an falschen Empfänger) – gemeldet und gemäß Art. 33 DSGVO dokumentiert.",
+          "inputPreviousActions": "Maßnahmenplan aus Review 2024: 10 von 13 Maßnahmen abgeschlossen (77%). Offen: ICS-Netzwerksegmentierung (in Bearbeitung, 60%).",
+          "inputRisksOpportunities": "Risikobewertung 2025: 2 neue kritische Risiken identifiziert (Lieferkettenangriffe, KI-gestützte Phishing-Angriffe). Gesamtrisikoprofil: 3 kritisch, 8 hoch, 14 mittel.",
+          "inputExternalChanges": "EU KI-Verordnung verabschiedet – Auswirkungen auf interne KI-Anwendungen werden geprüft. NIS2-Umsetzungsgesetz in Kraft – Geltungsbereichsanalyse abgeschlossen.",
+          "decisions": "1. ISMS-Geltungsbereich bleibt für 2026 unverändert. 2. Budget für Rezertifizierungsaudit 2026 genehmigt (45.000 EUR). 3. ICS-Sicherheitsprogramm mit zusätzlichen Ressourcen ausstatten.",
+          "improvements": "Einführung eines automatisierten Patch-Management-Tools (Q1/2026). Überarbeitung der Lieferanten-Sicherheitsklauseln in allen neuen Verträgen.",
+          "resourceNeeds": "Zusätzliche 0,5 VZÄ für ISMS-Koordination genehmigt. Budget für SIEM-Lösung: 100.000 EUR p.a.",
+          "notes": "Nächstes Management-Review geplant für 13. November 2026.",
+          "createdAt": "2025-11-01T09:00:00.000Z",
+          "updatedAt": "2025-11-20T14:30:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        }
+      ],
+      "actions": [
+        {
+          "id": "gact_demo_de_001",
+          "title": "Produktionsnetzwerk Penetrationstest",
+          "description": "Beauftragung und Durchführung eines externen Penetrationstests für das Produktionsnetzwerk inkl. Web-Applikationen und API-Endpunkte.",
+          "source": "internal_audit",
+          "sourceRef": "Internes Audit Q3/2025 – Feststellung A-2025-007",
+          "owner": "Markus Schneider",
+          "ownerEmail": "m.schneider@mustermann-gmbh.de",
+          "dueDate": "2026-06-30",
+          "completedDate": "",
+          "priority": "high",
+          "status": "in_progress",
+          "progress": 40,
+          "notes": "Dienstleister ausgewählt (SRC Security). Kick-off-Meeting am 15.04.2026. Scoping abgeschlossen.",
+          "entityId": "",
+          "createdAt": "2025-11-20T10:00:00.000Z",
+          "updatedAt": "2026-03-07T09:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        },
+        {
+          "id": "gact_demo_de_002",
+          "title": "Awareness-Training alle Mitarbeiter (Pflicht 2026)",
+          "description": "Durchführung des jährlichen Sicherheits-Awareness-Trainings für alle Mitarbeiter inkl. Führungskräfte.",
+          "source": "management_review",
+          "sourceRef": "Management-Review 2025 – Beschluss 2",
+          "owner": "Julia Brandt",
+          "ownerEmail": "j.brandt@mustermann-gmbh.de",
+          "dueDate": "2026-04-30",
+          "completedDate": "",
+          "priority": "high",
+          "status": "open",
+          "progress": 0,
+          "notes": "E-Learning-Plattform muss noch konfiguriert werden. Inhalte sind fertig.",
+          "entityId": "",
+          "createdAt": "2026-01-14T16:00:00.000Z",
+          "updatedAt": "2026-01-14T16:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        },
+        {
+          "id": "gact_demo_de_003",
+          "title": "ISO 27001-Rezertifizierungsaudit vorbereiten",
+          "description": "Vollständige Vorbereitung für den ISO 27001-Rezertifizierungsaudit (Stufe 1 + Stufe 2). Gap-Analyse, Dokumentenprüfung, Mitarbeiterschulung, Mock-Audit.",
+          "source": "management_review",
+          "sourceRef": "Management-Review 2025 – Beschluss 2",
+          "owner": "Claudia Maier",
+          "ownerEmail": "c.maier@mustermann-gmbh.de",
+          "dueDate": "2026-09-30",
+          "completedDate": "",
+          "priority": "critical",
+          "status": "open",
+          "progress": 10,
+          "notes": "Projektplan erstellt. Kick-off-Meeting am 01.04.2026. Zertifizierer TÜV Rheinland beauftragt.",
+          "entityId": "",
+          "createdAt": "2025-11-20T10:00:00.000Z",
+          "updatedAt": "2026-03-01T09:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        }
+      ],
+      "meetings": [
+        {
+          "id": "meet_demo_de_001",
+          "title": "ISMS-Ausschuss Q4/2025",
+          "committee": "isms_committee",
+          "date": "2025-12-03",
+          "location": "Vorstandskonferenzraum, Erdgeschoss",
+          "chair": "Claudia Maier (CISO)",
+          "secretary": "Anna Fischer (ISMS-Koordinatorin)",
+          "participants": "Dr. Hans-Werner Mustermann (GF), Petra Vogel (DSB), Markus Schneider (IT-Leiter), Thomas Becker (CTO), Julia Brandt (HR), Sandra Hoffmann (Kaufm. Leitung)",
+          "agenda": "1. Genehmigung des Protokolls Q3/2025\n2. Status Maßnahmenplan Management-Review 2025\n3. Ergebnisse interner Penetrationstest\n4. NIS2-Geltungsbereichsanalyse – Vorstellung der Ergebnisse\n5. ISMS-Budget 2026",
+          "decisions": "1. Protokoll Q3/2025 genehmigt.\n2. Maßnahmenplan Management-Review 2025 zur Kenntnis genommen. ICS-Segmentierungspriorisierung bestätigt.\n3. Budget für sofortige Behebung von 2 kritischen Penetrationstest-Findings genehmigt (12.000 EUR).\n4. NIS2-Geltungsbereich bestätigt. Registrierungspflicht bis 30.09.2026.\n5. ISMS-Budget 2026 genehmigt: 260.000 EUR.",
+          "nextMeetingDate": "2026-03-11",
+          "approved": true,
+          "approvedBy": "Dr. Hans-Werner Mustermann",
+          "notes": "Nächstes Meeting: 11.03.2026 (Q1/2026). Protokoll per E-Mail an alle Teilnehmer am 10.12.2025 versandt.",
+          "createdAt": "2025-11-25T09:00:00.000Z",
+          "updatedAt": "2025-12-10T11:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        }
+      ]
+    },
+    "public-incidents.json": [
+      {
+        "id": "inc_demo_de_001",
+        "refNumber": "INC-2026-0001",
+        "email": "it-admin@mustermann-gmbh.de",
+        "entityName": "Mustermann GmbH – Hauptsitz",
+        "incidentType": "phishing",
+        "description": "Ein Mitarbeiter hat auf einen gefälschten Microsoft-Login-Link geklickt und seine Zugangsdaten eingegeben. Der Link wurde per E-Mail empfangen, die scheinbar von der IT-Abteilung stammte.",
+        "measuresTaken": "Passwort sofort zurückgesetzt, Konto vorübergehend gesperrt, E-Mail-Header analysiert.",
+        "localContact": "Klaus Berger (IT-Support)",
+        "cleanedUp": "partial",
+        "status": "in_review",
+        "assignedTo": "it",
+        "reportable": "tbd",
+        "cisoNotes": "Phishing-Kampagne noch aktiv – weitere Empfänger identifiziert.",
+        "createdAt": "2026-03-01T08:14:23.000Z",
+        "updatedAt": "2026-03-01T10:30:00.000Z",
+        "updatedBy": "admin@mustermann-gmbh.de"
+      },
+      {
+        "id": "inc_demo_de_002",
+        "refNumber": "INC-2026-0002",
+        "email": "sandra.meyer@mustermann-logistik.de",
+        "entityName": "Mustermann Logistik GmbH",
+        "incidentType": "ransomware",
+        "description": "Drei Dateiserver der Logistik-Niederlassung wurden durch Ransomware verschlüsselt. Lösegeldforderung über Bitcoin in Höhe von 75.000 EUR hinterlassen.",
+        "measuresTaken": "Systeme vom Netzwerk getrennt, Backup-Team benachrichtigt, BSI-Meldung vorbereitet.",
+        "localContact": "Sandra Meyer (IT-Leiterin Logistik)",
+        "cleanedUp": "no",
+        "status": "assigned",
+        "assignedTo": "it",
+        "reportable": "yes",
+        "cisoNotes": "Kritisch. Wiederherstellung aus Backup in Gang. BSI-Meldung innerhalb 72h.",
+        "createdAt": "2026-02-28T22:47:00.000Z",
+        "updatedAt": "2026-03-01T06:00:00.000Z",
+        "updatedBy": "ciso@mustermann-gmbh.de"
+      },
+      {
+        "id": "inc_demo_de_003",
+        "refNumber": "INC-2026-0003",
+        "email": "datenschutz@mustermann-gmbh.de",
+        "entityName": "Mustermann GmbH – HR",
+        "incidentType": "data_theft",
+        "description": "Personalakte von 3 Mitarbeitern inkl. Gehaltsinformation, Krankenscheinen und Bewerbungsunterlagen wurde versehentlich per E-Mail an falschen Empfänger (externen Bewerber) gesendet.",
+        "measuresTaken": "Empfänger kontaktiert, Dateilöschung bestätigt, interne Meldung dokumentiert.",
+        "localContact": "HR-Leitung",
+        "cleanedUp": "yes",
+        "status": "closed",
+        "assignedTo": "datenschutz",
+        "reportable": "yes",
+        "cisoNotes": "Art. 33 DSGVO-Meldung bei Aufsichtsbehörde eingereicht am 16.02.2026. Keine Sanktion erwartet.",
+        "createdAt": "2026-02-14T09:00:00.000Z",
+        "updatedAt": "2026-02-16T16:30:00.000Z",
+        "updatedBy": "dsb@mustermann-gmbh.de"
+      }
+    ],
+    "guidance.json": [
+      {
+        "id": "guid_demo_de_001",
+        "category": "systemhandbuch",
+        "title": "Systemhandbuch ISMS Build",
+        "type": "markdown",
+        "content": "# Systemhandbuch ISMS Build\n\n## Übersicht\n\nISMS Build ist eine webbasierte Plattform zur Verwaltung von Dokumenten des Informationssicherheitsmanagementsystems (ISMS).\n\n## Kernfunktionen\n\n- **Template-Verwaltung**: Richtlinien-Dokumente erstellen, bearbeiten und versionieren\n- **Lebenszyklus-Management**: Entwurf → Prüfung → Genehmigt → Archiviert\n- **SoA-Kontrollen**: Statement of Applicability mit 313 Kontrollen\n- **Risiko & Compliance**: Risikoregister, Heatmap, Behandlungspläne\n- **DSGVO & Datenschutz**: VVT, AVV, DSFA, Datenpannen, DSAR, TOMs\n",
+        "filename": null,
+        "filePath": null,
+        "createdAt": "2026-03-06T08:00:00.000Z",
+        "updatedAt": "2026-03-06T08:00:00.000Z",
+        "createdBy": "admin",
+        "version": 1,
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "deletedAt": null
+      },
+      {
+        "id": "guid_demo_de_002",
+        "category": "rollen",
+        "title": "Rollen & Verantwortlichkeiten",
+        "type": "markdown",
+        "content": "# Rollen & Verantwortlichkeiten\n\n## Rollenmodell\n\n| Rolle | Rang | Beschreibung |\n|-------|------|---------------|\n| **reader** | 1 | Lesezugriff |\n| **editor** | 2 | Erstellt und bearbeitet |\n| **contentowner** | 3 | Inhaltseigentümer – genehmigt |\n| **auditor** | 3 | Audit-Rolle |\n| **admin** | 4 | Systemadministrator |\n\n## Verantwortlichkeiten im ISMS-Prozess\n\n1. **ISMS-Beauftragter**: ContentOwner-Rolle, verantwortlich für Richtlinienfreigabe\n2. **Datenschutzbeauftragte/r (DSB)**: ContentOwner/Auditor-Rolle, pflegt DSGVO-Modul\n3. **Fachabteilungen**: Editor-Rolle, erstellen abteilungsspezifische Dokumente\n4. **IT-Sicherheit**: ContentOwner/Auditor-Rolle, pflegt SoA, Kontrollen, TOMs und Risiken\n",
+        "filename": null,
+        "filePath": null,
+        "createdAt": "2026-03-06T08:00:00.000Z",
+        "updatedAt": "2026-03-06T08:00:00.000Z",
+        "createdBy": "admin",
+        "version": 1,
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "deletedAt": null
+      }
+    ],
+    "templates.json": [
+      {
+        "id": "tmpl_demo_de_001",
+        "type": "Policy",
+        "language": "de",
+        "title": "Informationssicherheitsrichtlinie",
+        "content": "# Informationssicherheitsrichtlinie\n\n## 1. Zweck\n\nDiese Richtlinie legt den Rahmen zum Schutz von Informationswerten der Mustermann GmbH gemäß ISO 27001 fest.\n\n## 2. Geltungsbereich\n\nDiese Richtlinie gilt für alle Mitarbeiter, Auftragnehmer und Dritte mit Zugang zu Unternehmensinformationssystemen.\n\n## 3. Grundsätze\n\n- Alle Informationswerte sind gemäß ihrer Sensitivität zu klassifizieren und zu behandeln\n- Der Zugang zu Informationssystemen wird nach dem Need-to-Know-Prinzip gewährt\n- Alle Benutzer sind für den Schutz ihrer Zugangsdaten und die Meldung von Vorfällen verantwortlich\n\n## 4. Verantwortlichkeiten\n\n- **CISO**: Überwacht ISMS-Implementierung und Compliance\n- **IT-Sicherheit**: Implementiert technische Kontrollen\n- **Alle Mitarbeiter**: Halten diese Richtlinie und zugehörige Verfahren ein\n",
+        "version": 1,
+        "status": "approved",
+        "owner": "admin",
+        "reviewDate": "2027-01-01",
+        "createdAt": "2026-01-01T08:00:00.000Z",
+        "updatedAt": "2026-01-15T10:00:00.000Z",
+        "history": [],
+        "statusHistory": [
+          {
+            "status": "draft",
+            "changedBy": "admin",
+            "changedAt": "2026-01-01T08:00:00.000Z"
+          },
+          {
+            "status": "review",
+            "changedBy": "alice",
+            "changedAt": "2026-01-10T09:00:00.000Z"
+          },
+          {
+            "status": "approved",
+            "changedBy": "admin",
+            "changedAt": "2026-01-15T10:00:00.000Z"
+          }
+        ],
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-ORP.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": []
+      },
+      {
+        "id": "tmpl_demo_de_002",
+        "type": "Policy",
+        "language": "de",
+        "title": "Richtlinie zur akzeptablen Nutzung von IT-Ressourcen",
+        "content": "# Richtlinie zur akzeptablen Nutzung von IT-Ressourcen\n\n## 1. Zweck\n\nDiese Richtlinie definiert die zulässige und unzulässige Nutzung von IT-Ressourcen der Mustermann GmbH.\n\n## 2. Zulässige Nutzung\n\n- Verwendung von IT-Ressourcen für legitime Geschäftszwecke\n- Zugriff auf für die Arbeit erforderliche Internetressourcen\n- Verwendung von unternehmensgenehmigter Software\n\n## 3. Unzulässige Nutzung\n\n- Zugriff auf illegale oder unangemessene Inhalte\n- Installation nicht autorisierter Software\n- Weitergabe von Zugangsdaten oder Umgehung von Sicherheitskontrollen\n- Nutzung von Unternehmensressourcen für private Geschäftstätigkeit\n",
+        "version": 1,
+        "status": "approved",
+        "owner": "admin",
+        "reviewDate": "2027-01-01",
+        "createdAt": "2026-01-05T08:00:00.000Z",
+        "updatedAt": "2026-01-20T10:00:00.000Z",
+        "history": [],
+        "statusHistory": [
+          {
+            "status": "draft",
+            "changedBy": "admin",
+            "changedAt": "2026-01-05T08:00:00.000Z"
+          },
+          {
+            "status": "approved",
+            "changedBy": "admin",
+            "changedAt": "2026-01-20T10:00:00.000Z"
+          }
+        ],
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": []
+      },
+      {
+        "id": "tmpl_demo_de_003",
+        "type": "Procedure",
+        "language": "de",
+        "title": "Incident-Response-Verfahren",
+        "content": "# Incident-Response-Verfahren\n\n## 1. Zweck\n\nDieses Verfahren definiert die Schritte zur Reaktion auf Informationssicherheitsvorfälle.\n\n## 2. Vorfallsklassifizierung\n\n| Schweregrad | Reaktionszeit | Eskalation |\n|-------------|--------------|------------|\n| Kritisch | 1 Stunde | CISO + Geschäftsleitung |\n| Hoch | 4 Stunden | CISO |\n| Mittel | 24 Stunden | IT-Sicherheit |\n| Niedrig | 5 Werktage | IT-Helpdesk |\n\n## 3. Reaktionsschritte\n\n1. **Erkennung**: Vorfall identifizieren und validieren\n2. **Eindämmung**: Betroffene Systeme isolieren\n3. **Beseitigung**: Bedrohung entfernen\n4. **Wiederherstellung**: Systeme in normalen Betrieb zurückführen\n5. **Nachbereitung**: Erkenntnisse und Verbesserungen dokumentieren\n",
+        "version": 1,
+        "status": "review",
+        "owner": "alice",
+        "reviewDate": "2026-06-01",
+        "createdAt": "2026-02-01T08:00:00.000Z",
+        "updatedAt": "2026-02-15T10:00:00.000Z",
+        "history": [],
+        "statusHistory": [
+          {
+            "status": "draft",
+            "changedBy": "alice",
+            "changedAt": "2026-02-01T08:00:00.000Z"
+          },
+          {
+            "status": "review",
+            "changedBy": "alice",
+            "changedAt": "2026-02-15T10:00:00.000Z"
+          }
+        ],
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": []
+      }
+    ]
+  },
+  "gdpr": {
+    "vvt.json": [
+      {
+        "id": "vvt_demo_de_001",
+        "title": "Kundenverwaltung CRM",
+        "purpose": "Verwaltung und Pflege von Kundendaten zur Vertragserfüllung und Kommunikation",
+        "legalBasis": "contract",
+        "legalBasisNote": "Art. 6 Abs. 1 lit. b DSGVO – Vertragserfüllung",
+        "dataCategories": [
+          "name",
+          "email",
+          "phone"
+        ],
+        "dataSubjectTypes": [
+          "customers"
+        ],
+        "recipients": [
+          "Interner Vertrieb",
+          "Kundenservice"
+        ],
+        "internationalTransfer": false,
+        "transferMechanism": "",
+        "retentionPeriod": "3 Jahre nach Vertragsende",
+        "retentionMonths": 36,
+        "deletionProcedure": "Automatische Löschung nach Ablauf der Aufbewahrungsfrist im CRM-System",
+        "isHighRisk": false,
+        "automatedDecision": false,
+        "linkedAv": [],
+        "linkedToms": [
+          "tom_demo_de_001",
+          "tom_demo_de_002"
+        ],
+        "applicableEntities": [],
+        "status": "approved",
+        "owner": "admin",
+        "createdAt": "2025-01-15T10:00:00.000Z",
+        "updatedAt": "2025-01-15T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "vvt_demo_de_002",
+        "title": "Personalverwaltung HR",
+        "purpose": "Verarbeitung von Mitarbeiterdaten zur Erfüllung arbeitsrechtlicher Pflichten und Lohnbuchhaltung",
+        "legalBasis": "legal_obligation",
+        "legalBasisNote": "Art. 6 Abs. 1 lit. c DSGVO – Rechtliche Verpflichtung (§§ 257 HGB, 147 AO)",
+        "dataCategories": [
+          "name",
+          "address",
+          "financial"
+        ],
+        "dataSubjectTypes": [
+          "employees"
+        ],
+        "recipients": [
+          "HR-Abteilung",
+          "Steuerberater",
+          "Sozialversicherungsträger"
+        ],
+        "internationalTransfer": false,
+        "transferMechanism": "",
+        "retentionPeriod": "10 Jahre (§ 257 HGB, § 147 AO)",
+        "retentionMonths": 120,
+        "deletionProcedure": "Physische und digitale Löschung nach Ablauf der gesetzlichen Aufbewahrungsfristen",
+        "isHighRisk": false,
+        "automatedDecision": false,
+        "linkedAv": [],
+        "linkedToms": [
+          "tom_demo_de_001",
+          "tom_demo_de_003"
+        ],
+        "applicableEntities": [],
+        "status": "approved",
+        "owner": "admin",
+        "createdAt": "2025-01-15T10:00:00.000Z",
+        "updatedAt": "2025-01-15T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "vvt_demo_de_003",
+        "title": "Website-Analyse und Marketing",
+        "purpose": "Analyse der Website-Nutzung zur Verbesserung der Benutzererfahrung und gezieltes Marketing",
+        "legalBasis": "consent",
+        "legalBasisNote": "Art. 6 Abs. 1 lit. a DSGVO – Einwilligung",
+        "dataCategories": [
+          "ip_address",
+          "browser_data",
+          "usage_data"
+        ],
+        "dataSubjectTypes": [
+          "website_visitors"
+        ],
+        "recipients": [
+          "IT-Abteilung",
+          "Marketing"
+        ],
+        "internationalTransfer": true,
+        "transferMechanism": "scc",
+        "retentionPeriod": "26 Monate",
+        "retentionMonths": 26,
+        "deletionProcedure": "Automatische Löschung über Einstellungen der Analyseplattform",
+        "isHighRisk": false,
+        "automatedDecision": false,
+        "linkedAv": [],
+        "linkedToms": [
+          "tom_demo_de_002"
+        ],
+        "applicableEntities": [],
+        "status": "review",
+        "owner": "admin",
+        "createdAt": "2025-03-01T10:00:00.000Z",
+        "updatedAt": "2025-03-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "toms.json": [
+      {
+        "id": "tom_demo_de_001",
+        "title": "Zugriffskontrolle (MFA & RBAC)",
+        "category": "access",
+        "description": "Implementierung von Mehr-Faktor-Authentisierung (MFA) und rollenbasierter Zugriffskontrolle (RBAC) für alle Systeme, die personenbezogene Daten verarbeiten.",
+        "implementation": "MFA via TOTP-App für alle Benutzerkonten. RBAC-Modell mit Least-Privilege-Prinzip. Vierteljährliche Zugriffsüberprüfungen.",
+        "status": "implemented",
+        "owner": "IT-Admin",
+        "evidenceNote": "Nachweis: MFA-Aktivierungsrate 100%, RBAC-Konzept v2.1 genehmigt",
+        "retentionRule": "",
+        "linkedVvt": [
+          "vvt_demo_de_001",
+          "vvt_demo_de_002"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-12-31",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_de_002",
+        "title": "Transportverschlüsselung (TLS 1.3)",
+        "category": "encryption",
+        "description": "Alle Datenübertragungen über öffentliche Netze werden mit TLS 1.3 verschlüsselt. Veraltete Protokolle (TLS 1.0/1.1, SSL) sind deaktiviert.",
+        "implementation": "TLS 1.3 konfiguriert auf allen Webservern, APIs und E-Mail-Gateways. HSTS aktiviert.",
+        "status": "implemented",
+        "owner": "IT-Admin",
+        "evidenceNote": "SSL-Labs-Bewertung: A+ (zuletzt geprüft 2026-01-10)",
+        "retentionRule": "",
+        "linkedVvt": [
+          "vvt_demo_de_001"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-12-31",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_de_003",
+        "title": "Backup & Disaster Recovery",
+        "category": "backup",
+        "description": "Regelmäßige Datensicherung und Wiederherstellungskonzept zur Sicherstellung der Verfügbarkeit und Integrität personenbezogener Daten.",
+        "implementation": "Tägliche inkrementelle Backups, wöchentliche Vollsicherungen. Off-Site-Backup im georedundanten Rechenzentrum. 3-2-1-Backup-Strategie.",
+        "status": "implemented",
+        "owner": "IT-Admin",
+        "evidenceNote": "DR-Test: RPO < 4h, RTO < 8h. Backup-Protokolle vollständig.",
+        "retentionRule": "Backup-Daten: 90 Tage; Backup-Protokolle: 1 Jahr",
+        "linkedVvt": [
+          "vvt_demo_de_001",
+          "vvt_demo_de_002"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-11-30",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_de_004",
+        "title": "Patch-Management & Schwachstellenmanagement",
+        "category": "application",
+        "description": "Systematischer Prozess zur rechtzeitigen Identifikation, Bewertung und Behebung von Sicherheitslücken in Software und Betriebssystemen.",
+        "implementation": "Automatisiertes Patch-Deployment für kritische Anwendungen innerhalb 72h nach CVSS ≥ 9. Monatliche Patch-Zyklen für reguläre Patches.",
+        "status": "implemented",
+        "owner": "IT-Admin",
+        "evidenceNote": "Patch-Compliance-Rate: >95%, Scan-Bericht 2026-01",
+        "retentionRule": "",
+        "linkedVvt": [
+          "vvt_demo_de_001",
+          "vvt_demo_de_002"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-12-31",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_de_005",
+        "title": "Incident-Response-Plan (IRP)",
+        "category": "organizational",
+        "description": "Dokumentierter und getesteter Plan zur strukturierten Reaktion auf Datenpannen und Sicherheitsvorfälle (Art. 33/34 DSGVO).",
+        "implementation": "IRP-Dokument beschreibt Rollen, Eskalationswege, 72h-Meldepflicht, Kommunikation an Betroffene. Jährliche Tabletop-Übung.",
+        "status": "implemented",
+        "owner": "DSB",
+        "evidenceNote": "IRP v2.1 genehmigt, letzte Tabletop-Übung abgeschlossen",
+        "retentionRule": "Vorfallsberichte: 5 Jahre",
+        "linkedVvt": [],
+        "riskLevel": "high",
+        "reviewDate": "2026-11-30",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "av.json": [
+      {
+        "id": "av_demo_de_001",
+        "title": "Microsoft 365 / Azure",
+        "processorName": "Microsoft Ireland Limited",
+        "processorCountry": "IE",
+        "processorContactEmail": "msprivacy@microsoft.com",
+        "processingScope": "Cloud-Dienste für E-Mail (Exchange Online), Dokumente (SharePoint/OneDrive), Videokonferenzen (Teams) und Azure-Infrastruktur",
+        "linkedVvt": [
+          "vvt_demo_de_001",
+          "vvt_demo_de_002"
+        ],
+        "signatureDate": "2024-01-01",
+        "effectiveUntil": "2026-12-31",
+        "subProcessors": [
+          {
+            "name": "Microsoft Corporation (USA)",
+            "country": "US",
+            "approved": true
+          }
+        ],
+        "status": "signed",
+        "applicableEntities": [],
+        "transferMechanism": "scc",
+        "art28Checklist": {
+          "instructionsOnly": true,
+          "confidentiality": true,
+          "security": true,
+          "subProcessorApproval": true,
+          "assistanceRights": true,
+          "deletionReturn": true,
+          "auditRights": true,
+          "cooperation": true
+        },
+        "filePath": null,
+        "filename": null,
+        "notes": "Microsoft Data Processing Agreement (DPA) v2024 abgeschlossen. Standardvertragsklauseln gemäß EU 2021/914.",
+        "createdAt": "2025-01-15T10:00:00.000Z",
+        "updatedAt": "2025-01-15T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "dsfa.json": [
+      {
+        "id": "dsfa_demo_de_001",
+        "title": "DSFA: HR-Software mit Cloud-Speicherung",
+        "linkedVvtId": "vvt_demo_de_002",
+        "processingDescription": "Einsatz einer cloudbasierten HR-Software (SaaS) zur Verarbeitung von Mitarbeiterdaten inkl. Gehaltsdaten, Krankmeldungen und Leistungsbeurteilungen.",
+        "necessityAssessment": "Die Verarbeitung ist zur Erfüllung arbeitsrechtlicher Pflichten und für ein effizientes HR-Management notwendig.",
+        "risks": [
+          {
+            "id": "dsfa_risk_de_001",
+            "description": "Unbefugter Zugriff durch Dritte (Hacking, Datenpanne beim Anbieter)",
+            "likelihood": 2,
+            "impact": 4,
+            "score": 8,
+            "mitigations": [
+              "AVV abgeschlossen",
+              "TLS-Verschlüsselung",
+              "MFA verpflichtend",
+              "Penetrationstests beim Anbieter"
+            ]
+          }
+        ],
+        "existingControls": "MFA, rollenbasierte Zugriffskontrolle, verschlüsselte Übertragung (TLS 1.3), tägliche Backups, AVV mit Anbieter.",
+        "residualRisk": "medium",
+        "dpoConsulted": true,
+        "dpoOpinion": "Die geplanten Maßnahmen werden als ausreichend bewertet. Regelmäßige Audits beim Anbieter werden empfohlen.",
+        "saConsultationRequired": false,
+        "decision": "proceed",
+        "decisionJustification": "Das Restrisiko unter Berücksichtigung der implementierten Maßnahmen ist als akzeptabel einzustufen.",
+        "applicableEntities": [],
+        "status": "review",
+        "owner": "admin",
+        "approvedBy": null,
+        "approvedAt": null,
+        "createdAt": "2025-02-01T10:00:00.000Z",
+        "updatedAt": "2025-02-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "dsar.json": [
+      {
+        "id": "dsar_demo_de_001",
+        "refNumber": "DSAR-2026-0001",
+        "requestType": "access",
+        "dataSubjectName": "Max Müller",
+        "dataSubjectEmail": "m.mueller@beispiel.de",
+        "receivedDate": "2026-02-01",
+        "dueDate": "2026-03-01",
+        "status": "completed",
+        "assignedTo": "DSB",
+        "notes": "Auskunftsanfrage erfüllt. Alle relevanten Datensätze innerhalb gesetzlicher Frist bereitgestellt.",
+        "completedDate": "2026-02-25",
+        "createdAt": "2026-02-01T10:00:00.000Z",
+        "updatedAt": "2026-02-25T15:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "dsar_demo_de_002",
+        "refNumber": "DSAR-2026-0002",
+        "requestType": "erasure",
+        "dataSubjectName": "Anna Schmidt",
+        "dataSubjectEmail": "a.schmidt@privat.de",
+        "receivedDate": "2026-03-05",
+        "dueDate": "2026-04-04",
+        "status": "in_progress",
+        "assignedTo": "DSB",
+        "notes": "Löschantrag wird geprüft. Überprüfung auf gesetzliche Aufbewahrungspflichten läuft.",
+        "completedDate": null,
+        "createdAt": "2026-03-05T09:00:00.000Z",
+        "updatedAt": "2026-03-07T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "incidents.json": [
+      {
+        "id": "gdpr_inc_demo_de_001",
+        "refNumber": "GDPR-INC-2026-0001",
+        "title": "Versehentliche Offenbarung von Mitarbeitergehaltsdaten",
+        "description": "Gehaltstabelle mit Gehaltsdaten von 38 Mitarbeitern wurde versehentlich in einen allgemeinen E-Mail-Verteiler aufgenommen.",
+        "category": "disclosure",
+        "affectedPersons": 38,
+        "dataCategories": [
+          "financial",
+          "employee"
+        ],
+        "detectedAt": "2026-01-15T14:00:00.000Z",
+        "reportedAt": "2026-01-15T16:00:00.000Z",
+        "notifiedSA": true,
+        "notifiedSADate": "2026-01-16T10:00:00.000Z",
+        "notifiedDataSubjects": false,
+        "status": "closed",
+        "riskLevel": "medium",
+        "measures": "E-Mail zurückgerufen, Empfänger zur Löschung aufgefordert, Prozess überprüft.",
+        "owner": "DSB",
+        "createdAt": "2026-01-15T16:00:00.000Z",
+        "updatedAt": "2026-01-20T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "gdpr_inc_demo_de_002",
+        "refNumber": "GDPR-INC-2026-0002",
+        "title": "Unbefugter Zugriff auf Kundendatenbank",
+        "description": "SQL-Injection-Schwachstelle in Legacy-Applikation ausgenutzt; Angreifer hat auf 1.800 Kundendatensätze zugegriffen.",
+        "category": "unauthorized_access",
+        "affectedPersons": 1800,
+        "dataCategories": [
+          "name",
+          "email",
+          "address"
+        ],
+        "detectedAt": "2026-02-20T03:00:00.000Z",
+        "reportedAt": "2026-02-20T09:00:00.000Z",
+        "notifiedSA": true,
+        "notifiedSADate": "2026-02-21T10:00:00.000Z",
+        "notifiedDataSubjects": true,
+        "status": "closed",
+        "riskLevel": "high",
+        "measures": "Schwachstelle behoben, betroffene Kunden benachrichtigt, forensische Untersuchung abgeschlossen.",
+        "owner": "DSB",
+        "createdAt": "2026-02-20T09:00:00.000Z",
+        "updatedAt": "2026-03-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "deletionLog.json": []
+  },
+  "legal": {
+    "contracts.json": [
+      {
+        "id": "contract_de_001",
+        "title": "IT-Outsourcing-Vertrag – Rechenzentrumsbetrieb",
+        "contractType": "service",
+        "counterparty": "Deutsche Telekom AG",
+        "description": "Betrieb und Wartung der On-Premise-Serverinfrastruktur inkl. 24/7-Monitoring, SLA Level 2 und quartalsweiser Kapazitätsplanung.",
+        "startDate": "2023-01-01",
+        "endDate": "2026-12-31",
+        "autoRenew": true,
+        "noticePeriodDays": 90,
+        "owner": "CISO",
+        "status": "active",
+        "value": "240000",
+        "currency": "EUR",
+        "notes": "Jahresrevision Q4 2026. SLA-Verfügbarkeit: 99,9 %.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2023-01-01T08:00:00.000Z",
+        "updatedAt": "2026-01-15T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "contract_de_002",
+        "title": "Microsoft 365 Enterprise E3 Lizenzvertrag",
+        "contractType": "license",
+        "counterparty": "Microsoft Deutschland GmbH",
+        "description": "Unternehmens-Lizenzvertrag für 350 Nutzer inkl. Exchange Online, Teams, SharePoint und Compliance-Tools.",
+        "startDate": "2025-01-01",
+        "endDate": "2027-12-31",
+        "autoRenew": false,
+        "noticePeriodDays": 60,
+        "owner": "IT-Leitung",
+        "status": "active",
+        "value": "189000",
+        "currency": "EUR",
+        "notes": "Inkl. Entra ID P1 und Defender for Endpoint.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2024-11-15T10:00:00.000Z",
+        "updatedAt": "2025-01-01T08:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "contract_de_003",
+        "title": "Managed SOC – 24/7-Sicherheitsüberwachung",
+        "contractType": "service",
+        "counterparty": "Atos SE – Cybersecurity Division",
+        "description": "Managed Security Operations Center mit 24/7-Bedrohungserkennung, Incident-Triage und monatlichem Reporting inkl. SIEM-as-a-Service.",
+        "startDate": "2025-04-01",
+        "endDate": "2028-03-31",
+        "autoRenew": true,
+        "noticePeriodDays": 180,
+        "owner": "CISO",
+        "status": "active",
+        "value": "144000",
+        "currency": "EUR",
+        "notes": "SLA: Kritische Alarme innerhalb 15 Minuten.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2025-03-01T09:00:00.000Z",
+        "updatedAt": "2025-04-01T08:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "ndas.json": [
+      {
+        "id": "nda_de_001",
+        "title": "NDA – Penetrationstest-Dienstleister 2026",
+        "ndaType": "bilateral",
+        "counterparty": "SRC Security Research & Consulting GmbH",
+        "signingDate": "2026-02-15",
+        "expiryDate": "2028-02-15",
+        "scope": "Alle im Rahmen von Penetrationstests gewonnenen Erkenntnisse zu Infrastruktur, Schwachstellen und internen Prozessen.",
+        "owner": "CISO",
+        "status": "active",
+        "applicableEntities": [],
+        "notes": "Jährlicher Pentest Q2 2026.",
+        "attachments": [],
+        "createdAt": "2026-02-15T09:00:00.000Z",
+        "updatedAt": "2026-02-15T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "nda_de_002",
+        "title": "NDA – ISO-27001-Zertifizierungsstelle",
+        "ndaType": "unilateral",
+        "counterparty": "DQS GmbH",
+        "signingDate": "2026-01-10",
+        "expiryDate": "2029-01-10",
+        "scope": "Alle internen Dokumente, Prozesse, Risikobeurteilungen und Auditbefunde während Stage-1- und Stage-2-Audits.",
+        "owner": "CISO",
+        "status": "active",
+        "applicableEntities": [],
+        "notes": "Stage 1: Juni 2026. Stage 2: September 2026.",
+        "attachments": [],
+        "createdAt": "2026-01-10T10:00:00.000Z",
+        "updatedAt": "2026-01-10T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "privacy-policies.json": [
+      {
+        "id": "pp_de_001",
+        "title": "Datenschutzerklärung – Website & Online-Services",
+        "policyType": "privacy_notice",
+        "description": "Öffentliche Datenschutzerklärung gemäß Art. 13/14 DSGVO für Websitebesucher und Nutzer unserer Online-Services.",
+        "content": "Wir verarbeiten Ihre personenbezogenen Daten gemäß DSGVO und BDSG. Verantwortlicher: Demo GmbH, Musterstraße 1, 40213 Düsseldorf. DSB: datenschutz@demo.example.",
+        "publishedAt": "2025-05-25",
+        "nextReviewDate": "2026-05-25",
+        "url": "https://demo.example/datenschutz",
+        "owner": "DSB",
+        "status": "active",
+        "version": "3.1",
+        "applicableEntities": [],
+        "notes": "Zuletzt aktualisiert Mai 2025.",
+        "attachments": [],
+        "createdAt": "2025-05-25T09:00:00.000Z",
+        "updatedAt": "2025-05-25T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "pp_de_002",
+        "title": "Datenschutzrichtlinie für Mitarbeiter",
+        "policyType": "internal_policy",
+        "description": "Interne Richtlinie zur Verarbeitung personenbezogener Daten von Mitarbeitern inkl. HR-Daten, Zugriffslogs und Monitoring.",
+        "content": "Rechtsgrundlage: Art. 6 Abs. 1 lit. b und c DSGVO sowie § 26 BDSG. Mitarbeiter haben das Recht auf Auskunft, Berichtigung und Löschung im Rahmen gesetzlicher Aufbewahrungsfristen.",
+        "publishedAt": "2025-01-15",
+        "nextReviewDate": "2026-01-15",
+        "url": "",
+        "owner": "DSB",
+        "status": "active",
+        "version": "2.0",
+        "applicableEntities": [],
+        "notes": "Überprüft durch Rechtsabteilung Januar 2025.",
+        "attachments": [],
+        "createdAt": "2025-01-15T08:00:00.000Z",
+        "updatedAt": "2025-01-15T08:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ]
+  }
+}

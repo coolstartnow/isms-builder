@@ -1,0 +1,1631 @@
+{
+  "exportedAt": "2026-03-11T13:25:49.307Z",
+  "version": "1.30",
+  "lang": "fr",
+  "files": {
+    "risks.json": [
+      {
+        "id": "risk_demo_fr_001",
+        "title": "Attaque par rançongiciel sur les systèmes de production",
+        "description": "Chiffrement de données critiques par un rançongiciel. Affecte le système ERP, la gestion de production et l'infrastructure de sauvegarde. Demande de rançon en Bitcoin.",
+        "category": "technical",
+        "threat": "Rançongiciel / cheval de Troie chiffreur",
+        "vulnerability": "Absence de segmentation réseau, sauvegardes hors ligne insuffisantes",
+        "probability": 4,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "RSSI",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f",
+          "EUCS-GOV.3"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-10T09:00:00.000Z",
+        "updatedAt": "2026-01-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_fr_002",
+        "title": "Accès non autorisé aux données clients",
+        "description": "Une faille de sécurité dans une application web permet à des tiers non autorisés d'accéder aux données personnelles des clients (violation de données selon l'article 33 RGPD).",
+        "category": "technical",
+        "threat": "Violation de données, perte de réputation, amende",
+        "vulnerability": "Absence de WAF, application web non corrigée",
+        "probability": 3,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "DPO",
+        "dueDate": "2026-04-30",
+        "reviewDate": "2026-03-15",
+        "status": "in_treatment",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f",
+          "EUCS-GOV.3",
+          "EUCS-LOG.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-15T10:00:00.000Z",
+        "updatedAt": "2026-02-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_fr_003",
+        "title": "Hameçonnage des employés (fraude au PDG)",
+        "description": "Attaque de spear phishing ciblée contre les dirigeants et le service financier pour initier des virements frauduleux ou voler des identifiants.",
+        "category": "human",
+        "threat": "Ingénierie sociale, compromission des courriels professionnels (BEC)",
+        "vulnerability": "Absence d'authentification multifacteur, formation insuffisante",
+        "probability": 4,
+        "impact": 4,
+        "treatmentOption": "reduce",
+        "owner": "RSSI",
+        "dueDate": "2026-05-31",
+        "reviewDate": "2026-06-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-20T09:00:00.000Z",
+        "updatedAt": "2026-01-20T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_fr_004",
+        "title": "Perte de données suite à une panne matérielle sans sauvegardes vérifiées",
+        "description": "Les sauvegardes sont créées mais leur restaurabilité n'est pas vérifiée régulièrement. En cas d'urgence, les sauvegardes pourraient être corrompues ou incomplètes.",
+        "category": "technical",
+        "threat": "Perte de données, interruption d'activité",
+        "vulnerability": "Absence de processus de test de restauration, alertes de surveillance manquantes",
+        "probability": 3,
+        "impact": 3,
+        "treatmentOption": "reduce",
+        "owner": "Exploitation IT",
+        "dueDate": "2026-04-30",
+        "reviewDate": "2026-03-31",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-25T09:00:00.000Z",
+        "updatedAt": "2026-01-25T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_fr_005",
+        "title": "Non-conformité RGPD – documentation insuffisante",
+        "description": "L'absence ou l'incomplétude des registres des activités de traitement (article 30 RGPD) et des mesures techniques et organisationnelles (article 32 RGPD) entraîne des risques d'amendes.",
+        "category": "compliance",
+        "threat": "Amende jusqu'à 20 M€ ou 4% du chiffre d'affaires annuel",
+        "vulnerability": "Registre RoPA incomplet, documentation des MTOs manquante",
+        "probability": 3,
+        "impact": 4,
+        "treatmentOption": "reduce",
+        "owner": "DPO",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-01T09:00:00.000Z",
+        "updatedAt": "2026-02-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_fr_006",
+        "title": "Menace interne par des utilisateurs privilégiés",
+        "description": "Des administrateurs ou des développeurs disposant de droits d'accès excessifs pourraient intentionnellement ou par négligence exfiltrer des données ou manipuler des systèmes.",
+        "category": "organizational",
+        "threat": "Attaque interne, fuite de données, sabotage",
+        "vulnerability": "Absence d'application du principe du moindre privilège, gestion des accès à privilèges (PAM) insuffisante",
+        "probability": 3,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "RSSI",
+        "dueDate": "2026-07-31",
+        "reviewDate": "2026-05-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "EUCS-GOV.3",
+          "EUCS-LOG.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-05T09:00:00.000Z",
+        "updatedAt": "2026-02-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_fr_007",
+        "title": "Attaque de la chaîne d'approvisionnement logicielle",
+        "description": "Un fournisseur de logiciels critique est compromis et distribue des logiciels malveillants via des canaux de mise à jour légitimes (scénario SolarWinds).",
+        "category": "organizational",
+        "threat": "Attaque de la chaîne d'approvisionnement, logiciel malveillant de confiance",
+        "vulnerability": "Absence d'évaluation de sécurité des fournisseurs, absence de vérification d'intégrité des mises à jour",
+        "probability": 2,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "RSSI",
+        "dueDate": "2026-09-30",
+        "reviewDate": "2026-06-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-d",
+          "CRA-5.3",
+          "EUCS-SCM.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-10T09:00:00.000Z",
+        "updatedAt": "2026-02-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_fr_008",
+        "title": "Violation de l'obligation de notification NIS2",
+        "description": "Un incident de sécurité n'est pas signalé dans le délai requis d'alerte précoce de 24 heures à l'ANSSI, entraînant des amendes importantes.",
+        "category": "compliance",
+        "threat": "Sanction réglementaire, amende jusqu'à 10 M€ ou 2% du chiffre d'affaires annuel",
+        "vulnerability": "Absence de processus de notification NIS2 documenté, responsabilités peu claires",
+        "probability": 3,
+        "impact": 4,
+        "treatmentOption": "reduce",
+        "owner": "RSSI",
+        "dueDate": "2026-05-31",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-15T09:00:00.000Z",
+        "updatedAt": "2026-02-15T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "goals.json": [
+      {
+        "id": "goal_demo_fr_001",
+        "title": "Atteindre 95% de taux de mise à jour des correctifs",
+        "description": "Atteindre et maintenir un taux de conformité des correctifs de 95% sur tous les systèmes gérés dans les 90 jours suivant la publication du correctif.",
+        "owner": "Exploitation IT",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-01",
+        "status": "in_progress",
+        "priority": "high",
+        "targetValue": 95,
+        "currentValue": 83,
+        "unit": "%",
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_demo_fr_002",
+        "title": "Déployer l'authentification à deux facteurs pour tous les administrateurs",
+        "description": "Imposer l'authentification multifacteur pour tous les comptes privilégiés (administrateurs) d'ici la fin du T2.",
+        "owner": "RSSI",
+        "dueDate": "2026-04-30",
+        "reviewDate": "2026-05-01",
+        "status": "in_progress",
+        "priority": "critical",
+        "targetValue": 100,
+        "currentValue": 69,
+        "unit": "%",
+        "linkedControls": [
+          "NIS2-a",
+          "EUCS-GOV.3"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_demo_fr_003",
+        "title": "Obtenir la certification ISO 27001",
+        "description": "Réaliser les audits de Stade 1 et Stade 2 par un organisme de certification externe et obtenir le certificat ISO 27001.",
+        "owner": "RSSI",
+        "dueDate": "2026-09-30",
+        "reviewDate": "2026-09-30",
+        "status": "open",
+        "priority": "critical",
+        "targetValue": 1,
+        "currentValue": 0,
+        "unit": "Certificat",
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-01-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_demo_fr_004",
+        "title": "Réduire le taux de clics sur les hameçons à moins de 5%",
+        "description": "Réduire le taux de clics des employés lors de campagnes de phishing simulées de 16% à moins de 5% grâce à des formations de sensibilisation ciblées.",
+        "owner": "Sécurité IT",
+        "dueDate": "2026-12-31",
+        "reviewDate": "2026-09-30",
+        "status": "in_progress",
+        "priority": "high",
+        "targetValue": 5,
+        "currentValue": 16,
+        "unit": "%",
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "training.json": [
+      {
+        "id": "training_demo_fr_001",
+        "title": "Formation de base à la sécurité de l'information",
+        "description": "Formation annuelle obligatoire pour tous les employés sur les fondamentaux de la sécurité de l'information, l'utilisation sécurisée des mots de passe et les obligations de signalement.",
+        "category": "security_awareness",
+        "status": "planned",
+        "dueDate": "2026-04-30",
+        "completedDate": null,
+        "instructor": "Équipe Sécurité IT",
+        "assignees": "Tous les employés",
+        "applicableEntities": [],
+        "evidence": "",
+        "mandatory": true,
+        "createdBy": "admin",
+        "createdAt": "2026-01-01T08:00:00.000Z",
+        "updatedAt": "2026-01-01T08:00:00.000Z"
+      },
+      {
+        "id": "training_demo_fr_002",
+        "title": "Formation RGPD – Recyclage annuel",
+        "description": "Formation annuelle de remise à niveau sur le Règlement général sur la protection des données conformément à l'article 39 RGPD. Points forts : droits des personnes concernées, obligations de notification, violations de données.",
+        "category": "gdpr",
+        "status": "completed",
+        "dueDate": "2026-02-28",
+        "completedDate": "2026-02-20",
+        "instructor": "Délégué à la Protection des Données",
+        "assignees": "Service RH, nouveaux employés T1",
+        "applicableEntities": [],
+        "evidence": "Liste des participants et attestation archivées dans SharePoint.",
+        "mandatory": true,
+        "createdBy": "admin",
+        "createdAt": "2026-01-01T08:00:00.000Z",
+        "updatedAt": "2026-02-20T10:00:00.000Z"
+      },
+      {
+        "id": "training_demo_fr_003",
+        "title": "Sensibilisation à l'hameçonnage",
+        "description": "Formation pratique pour reconnaître les courriels d'hameçonnage, les attaques d'ingénierie sociale et la fraude au PDG. Comprend une démonstration en direct et des attaques simulées.",
+        "category": "security_awareness",
+        "status": "in_progress",
+        "dueDate": "2026-05-31",
+        "completedDate": null,
+        "instructor": "Consultant en sécurité externe",
+        "assignees": "Service financier, cadres dirigeants, secrétariats",
+        "applicableEntities": [],
+        "evidence": "",
+        "mandatory": true,
+        "createdBy": "admin",
+        "createdAt": "2026-02-01T08:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z"
+      }
+    ],
+    "bcm.json": {
+      "bia": [
+        {
+          "id": "bia_demo_fr_001",
+          "title": "Système ERP (SAP S/4HANA)",
+          "processOwner": "Pierre Dubois (DSI)",
+          "department": "IT",
+          "criticality": "critical",
+          "rto": 4,
+          "rpo": 1,
+          "mtpd": 8,
+          "dependencies": [
+            "Réseau",
+            "Alimentation du datacenter",
+            "Base de données Oracle"
+          ],
+          "affectedSystems": [
+            "SAP S/4HANA",
+            "SAP PI/PO",
+            "SAP BW"
+          ],
+          "status": "approved",
+          "lastReviewDate": "2025-11-15",
+          "notes": "Processus central : gestion des commandes, comptabilité générale, ressources humaines. Une panne entraîne directement un arrêt de production.",
+          "entityId": "",
+          "createdAt": "2025-06-01T09:00:00.000Z",
+          "updatedAt": "2025-11-15T14:30:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bia_demo_fr_002",
+          "title": "Ligne de production Usine A",
+          "processOwner": "Marie Lefevre (Directrice d'usine)",
+          "department": "Production",
+          "criticality": "critical",
+          "rto": 2,
+          "rpo": 0,
+          "mtpd": 4,
+          "dependencies": [
+            "Système de gestion des bâtiments",
+            "Alimentation électrique",
+            "SAP PP"
+          ],
+          "affectedSystems": [
+            "MES Siemens",
+            "Automates programmables",
+            "Système SCADA"
+          ],
+          "status": "approved",
+          "lastReviewDate": "2025-10-20",
+          "notes": "Criticité maximale — perte de chiffre d'affaires immédiate en cas de panne. RTO=2h, RPO=0.",
+          "entityId": "",
+          "createdAt": "2025-06-01T09:10:00.000Z",
+          "updatedAt": "2025-10-20T10:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bia_demo_fr_003",
+          "title": "Messagerie et communications (Microsoft 365)",
+          "processOwner": "Thomas Martin (Responsable IT)",
+          "department": "IT",
+          "criticality": "high",
+          "rto": 8,
+          "rpo": 4,
+          "mtpd": 24,
+          "dependencies": [
+            "Connexion internet",
+            "Azure AD",
+            "DNS"
+          ],
+          "affectedSystems": [
+            "Microsoft 365",
+            "Exchange Online",
+            "Teams"
+          ],
+          "status": "approved",
+          "lastReviewDate": "2025-09-10",
+          "notes": "La panne affecte tous les services. Solution de secours : téléphones mobiles, liste de contacts d'urgence.",
+          "entityId": "",
+          "createdAt": "2025-06-02T10:00:00.000Z",
+          "updatedAt": "2025-09-10T08:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        }
+      ],
+      "plans": [
+        {
+          "id": "bcp_demo_fr_001",
+          "title": "Plan de reprise informatique (PRI) SAP",
+          "type": "itp",
+          "scope": "SAP S/4HANA, SAP PI/PO, SAP BW – tous les clients de production",
+          "planOwner": "Pierre Dubois (DSI)",
+          "status": "tested",
+          "version": "3.1",
+          "lastTested": "2025-09-10",
+          "nextTest": "2026-03-10",
+          "testResult": "pass",
+          "linkedBiaIds": [
+            "bia_demo_fr_001"
+          ],
+          "procedures": "1. Activer l'équipe d'urgence IT\n2. Basculement vers le datacenter de reprise (DC2)\n3. Redémarrage SAP selon la liste de priorités\n4. Test fonctionnel des processus métier critiques\n5. Validation par le DSI",
+          "entityId": "",
+          "createdAt": "2025-01-15T09:00:00.000Z",
+          "updatedAt": "2025-09-10T16:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bcp_demo_fr_002",
+          "title": "Plan d'urgence cyberattaque / rançongiciel",
+          "type": "drp",
+          "scope": "Ensemble de l'infrastructure IT y compris le réseau OT",
+          "planOwner": "Sophie Bernard (RSSI)",
+          "status": "approved",
+          "version": "2.2",
+          "lastTested": "2025-09-01",
+          "nextTest": "2026-03-01",
+          "testResult": "pass",
+          "linkedBiaIds": [
+            "bia_demo_fr_001",
+            "bia_demo_fr_003"
+          ],
+          "procedures": "1. Isoler les systèmes affectés\n2. Activer l'équipe de réponse aux incidents\n3. Notifier l'ANSSI / les autorités (si obligatoire)\n4. Forensique et évaluation des dommages\n5. Restauration à partir des sauvegardes hors ligne",
+          "entityId": "",
+          "createdAt": "2025-02-01T09:00:00.000Z",
+          "updatedAt": "2025-09-01T15:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        }
+      ],
+      "exercises": [
+        {
+          "id": "bex_demo_fr_001",
+          "title": "Exercice sur table – Scénario rançongiciel",
+          "type": "tabletop",
+          "date": "2025-09-05",
+          "conductor": "Sophie Bernard (RSSI)",
+          "participants": [
+            "Responsable IT",
+            "DSI",
+            "RSSI",
+            "Service juridique",
+            "Délégué à la Protection des Données"
+          ],
+          "linkedPlanId": "bcp_demo_fr_002",
+          "result": "pass",
+          "findings": "La chaîne de communication a bien fonctionné. Le processus de notification à l'ANSSI a été correctement simulé. Amélioration nécessaire pour l'accès aux sauvegardes hors ligne.",
+          "actions": "Mettre à jour la procédure de sauvegarde hors ligne (d'ici le 30/11/2025). Compléter la liste de contacts ANSSI.",
+          "nextExercise": "2026-03-01",
+          "createdAt": "2025-09-05T18:00:00.000Z",
+          "updatedAt": "2025-09-06T09:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        }
+      ]
+    },
+    "assets.json": [
+      {
+        "id": "asset_demo_fr_001",
+        "name": "Système ERP (SAP S/4HANA)",
+        "category": "software",
+        "type": "software_saas",
+        "description": "Système ERP central pour la comptabilité générale, le contrôle de gestion, les achats et la production.",
+        "owner": "Claire Dupont",
+        "ownerEmail": "claire.dupont@exemple-sa.fr",
+        "custodian": "Exploitation IT / Équipe ERP",
+        "entityId": "",
+        "location": "SAP BTP EU10 (Francfort)",
+        "classification": "confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "SAP SE",
+        "version": "S/4HANA 2023",
+        "serialNumber": "",
+        "purchaseDate": "2022-01-01",
+        "endOfLifeDate": "2030-12-31",
+        "tags": [
+          "erp",
+          "sap",
+          "finance",
+          "production"
+        ],
+        "notes": "Système critique – SLA 99,9% convenu. Plan d'urgence en place.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_fr_002",
+        "name": "Active Directory / LDAP",
+        "category": "software",
+        "type": "software_app",
+        "description": "Services de domaine Microsoft Active Directory et annuaire LDAP pour l'ensemble de la structure du groupe.",
+        "owner": "Marc Schneider",
+        "ownerEmail": "marc.schneider@exemple-sa.fr",
+        "custodian": "Sécurité IT / Équipe IAM",
+        "entityId": "",
+        "location": "Datacenter Paris, Zone A (redondant)",
+        "classification": "strictly_confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "Microsoft",
+        "version": "Windows Server 2022 / AD DS",
+        "serialNumber": "",
+        "purchaseDate": "2018-09-01",
+        "endOfLifeDate": "2031-10-14",
+        "tags": [
+          "iam",
+          "active-directory",
+          "ldap",
+          "identite",
+          "acces"
+        ],
+        "notes": "Actif de niveau 0. Accès privilégié exclusivement via le système PAM.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_fr_003",
+        "name": "Base de données clients CRM",
+        "category": "data",
+        "type": "data_database",
+        "description": "Base de données PostgreSQL avec les données maîtres clients, l'historique des ventes et les coordonnées. Environ 750 000 enregistrements.",
+        "owner": "Julie Breton",
+        "ownerEmail": "julie.breton@exemple-sa.fr",
+        "custodian": "Exploitation IT / Équipe bases de données",
+        "entityId": "",
+        "location": "Datacenter Paris, Zone B",
+        "classification": "strictly_confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "Open-Source (PostgreSQL)",
+        "version": "PostgreSQL 16",
+        "serialNumber": "",
+        "purchaseDate": "",
+        "endOfLifeDate": "",
+        "tags": [
+          "crm",
+          "donnees-clients",
+          "rgpd",
+          "base-de-donnees",
+          "postgresql"
+        ],
+        "notes": "Entrée au registre RoPA en place (Art. 30 RGPD). Chiffrement au repos et en transit activé.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_fr_004",
+        "name": "Cluster de pare-feu (périmètre)",
+        "category": "hardware",
+        "type": "hardware_network",
+        "description": "Cluster Fortinet FortiGate HA comme pare-feu périmétrique central. Sépare Internet, DMZ et réseau interne.",
+        "owner": "Marc Schneider",
+        "ownerEmail": "marc.schneider@exemple-sa.fr",
+        "custodian": "Sécurité IT / Équipe réseau",
+        "entityId": "",
+        "location": "Datacenter Paris, Zone A",
+        "classification": "confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "Fortinet",
+        "version": "FortiGate 600F, FortiOS 7.4",
+        "serialNumber": "FW-DC-PAR-2023-001",
+        "purchaseDate": "2023-02-01",
+        "endOfLifeDate": "2028-02-28",
+        "tags": [
+          "pare-feu",
+          "reseau",
+          "perimetre",
+          "fortinet"
+        ],
+        "notes": "Cluster HA actif/passif. Test de pénétration annuel.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_fr_005",
+        "name": "Microsoft 365 (Licence E3)",
+        "category": "software",
+        "type": "software_saas",
+        "description": "Microsoft 365 E3 pour tous les employés du groupe : Exchange Online, Teams, SharePoint, OneDrive, applications Office.",
+        "owner": "Claire Dupont",
+        "ownerEmail": "claire.dupont@exemple-sa.fr",
+        "custodian": "IT Poste de travail / Équipe cloud",
+        "entityId": "",
+        "location": "Microsoft Azure EU North (Amsterdam)",
+        "classification": "confidential",
+        "criticality": "high",
+        "status": "active",
+        "vendor": "Microsoft",
+        "version": "Microsoft 365 E3",
+        "serialNumber": "",
+        "purchaseDate": "2021-04-01",
+        "endOfLifeDate": "",
+        "tags": [
+          "m365",
+          "teams",
+          "exchange",
+          "sharepoint",
+          "cloud"
+        ],
+        "notes": "MFA obligatoire pour tous les utilisateurs. DPA avec Microsoft en place (RGPD).",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      }
+    ],
+    "suppliers.json": [
+      {
+        "id": "sup_demo_fr_001",
+        "name": "Microsoft France SAS",
+        "type": "cloud",
+        "criticality": "critical",
+        "status": "active",
+        "country": "FR",
+        "contactName": "Support Microsoft",
+        "contactEmail": "support@microsoft.com",
+        "website": "https://www.microsoft.com/fr-fr",
+        "description": "Services Microsoft pour le cloud, la collaboration et la productivité. Fournisseur principal pour la messagerie, la vidéoconférence, la suite bureautique et l'infrastructure cloud Azure.",
+        "products": "Microsoft 365 (Exchange, Teams, SharePoint), Azure Cloud Services",
+        "dataAccess": true,
+        "dataCategories": [
+          "Données de communication",
+          "Données des employés",
+          "Documents professionnels"
+        ],
+        "securityRequirements": [
+          "ISO 27001",
+          "SOC 2 Type II",
+          "Conformité RGPD",
+          "DPA conclu"
+        ],
+        "lastAuditDate": "2025-11-01",
+        "nextAuditDate": "2026-05-01",
+        "auditResult": "passed",
+        "contractId": "",
+        "avContractId": "av_demo_fr_001",
+        "riskScore": 12,
+        "notes": "Fournisseur cloud critique. DPA via l'Addendum de Protection des Données Microsoft conclu.",
+        "linkedControls": [
+          "NIS2-d",
+          "EUCS-SCM.1",
+          "EUCS-SCM.2"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-11-01T10:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      },
+      {
+        "id": "sup_demo_fr_002",
+        "name": "OVHcloud SAS",
+        "type": "cloud",
+        "criticality": "high",
+        "status": "active",
+        "country": "FR",
+        "contactName": "Support OVHcloud",
+        "contactEmail": "support@ovhcloud.com",
+        "website": "https://www.ovhcloud.com/fr",
+        "description": "Hébergeur et fournisseur cloud européen. Opère des serveurs dédiés et des machines virtuelles cloud pour les environnements de test et de développement. Datacenters en France.",
+        "products": "Serveur dédié, Public Cloud (instances), Object Storage",
+        "dataAccess": true,
+        "dataCategories": [
+          "Données de développement",
+          "Données de sauvegarde",
+          "Données de test"
+        ],
+        "securityRequirements": [
+          "ISO 27001",
+          "Conformité RGPD",
+          "DPA conclu",
+          "Certifications SecNumCloud"
+        ],
+        "lastAuditDate": "",
+        "nextAuditDate": "2026-04-15",
+        "auditResult": "pending",
+        "contractId": "",
+        "avContractId": "",
+        "riskScore": 9,
+        "notes": "Datacenters en France – entièrement dans l'UE. DPA OVHcloud conclu.",
+        "linkedControls": [
+          "NIS2-d",
+          "EUCS-SCM.1"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-10-15T09:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      },
+      {
+        "id": "sup_demo_fr_003",
+        "name": "Axway Software SA",
+        "type": "software",
+        "criticality": "medium",
+        "status": "active",
+        "country": "FR",
+        "contactName": "Support Axway",
+        "contactEmail": "support@axway.com",
+        "website": "https://www.axway.com",
+        "description": "Fournisseur de logiciels d'intégration et d'API management. Gère les flux d'échanges de données B2B et les intégrations système.",
+        "products": "Axway AMPLIFY API Management, Axway Transfer CFT, Axway B2B Integration",
+        "dataAccess": true,
+        "dataCategories": [
+          "Données d'intégration",
+          "Données de transaction"
+        ],
+        "securityRequirements": [
+          "ISO 27001",
+          "Conformité RGPD",
+          "DPA conclu"
+        ],
+        "lastAuditDate": "2025-06-01",
+        "nextAuditDate": "2026-06-01",
+        "auditResult": "passed",
+        "contractId": "",
+        "avContractId": "",
+        "riskScore": 8,
+        "notes": "Prestataire français. Audit annuel de sécurité réalisé avec succès.",
+        "linkedControls": [
+          "NIS2-d"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-06-01T10:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      },
+      {
+        "id": "sup_demo_fr_004",
+        "name": "Bureau Veritas Certification France",
+        "type": "consulting",
+        "criticality": "low",
+        "status": "active",
+        "country": "FR",
+        "contactName": "Jean-Pierre Martin",
+        "contactEmail": "jp.martin@bureauveritas.com",
+        "website": "https://www.bureauveritas.fr",
+        "description": "Organisme de certification accrédité pour ISO 27001. Réalise les audits SMSI externes (Phase 1 + Phase 2) et délivre le certificat ISO 27001.",
+        "products": "Certification ISO 27001 (Phase 1 + Phase 2), Audit de surveillance, Audit de renouvellement",
+        "dataAccess": false,
+        "dataCategories": [],
+        "securityRequirements": [
+          "NDA pour les informations d'audit",
+          "Accréditation COFRAC"
+        ],
+        "lastAuditDate": "2023-09-15",
+        "nextAuditDate": "2026-09-01",
+        "auditResult": "not_scheduled",
+        "contractId": "",
+        "avContractId": "",
+        "riskScore": 2,
+        "notes": "Auditeur externe pour la recertification ISO 27001 en 2026 (cycle triennal).",
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-09-01T09:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      }
+    ],
+    "governance.json": {
+      "reviews": [
+        {
+          "id": "mgmt_demo_fr_001",
+          "title": "Revue de direction 2025 – Bilan annuel",
+          "type": "annual",
+          "date": "2025-11-14",
+          "nextReviewDate": "2026-11-13",
+          "status": "approved",
+          "chair": "Jean-Marc Exemple (PDG)",
+          "participants": "Sophie Bernard (RSSI), Isabelle Moreau (DPD), Pierre Dubois (DSI), Anne Leclerc (DAF)",
+          "inputAuditResults": "Audit interne ISO 27001 T3/2025 : 3 non-conformités mineures identifiées. Toutes les constatations ont été enregistrées comme actions correctives.",
+          "inputStakeholderFeedback": "Enquête clients 2025 : 91% de satisfaction concernant les pratiques de protection des données.",
+          "inputPerformance": "Objectifs de sécurité 2025 : 6 des 9 objectifs atteints. Taux de conformité des correctifs : 89%.",
+          "inputNonconformities": "3 non-conformités mineures issues de l'audit interne.",
+          "inputPreviousActions": "Plan d'action de la revue 2024 : 10 des 13 actions réalisées (77%).",
+          "inputRisksOpportunities": "2 nouveaux risques critiques identifiés (attaques de la chaîne d'approvisionnement, hameçonnage assisté par IA).",
+          "inputExternalChanges": "Règlement sur l'IA de l'UE adopté. Loi de transposition NIS2 en vigueur.",
+          "decisions": "1. Le périmètre du SMSI reste inchangé pour 2026. 2. Budget pour l'audit de certification 2026 approuvé (45 000 €).",
+          "improvements": "Introduction d'un outil de gestion automatisée des correctifs. Révision des clauses de sécurité fournisseurs.",
+          "resourceNeeds": "0,5 ETP supplémentaire pour la coordination SMSI approuvé.",
+          "notes": "Prochaine revue de direction prévue le 13 novembre 2026.",
+          "createdAt": "2025-11-01T09:00:00.000Z",
+          "updatedAt": "2025-11-20T14:30:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        }
+      ],
+      "actions": [
+        {
+          "id": "gact_demo_fr_001",
+          "title": "Test de pénétration du réseau de production",
+          "description": "Commande et réalisation d'un test de pénétration externe pour le réseau de production, y compris les applications web et les points d'entrée API.",
+          "source": "internal_audit",
+          "sourceRef": "Audit interne T3/2025",
+          "owner": "Marc Schneider",
+          "ownerEmail": "m.schneider@exemple-sa.fr",
+          "dueDate": "2026-06-30",
+          "completedDate": "",
+          "priority": "high",
+          "status": "in_progress",
+          "progress": 40,
+          "notes": "Prestataire sélectionné. Réunion de lancement planifiée.",
+          "entityId": "",
+          "createdAt": "2025-11-20T10:00:00.000Z",
+          "updatedAt": "2026-03-07T09:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        },
+        {
+          "id": "gact_demo_fr_002",
+          "title": "Formation de sensibilisation pour tous les employés (obligatoire 2026)",
+          "description": "Réalisation de la formation annuelle de sensibilisation à la sécurité pour tous les employés, y compris les cadres dirigeants.",
+          "source": "management_review",
+          "sourceRef": "Revue de direction 2025",
+          "owner": "Julie Breton",
+          "ownerEmail": "j.breton@exemple-sa.fr",
+          "dueDate": "2026-04-30",
+          "completedDate": "",
+          "priority": "high",
+          "status": "open",
+          "progress": 0,
+          "notes": "La plateforme e-learning est en cours de configuration.",
+          "entityId": "",
+          "createdAt": "2026-01-14T16:00:00.000Z",
+          "updatedAt": "2026-01-14T16:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        }
+      ],
+      "meetings": [
+        {
+          "id": "meet_demo_fr_001",
+          "title": "Comité SMSI T4/2025",
+          "committee": "isms_committee",
+          "date": "2025-12-03",
+          "location": "Salle de conférence du conseil d'administration",
+          "chair": "Sophie Bernard (RSSI)",
+          "secretary": "Anna Fischer (Coordinatrice SMSI)",
+          "participants": "Jean-Marc Exemple (PDG), Isabelle Moreau (DPD), Marc Schneider (Responsable IT), Pierre Dubois (DSI)",
+          "agenda": "1. Approbation du procès-verbal T3/2025\n2. État du plan d'action revue de direction 2025\n3. Analyse du périmètre NIS2\n4. Budget SMSI 2026",
+          "decisions": "1. Procès-verbal T3/2025 approuvé.\n2. Périmètre NIS2 confirmé.\n3. Budget SMSI 2026 approuvé : 250 000 €.",
+          "nextMeetingDate": "2026-03-11",
+          "approved": true,
+          "approvedBy": "Jean-Marc Exemple",
+          "notes": "Prochaine réunion : 11 mars 2026.",
+          "createdAt": "2025-11-25T09:00:00.000Z",
+          "updatedAt": "2025-12-10T11:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        }
+      ]
+    },
+    "public-incidents.json": [
+      {
+        "id": "inc_demo_fr_001",
+        "refNumber": "INC-2026-0001",
+        "email": "it-admin@exemple-sa.fr",
+        "entityName": "Exemple SA – Siège social",
+        "incidentType": "phishing",
+        "description": "Un employé a cliqué sur un faux lien de connexion Microsoft et a saisi ses identifiants. Le lien a été reçu par courriel qui semblait provenir du service informatique.",
+        "measuresTaken": "Mot de passe immédiatement réinitialisé, compte temporairement bloqué, en-têtes de courriel analysés.",
+        "localContact": "Claude Berger (Support IT)",
+        "cleanedUp": "partial",
+        "status": "in_review",
+        "assignedTo": "it",
+        "reportable": "tbd",
+        "cisoNotes": "Campagne de phishing encore active – d'autres destinataires identifiés.",
+        "createdAt": "2026-03-01T08:14:23.000Z",
+        "updatedAt": "2026-03-01T10:30:00.000Z",
+        "updatedBy": "admin@exemple-sa.fr"
+      },
+      {
+        "id": "inc_demo_fr_002",
+        "refNumber": "INC-2026-0002",
+        "email": "marie.dupont@exemple-logistique.fr",
+        "entityName": "Exemple Logistique SAS",
+        "incidentType": "ransomware",
+        "description": "Trois serveurs de fichiers de l'agence logistique ont été chiffrés par un rançongiciel. Demande de rançon en Bitcoin d'un montant de 90 000 €.",
+        "measuresTaken": "Systèmes déconnectés du réseau, équipe de sauvegarde notifiée, notification ANSSI préparée.",
+        "localContact": "Marie Dupont (Responsable IT Logistique)",
+        "cleanedUp": "no",
+        "status": "assigned",
+        "assignedTo": "it",
+        "reportable": "yes",
+        "cisoNotes": "Critique. Restauration à partir des sauvegardes en cours. Notification ANSSI dans les 72h.",
+        "createdAt": "2026-02-28T22:47:00.000Z",
+        "updatedAt": "2026-03-01T06:00:00.000Z",
+        "updatedBy": "rssi@exemple-sa.fr"
+      },
+      {
+        "id": "inc_demo_fr_003",
+        "refNumber": "INC-2026-0003",
+        "email": "rgpd@exemple-sa.fr",
+        "entityName": "Exemple SA – RH",
+        "incidentType": "data_theft",
+        "description": "Des dossiers personnels de 3 employés comprenant informations salariales, arrêts de travail et dossiers de candidature ont été envoyés par erreur à un mauvais destinataire (candidat externe).",
+        "measuresTaken": "Destinataire contacté, suppression des fichiers confirmée, notification interne documentée.",
+        "localContact": "Direction RH",
+        "cleanedUp": "yes",
+        "status": "closed",
+        "assignedTo": "datenschutz",
+        "reportable": "yes",
+        "cisoNotes": "Notification Art. 33 RGPD déposée auprès de la CNIL le 16/02/2026. Aucune sanction attendue.",
+        "createdAt": "2026-02-14T09:00:00.000Z",
+        "updatedAt": "2026-02-16T16:30:00.000Z",
+        "updatedBy": "dpo@exemple-sa.fr"
+      }
+    ],
+    "guidance.json": [
+      {
+        "id": "guid_demo_fr_001",
+        "category": "systemhandbuch",
+        "title": "Manuel du système SMSI Build",
+        "type": "markdown",
+        "content": "# Manuel du système SMSI Build\n\n## Vue d'ensemble\n\nSMSI Build est une plateforme web pour la gestion des documents du système de management de la sécurité de l'information (SMSI).\n\n## Fonctionnalités principales\n\n- **Gestion des modèles** : Créer, modifier et versionner les documents de politique\n- **Gestion du cycle de vie** : Brouillon → Révision → Approuvé → Archivé\n- **Contrôles SoA** : Déclaration d'Applicabilité avec 313 contrôles\n- **Risques & Conformité** : Registre des risques, carte thermique, plans de traitement\n- **RGPD & Vie privée** : RoPA, DPA, AIPD, violations, DSAR, MTOs\n",
+        "filename": null,
+        "filePath": null,
+        "createdAt": "2026-03-06T08:00:00.000Z",
+        "updatedAt": "2026-03-06T08:00:00.000Z",
+        "createdBy": "admin",
+        "version": 1,
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "deletedAt": null
+      },
+      {
+        "id": "guid_demo_fr_002",
+        "category": "rollen",
+        "title": "Rôles et responsabilités",
+        "type": "markdown",
+        "content": "# Rôles et responsabilités\n\n## Modèle de rôles\n\n| Rôle | Rang | Description |\n|------|------|-------------|\n| **reader** | 1 | Accès en lecture |\n| **editor** | 2 | Crée et modifie |\n| **contentowner** | 3 | Propriétaire de contenu – approuve |\n| **auditor** | 3 | Rôle d'audit |\n| **admin** | 4 | Administrateur système |\n\n## Responsabilités dans le processus SMSI\n\n1. **Responsable SMSI** : Rôle ContentOwner, responsable de l'approbation des politiques\n2. **Délégué à la Protection des Données (DPD)** : Rôle ContentOwner/Auditor, maintient le module RGPD\n3. **Directions métier** : Rôle Editor, créent les documents spécifiques aux départements\n4. **Sécurité IT** : Rôle ContentOwner/Auditor, maintient SoA, contrôles, MTOs et risques\n",
+        "filename": null,
+        "filePath": null,
+        "createdAt": "2026-03-06T08:00:00.000Z",
+        "updatedAt": "2026-03-06T08:00:00.000Z",
+        "createdBy": "admin",
+        "version": 1,
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "deletedAt": null
+      }
+    ],
+    "templates.json": [
+      {
+        "id": "tmpl_demo_fr_001",
+        "type": "Policy",
+        "language": "fr",
+        "title": "Politique de sécurité de l'information",
+        "content": "# Politique de sécurité de l'information\n\n## 1. Objet\n\nCette politique établit le cadre de protection des actifs informationnels d'Exemple SA conformément à ISO 27001.\n\n## 2. Champ d'application\n\nCette politique s'applique à tous les employés, sous-traitants et tiers ayant accès aux systèmes d'information de l'entreprise.\n\n## 3. Principes directeurs\n\n- Tous les actifs informationnels doivent être classifiés et traités selon leur sensibilité\n- L'accès aux systèmes d'information est accordé sur la base du besoin d'en connaître\n- Tous les utilisateurs sont responsables de la protection de leurs identifiants et du signalement des incidents\n\n## 4. Responsabilités\n\n- **RSSI** : Supervise la mise en œuvre du SMSI et la conformité\n- **Sécurité IT** : Implémente les contrôles techniques\n- **Tous les employés** : Respectent cette politique et les procédures associées\n",
+        "version": 1,
+        "status": "approved",
+        "owner": "admin",
+        "reviewDate": "2027-01-01",
+        "createdAt": "2026-01-01T08:00:00.000Z",
+        "updatedAt": "2026-01-15T10:00:00.000Z",
+        "history": [],
+        "statusHistory": [
+          {
+            "status": "draft",
+            "changedBy": "admin",
+            "changedAt": "2026-01-01T08:00:00.000Z"
+          },
+          {
+            "status": "review",
+            "changedBy": "alice",
+            "changedAt": "2026-01-10T09:00:00.000Z"
+          },
+          {
+            "status": "approved",
+            "changedBy": "admin",
+            "changedAt": "2026-01-15T10:00:00.000Z"
+          }
+        ],
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": []
+      },
+      {
+        "id": "tmpl_demo_fr_002",
+        "type": "Policy",
+        "language": "fr",
+        "title": "Politique d'utilisation acceptable des ressources IT",
+        "content": "# Politique d'utilisation acceptable des ressources IT\n\n## 1. Objet\n\nCette politique définit les utilisations acceptables et inacceptables des ressources IT d'Exemple SA.\n\n## 2. Utilisations acceptables\n\n- Utilisation des ressources IT à des fins professionnelles légitimes\n- Accès aux ressources internet nécessaires au travail\n- Utilisation de logiciels approuvés par l'entreprise\n\n## 3. Utilisations inacceptables\n\n- Accès à des contenus illégaux ou inappropriés\n- Installation de logiciels non autorisés\n- Partage d'identifiants ou contournement des contrôles de sécurité\n- Utilisation des ressources de l'entreprise à des fins d'activité personnelle\n",
+        "version": 1,
+        "status": "approved",
+        "owner": "admin",
+        "reviewDate": "2027-01-01",
+        "createdAt": "2026-01-05T08:00:00.000Z",
+        "updatedAt": "2026-01-20T10:00:00.000Z",
+        "history": [],
+        "statusHistory": [
+          {
+            "status": "draft",
+            "changedBy": "admin",
+            "changedAt": "2026-01-05T08:00:00.000Z"
+          },
+          {
+            "status": "approved",
+            "changedBy": "admin",
+            "changedAt": "2026-01-20T10:00:00.000Z"
+          }
+        ],
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": []
+      },
+      {
+        "id": "tmpl_demo_fr_003",
+        "type": "Procedure",
+        "language": "fr",
+        "title": "Procédure de réponse aux incidents",
+        "content": "# Procédure de réponse aux incidents\n\n## 1. Objet\n\nCette procédure définit les étapes de réponse aux incidents de sécurité de l'information.\n\n## 2. Classification des incidents\n\n| Gravité | Délai de réponse | Escalade |\n|---------|-----------------|----------|\n| Critique | 1 heure | RSSI + Direction |\n| Élevée | 4 heures | RSSI |\n| Moyenne | 24 heures | Sécurité IT |\n| Faible | 5 jours ouvrés | Helpdesk IT |\n\n## 3. Étapes de réponse\n\n1. **Détection** : Identifier et valider l'incident\n2. **Confinement** : Isoler les systèmes affectés\n3. **Éradication** : Éliminer la menace\n4. **Reprise** : Remettre les systèmes en fonctionnement normal\n5. **Retour d'expérience** : Documenter les enseignements et améliorations\n",
+        "version": 1,
+        "status": "review",
+        "owner": "alice",
+        "reviewDate": "2026-06-01",
+        "createdAt": "2026-02-01T08:00:00.000Z",
+        "updatedAt": "2026-02-15T10:00:00.000Z",
+        "history": [],
+        "statusHistory": [
+          {
+            "status": "draft",
+            "changedBy": "alice",
+            "changedAt": "2026-02-01T08:00:00.000Z"
+          },
+          {
+            "status": "review",
+            "changedBy": "alice",
+            "changedAt": "2026-02-15T10:00:00.000Z"
+          }
+        ],
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": []
+      }
+    ]
+  },
+  "gdpr": {
+    "vvt.json": [
+      {
+        "id": "vvt_demo_fr_001",
+        "title": "Gestion des clients CRM",
+        "purpose": "Gestion et maintenance des données clients pour l'exécution des contrats et la communication",
+        "legalBasis": "contract",
+        "legalBasisNote": "Art. 6 para. 1 lit. b RGPD – Exécution du contrat",
+        "dataCategories": [
+          "name",
+          "email",
+          "phone"
+        ],
+        "dataSubjectTypes": [
+          "customers"
+        ],
+        "recipients": [
+          "Commercial interne",
+          "Service client"
+        ],
+        "internationalTransfer": false,
+        "transferMechanism": "",
+        "retentionPeriod": "3 ans après la fin du contrat",
+        "retentionMonths": 36,
+        "deletionProcedure": "Suppression automatique après expiration de la durée de conservation dans le système CRM",
+        "isHighRisk": false,
+        "automatedDecision": false,
+        "linkedAv": [],
+        "linkedToms": [
+          "tom_demo_fr_001",
+          "tom_demo_fr_002"
+        ],
+        "applicableEntities": [],
+        "status": "approved",
+        "owner": "admin",
+        "createdAt": "2025-01-15T10:00:00.000Z",
+        "updatedAt": "2025-01-15T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "vvt_demo_fr_002",
+        "title": "Administration du personnel RH",
+        "purpose": "Traitement des données des employés pour remplir les obligations légales en matière de droit du travail et de paie",
+        "legalBasis": "legal_obligation",
+        "legalBasisNote": "Art. 6 para. 1 lit. c RGPD – Obligation légale",
+        "dataCategories": [
+          "name",
+          "address",
+          "financial"
+        ],
+        "dataSubjectTypes": [
+          "employees"
+        ],
+        "recipients": [
+          "Service RH",
+          "Conseiller fiscal",
+          "Organismes de sécurité sociale"
+        ],
+        "internationalTransfer": false,
+        "transferMechanism": "",
+        "retentionPeriod": "10 ans (obligation légale de conservation)",
+        "retentionMonths": 120,
+        "deletionProcedure": "Suppression physique et numérique à l'expiration des durées de conservation légales",
+        "isHighRisk": false,
+        "automatedDecision": false,
+        "linkedAv": [],
+        "linkedToms": [
+          "tom_demo_fr_001",
+          "tom_demo_fr_003"
+        ],
+        "applicableEntities": [],
+        "status": "approved",
+        "owner": "admin",
+        "createdAt": "2025-01-15T10:00:00.000Z",
+        "updatedAt": "2025-01-15T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "vvt_demo_fr_003",
+        "title": "Analyse du site web et marketing",
+        "purpose": "Analyse de l'utilisation du site web pour améliorer l'expérience utilisateur et le marketing ciblé",
+        "legalBasis": "consent",
+        "legalBasisNote": "Art. 6 para. 1 lit. a RGPD – Consentement",
+        "dataCategories": [
+          "ip_address",
+          "browser_data",
+          "usage_data"
+        ],
+        "dataSubjectTypes": [
+          "website_visitors"
+        ],
+        "recipients": [
+          "Service IT",
+          "Marketing"
+        ],
+        "internationalTransfer": true,
+        "transferMechanism": "scc",
+        "retentionPeriod": "26 mois",
+        "retentionMonths": 26,
+        "deletionProcedure": "Suppression automatique via les paramètres de la plateforme d'analyse",
+        "isHighRisk": false,
+        "automatedDecision": false,
+        "linkedAv": [],
+        "linkedToms": [
+          "tom_demo_fr_002"
+        ],
+        "applicableEntities": [],
+        "status": "review",
+        "owner": "admin",
+        "createdAt": "2025-03-01T10:00:00.000Z",
+        "updatedAt": "2025-03-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "toms.json": [
+      {
+        "id": "tom_demo_fr_001",
+        "title": "Contrôle d'accès (MFA & RBAC)",
+        "category": "access",
+        "description": "Mise en œuvre de l'authentification multifacteur (MFA) et du contrôle d'accès basé sur les rôles (RBAC) pour tous les systèmes traitant des données personnelles.",
+        "implementation": "MFA via application TOTP pour tous les comptes utilisateurs. Modèle RBAC avec principe du moindre privilège. Révisions d'accès trimestrielles.",
+        "status": "implemented",
+        "owner": "Admin IT",
+        "evidenceNote": "Preuve : taux d'activation MFA 100%, concept RBAC v2.1 approuvé",
+        "retentionRule": "",
+        "linkedVvt": [
+          "vvt_demo_fr_001",
+          "vvt_demo_fr_002"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-12-31",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_fr_002",
+        "title": "Chiffrement des transports (TLS 1.3)",
+        "category": "encryption",
+        "description": "Toutes les transmissions de données sur les réseaux publics sont chiffrées avec TLS 1.3. Les protocoles obsolètes (TLS 1.0/1.1, SSL) sont désactivés.",
+        "implementation": "TLS 1.3 configuré sur tous les serveurs web, API et passerelles de messagerie. HSTS activé.",
+        "status": "implemented",
+        "owner": "Admin IT",
+        "evidenceNote": "Évaluation SSL Labs : A+",
+        "retentionRule": "",
+        "linkedVvt": [
+          "vvt_demo_fr_001"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-12-31",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_fr_003",
+        "title": "Sauvegarde et reprise après sinistre",
+        "category": "backup",
+        "description": "Sauvegarde régulière des données et concept de reprise pour garantir la disponibilité et l'intégrité des données personnelles.",
+        "implementation": "Sauvegardes incrémentielles quotidiennes, sauvegardes complètes hebdomadaires. Sauvegarde hors site dans un datacenter géo-redondant. Stratégie 3-2-1.",
+        "status": "implemented",
+        "owner": "Admin IT",
+        "evidenceNote": "Test DR : RPO < 4h, RTO < 8h.",
+        "retentionRule": "Données de sauvegarde : 90 jours ; journaux de sauvegarde : 1 an",
+        "linkedVvt": [
+          "vvt_demo_fr_001",
+          "vvt_demo_fr_002"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-11-30",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_fr_004",
+        "title": "Gestion des correctifs et des vulnérabilités",
+        "category": "application",
+        "description": "Processus systématique d'identification, d'évaluation et de correction des vulnérabilités de sécurité dans les logiciels et systèmes d'exploitation.",
+        "implementation": "Déploiement automatisé des correctifs pour les applications critiques dans les 72h après CVSS >= 9. Cycles de correctifs mensuels.",
+        "status": "implemented",
+        "owner": "Admin IT",
+        "evidenceNote": "Taux de conformité des correctifs : >95%",
+        "retentionRule": "",
+        "linkedVvt": [
+          "vvt_demo_fr_001",
+          "vvt_demo_fr_002"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-12-31",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_fr_005",
+        "title": "Plan de réponse aux incidents (PRI)",
+        "category": "organizational",
+        "description": "Plan documenté et testé pour une réponse structurée aux violations de données et incidents de sécurité (Art. 33/34 RGPD).",
+        "implementation": "Le PRI décrit les rôles, voies d'escalade, obligation de notification sous 72h, communication aux personnes concernées. Exercice sur table annuel.",
+        "status": "implemented",
+        "owner": "DPO",
+        "evidenceNote": "PRI v2.1 approuvé, dernier exercice sur table réalisé",
+        "retentionRule": "Rapports d'incidents : 5 ans",
+        "linkedVvt": [],
+        "riskLevel": "high",
+        "reviewDate": "2026-11-30",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "av.json": [
+      {
+        "id": "av_demo_fr_001",
+        "title": "Microsoft 365 / Azure",
+        "processorName": "Microsoft Ireland Limited",
+        "processorCountry": "IE",
+        "processorContactEmail": "msprivacy@microsoft.com",
+        "processingScope": "Services cloud pour la messagerie (Exchange Online), les documents (SharePoint/OneDrive), la vidéoconférence (Teams) et l'infrastructure Azure",
+        "linkedVvt": [
+          "vvt_demo_fr_001",
+          "vvt_demo_fr_002"
+        ],
+        "signatureDate": "2024-01-01",
+        "effectiveUntil": "2026-12-31",
+        "subProcessors": [
+          {
+            "name": "Microsoft Corporation (USA)",
+            "country": "US",
+            "approved": true
+          }
+        ],
+        "status": "signed",
+        "applicableEntities": [],
+        "transferMechanism": "scc",
+        "art28Checklist": {
+          "instructionsOnly": true,
+          "confidentiality": true,
+          "security": true,
+          "subProcessorApproval": true,
+          "assistanceRights": true,
+          "deletionReturn": true,
+          "auditRights": true,
+          "cooperation": true
+        },
+        "filePath": null,
+        "filename": null,
+        "notes": "Accord de traitement des données Microsoft (DPA) v2024 conclu. Clauses contractuelles types conformément à l'UE 2021/914.",
+        "createdAt": "2025-01-15T10:00:00.000Z",
+        "updatedAt": "2025-01-15T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "dsfa.json": [
+      {
+        "id": "dsfa_demo_fr_001",
+        "title": "AIPD : Logiciel RH avec stockage cloud",
+        "linkedVvtId": "vvt_demo_fr_002",
+        "processingDescription": "Utilisation d'un logiciel RH en mode SaaS pour le traitement des données des employés, y compris les données salariales, les arrêts de travail et les évaluations de performance.",
+        "necessityAssessment": "Le traitement est nécessaire pour remplir les obligations légales en matière de droit du travail et pour une gestion RH efficace.",
+        "risks": [
+          {
+            "id": "dsfa_risk_fr_001",
+            "description": "Accès non autorisé par des tiers (piratage, violation de données chez le prestataire)",
+            "likelihood": 2,
+            "impact": 4,
+            "score": 8,
+            "mitigations": [
+              "DPA conclu",
+              "Chiffrement TLS",
+              "MFA obligatoire",
+              "Tests de pénétration chez le prestataire"
+            ]
+          }
+        ],
+        "existingControls": "MFA, contrôle d'accès basé sur les rôles, transmission chiffrée (TLS 1.3), sauvegardes quotidiennes, DPA avec le prestataire.",
+        "residualRisk": "medium",
+        "dpoConsulted": true,
+        "dpoOpinion": "Les mesures prévues sont jugées suffisantes. Des audits réguliers chez le prestataire sont recommandés.",
+        "saConsultationRequired": false,
+        "decision": "proceed",
+        "decisionJustification": "Le risque résiduel, compte tenu des mesures mises en œuvre, est classé comme acceptable.",
+        "applicableEntities": [],
+        "status": "review",
+        "owner": "admin",
+        "approvedBy": null,
+        "approvedAt": null,
+        "createdAt": "2025-02-01T10:00:00.000Z",
+        "updatedAt": "2025-02-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "dsar.json": [
+      {
+        "id": "dsar_demo_fr_001",
+        "refNumber": "DSAR-2026-0001",
+        "requestType": "access",
+        "dataSubjectName": "Jean Dupont",
+        "dataSubjectEmail": "j.dupont@exemple.fr",
+        "receivedDate": "2026-02-01",
+        "dueDate": "2026-03-01",
+        "status": "completed",
+        "assignedTo": "DPO",
+        "notes": "Demande d'accès satisfaite. Tous les enregistrements pertinents communiqués dans le délai légal.",
+        "completedDate": "2026-02-25",
+        "createdAt": "2026-02-01T10:00:00.000Z",
+        "updatedAt": "2026-02-25T15:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "dsar_demo_fr_002",
+        "refNumber": "DSAR-2026-0002",
+        "requestType": "erasure",
+        "dataSubjectName": "Élise Martin",
+        "dataSubjectEmail": "e.martin@perso.fr",
+        "receivedDate": "2026-03-05",
+        "dueDate": "2026-04-04",
+        "status": "in_progress",
+        "assignedTo": "DPO",
+        "notes": "Demande d'effacement à l'examen. Vérification des obligations légales de conservation en cours.",
+        "completedDate": null,
+        "createdAt": "2026-03-05T09:00:00.000Z",
+        "updatedAt": "2026-03-07T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "incidents.json": [
+      {
+        "id": "gdpr_inc_demo_fr_001",
+        "refNumber": "GDPR-INC-2026-0001",
+        "title": "Divulgation accidentelle de données salariales des employés",
+        "description": "Un tableur de paie contenant les données salariales de 42 employés a été accidentellement inclus dans une distribution courriel générale.",
+        "category": "disclosure",
+        "affectedPersons": 42,
+        "dataCategories": [
+          "financial",
+          "employee"
+        ],
+        "detectedAt": "2026-01-15T14:00:00.000Z",
+        "reportedAt": "2026-01-15T16:00:00.000Z",
+        "notifiedSA": true,
+        "notifiedSADate": "2026-01-16T10:00:00.000Z",
+        "notifiedDataSubjects": false,
+        "status": "closed",
+        "riskLevel": "medium",
+        "measures": "Courriel rappelé, destinataires invités à supprimer, processus revu.",
+        "owner": "DPO",
+        "createdAt": "2026-01-15T16:00:00.000Z",
+        "updatedAt": "2026-01-20T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "gdpr_inc_demo_fr_002",
+        "refNumber": "GDPR-INC-2026-0002",
+        "title": "Accès non autorisé à la base de données clients",
+        "description": "Vulnérabilité par injection SQL exploitée sur une application legacy ; l'attaquant a accédé à 2 100 enregistrements clients.",
+        "category": "unauthorized_access",
+        "affectedPersons": 2100,
+        "dataCategories": [
+          "name",
+          "email",
+          "address"
+        ],
+        "detectedAt": "2026-02-20T03:00:00.000Z",
+        "reportedAt": "2026-02-20T09:00:00.000Z",
+        "notifiedSA": true,
+        "notifiedSADate": "2026-02-21T10:00:00.000Z",
+        "notifiedDataSubjects": true,
+        "status": "closed",
+        "riskLevel": "high",
+        "measures": "Vulnérabilité corrigée, clients concernés notifiés, enquête forensique terminée.",
+        "owner": "DPO",
+        "createdAt": "2026-02-20T09:00:00.000Z",
+        "updatedAt": "2026-03-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "deletionLog.json": []
+  },
+  "legal": {
+    "contracts.json": [
+      {
+        "id": "contract_fr_001",
+        "title": "Contrat d'externalisation IT – Exploitation du centre de données",
+        "contractType": "service",
+        "counterparty": "Orange Business Services",
+        "description": "Exploitation et maintenance de l'infrastructure serveur sur site avec surveillance 24h/7j, SLA Niveau 2 et revues trimestrielles de capacité.",
+        "startDate": "2023-01-01",
+        "endDate": "2026-12-31",
+        "autoRenew": true,
+        "noticePeriodDays": 90,
+        "owner": "RSSI",
+        "status": "active",
+        "value": "240000",
+        "currency": "EUR",
+        "notes": "Revue annuelle T4 2026. Disponibilité SLA : 99,9 %.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2023-01-01T08:00:00.000Z",
+        "updatedAt": "2026-01-15T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "contract_fr_002",
+        "title": "Contrat de licence Microsoft 365 Enterprise E3",
+        "contractType": "license",
+        "counterparty": "Microsoft France SAS",
+        "description": "Licence entreprise pour 350 utilisateurs incluant Exchange Online, Teams, SharePoint et outils de conformité.",
+        "startDate": "2025-01-01",
+        "endDate": "2027-12-31",
+        "autoRenew": false,
+        "noticePeriodDays": 60,
+        "owner": "DSI",
+        "status": "active",
+        "value": "189000",
+        "currency": "EUR",
+        "notes": "Inclut Entra ID P1 et Defender for Endpoint.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2024-11-15T10:00:00.000Z",
+        "updatedAt": "2025-01-01T08:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "contract_fr_003",
+        "title": "Services SOC managé – Surveillance sécurité 24h/7j",
+        "contractType": "service",
+        "counterparty": "Thales Group – Cybersecurity Solutions",
+        "description": "Centre opérationnel de sécurité managé avec détection des menaces 24h/7j, triage des incidents et reporting mensuel. Inclut SIEM-as-a-Service.",
+        "startDate": "2025-04-01",
+        "endDate": "2028-03-31",
+        "autoRenew": true,
+        "noticePeriodDays": 180,
+        "owner": "RSSI",
+        "status": "active",
+        "value": "144000",
+        "currency": "EUR",
+        "notes": "SLA : Alertes critiques traitées en 15 min.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2025-03-01T09:00:00.000Z",
+        "updatedAt": "2025-04-01T08:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "ndas.json": [
+      {
+        "id": "nda_fr_001",
+        "title": "NDA – Prestataire de test d'intrusion 2026",
+        "ndaType": "bilateral",
+        "counterparty": "Wavestone",
+        "signingDate": "2026-02-15",
+        "expiryDate": "2028-02-15",
+        "scope": "Toutes les conclusions, vulnérabilités et informations d'infrastructure obtenues lors des missions de test d'intrusion.",
+        "owner": "RSSI",
+        "status": "active",
+        "applicableEntities": [],
+        "notes": "Test d'intrusion annuel T2 2026.",
+        "attachments": [],
+        "createdAt": "2026-02-15T09:00:00.000Z",
+        "updatedAt": "2026-02-15T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "nda_fr_002",
+        "title": "NDA – Organisme de certification ISO 27001",
+        "ndaType": "unilateral",
+        "counterparty": "AFNOR Certification",
+        "signingDate": "2026-01-10",
+        "expiryDate": "2029-01-10",
+        "scope": "Tous les documents internes, analyses de risques et conclusions d'audit partagés lors des audits de certification.",
+        "owner": "RSSI",
+        "status": "active",
+        "applicableEntities": [],
+        "notes": "Audit Étape 1 : juin 2026. Audit Étape 2 : septembre 2026.",
+        "attachments": [],
+        "createdAt": "2026-01-10T10:00:00.000Z",
+        "updatedAt": "2026-01-10T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "privacy-policies.json": [
+      {
+        "id": "pp_fr_001",
+        "title": "Politique de confidentialité – Site web & services en ligne",
+        "policyType": "privacy_notice",
+        "description": "Politique de confidentialité publique conformément aux Art. 13/14 du RGPD pour les visiteurs du site.",
+        "content": "Nous traitons vos données conformément au RGPD et à la loi Informatique et Libertés. Responsable : Demo SAS, 1 rue de la Paix, 75001 Paris. DPO : dpo@demo.example.",
+        "publishedAt": "2025-05-25",
+        "nextReviewDate": "2026-05-25",
+        "url": "https://demo.example/confidentialite",
+        "owner": "DPO",
+        "status": "active",
+        "version": "3.1",
+        "applicableEntities": [],
+        "notes": "Dernière mise à jour mai 2025.",
+        "attachments": [],
+        "createdAt": "2025-05-25T09:00:00.000Z",
+        "updatedAt": "2025-05-25T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "pp_fr_002",
+        "title": "Politique de protection des données des salariés",
+        "policyType": "internal_policy",
+        "description": "Politique interne régissant le traitement des données personnelles des salariés, incluant les dossiers RH, journaux d'accès et monitoring.",
+        "content": "Le traitement est effectué sur la base des Art. 6(1)(b) et (c) du RGPD. Les salariés disposent du droit d'accès, de rectification et d'effacement.",
+        "publishedAt": "2025-01-15",
+        "nextReviewDate": "2026-01-15",
+        "url": "",
+        "owner": "DPO",
+        "status": "active",
+        "version": "2.0",
+        "applicableEntities": [],
+        "notes": "Révisé par le service juridique janvier 2025.",
+        "attachments": [],
+        "createdAt": "2025-01-15T08:00:00.000Z",
+        "updatedAt": "2025-01-15T08:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ]
+  }
+}
