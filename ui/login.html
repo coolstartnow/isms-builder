@@ -193,9 +193,16 @@
 
     /* ── Language switcher ── */
     .lang-switcher {
-      display: flex; align-items: center; gap: 6px;
-      margin-top: 12px; justify-content: center;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      margin-top: 12px;
     }
+    .lang-current {
+      font-size: 12px; color: var(--subtle);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .lang-current-flag { font-size: 16px; }
+    .lang-current-name { color: var(--text-inv); font-weight: 600; }
+    .lang-btns { display: flex; align-items: center; gap: 6px; }
     .lang-btn {
       padding: 4px 12px; border-radius: 20px;
       border: 1px solid var(--border); background: transparent;
@@ -294,7 +301,7 @@
 
   <div class="demo-reset-banner" id="demoResetBanner">
     <b><i class="ph ph-warning"></i> <span data-i18n="demoResetTitle">Demo-Modus beendet</span></b>
-    <span data-i18n="demoResetText">Das System wurde für den Produktivbetrieb zurückgesetzt. Bitte melden Sie sich mit Benutzername <strong>admin</strong> / Passwort <strong>adminpass</strong> an und ändern Sie das Passwort sofort nach dem ersten Login.</span>
+    <span data-i18n="demoResetText">Das System wurde für den Produktivbetrieb zurückgesetzt. Bitte melden Sie sich mit <strong>admin@example.com</strong> / Passwort <strong>adminpass</strong> an und ändern Sie das Passwort sofort nach dem ersten Login.</span>
   </div>
 
   <div class="login-card">
@@ -339,10 +346,16 @@
   </div>
 
   <div class="lang-switcher">
-    <button class="lang-btn" data-lang="de" onclick="switchLoginLang('de')">DE</button>
-    <button class="lang-btn" data-lang="en" onclick="switchLoginLang('en')">EN</button>
-    <button class="lang-btn" data-lang="fr" onclick="switchLoginLang('fr')">FR</button>
-    <button class="lang-btn" data-lang="nl" onclick="switchLoginLang('nl')">NL</button>
+    <div class="lang-current">
+      <span class="lang-current-flag" id="langFlag">🌐</span>
+      <span id="langCurrentLabel">–</span>
+    </div>
+    <div class="lang-btns">
+      <button class="lang-btn" data-lang="de" onclick="switchLoginLang('de')">DE</button>
+      <button class="lang-btn" data-lang="en" onclick="switchLoginLang('en')">EN</button>
+      <button class="lang-btn" data-lang="fr" onclick="switchLoginLang('fr')">FR</button>
+      <button class="lang-btn" data-lang="nl" onclick="switchLoginLang('nl')">NL</button>
+    </div>
   </div>
 
   <button class="btn-incident" onclick="openIncModal()">
@@ -451,6 +464,13 @@
   <script src="login-submit.js"></script>
   <script>
     // ── i18n for login page ──────────────────────────────────────────────
+    const LANG_META = {
+      de: { flag: '🇩🇪', name: 'Deutsch' },
+      en: { flag: '🇬🇧', name: 'English' },
+      fr: { flag: '🇫🇷', name: 'Français' },
+      nl: { flag: '🇳🇱', name: 'Nederlands' },
+    }
+
     function applyLoginLang() {
       const lang = window.LANG || 'de'
       document.documentElement.lang = lang
@@ -466,6 +486,11 @@
       document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang)
       })
+      const meta = LANG_META[lang] || LANG_META.en
+      const flagEl = document.getElementById('langFlag')
+      const labelEl = document.getElementById('langCurrentLabel')
+      if (flagEl)  flagEl.textContent = meta.flag
+      if (labelEl) labelEl.innerHTML = meta.name
       document.title = t('loginTitle')
     }
 
@@ -474,7 +499,31 @@
       applyLoginLang()
     }
 
-    document.addEventListener('DOMContentLoaded', applyLoginLang)
+    // ── Sprach-Konfiguration vom Server laden ────────────────────────────
+    async function applyLanguageConfig() {
+      try {
+        const res = await fetch('/auth/language-config')
+        if (!res.ok) return
+        const cfg = await res.json()
+        const available = Array.isArray(cfg.available) && cfg.available.length ? cfg.available : ['de','en','fr','nl']
+        // Nicht verfügbare Sprach-Buttons ausblenden
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+          btn.style.display = available.includes(btn.dataset.lang) ? '' : 'none'
+        })
+        // Falls aktuelle Sprache deaktiviert wurde → auf Standardsprache wechseln
+        const cur = window.LANG || localStorage.getItem('isms_lang') || ''
+        if (!available.includes(cur)) {
+          const def = available.includes(cfg.default) ? cfg.default : available[0]
+          setLang(def)
+          applyLoginLang()
+        }
+      } catch {}
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      applyLoginLang()
+      applyLanguageConfig()
+    })
 
     async function openIncModal() {
       document.getElementById('incOverlay').classList.add('open')

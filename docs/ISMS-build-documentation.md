@@ -392,9 +392,9 @@ Die Sichtbarkeit von Navigationseinträgen folgt einer zweidimensionalen Regel:
 
 | User | Rolle | Funktion | Sichtbare Module |
 |---|---|---|---|
-| admin | admin | ciso, dso | Alle (admin) |
-| alice | dept_head | — | Dashboard, SoA, Guidance, Training, Kalender, Risiken, Assets |
-| bob | reader | — | Dashboard, SoA, Guidance, Training, Kalender |
+| admin (admin@example.com) | admin | ciso, dso | Alle (admin) |
+| alice (alice@it.example) | dept_head | — | Dashboard, SoA, Guidance, Training, Kalender, Risiken, Assets |
+| bob (bob@hr.example) | reader | — | Dashboard, SoA, Guidance, Training, Kalender |
 
 ### Organisatorische Zuordnung (empfohlen)
 
@@ -1363,6 +1363,7 @@ Alle Architekturdokumente liegen unter `docs/architecture/`. Das Projekt folgt O
 | `LICENSE` | GNU Affero General Public License v3.0 (AGPL-3.0), Copyright © 2026 Claude Hecker |
 | `CONTRIBUTING.md` | Entwicklungs-Setup, Code-Stil, PR-Richtlinien, Anleitung zum Hinzufügen neuer Module |
 | `README.md` | Open-Source-README: Feature-Tabelle, Quick Start, Konfiguration, Architekturüberblick |
+| `docs/badges/version.svg` | Lokale SVG-Badge-Datei für die Versionsanzeige (wird in `README.md` eingebettet) |
 | `.github/ISSUE_TEMPLATE/bug_report.md` | GitHub-Issue-Template für Bug Reports |
 | `.github/ISSUE_TEMPLATE/feature_request.md` | GitHub-Issue-Template für Feature Requests |
 | `.github/ISSUE_TEMPLATE/security.md` | GitHub-Issue-Template für Sicherheitslücken (mit Hinweis auf privaten Kanal) |
@@ -1370,6 +1371,23 @@ Alle Architekturdokumente liegen unter `docs/architecture/`. Das Projekt folgt O
 | `docs/architecture/c4-diagrams.md` | C4-Architekturdiagramme (Level 1–3 + Deployment) als Mermaid |
 | `docs/architecture/data-model.md` | Vollständiges Datenmodell aller JSON-Stores mit Feldtabellen und ER-Übersicht |
 | `docs/architecture/openapi.yaml` | OpenAPI 3.0-Spezifikation aller REST-Endpunkte (80+ Endpunkte, alle 17 Router) |
+
+### DSGVO-Hinweis: Externe Ressourcen in README.md
+
+Die `README.md` enthält vier Status-Badges, die beim Rendern im Browser externe HTTP-Anfragen auslösen:
+
+| Badge | Zieldienst | Standort |
+|---|---|---|
+| CI-Status | `github.com` (GitHub Actions) | USA (Microsoft Azure) |
+| Tests passing | `img.shields.io` (shields.io / Cloudflare) | USA |
+| License | `img.shields.io` | USA |
+| Node.js | `img.shields.io` | USA |
+
+> **Bei jeder Seitenansicht wird die IP-Adresse des Betrachters an diese US-amerikanischen Drittanbieter übertragen** (Drittlandübermittlung gem. DSGVO Art. 44 ff., nach Schrems-II-Urteil ohne Angemessenheitsbeschluss grundsätzlich zustimmungspflichtig).
+
+Der Versions-Badge (`docs/badges/version.svg`) ist lokal eingebettet und verursacht keine externen Anfragen.
+
+**Für eine 100 % DSGVO-konforme selbst gehostete Dokumentationsseite** sind die vier externen Badge-Zeilen in `README.md` durch lokale Äquivalente zu ersetzen oder vollständig zu entfernen. Lokale SVG-Vorlagen für alle fünf Badges liegen in `docs/badges/` bereit. Der Kommentar direkt unterhalb der Badge-Zeilen in `README.md` enthält den entsprechenden Hinweis.
 
 ### C4-Diagramme (`docs/architecture/c4-diagrams.md`)
 
@@ -1761,7 +1779,7 @@ Der ISMS Builder wird als Demo-System ausgeliefert. Zwei Admin-Wartungsfunktione
 1. Erstellt einen vollständigen Datenexport aller Module (identisch zu GET /admin/export, aber erweitert um goals, assets, bcm, suppliers, governance, legal)
 2. Leert alle Moduldaten-Dateien (templates, risks, entities, guidance, training, public-incidents, audit-log, goals, assets, bcm, suppliers, governance, gdpr/\*, legal/\*)
 3. Behält unverändert: `soa.json`, `custom-lists.json`, `org-settings.json`
-4. Löscht alle Benutzer außer `admin`; setzt admin-Passwort auf `adminpass`, 2FA deaktiviert
+4. Löscht alle Benutzer außer `admin`; setzt admin-Passwort auf `adminpass` (Login: `admin@example.com`), 2FA deaktiviert
 5. **Setzt `STORAGE_BACKEND=sqlite` in `.env`** (überschreibt auskommentierte oder fehlende Zeile)
 6. Löscht `data/isms.db` falls vorhanden (SQLite startet beim nächsten Start sauber leer)
 7. Schreibt Flag-Datei `data/.demo_reset_done` (Zeitstempel)
@@ -1798,7 +1816,7 @@ Der ISMS Builder wird als Demo-System ausgeliefert. Zwei Admin-Wartungsfunktione
 **Ablauf:**
 1. Empfängt exportiertes JSON-Bundle (Limit: 50 MB, Content-Type: application/json)
 2. Stellt alle Moduldaten aus dem Bundle wieder her (außer soa.json, custom-lists.json, org-settings.json, rbac_users.json)
-3. Erstellt alice und bob mit Original-Demo-Passwörtern neu (`alicepass` / `bobpass`), 2FA deaktiviert
+3. Erstellt alice (`alice@it.example` / `alicepass`) und bob (`bob@hr.example` / `bobpass`) neu, 2FA deaktiviert
 4. admin-Account bleibt vollständig unverändert (Passwort, 2FA, Einstellungen)
 5. Löscht Flag-Datei falls vorhanden
 
@@ -2106,6 +2124,9 @@ Das Sprach-Overlay (`#demoLangOverlay`) öffnet automatisch nach dem ersten Admi
 
 Guidance enthält fünf Kategorien. Alle seeded Dokumente sind **sprachabhängig** (DE / EN) und werden bei jedem Serverstart sowie nach Demo-Bundle-Import automatisch angelegt oder aktualisiert (idempotent).
 
+> **Wichtig — Inhaltsänderungen an Seed-Dokumenten:**
+> Die Seed-Funktion erkennt ein bestehendes Dokument anhand seiner `seedId` und aktualisiert es **nur bei einem Sprachenwechsel** automatisch. Wird der Inhalt im Quellcode geändert (z.B. neue E-Mail-Adressen in der Zugangsdaten-Tabelle), zieht die Änderung bei einer bereits laufenden Instanz **nicht automatisch**. In diesem Fall muss das Dokument einmalig manuell aus `data/guidance.json` gelöscht (oder über Admin → Papierkorb endgültig entfernt) und der Server neu gestartet werden — dann legt `seedDemoDoc()` den Eintrag mit dem aktuellen Inhalt neu an.
+
 ### Kategorien und Seed-Inhalte
 
 | Kategorie | Sichtbarkeit | Seed-Dokumente |
@@ -2194,3 +2215,201 @@ if (req.path.startsWith('/vendor/')) return uiStatic(req, res, next)
 **Ursache:** `POST /admin/demo-load-bundle` und `POST /admin/demo-import` überschrieben `guidance.json` mit den 2–3 Bundle-Docs. Die Seeds liefen nur beim Serverstart.
 
 **Fix:** Beide Routes rufen nach dem Import alle 5 Seed-Funktionen auf — Docs sind sofort ohne Neustart verfügbar.
+
+---
+
+## 46. FR/NL Guidance-Übersetzungen (V 1.32)
+
+### Übersicht
+
+Alle Guidance-Seed-Dokumente sind jetzt vollständig in vier Sprachen verfügbar: 🇩🇪 DE · 🇬🇧 EN · 🇫🇷 FR · 🇳🇱 NL.
+
+### Sprach-Synchronisation
+
+Der Server-Endpunkt `GET /guidance?lang=xx` prüft beim Aufruf, ob die gewünschte Sprache mit dem gespeicherten `data/.demo_lang_set`-Wert übereinstimmt. Bei Abweichung werden alle Seeds automatisch neu eingespielt — kein Server-Neustart nötig.
+
+**Technische Details (`server/routes/guidance.js`):**
+```js
+function _syncSeedLang(lang) {
+  let current = 'en'
+  try { current = JSON.parse(fs.readFileSync(DEMO_LANG_FILE, 'utf8')).lang || 'en' } catch {}
+  if (current === lang) return
+  fs.writeFileSync(DEMO_LANG_FILE, JSON.stringify({ lang, setAt: new Date().toISOString() }))
+  guidanceStore.seedDemoDoc()
+  guidanceStore.seedRoleGuides()
+  guidanceStore.seedSoaGuide()
+  guidanceStore.seedPolicyGuide()
+  guidanceStore.seedIsoNotice()
+  guidanceStore.seedArchitectureDocs()
+}
+```
+
+**Fix in `_getDemoLang()` (`server/db/guidanceStore.js`):**
+
+Vorher: `(l === 'de' ? 'de' : 'en')` — FR/NL wurden fälschlicherweise auf EN abgebildet.
+Nachher: `['de', 'en', 'fr', 'nl'].includes(l) ? l : 'en'` — alle vier Sprachen werden korrekt zurückgegeben.
+
+### Übersetzte Dokumente
+
+| Seed-Funktion | Dokument | DE | EN | FR | NL |
+|---|---|:-:|:-:|:-:|:-:|
+| `seedDemoDoc()` | ISMS-Übersicht | ✓ | ✓ | ✓ | ✓ |
+| `seedRoleGuides()` | 5 Rollen-Guides (CISO, DSB, Revision, QMB, Abtlg.) | ✓ | ✓ | ✓ | ✓ |
+| `seedSoaGuide()` | SoA & Audit-Leitfaden | ✓ | ✓ | ✓ | ✓ |
+| `seedPolicyGuide()` | Policy-Prozess-Leitfaden | ✓ | ✓ | ✓ | ✓ |
+| `seedIsoNotice()` | ISO 27001 Hinweis | ✓ | ✓ | ✓ | ✓ |
+| `seedArchitectureDocs()` | Architekturdokumente (Admin-intern) | — | ✓ | ✓ | ✓ |
+
+### Relevante Dateien
+
+| Datei | Änderung |
+|---|---|
+| `server/db/guidanceStore.js` | `DEMO_DOC`, `ROLE_GUIDES_I18N`, `SOA_GUIDE`, `POLICY_GUIDE`, `ISO_NOTICE` mit FR/NL-Keys; `_getDemoLang()` Fix; `seedArchitectureDocs()` aktualisiert Title bei Sprachwechsel |
+| `server/routes/guidance.js` | `_syncSeedLang()` + `lang`-Query-Parameter in `GET /guidance` |
+| `data/guidance.json` | `seedLang`-Feld auf allen Seed-Docs nachgepflegt |
+
+---
+
+## 47. Sprach-Konfiguration (Admin, V 1.32)
+
+### Zweck
+
+Administratoren können systemweit festlegen, welche Sprachen verfügbar sind und welche Sprache auf der Login-Seite als Standard angezeigt wird. Nicht aktivierte Sprachen werden auf der Login-Seite und im Einstellungs-Panel ausgeblendet.
+
+### Datenmodell
+
+Gespeichert in `data/org-settings.json` unter `languageConfig`:
+
+```json
+{
+  "languageConfig": {
+    "available": ["de", "en", "fr", "nl"],
+    "default": "en"
+  }
+}
+```
+
+**Defaults** (`server/db/orgSettingsStore.js`):
+- `available`: alle vier Sprachen (`['de', 'en', 'fr', 'nl']`)
+- `default`: `'en'`
+
+### API-Endpunkte
+
+| Methode | Pfad | Auth | Beschreibung |
+|---|---|---|---|
+| `GET` | `/auth/language-config` | keine | Gibt verfügbare Sprachen + Default zurück (für Login-Seite) |
+| `GET` | `/admin/org-settings` | admin | Enthält `languageConfig` im Response |
+| `PUT` | `/admin/org-settings` | admin | Aktualisiert `languageConfig` (Patch-Merge) |
+
+Der `/auth/language-config`-Endpunkt ist bewusst **öffentlich** (kein Login), damit die Login-Seite nicht-verfügbare Sprach-Buttons ausblenden kann, bevor der Nutzer angemeldet ist.
+
+### Frontend
+
+**Login-Seite (`ui/login.html`):**
+- `applyLanguageConfig()` — lädt `/auth/language-config` und blendet nicht-verfügbare `.lang-btn`-Buttons aus
+- Wenn die aktuell gewählte Sprache nicht verfügbar ist, wird automatisch auf die konfigurierte Standardsprache umgeschaltet
+
+**App (`ui/app.js`):**
+- `let _langConfig` — globale Variable, beim Start in `init()` via `GET /auth/language-config` befüllt
+- **Admin → Organisation → Sprachkonfiguration**: Grid mit 4 Checkboxen + Dropdown für Standardsprache
+- `saveLangConfig()` — speichert via `PUT /admin/org-settings`
+- **Einstellungen-Panel**: Sprachumschalt-Buttons werden gefiltert — nur aktivierte Sprachen sichtbar
+
+### Relevante Dateien
+
+| Datei | Änderung |
+|---|---|
+| `server/db/orgSettingsStore.js` | `languageConfig`-Default + Deep-Merge in `load()` |
+| `server/routes/auth.js` | Öffentlicher `GET /auth/language-config` Endpunkt |
+| `ui/app.js` | `_langConfig` global, `init()` Fetch, Admin-Sektion, `saveLangConfig()`, gefilterter Lang-Switcher |
+| `ui/login.html` | `applyLanguageConfig()` — blendet inaktive Sprachen aus |
+
+---
+
+## 48. Audit-Feststellungen / Findings-Modul (V 1.32)
+
+### Zweck
+
+Das Findings-Modul erfasst Audit-Feststellungen nach dem **IST → SOLL → Risiko → Empfehlung**-Pyramidenmodell. Jede Feststellung kann mit einem strukturierten **Maßnahmenplan** (Actions) versehen werden.
+
+### Datenmodell
+
+```json
+{
+  "id":               "finding_1234_abcd",
+  "ref":              "FIND-2026-0001",
+  "title":            "Fehlende Zugriffsprotokollierung",
+  "severity":         "high",
+  "status":           "open",
+  "observation":      "IST-Zustand — was wurde vorgefunden",
+  "requirement":      "SOLL-Zustand — was ist gefordert",
+  "impact":           "Risiko / Auswirkung",
+  "recommendation":   "Empfehlung des Auditors",
+  "auditor":          "alice",
+  "auditedArea":      "IT-Infrastruktur",
+  "auditPeriodFrom":  "2026-01-01",
+  "auditPeriodTo":    "2026-03-31",
+  "linkedControls":   ["ISO-8.15", "ISO-8.16"],
+  "linkedPolicies":   ["tmpl_xyz"],
+  "linkedRisks":      ["risk_abc"],
+  "actions": [
+    {
+      "id":           "act_5678_efgh",
+      "description":  "Logging-Lösung implementieren",
+      "responsible":  "bob",
+      "dueDate":      "2026-06-30",
+      "status":       "open"
+    }
+  ],
+  "createdAt":        "2026-03-12T10:00:00Z",
+  "createdBy":        "alice",
+  "deletedAt":        null
+}
+```
+
+**Schweregrade:** `critical` · `high` · `medium` · `low` · `observation`
+**Status:** `open` · `in_progress` · `resolved` · `accepted`
+**Referenznummer:** Auto-Format `FIND-YYYY-NNNN`
+
+### API-Endpunkte
+
+| Methode | Pfad | Rolle | Beschreibung |
+|---|---|---|---|
+| `GET` | `/findings/summary` | reader+ | Aggregierte Zählungen nach Schweregrad/Status |
+| `GET` | `/findings` | reader+ | Liste; Filter: `?status=`, `?severity=`, `?auditor=` |
+| `GET` | `/findings/:id` | reader+ | Einzelne Feststellung |
+| `POST` | `/findings` | auditor+ | Neue Feststellung anlegen |
+| `PUT` | `/findings/:id` | auditor+ | Feststellung bearbeiten |
+| `DELETE` | `/findings/:id` | auditor+ | Soft-Delete |
+| `DELETE` | `/findings/:id/permanent` | admin | Endgültig löschen |
+| `POST` | `/findings/:id/restore` | admin | Aus Papierkorb wiederherstellen |
+| `POST` | `/findings/:id/actions` | auditor+ | Maßnahme anlegen |
+| `PUT` | `/findings/:id/actions/:actionId` | editor+ | Maßnahmen-Status aktualisieren |
+| `DELETE` | `/findings/:id/actions/:actionId` | auditor+ | Maßnahme löschen |
+
+### RBAC
+
+- **Lesen**: alle Rollen (reader+)
+- **Erstellen/Bearbeiten/Löschen**: auditor+ (Rang 3)
+- **Maßnahmen-Status**: editor+ (Rang 2) — ermöglicht Verantwortlichen Statusaktualisierung ohne auditor-Rang
+- **Endgültig löschen / Wiederherstellen**: admin
+
+### Integration
+
+- **Papierkorb**: `GET /trash` aggregiert gelöschte Findings; Autopurge nach 30 Tagen (Serverstart)
+- **Audit-Log**: create/update/delete/restore werden protokolliert
+- **UI**: Tab "Audit Findings" in Reports-Sektion; Summary-KPIs; Liste mit Filter; Inline-Formular; Maßnahmenplan pro Feststellung
+- **Datei**: `data/findings.json`
+
+### Relevante Dateien
+
+| Datei | Beschreibung |
+|---|---|
+| `server/db/findingStore.js` | Store — CRUD, Actions, getSummary, autopurge |
+| `server/routes/findings.js` | REST-Router — alle Endpunkte |
+| `server/index.js` | Router registriert; Autopurge beim Start |
+| `server/routes/trash.js` | Soft-Delete-Aggregation für Findings |
+| `tests/findings.test.js` | 16 Tests (CRUD, Actions, Soft-Delete, Summary) |
+| `data/findings.json` | Persistenz-Datei |
+| `ui/app.js` | `renderFindingsTab()`, `renderFindingsListArea()`, `openFindingForm()` |
+| `ui/i18n/translations.js` | i18n-Keys `findings_*` in DE/EN/FR/NL |

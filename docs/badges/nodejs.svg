@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="104" height="20" role="img" aria-label="Node.js: 18+">
+  <title>Node.js: 18+</title>
+  <linearGradient id="s" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <clipPath id="r">
+    <rect width="104" height="20" rx="3" fill="#fff"/>
+  </clipPath>
+  <g clip-path="url(#r)">
+    <rect width="54" height="20" fill="#555"/>
+    <rect x="54" width="50" height="20" fill="#339933"/>
+    <rect width="104" height="20" fill="url(#s)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="110">
+    <text x="280" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="340" lengthAdjust="spacing">Node.js</text>
+    <text x="280" y="140" transform="scale(.1)" textLength="340" lengthAdjust="spacing">Node.js</text>
+    <text x="780" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="300" lengthAdjust="spacing">18+</text>
+    <text x="780" y="140" transform="scale(.1)" textLength="300" lengthAdjust="spacing">18+</text>
+  </g>
+</svg>

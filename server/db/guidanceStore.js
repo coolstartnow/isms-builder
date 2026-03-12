@@ -161,44 +161,57 @@ const PROJECT_ROOT   = path.join(__dirname, '../../')
 const ARCH_SEED = [
   {
     seedId:   'seed_readme',
-    title:    'ISMS Builder – Projektübersicht (README)',
+    title:    { de: 'ISMS Builder – Projektübersicht (README)',             en: 'ISMS Builder – Project Overview (README)',                        fr: 'ISMS Builder – Vue d\'ensemble du projet (README)',        nl: 'ISMS Builder – Projectoverzicht (README)' },
     srcFile:  path.join(PROJECT_ROOT, 'README.md'),
   },
   {
     seedId:   'seed_contributing',
-    title:    'Beitrag leisten – Developer Guide (CONTRIBUTING)',
+    title:    { de: 'Beitrag leisten – Developer Guide (CONTRIBUTING)',     en: 'Contributing – Developer Guide (CONTRIBUTING)',                   fr: 'Contribuer – Guide développeur (CONTRIBUTING)',           nl: 'Bijdragen – Ontwikkelaarshandleiding (CONTRIBUTING)' },
     srcFile:  path.join(PROJECT_ROOT, 'CONTRIBUTING.md'),
   },
   {
     seedId:   'seed_c4',
-    title:    'Architektur-Diagramme (C4 Model)',
+    title:    { de: 'Architektur-Diagramme (C4 Model)',                    en: 'Architecture Diagrams (C4 Model)',                                fr: 'Diagrammes d\'architecture (Modèle C4)',                   nl: 'Architectuurdiagrammen (C4-model)' },
     srcFile:  path.join(ARCH_DOCS_ROOT, 'c4-diagrams.md'),
   },
   {
     seedId:   'seed_datamodel',
-    title:    'Datenmodell – JSON-Schemas aller Module',
+    title:    { de: 'Datenmodell – JSON-Schemas aller Module',              en: 'Data Model – JSON Schemas of All Modules',                        fr: 'Modèle de données – Schémas JSON de tous les modules',    nl: 'Datamodel – JSON-schema\'s van alle modules' },
     srcFile:  path.join(ARCH_DOCS_ROOT, 'data-model.md'),
   },
   {
     seedId:   'seed_openapi',
-    title:    'API-Referenz (OpenAPI 3.0)',
+    title:    { de: 'API-Referenz (OpenAPI 3.0)',                           en: 'API Reference (OpenAPI 3.0)',                                      fr: 'Référence API (OpenAPI 3.0)',                              nl: 'API-referentie (OpenAPI 3.0)' },
     srcFile:  path.join(ARCH_DOCS_ROOT, 'openapi.yaml'),
     wrapCode: 'yaml',   // wrap non-markdown files in fenced code block
   },
   {
     seedId:   'seed_isms_build_documentation',
-    title:    'ISMS Builder – Vollständige Architekturdokumentation',
+    title:    { de: 'ISMS Builder – Vollständige Architekturdokumentation', en: 'ISMS Builder – Full Architecture Documentation',                  fr: 'ISMS Builder – Documentation d\'architecture complète',   nl: 'ISMS Builder – Volledige architectuurdocumentatie' },
     srcFile:  path.join(PROJECT_ROOT, 'docs/ISMS-build-documentation.md'),
   },
 ]
 
 function seedArchitectureDocs() {
+  const lang = _getDemoLang()
   const docs = load()
   let changed = false
 
   for (const entry of ARCH_SEED) {
-    // Skip if already seeded (check by seedId marker in content)
-    if (docs.some(d => d.seedId === entry.seedId && !d.deletedAt)) continue
+    const title = typeof entry.title === 'object' ? (entry.title[lang] || entry.title.en) : entry.title
+    const existing = docs.find(d => d.seedId === entry.seedId && !d.deletedAt)
+
+    if (existing) {
+      // Update title and seedLang if language changed
+      if (existing.seedLang !== lang) {
+        existing.title   = title
+        existing.seedLang = lang
+        existing.updatedAt = new Date().toISOString()
+        changed = true
+      }
+      continue
+    }
+
     if (!fs.existsSync(entry.srcFile)) continue
 
     let content = fs.readFileSync(entry.srcFile, 'utf8')
@@ -209,8 +222,9 @@ function seedArchitectureDocs() {
     docs.push({
       id:          'guid_arch_' + entry.seedId,
       seedId:      entry.seedId,
+      seedLang:    lang,
       category:    'admin-intern',
-      title:       entry.title,
+      title,
       type:        'markdown',
       content,
       minRole:     'admin',
@@ -238,11 +252,11 @@ const DEMO_GUIDE_CONTENT = `# Demo-Betrieb – Übersicht & Übergabe in den Pro
 
 ## Demo-Zugangsdaten
 
-| Benutzername | Passwort    | Rolle         | Domäne | Besonderheiten                      |
-|---|---|---|---|---|
-| admin        | adminpass   | Administrator | Global | Voller Zugriff, CISO + DSO-Funktion |
-| alice        | alicepass   | Abteilungsleiter | IT  | Zugriff auf Guidance & Risiken      |
-| bob          | bobpass     | Leser         | HR     | Nur-Lese-Zugriff                    |
+| Benutzername | E-Mail              | Passwort    | Rolle         | Domäne | Besonderheiten                      |
+|---|---|---|---|---|---|
+| admin        | admin@example.com   | adminpass   | Administrator | Global | Voller Zugriff, CISO + DSO-Funktion |
+| alice        | alice@it.example    | alicepass   | Abteilungsleiter | IT  | Zugriff auf Guidance & Risiken      |
+| bob          | bob@hr.example      | bobpass     | Leser         | HR     | Nur-Lese-Zugriff                    |
 
 > **Sicherheitshinweis:** Diese Passwörter sind öffentlich bekannt. Vor dem Produktiveinsatz müssen alle Passwörter geändert werden.
 
@@ -281,8 +295,8 @@ Das System enthält realistische Beispieldaten für folgende Module:
    - Das System exportiert automatisch alle Demo-Daten als JSON-Download (Backup)
    - Alle Moduldaten werden geleert, alle Benutzer außer \`admin\` gelöscht
    - Admin-Passwort wird auf \`adminpass\` zurückgesetzt, 2FA deaktiviert
-3. **Auf die Login-Seite weiterleitet** — der gelbe Banner bestätigt den erfolgreich abgeschlossenen Reset
-4. **Mit \`admin\` / \`adminpass\` anmelden** — Banner verschwindet, System ist produktionsbereit
+3. **Auf die Login-Seite weitergeleitet** — der gelbe Banner bestätigt den erfolgreich abgeschlossenen Reset
+4. **Mit \`admin@example.com\` / \`adminpass\` anmelden** — Banner verschwindet, System ist produktionsbereit
 5. **Sofort Passwort ändern:** Einstellungen → Passwort ändern
 6. **2FA einrichten:** Einstellungen → 2FA aktivieren
 7. **Eigene Benutzer anlegen:** Admin-Konsole → Tab Benutzer
@@ -308,7 +322,7 @@ Falls die Demo erneut gezeigt werden soll:
 1. **Admin-Konsole → Wartung → "Demo-Daten importieren"**
 2. Die beim Demo-Reset heruntergeladene JSON-Datei auswählen
 3. Alle Moduldaten werden wiederhergestellt
-4. alice und bob werden mit Original-Passwörtern und ohne 2FA neu angelegt
+4. alice (alice@it.example / alicepass) und bob (bob@hr.example / bobpass) werden ohne 2FA neu angelegt
 5. Der admin-Account bleibt unverändert
 
 ---
@@ -920,11 +934,19 @@ function _getDemoLang() {
   try {
     const d = JSON.parse(fs.readFileSync(path.join(_BASE, '.demo_lang_set'), 'utf8'))
     const l = d.lang
-    if (l && l !== 'skip') return ['de', 'en', 'fr', 'nl'].includes(l) ? (l === 'de' ? 'de' : 'en') : 'en'
+    if (l && l !== 'skip') return ['de', 'en', 'fr', 'nl'].includes(l) ? l : 'en'
   } catch {}
   return 'en'
 }
 
+// NOTE: _upsertSeed updates title/content ONLY when the language changes (seedLang mismatch).
+// If only the source text is changed (e.g. updated credentials, new wording) but the language
+// stays the same, the existing document in guidance.json is NOT updated automatically.
+// To force an update after a content-only change:
+//   1. Open Guidance in the UI, delete the affected entry (soft-delete)
+//   2. Admin → Papierkorb → permanently delete the entry
+//   3. Restart the server — the seed function will recreate it with the new content
+// This behaviour is intentional to preserve user edits to seed documents.
 function _upsertSeed(docs, seedId, docData) {
   const lang = _getDemoLang()
   const existing = docs.find(d => d.seedId === seedId && !d.deletedAt)
@@ -1067,6 +1089,242 @@ The cross-mapping shows thematic overlaps between frameworks:
 | Status "planned" for > 12 months | Non-conformity | Create action plan, assign owner |
 | No control → policy link | Evidence gap | Use "🔗 Links" on the control |
 | SoA not aligned with current scope | Certification risk | Update scope in Org Settings |
+` },
+  fr: { title: 'SoA & Audit – Guide', content: `# SoA & Audit – Guide
+
+Ce document explique comment utiliser le module de la Déclaration d'applicabilité (SoA) et comment préparer les audits internes et externes avec ISMS Builder.
+
+---
+
+## Qu'est-ce que la SoA ?
+
+La Déclaration d'applicabilité (SoA) est un document obligatoire selon la clause 6.1.3 de l'ISO 27001. Elle liste tous les contrôles pertinents et documente :
+- **Pourquoi** un contrôle est applicable (ou exclu)
+- **Quelles mesures** ont été mises en œuvre
+- **Le statut d'implémentation actuel**
+
+---
+
+## Vue d'ensemble des référentiels
+
+| Référentiel | Code | Contrôles | Notes |
+|---|---|---|---|
+| ISO 27001:2022 | ISO | 93 | Droits d'auteur ISO — fournissez votre propre texte |
+| BSI IT-Grundschutz | BSI | 88 | Disponible gratuitement (bsi.bund.de) |
+| Directive NIS2 | NIS2 | 10 | Règlement UE, public |
+| EUCS (Cloud UE) | EUCS | 44 | Standard ENISA |
+| EU AI Act | EUAI | 20 | Règlement UE, public |
+| ISO 9001:2015 | ISO9001 | 36 | Droits d'auteur ISO |
+| ISO 9000:2015 | ISO9000 | 10 | Droits d'auteur ISO |
+| Cyber Resilience Act | CRA | 12 | Règlement UE, public |
+
+> **Note :** Les contrôles ISO ne sont pas inclus. Utilisez \`scripts/import-iso-controls.sh\` pour importer les vôtres.
+
+---
+
+## Modifier un contrôle
+
+1. **SoA → onglet Référentiel** (ex. ISO 27001)
+2. Cliquer sur un contrôle → le panneau de détail s'ouvre à droite
+3. Remplir :
+   - **Applicabilité :** applicable / non-applicable / partiel
+   - **Statut :** planifié / en cours / implémenté / non-applicable
+   - **Justification :** Pourquoi inclus ou exclu ?
+   - **Mesures :** Qu'est-ce qui a été spécifiquement mis en œuvre ?
+4. **Édition en ligne :** Double-cliquer sur un champ pour une modification rapide
+5. **Traçabilité :** "🔗 Liens" → relier les contrôles aux politiques et aux risques
+
+---
+
+## Filtres & Recherche
+
+| Filtre | Description |
+|---|---|
+| Statut : non-applicable | Tous les contrôles exclus — vérifier les justifications |
+| Statut : planifié | Planifié mais non encore implémenté — vérifier la priorité |
+| Statut : partiel | Partiellement implémenté — compléter le plan d'action |
+| Recherche | Recherche plein texte sur l'ID, le titre et la justification |
+
+---
+
+## Correspondance croisée
+
+La correspondance croisée montre les recoupements thématiques entre référentiels :
+- **SoA → onglet Correspondance croisée**
+- 20 groupes thématiques (ex. "Contrôle d'accès", "Chiffrement")
+- Montre quels contrôles couvrent le même sujet dans différents référentiels
+- Aide à éviter les doublons lors du ciblage simultané ISO 27001 + NIS2 + BSI
+
+---
+
+## Préparation à l'audit
+
+### Préparation interne
+1. **Rapports → Matrice de conformité**
+   - Colonnes : contrôles SoA (par référentiel)
+   - Lignes : entités juridiques / filiales
+   - Feux tricolores : vert = implémenté, jaune = partiel, rouge = non-applicable / planifié
+2. **Rapports → Rapport d'écarts** — tous les contrôles sans enregistrement d'implémentation
+3. **Rapports → Vue d'ensemble référentiel** — taux de complétude par référentiel
+4. Export CSV pour les documents de travail
+
+### Audits de certification externe (ISO 27001)
+
+**Étape 1 (Revue documentaire) :**
+- Exporter la SoA (JSON → mise en forme personnalisée)
+- Toutes les justifications "non-applicable" doivent être claires et traçables
+- Politiques : toutes doivent être "approuvées" (pas de brouillons comme preuves)
+- VVT/RoPA : vérifier qu'il est à jour
+
+**Étape 2 (Audit sur site) :**
+- Gestion des risques : tous les risques évalués, traitements documentés
+- Enregistrements de formation : taux de complétion, certificats
+- Rapports d'exercices BCM : dernier exercice < 12 mois
+- Journal d'audit : traçabilité complète de toutes les modifications
+- Procès-verbaux de revue de direction (Gouvernance → Revues)
+
+---
+
+## RACI pour la maintenance SoA
+
+| Activité | CISO | DPO | RQ | Audit | Dept |
+|---|---|---|---|---|---|
+| Évaluer les contrôles | **R** | C | C | I | C |
+| Rédiger les justifications | **R** | A (RGPD) | A (ISO 9001) | I | — |
+| Documenter les mesures | A | — | — | — | **R** |
+| Approuver la SoA | **A** | — | — | I | — |
+| Préparation audit | **R** | C | C | **R** | C |
+
+> R = Responsable, A = Accountable, C = Consulté, I = Informé
+
+---
+
+## Erreurs courantes dans la SoA
+
+| Erreur | Impact | Solution |
+|---|---|---|
+| Contrôles "non-applicable" sans justification | Constatation d'audit | Saisir une justification |
+| Statut "planifié" depuis > 12 mois | Non-conformité | Créer un plan d'action, désigner un responsable |
+| Aucun lien contrôle → politique | Lacune dans les preuves | Utiliser "🔗 Liens" sur le contrôle |
+| SoA non alignée avec le périmètre actuel | Risque de certification | Mettre à jour le périmètre dans les paramètres |
+` },
+  nl: { title: 'SoA & Audit – Handleiding', content: `# SoA & Audit – Handleiding
+
+Dit document legt uit hoe u de Verklaring van Toepasselijkheid (SoA) gebruikt en hoe u interne en externe audits voorbereidt met ISMS Builder.
+
+---
+
+## Wat is de SoA?
+
+De Verklaring van Toepasselijkheid (SoA) is een verplicht document onder ISO 27001 clausule 6.1.3. Het vermeldt alle relevante beheersmaatregelen en documenteert:
+- **Waarom** een beheersmaatregel van toepassing is (of uitgesloten)
+- **Welke maatregelen** zijn geïmplementeerd
+- **De huidige implementatiestatus**
+
+---
+
+## Overzicht normen
+
+| Norm | Code | Maatregelen | Opmerkingen |
+|---|---|---|---|
+| ISO 27001:2022 | ISO | 93 | ISO auteursrecht — lever uw eigen tekst aan |
+| BSI IT-Grundschutz | BSI | 88 | Vrij beschikbaar (bsi.bund.de) |
+| NIS2-richtlijn | NIS2 | 10 | EU-verordening, openbaar |
+| EUCS (EU Cloud) | EUCS | 44 | ENISA-standaard |
+| EU AI Act | EUAI | 20 | EU-verordening, openbaar |
+| ISO 9001:2015 | ISO9001 | 36 | ISO auteursrecht |
+| ISO 9000:2015 | ISO9000 | 10 | ISO auteursrecht |
+| Cyber Resilience Act | CRA | 12 | EU-verordening, openbaar |
+
+> **Opmerking:** ISO-maatregelen zijn niet inbegrepen. Gebruik \`scripts/import-iso-controls.sh\` om uw eigen maatregelen te importeren.
+
+---
+
+## Een beheersmaatregel bewerken
+
+1. **SoA → tabblad Norm** (bijv. ISO 27001)
+2. Klik op een maatregel → het detailvenster wordt rechts geopend
+3. Vul in:
+   - **Toepasselijkheid:** van toepassing / niet van toepassing / gedeeltelijk
+   - **Status:** gepland / in uitvoering / geïmplementeerd / niet van toepassing
+   - **Motivering:** Waarom opgenomen of uitgesloten?
+   - **Maatregelen:** Wat is specifiek geïmplementeerd?
+4. **Inline bewerken:** Dubbelklik op een veld voor snelle bewerkingen
+5. **Traceerbaarheid:** "🔗 Koppelingen" → koppel maatregelen aan beleid en risico's
+
+---
+
+## Filters & Zoeken
+
+| Filter | Omschrijving |
+|---|---|
+| Status: niet van toepassing | Alle uitgesloten maatregelen — controleer motivering |
+| Status: gepland | Gepland maar nog niet geïmplementeerd — controleer prioriteit |
+| Status: gedeeltelijk | Gedeeltelijk geïmplementeerd — actieplan afronden |
+| Zoeken | Volledige tekst op maatregel-ID, titel en motivering |
+
+---
+
+## Kruisverwijzingen
+
+De kruisverwijzing toont thematische overlappen tussen normen:
+- **SoA → tabblad Kruisverwijzing**
+- 20 themagroepen (bijv. "Toegangscontrole", "Versleuteling")
+- Toont welke maatregelen hetzelfde onderwerp behandelen in verschillende normen
+- Helpt duplicatie te vermijden bij gelijktijdige certificering ISO 27001 + NIS2 + BSI
+
+---
+
+## Auditvoorbereiding
+
+### Interne voorbereiding
+1. **Rapporten → Compliancematrix**
+   - Kolommen: SoA-maatregelen (per norm)
+   - Rijen: rechtspersonen / dochterondernemingen
+   - Verkeerslichten: groen = geïmplementeerd, geel = gedeeltelijk, rood = niet van toepassing / gepland
+2. **Rapporten → Gaprapport** — alle maatregelen zonder implementatieregistratie
+3. **Rapporten → Normoverzicht** — voltooiingspercentage per norm
+4. CSV-export voor werkdocumenten
+
+### Externe certificeringsaudits (ISO 27001)
+
+**Fase 1 (Documentbeoordeling):**
+- Exporteer SoA (JSON → eigen opmaak)
+- Alle "niet van toepassing"-motiveringen moeten duidelijk en traceerbaar zijn
+- Beleid: alles moet "goedgekeurd" zijn (geen concepten als bewijs)
+- Verwerkingsregister/RoPA: controleer of het actueel is
+
+**Fase 2 (Audit ter plaatse):**
+- Risicobeheer: alle risico's beoordeeld, behandelingen gedocumenteerd
+- Trainingsregistraties: voltooiingspercentages, certificaten
+- BCM-oefeningsrapporten: laatste oefening < 12 maanden
+- Auditlog: volledige traceerbaarheid van alle wijzigingen
+- Notulen directiebeoordeling (Governance → Beoordelingen)
+
+---
+
+## RACI voor SoA-onderhoud
+
+| Activiteit | CISO | FG | KAM | Audit | Afd. |
+|---|---|---|---|---|---|
+| Maatregelen beoordelen | **R** | C | C | I | C |
+| Motiveringen schrijven | **R** | A (AVG) | A (ISO 9001) | I | — |
+| Maatregelen documenteren | A | — | — | — | **R** |
+| SoA goedkeuren | **A** | — | — | I | — |
+| Auditvoorbereiding | **R** | C | C | **R** | C |
+
+> R = Verantwoordelijk, A = Eindverantwoordelijk, C = Geconsulteerd, I = Geïnformeerd
+
+---
+
+## Veelgemaakte fouten in de SoA
+
+| Fout | Impact | Oplossing |
+|---|---|---|
+| Maatregelen "niet van toepassing" zonder motivering | Auditbevinding | Vul een motivering in |
+| Status "gepland" langer dan 12 maanden | Non-conformiteit | Maak een actieplan, wijs een eigenaar aan |
+| Geen koppeling maatregel → beleid | Lacune in bewijs | Gebruik "🔗 Koppelingen" op de maatregel |
+| SoA niet afgestemd op huidig toepassingsgebied | Certificeringsrisico | Toepassingsgebied bijwerken in instellingen |
 ` }
 }
 
@@ -1395,6 +1653,320 @@ The system manages review schedules automatically:
 | No SoA control links | Compliance evidence gap | Link relevant controls |
 | Multiple overlapping policies | Redundancy, contradictions | Use page hierarchy (sub-pages) |
 `
+  },
+  fr: {
+    title: 'Processus de politique – Créer, Réviser & Approuver',
+    content: `# Processus de politique – Créer, Réviser & Approuver
+
+Ce guide décrit le cycle de vie complet d'un document de politique dans ISMS Builder — de la création au processus de révision jusqu'à l'archivage.
+
+---
+
+## Types de documents
+
+| Type | Description | Exemples |
+|---|---|---|
+| **Policy** | Exigence obligatoire | Politique de sécurité de l'information, Politique de mots de passe |
+| **Procedure** | Description de processus | Procédure de réponse aux incidents, Gestion des changements |
+| **Guideline** | Recommandation | Directives de développement sécurisé |
+| **Standard** | Norme technique | Norme de chiffrement, Baseline de durcissement |
+| **SoA** | Déclaration d'applicabilité | Document SoA ISO 27001 |
+| **Risk** | Document d'acceptation des risques | Politique d'acceptation des risques |
+| **Template** | Modèle vierge | Modèle d'analyse d'impact sur la protection des données |
+
+---
+
+## États du cycle de vie
+
+\`\`\`
+brouillon  →  révision  →  approuvé  →  archivé
+                     ↑_____________|   (Re-révision)
+\`\`\`
+
+| Statut | Signification | Qui peut définir |
+|---|---|---|
+| **brouillon** | En cours, non publié | éditeur+ |
+| **révision** | Soumis pour révision | éditeur+ |
+| **approuvé** | Publié, obligatoire | propriétaire de contenu / admin |
+| **archivé** | Plus valide, archive uniquement | propriétaire de contenu / admin |
+
+---
+
+## Créer une nouvelle politique
+
+1. Ouvrir **Politiques** dans le menu
+2. Cliquer sur **+ Nouvelle page** (en haut à droite)
+3. Remplir les champs obligatoires :
+   - **Type** (Policy / Procedure / …)
+   - **Titre** (unique et descriptif)
+   - **Langue** (de / en)
+   - **Statut** commence automatiquement comme **brouillon**
+4. Saisir le **contenu** dans l'éditeur (Markdown ou texte enrichi)
+5. Définir la **Date de prochaine révision** (obligatoire pour les politiques approuvées)
+6. Ajouter des **liens** sous "🔗 Liens" :
+   - Relier les contrôles SoA (quels contrôles cette politique couvre-t-elle ?)
+   - Définir les entités applicables
+7. **Enregistrer** (Ctrl+S ou bouton Enregistrer)
+
+---
+
+## Processus de révision
+
+### Soumettre pour révision
+1. Ouvrir la politique → **Modifier**
+2. Définir le statut sur **"révision"**
+3. Enregistrer → la politique apparaît dans le Tableau de bord sous "Actions requises"
+4. Le réviseur (propriétaire de contenu) reçoit éventuellement une notification par e-mail
+
+### Réviser en tant que CISO / Propriétaire de contenu
+1. **Tableau de bord → Actions requises → Politiques en révision**
+2. Ouvrir la politique → réviser le contenu
+3. Pour approuver : définir le statut sur **"approuvé"** + mettre à jour la date de révision
+4. Pour rejeter : remettre le statut sur **"brouillon"** + ajouter un commentaire dans la description
+
+---
+
+## Versionnement
+
+Chaque enregistrement avec un changement de statut crée automatiquement une nouvelle version :
+
+| Action | Incrément de version |
+|---|---|
+| Modifier le contenu (même statut) | Mineure (ex. 1.0 → 1.1) |
+| Changement de statut (ex. brouillon → révision) | Mineure |
+| Nouvelle approbation (→ approuvé) | Majeure (ex. 1.x → 2.0) |
+
+Historique des versions visible dans le panneau de détail sous **"Historique"**.
+
+---
+
+## Hiérarchie des pages (Structure de l'espace)
+
+ISMS Builder prend en charge une hiérarchie de pages de type Confluence :
+
+- **Définir la page parente** : Ouvrir la politique → **"Déplacer"** → sélectionner le nœud parent
+- **Créer une sous-page** : Ouvrir la politique → **"+ Sous-page"**
+- **Réorganiser** par glisser-déposer ou boutons ↑↓ dans l'arborescence
+- **Fil d'Ariane** affiche le chemin vers la page actuelle
+
+Structure recommandée :
+\`\`\`
+├── Politique de sécurité de l'information (Policy)
+│   ├── Politique de mots de passe (Policy)
+│   ├── Politique de bureau propre (Policy)
+│   └── Politique BYOD (Policy)
+├── Procédure de réponse aux incidents (Procedure)
+│   └── Plan d'escalade (Procedure)
+└── Politique de protection des données (Policy)
+    └── Mentions légales (SoA)
+\`\`\`
+
+---
+
+## Pièces jointes
+
+Les politiques peuvent avoir des pièces jointes (PDF, DOCX, jusqu'à 20 Mo) :
+1. Ouvrir la politique → onglet **"Pièces jointes"**
+2. Télécharger le fichier par glisser-déposer ou sélecteur de fichier
+3. Les pièces jointes apparaissent dans la barre et sont téléchargeables
+
+---
+
+## Cycles de révision
+
+Le système gère automatiquement les calendriers de révision :
+
+- **nextReviewDate** : Obligatoire lors de l'approbation — quand cette politique doit-elle être révisée ?
+- **Codage couleur** dans l'en-tête de l'éditeur :
+  - 🟢 Vert : révision dans > 30 jours
+  - 🟡 Jaune : révision dans ≤ 30 jours
+  - 🔴 Rouge : révision en retard
+- **Tableau de bord** : Toutes les révisions en retard et à venir sous "Actions requises"
+- **Calendrier** : Dates de révision visibles comme entrées de calendrier
+- **Rapports → Cycles de révision** : Vue d'ensemble complète de toutes les politiques avec échéances
+
+---
+
+## RACI pour la gestion des politiques
+
+| Activité | CISO | Dept | Propriétaire | Audit |
+|---|---|---|---|---|
+| Créer la politique | R | R | — | — |
+| Rédiger le contenu | A | **R** | — | I |
+| Soumettre pour révision | R | **R** | — | — |
+| Réviser le contenu | A | C | **R** | I |
+| Accorder l'approbation | I | — | **R** | I |
+| Lier les contrôles SoA | **R** | C | — | I |
+| Archiver | **R** | — | R | I |
+
+---
+
+## Erreurs courantes dans la gestion des politiques
+
+| Erreur | Impact | Solution |
+|---|---|---|
+| Politique approuvée sans date de révision | Pas de suivi d'échéance | Définir nextReviewDate avant approbation |
+| Statut "brouillon" depuis > 6 mois | Document brouillon obsolète | Lancer la révision ou archiver |
+| Aucun lien vers les contrôles SoA | Lacune dans les preuves de conformité | Lier les contrôles pertinents |
+| Plusieurs politiques similaires | Redondance, contradictions | Utiliser la hiérarchie de pages |
+`
+  },
+  nl: {
+    title: 'Beleidsprocessen – Aanmaken, Beoordelen & Goedkeuren',
+    content: `# Beleidsprocessen – Aanmaken, Beoordelen & Goedkeuren
+
+Deze handleiding beschrijft de volledige levenscyclus van een beleidsdocument in ISMS Builder — van aanmaak via het beoordelingsproces tot archivering.
+
+---
+
+## Documenttypen
+
+| Type | Omschrijving | Voorbeelden |
+|---|---|---|
+| **Policy** | Verplichte vereiste | Informatiebeveiligingsbeleid, Wachtwoordbeleid |
+| **Procedure** | Procesbeschrijving | Incident Response Procedure, Wijzigingsbeheer |
+| **Guideline** | Aanbeveling | Richtlijnen voor veilig programmeren |
+| **Standard** | Technische norm | Versleutelingsstandaard, Hardening Baseline |
+| **SoA** | Verklaring van toepasselijkheid | ISO 27001 SoA-document |
+| **Risk** | Document voor risicoaanvaarding | Risicoaanvaardingsbeleid |
+| **Template** | Leeg formulier | Sjabloon gegevensbeschermingseffectbeoordeling |
+
+---
+
+## Levenscyclusstatussen
+
+\`\`\`
+concept  →  beoordeling  →  goedgekeurd  →  gearchiveerd
+                      ↑_______________|   (Herbeoordeling)
+\`\`\`
+
+| Status | Betekenis | Wie kan instellen |
+|---|---|---|
+| **concept** | In bewerking, niet gepubliceerd | redacteur+ |
+| **beoordeling** | Ingediend voor beoordeling | redacteur+ |
+| **goedgekeurd** | Gepubliceerd, bindend | inhoudseigenaar / admin |
+| **gearchiveerd** | Niet meer geldig, alleen archief | inhoudseigenaar / admin |
+
+---
+
+## Een nieuw beleid aanmaken
+
+1. Open **Beleid** in het menu
+2. Klik op **+ Nieuwe pagina** (rechtsboven)
+3. Vul de verplichte velden in:
+   - **Type** (Policy / Procedure / …)
+   - **Titel** (uniek en beschrijvend)
+   - **Taal** (de / en)
+   - **Status** begint automatisch als **concept**
+4. Voer de **inhoud** in de editor in (Markdown of rijke tekst)
+5. Stel de **Volgende beoordelingsdatum** in (verplicht voor goedgekeurd beleid)
+6. Voeg **koppelingen** toe onder "🔗 Koppelingen":
+   - Koppel SoA-maatregelen (welke maatregelen dekt dit beleid?)
+   - Stel toepasselijke entiteiten in
+7. **Opslaan** (Ctrl+S of Opslaan-knop)
+
+---
+
+## Beoordelingsproces
+
+### Indienen ter beoordeling
+1. Open beleid → **Bewerken**
+2. Stel status in op **"beoordeling"**
+3. Opslaan → beleid verschijnt op Dashboard onder "Actie vereist"
+4. Beoordelaar (inhoudseigenaar) ontvangt eventueel een e-mailmelding
+
+### Beoordelen als CISO / Inhoudseigenaar
+1. **Dashboard → Actie vereist → Beleid in beoordeling**
+2. Open beleid → beoordeel inhoud
+3. Goedkeuren: stel status in op **"goedgekeurd"** + update beoordelingsdatum
+4. Afwijzen: zet status terug op **"concept"** + voeg commentaar toe
+
+---
+
+## Versiebeheer
+
+Elke opslag met een statuswijziging maakt automatisch een nieuwe versie aan:
+
+| Actie | Versie-increment |
+|---|---|
+| Inhoud bewerken (zelfde status) | Minor (bijv. 1.0 → 1.1) |
+| Statuswijziging (bijv. concept → beoordeling) | Minor |
+| Nieuwe goedkeuring (→ goedgekeurd) | Major (bijv. 1.x → 2.0) |
+
+Versiegeschiedenis zichtbaar in het detailvenster onder **"Geschiedenis"**.
+
+---
+
+## Paginahiërarchie (Ruimtestructuur)
+
+ISMS Builder ondersteunt een Confluence-achtige paginahiërarchie:
+
+- **Bovenliggende pagina instellen**: Open beleid → **"Verplaatsen"** → selecteer bovenliggend knooppunt
+- **Onderliggende pagina aanmaken**: Open beleid → **"+ Subpagina"**
+- **Volgorde aanpassen** via slepen en neerzetten of ↑↓-knoppen in de boomstructuur
+- **Broodkruimelpad** toont het pad naar de huidige pagina
+
+Aanbevolen structuur:
+\`\`\`
+├── Informatiebeveiligingsbeleid (Policy)
+│   ├── Wachtwoordbeleid (Policy)
+│   ├── Clean Desk-beleid (Policy)
+│   └── BYOD-beleid (Policy)
+├── Incident Response Procedure (Procedure)
+│   └── Escalatieplan (Procedure)
+└── Gegevensbeschermingsbeleid (Policy)
+    └── Privacyverklaring (SoA)
+\`\`\`
+
+---
+
+## Bijlagen
+
+Beleid kan bijlagen hebben (PDF, DOCX, tot 20 MB):
+1. Open beleid → tabblad **"Bijlagen"**
+2. Upload bestand via slepen en neerzetten of bestandskiezer
+3. Bijlagen verschijnen in de bijlagenbalk en zijn downloadbaar
+
+---
+
+## Beoordelingscycli
+
+Het systeem beheert beoordelingsschema's automatisch:
+
+- **nextReviewDate**: Verplicht bij goedkeuring — wanneer moet dit beleid opnieuw worden beoordeeld?
+- **Kleurcodering** in de editorheader:
+  - 🟢 Groen: beoordeling over > 30 dagen
+  - 🟡 Geel: beoordeling over ≤ 30 dagen
+  - 🔴 Rood: beoordeling achterstallig
+- **Dashboard**: Alle achterstallige en aankomende beoordelingen onder "Actie vereist"
+- **Kalender**: Beoordelingsdata zichtbaar als kalenderitems
+- **Rapporten → Beoordelingscycli**: Volledig overzicht van alle beleidsregels met vervaldatums
+
+---
+
+## RACI voor beleidsbeheer
+
+| Activiteit | CISO | Afd. | Inhoudseigenaar | Audit |
+|---|---|---|---|---|
+| Beleid aanmaken | R | R | — | — |
+| Inhoud opstellen | A | **R** | — | I |
+| Indienen ter beoordeling | R | **R** | — | — |
+| Inhoud beoordelen | A | C | **R** | I |
+| Goedkeuring verlenen | I | — | **R** | I |
+| SoA-maatregelen koppelen | **R** | C | — | I |
+| Archiveren | **R** | — | R | I |
+
+---
+
+## Veelgemaakte fouten in beleidsbeheer
+
+| Fout | Impact | Oplossing |
+|---|---|---|
+| Beleid goedgekeurd zonder beoordelingsdatum | Geen vervaldatumtracking | Stel nextReviewDate in voor goedkeuring |
+| Status "concept" langer dan 6 maanden | Verouderd conceptdocument | Start beoordeling of archiveer |
+| Geen SoA-koppelingen | Lacune in compliance-bewijs | Koppel relevante maatregelen |
+| Meerdere overlappende beleidsregels | Redundantie, tegenstrijdigheden | Gebruik paginahiërarchie (subpagina's) |
+`
   }
 }
 
@@ -1421,11 +1993,11 @@ This document explains the demo environment and guides you through the transitio
 
 ## Demo Credentials
 
-| User | Password | Role | Domain | Access |
-|---|---|---|---|---|
-| admin | adminpass | Admin | IT | Full access — all modules |
-| alice | alicepass | Department Head | IT | Policies, Risks, Guidance (read+write) |
-| bob | bobpass | Reader | HR | Read-only |
+| User | Email | Password | Role | Domain | Access |
+|---|---|---|---|---|---|
+| admin | admin@example.com | adminpass | Admin | Global | Full access — all modules |
+| alice | alice@it.example | alicepass | Department Head | IT | Policies, Risks, Guidance (read+write) |
+| bob | bob@hr.example | bobpass | Reader | HR | Read-only |
 
 > **Security notice:** These passwords are publicly known. Change all passwords before going live.
 
@@ -1464,7 +2036,7 @@ The system contains realistic sample data for the following modules:
    - All module data is cleared, all users except \`admin\` are deleted
    - Admin password is reset to \`adminpass\`, 2FA disabled
 3. **Redirected to login page** — yellow banner confirms successful reset
-4. **Log in with \`admin\` / \`adminpass\`** — banner disappears, system ready for production
+4. **Log in with \`admin@example.com\` / \`adminpass\`** — banner disappears, system ready for production
 5. **Change password immediately:** Settings → Change Password
 6. **Set up 2FA:** Settings → Enable 2FA
 7. **Create your users:** Admin Console → Users tab
@@ -1490,7 +2062,7 @@ To demonstrate the system again:
 1. **Admin Console → Maintenance → "Import Demo Data"**
 2. Select the JSON file downloaded during Demo Reset
 3. All module data is restored
-4. alice and bob are recreated with original passwords and no 2FA
+4. alice (alice@it.example / alicepass) and bob (bob@hr.example / bobpass) are recreated without 2FA
 5. The admin account remains unchanged
 
 ---
@@ -1503,10 +2075,207 @@ To demonstrate the system again:
 - **Licence:** GNU Affero General Public License v3.0 (AGPL-3.0)
 `
 
+const DEMO_DOC_FR_TITLE = 'Mode Démo – Vue d\'ensemble & Passage en production'
+const DEMO_DOC_FR_CONTENT = `# Mode Démo – Vue d'ensemble & Passage en production
+
+Bienvenue dans **ISMS Builder** — votre système de gestion de la sécurité de l'information auto-hébergé.
+
+Ce document explique l'environnement de démonstration et vous guide à travers la transition vers la production.
+
+---
+
+## Identifiants de démonstration
+
+| Utilisateur | E-mail | Mot de passe | Rôle | Domaine | Accès |
+|---|---|---|---|---|---|
+| admin | admin@example.com | adminpass | Admin | Global | Accès complet — tous les modules |
+| alice | alice@it.example | alicepass | Chef de département | IT | Politiques, Risques, Guidance (lecture+écriture) |
+| bob | bob@hr.example | bobpass | Lecteur | RH | Lecture seule |
+
+> **Avertissement de sécurité :** Ces mots de passe sont publiquement connus. Changez tous les mots de passe avant la mise en production.
+
+---
+
+## Données de démonstration disponibles
+
+Le système contient des données d'exemple réalistes pour les modules suivants :
+
+| Module | Contenu de démonstration |
+|---|---|
+| **Politiques** | Politique de sécurité de l'information, Politique de mots de passe, Politique BYOD, Politique de sauvegarde, Politique de contrôle d'accès |
+| **SoA** | 313 contrôles sur 8 référentiels (ISO 27001, BSI, NIS2, EUCS, EUAI, ISO 9001, CRA) — tous modifiables |
+| **Gestion des risques** | Risques réalistes avec liens multi-référentiels (Ransomware, Phishing, Menace interne, Chaîne d'approvisionnement, …) |
+| **RGPD & Protection des données** | RoPA, DPA, TOMs, AIPD, minuterie 72h démo |
+| **Actifs** | Actifs de l'entreprise (serveurs, postes de travail, ERP, services cloud, réseau) avec classification |
+| **Chaîne d'approvisionnement** | Fournisseurs dont liens NIS2/EUCS |
+| **BCM / PCA** | Analyses d'impact métier, Plans de continuité, Exercices |
+| **Gouvernance** | Revues de direction avec plans d'action et procès-verbaux |
+| **Formation** | Mesures de formation (Sensibilisation ISO, RGPD, Simulation de phishing) |
+| **Juridique** | Contrats, NDA, Politiques de confidentialité |
+| **Objectifs de sécurité** | Objectifs KPI avec barres de progression |
+| **Boîte de réception incidents** | Rapports de démonstration du formulaire public de signalement |
+| **Guidance** | Manuel système, guides de rôles, processus de politique, guide d'audit SoA |
+
+---
+
+## Transition vers la production
+
+### Étape par étape
+1. Ouvrir la **Console d'administration** → onglet **Maintenance**
+2. **Exécuter la réinitialisation démo :**
+   - Cliquer sur la section "Réinitialisation démo"
+   - Saisir \`RESET\` dans la boîte de dialogue de confirmation
+   - Le système exporte toutes les données de démonstration en téléchargement JSON (sauvegarde)
+   - Toutes les données des modules sont effacées, tous les utilisateurs sauf \`admin\` sont supprimés
+   - Le mot de passe admin est réinitialisé à \`adminpass\`, 2FA désactivé
+3. **Redirigé vers la page de connexion** — la bannière jaune confirme la réinitialisation réussie
+4. **Se connecter avec \`admin@example.com\` / \`adminpass\`** — la bannière disparaît, le système est prêt
+5. **Changer le mot de passe immédiatement :** Paramètres → Changer le mot de passe
+6. **Configurer le 2FA :** Paramètres → Activer le 2FA
+7. **Créer vos utilisateurs :** Console d'administration → onglet Utilisateurs
+8. **Créer votre contenu :** tous les modules sont vides et prêts
+
+### Qu'est-ce qui est conservé après la réinitialisation ?
+
+| Conservé | Effacé |
+|---|---|
+| Contrôles SoA (tous les 313) | Politiques / Modèles |
+| Listes déroulantes | Risques |
+| Paramètres de l'organisation | Actifs, BCM, Gouvernance |
+| (Utilisateur Admin) | Fournisseurs, Juridique, Formation |
+| | Données RGPD, Guidance |
+| | Journal d'audit, Objectifs de sécurité |
+
+---
+
+## Restaurer les données de démonstration
+
+Pour démontrer à nouveau le système :
+
+1. **Console d'administration → Maintenance → "Importer les données de démonstration"**
+2. Sélectionner le fichier JSON téléchargé lors de la réinitialisation démo
+3. Toutes les données des modules sont restaurées
+4. alice (alice@it.example / alicepass) et bob (bob@hr.example / bobpass) sont recréés sans 2FA
+5. Le compte admin reste inchangé
+
+---
+
+## Informations complémentaires
+
+- **Architecture & Référence API :** Guidance → Documentation Admin
+- **Guides de rôles :** Guidance → Rôles
+- **Page du projet :** [GitHub – ISMS Builder](https://github.com/claudehecker/isms-builder)
+- **Licence :** GNU Affero General Public License v3.0 (AGPL-3.0)
+`
+
+const DEMO_DOC_NL_TITLE = 'Demo-modus – Overzicht & Overgang naar productie'
+const DEMO_DOC_NL_CONTENT = `# Demo-modus – Overzicht & Overgang naar productie
+
+Welkom bij **ISMS Builder** — uw zelfgehoste Informatiebeveiligingsbeheersysteem.
+
+Dit document legt de demo-omgeving uit en begeleidt u door de overgang naar productie.
+
+---
+
+## Demo-inloggegevens
+
+| Gebruiker | E-mail | Wachtwoord | Rol | Domein | Toegang |
+|---|---|---|---|---|---|
+| admin | admin@example.com | adminpass | Admin | Globaal | Volledige toegang — alle modules |
+| alice | alice@it.example | alicepass | Afdelingshoofd | IT | Beleid, Risico's, Guidance (lezen+schrijven) |
+| bob | bob@hr.example | bobpass | Lezer | HR | Alleen lezen |
+
+> **Beveiligingswaarschuwing:** Deze wachtwoorden zijn publiekelijk bekend. Wijzig alle wachtwoorden voordat u live gaat.
+
+---
+
+## Beschikbare demogegevens
+
+Het systeem bevat realistische voorbeeldgegevens voor de volgende modules:
+
+| Module | Demo-inhoud |
+|---|---|
+| **Beleid** | Informatiebeveiligingsbeleid, Wachtwoordbeleid, BYOD-beleid, Back-upbeleid, Toegangscontrolebeleid |
+| **SoA** | 313 maatregelen over 8 normen (ISO 27001, BSI, NIS2, EUCS, EUAI, ISO 9001, CRA) — allemaal bewerkbaar |
+| **Risicobeheer** | Realistische risico's met multi-norm-koppelingen (Ransomware, Phishing, Insider Threat, Supply Chain, …) |
+| **AVG & Privacy** | Verwerkingsregister, AVG-overeenkomsten, TOMs, DPIA, 72u-timer demo |
+| **Activa** | Bedrijfsactiva (servers, werkstations, ERP, clouddiensten, netwerk) met classificatie |
+| **Supply Chain** | Leveranciers incl. NIS2/EUCS-koppelingen |
+| **BCM / BCP** | Business Impact Analyses, Continuïteitsplannen, Oefeningen |
+| **Governance** | Directiebeoordelingen met actiepunten en notulen |
+| **Training** | Trainingsmaatregelen (ISO-bewustwording, AVG, Phishing-simulatie) |
+| **Juridisch** | Contracten, NDA's, Privacyverklaringen |
+| **Beveiligingsdoelstellingen** | KPI-doelstellingen met voortgangsbalken |
+| **Incident-inbox** | Demomeldingen via het openbare meldingsformulier |
+| **Guidance** | Systeemhandleiding, rolhandleidingen, beleidsprocessen, SoA-audithandleiding |
+
+---
+
+## Overgang naar productie
+
+### Stap voor stap
+1. Open de **Beheerconsole** → tabblad **Onderhoud**
+2. **Demo-reset uitvoeren:**
+   - Klik op de sectie "Demo-reset"
+   - Typ \`RESET\` in het bevestigingsdialoogvenster
+   - Het systeem exporteert alle demogegevens als JSON-download (back-up)
+   - Alle modulegegevens worden gewist, alle gebruikers behalve \`admin\` worden verwijderd
+   - Adminwachtwoord wordt gereset naar \`adminpass\`, 2FA uitgeschakeld
+3. **Doorgestuurd naar inlogpagina** — gele banner bevestigt geslaagde reset
+4. **Inloggen met \`admin@example.com\` / \`adminpass\`** — banner verdwijnt, systeem klaar
+5. **Wachtwoord onmiddellijk wijzigen:** Instellingen → Wachtwoord wijzigen
+6. **2FA instellen:** Instellingen → 2FA inschakelen
+7. **Uw gebruikers aanmaken:** Beheerconsole → tabblad Gebruikers
+8. **Uw inhoud aanmaken:** alle modules zijn leeg en klaar
+
+### Wat blijft behouden na de reset?
+
+| Behouden | Gewist |
+|---|---|
+| SoA-maatregelen (alle 313) | Beleid / Sjablonen |
+| Keuzelijsten | Risico's |
+| Organisatie-instellingen | Activa, BCM, Governance |
+| (Admin-gebruiker) | Leveranciers, Juridisch, Training |
+| | AVG-gegevens, Guidance |
+| | Auditlog, Beveiligingsdoelstellingen |
+
+---
+
+## Demogegevens herstellen
+
+Om het systeem opnieuw te demonstreren:
+
+1. **Beheerconsole → Onderhoud → "Demogegevens importeren"**
+2. Selecteer het JSON-bestand dat tijdens de demo-reset is gedownload
+3. Alle modulegegevens worden hersteld
+4. alice (alice@it.example / alicepass) en bob (bob@hr.example / bobpass) worden opnieuw aangemaakt zonder 2FA
+5. Het admin-account blijft ongewijzigd
+
+---
+
+## Verdere informatie
+
+- **Architectuur & API-referentie:** Guidance → Admin-documentatie
+- **Rolhandleidingen:** Guidance → Rollen
+- **Projectpagina:** [GitHub – ISMS Builder](https://github.com/claudehecker/isms-builder)
+- **Licentie:** GNU Affero General Public License v3.0 (AGPL-3.0)
+`
+
+const DEMO_DOC = {
+  de: { title: 'Demo-Betrieb – Übersicht & Übergabe in den Produktivbetrieb', content: DEMO_GUIDE_CONTENT },
+  en: { title: DEMO_DOC_EN_TITLE, content: DEMO_DOC_EN_CONTENT },
+  fr: { title: DEMO_DOC_FR_TITLE, content: DEMO_DOC_FR_CONTENT },
+  nl: { title: DEMO_DOC_NL_TITLE, content: DEMO_DOC_NL_CONTENT },
+}
+
 // Patch seedDemoDoc to be language-aware
+// NOTE: same idempotency behaviour as _upsertSeed — content is only refreshed on language change.
+// After editing DEMO_GUIDE_CONTENT or DEMO_DOC_EN_CONTENT: manually delete the entry in
+// Guidance (soft-delete) → Admin → Papierkorb → permanently delete → restart server.
 const _origSeedDemoDoc = seedDemoDoc
 function seedDemoDocI18n() {
   const lang = _getDemoLang()
+  const { title, content } = DEMO_DOC[lang] || DEMO_DOC.en
   const docs = load()
   let changed = false
   const existing = docs.find(d => d.seedId === DEMO_GUIDE_SEED_ID && !d.deletedAt)
@@ -1514,8 +2283,7 @@ function seedDemoDocI18n() {
     docs.unshift({
       id: 'guid_demo_overview', seedId: DEMO_GUIDE_SEED_ID, seedLang: lang,
       category: 'systemhandbuch', type: 'markdown',
-      title:   lang === 'de' ? 'Demo-Betrieb – Übersicht & Übergabe in den Produktivbetrieb' : DEMO_DOC_EN_TITLE,
-      content: lang === 'de' ? DEMO_GUIDE_CONTENT : DEMO_DOC_EN_CONTENT,
+      title, content,
       pinOrder: 1, minRole: null,
       createdAt: nowISO(), updatedAt: nowISO(), deletedAt: null, deletedBy: null,
       createdBy: 'system', linkedControls: [], linkedPolicies: [],
@@ -1523,8 +2291,8 @@ function seedDemoDocI18n() {
     changed = true
   } else {
     if (existing.seedLang !== lang) {
-      existing.title    = lang === 'de' ? 'Demo-Betrieb – Übersicht & Übergabe in den Produktivbetrieb' : DEMO_DOC_EN_TITLE
-      existing.content  = lang === 'de' ? DEMO_GUIDE_CONTENT : DEMO_DOC_EN_CONTENT
+      existing.title    = title
+      existing.content  = content
       existing.seedLang = lang
       existing.updatedAt = nowISO()
       changed = true
@@ -1534,7 +2302,7 @@ function seedDemoDocI18n() {
   if (changed) save(docs)
 }
 
-// Role guide EN translations
+// Role guide i18n translations (EN, FR, NL; DE is in ROLE_GUIDES above)
 const ROLE_GUIDES_EN = {
   seed_guide_ciso: {
     title: 'User Guide: CISO / Information Security Officer (ISB)',
@@ -1869,14 +2637,690 @@ The **Calendar** shows all due dates:
   }
 }
 
+const ROLE_GUIDES_FR = {
+  seed_guide_ciso: {
+    title: 'Guide utilisateur : CISO / Responsable de la sécurité de l\'information',
+    content: `# Guide utilisateur : CISO / Responsable de la sécurité de l'information
+
+Le CISO (Chief Information Security Officer) porte la responsabilité globale du SMSI. Ce guide explique les modules clés et les tâches quotidiennes.
+
+---
+
+## Vue d'ensemble des modules
+
+| Module | Tâche | Emplacement |
+|---|---|---|
+| **Gestion des risques** | Enregistrer, évaluer et traiter les risques | Menu : Risques |
+| **SoA** | Évaluer les contrôles, maintenir l'applicabilité et le statut | Menu : SoA |
+| **Objectifs de sécurité** | Définir les KPI, suivre la progression | Menu : Objectifs |
+| **Boîte de réception incidents** | Traiter les incidents de sécurité signalés | Menu : Incidents |
+| **Chaîne d'approvisionnement** | Surveiller les fournisseurs, obligations NIS2 | Menu : Fournisseurs |
+| **BCM / PCA** | Analyses d'impact métier, plans, exercices | Menu : BCM |
+| **Gouvernance** | Revues de direction, plans d'action | Menu : Gouvernance |
+| **Rapports** | Matrice de conformité, rapport d'écarts, export CSV | Menu : Rapports |
+| **Paramètres (CISO)** | SLA, seuil de notification, e-mail d'escalade | Menu : Paramètres |
+
+---
+
+## Tâches quotidiennes
+
+### Évaluation des risques
+1. **Risques → Nouveau risque** — saisir la menace, la probabilité (1–5), l'impact (1–5)
+2. Score = probabilité × impact (calculé automatiquement)
+3. Ajouter des **plans de traitement** en cliquant sur une entrée de risque → onglet "Traitement"
+4. Lier aux contrôles SoA via "🔗 Liens" dans le formulaire d'édition
+
+### Maintenance des contrôles SoA
+1. **SoA → Onglet référentiel** (ISO 27001, NIS2, BSI …)
+2. Cliquer sur un contrôle → définir le statut (applicable / non-applicable / partiel)
+3. Saisir la justification et les mesures
+4. **Édition en ligne :** double-cliquer sur un champ pour des modifications rapides
+
+### Obligation de déclaration NIS2 (délai 72h)
+- Incidents avec statut "à déclarer" dans la boîte CISO → préparer le rapport BSI/autorité
+- Configurer le seuil de déclaration dans **Paramètres → CISO/ISB**
+- La minuterie démarre à la saisie ; l'e-mail d'escalade se déclenche automatiquement après le SLA
+
+### Préparation de la revue de direction
+1. **Gouvernance → Revue de direction → Nouvelle revue**
+2. Saisir l'ordre du jour, les participants, les décisions
+3. Lier les plans d'action directement à la revue
+4. Exporter **Rapports → Matrice de conformité** en pièce jointe (CSV)
+
+---
+
+## Rapports & Preuves
+
+| Rapport | Accès | Format |
+|---|---|---|
+| Matrice de conformité | Rapports → Matrice de conformité | Tableau + CSV |
+| Rapport d'écarts | Rapports → Rapport d'écarts | Tableau + CSV |
+| Vue d'ensemble référentiel | Rapports → Référentiel | Tableau |
+| Export risques | Risques → CSV | CSV |
+
+---
+
+## Notes sur l'indépendance
+Le CISO/ISB rend compte directement à la direction générale (ISO 27001 clause 5.1). Le rôle ne doit pas entrer en conflit avec les responsabilités opérationnelles IT.
+`
+  },
+  seed_guide_dsb: {
+    title: 'Guide utilisateur : DPO / Délégué à la Protection des Données',
+    content: `# Guide utilisateur : DPO / Délégué à la Protection des Données
+
+Le Délégué à la Protection des Données (DPO) surveille le respect du RGPD et des réglementations connexes sur la protection des données.
+
+> **Indépendance :** Le DPO est libre de toute instruction dans l'exercice de ses fonctions (Art. 38(3) RGPD) et ne peut être révoqué ou pénalisé pour l'exercice de ses fonctions. Il rend compte directement au plus haut niveau de la direction.
+
+---
+
+## Vue d'ensemble des modules
+
+| Module | Tâche | Emplacement |
+|---|---|---|
+| **RoPA** | Registre des activités de traitement (Art. 30) | Vie privée → RoPA |
+| **APD** | Accords de traitement des données | Vie privée → APD |
+| **AIPD** | Analyse d'impact relative à la protection des données (Art. 35) | Vie privée → AIPD |
+| **TOMs** | Mesures techniques et organisationnelles | Vie privée → TOMs |
+| **DSARs** | Demandes d'accès des personnes concernées | Vie privée → DSAR |
+| **Minuterie 72h** | Suivi du délai de notification des violations | Vie privée → Incidents |
+| **Journal de suppression** | Enregistrement des effacements Art. 17 | Vie privée → Journal de suppression |
+| **Politiques de confidentialité** | Gérer les politiques actuelles | Juridique → Politiques |
+| **Paramètres (DPO)** | Délais DSAR, contact DPO, autorités | Paramètres |
+
+---
+
+## Tâches quotidiennes
+
+### Maintien du RoPA
+1. **Vie privée → RoPA → Nouvelle entrée**
+2. Champs obligatoires : nom, finalité, base légale (Art. 6/9), catégories de données, personnes concernées, destinataires, durées de conservation
+3. Transferts vers des pays tiers : saisir le pays + garantie (CCT, BCR)
+4. Export CSV via le bouton "CSV" dans la barre de filtre
+
+### Réalisation d'une AIPD (Art. 35 RGPD)
+1. **Vie privée → AIPD → Nouvelle évaluation**
+2. Test de seuil : évaluation des risques pour les droits et libertés
+3. Documenter les mesures prévues et le risque résiduel
+4. Statut : brouillon → en cours de révision → terminé
+
+### Gestion de la notification de violation 72h
+1. Enregistrer la violation dans **Vie privée → Incidents**
+2. Le système démarre automatiquement le compte à rebours de 72h à partir de la saisie
+3. À l'expiration : documenter la notification à l'autorité
+4. Coordonnées de l'autorité dans **Paramètres → DPO**
+
+### Traitement des DSAR
+1. **Vie privée → DSAR → Nouvelle demande**
+2. Délai calculé automatiquement selon les paramètres DPO (défaut : 30 jours, extensible à 90)
+3. Statut : Reçu → En cours → Terminé / Rejeté
+
+---
+
+## Preuves & Documentation
+
+| Document | Accès | Art. RGPD |
+|---|---|---|
+| RoPA (CSV) | RoPA → Exporter CSV | Art. 30 |
+| Rapport AIPD | AIPD → Vue détaillée | Art. 35 |
+| Aperçu APD | Vie privée → APD | Art. 28 |
+| Preuve TOM | Vie privée → TOMs | Art. 32 |
+| Journal de suppression | Vie privée → Journal de suppression | Art. 17 |
+`
+  },
+  seed_guide_revision: {
+    title: 'Guide utilisateur : Audit interne',
+    content: `# Guide utilisateur : Audit interne
+
+L'audit interne examine de manière indépendante l'efficacité du SMSI et des systèmes de contrôle interne.
+
+> **Indépendance :** L'audit interne est fonctionnellement et organisationnellement indépendant. Il rend compte directement au Conseil d'administration ou au Comité d'audit et est libre des instructions de la direction opérationnelle.
+
+---
+
+## Vue d'ensemble des modules
+
+| Module | Objet de l'audit | Emplacement |
+|---|---|---|
+| **SoA** | Statut d'implémentation de tous les contrôles | Menu : SoA |
+| **Rapports** | Matrice de conformité, rapport d'écarts, cycles de révision | Menu : Rapports |
+| **Journal d'audit** | Traçabilité de toutes les actions système | Console Admin → Journal d'audit |
+| **Gestion des risques** | Exhaustivité du registre des risques, statut des traitements | Menu : Risques |
+| **Gouvernance** | Procès-verbaux de revue de direction, statut des actions | Menu : Gouvernance |
+| **Formation** | Enregistrements de formation, taux de couverture | Menu : Formation |
+| **BCM** | Rapports d'exercices, actualité des BIA | Menu : BCM |
+
+---
+
+## Procédures d'audit
+
+### Évaluation du statut de conformité
+1. **Rapports → Matrice de conformité :** vue en feux tricolores Contrôle × Entité
+2. Cases rouges = implémentation manquante → interroger le propriétaire du module
+3. **Rapports → Rapport d'écarts :** tous les contrôles avec statut "non-applicable" ou sans mesure
+4. Export CSV comme document de travail
+
+### Révision des contrôles SoA
+1. **SoA → sélectionner le référentiel** (ISO 27001, NIS2, BSI …)
+2. Filtrer "non-applicable" → vérifier la plausibilité des justifications
+3. Échantillonnage : contrôles "applicable" avec statut "planifié/partiel" → demander des preuves d'implémentation
+
+### Évaluation du journal d'audit (accès admin requis)
+1. **Console Admin → Journal d'audit**
+2. Filtrer par période, utilisateur ou action
+3. Actions critiques : suppression_permanente, réinitialisation_démo, modifications des paramètres
+
+### Traçage des évaluations des risques
+1. **Risques → Liste :** vérifier le score, la date de dernière modification, le statut du traitement
+2. Identifier les risques élevés non traités (score ≥ 15)
+3. Tracer les contrôles liés dans le panneau de détail
+
+---
+
+## Rapports d'audit & Documents de travail
+
+| Preuve | Accès | Note |
+|---|---|---|
+| Matrice de conformité | Rapports → Matrice de conformité + CSV | Enregistrer la date de référence |
+| Rapport d'écarts | Rapports → Rapport d'écarts + CSV | Documenter le delta vs. année précédente |
+| Export risques | Risques → CSV | Vérification de l'exhaustivité |
+| Export journal d'audit | Admin → Journal d'audit → CSV | Noter la protection contre la falsification |
+| Enregistrements de formation | Formation → Liste | Taux de couverture par département |
+`
+  },
+  seed_guide_qmb: {
+    title: 'Guide utilisateur : Responsable qualité (RQ)',
+    content: `# Guide utilisateur : Responsable qualité (RQ)
+
+Le Responsable qualité (RQ) coordonne le SMQ selon ISO 9001 ou des normes sectorielles et assure l'intégration avec le SMSI.
+
+---
+
+## Vue d'ensemble des modules
+
+| Module | Tâche | Emplacement |
+|---|---|---|
+| **SoA – ISO 9001** | Évaluer les contrôles ISO 9001:2015 | SoA → onglet "ISO 9001" |
+| **Gestion des risques** | Risques selon clause 6.1 ISO 9001 | Menu : Risques |
+| **Gouvernance** | Revues de direction (clause 9.3 ISO 9001) | Menu : Gouvernance |
+| **Formation** | Mesures de formation, enregistrements de compétences | Menu : Formation |
+| **Objectifs de sécurité** | Objectifs QM avec suivi KPI | Menu : Objectifs |
+| **Politiques** | Manuel QM, instructions de travail | Menu : Politiques |
+| **Rapports** | Matrice de conformité ISO 9001, cycles de révision | Menu : Rapports |
+
+---
+
+## Tâches quotidiennes
+
+### Maintien des contrôles ISO 9001
+1. **SoA → onglet "ISO 9001"**
+2. Évaluer les contrôles selon l'implémentation actuelle (applicable / partiel / non-applicable)
+3. Clauses clés : 4 (Contexte), 6.1 (Risques), 7 (Support), 8 (Réalisation), 9 (Évaluation), 10 (Amélioration)
+4. Lier aux politiques via "🔗 Liens"
+
+### Gestion des risques QM
+1. **Risques → Nouveau risque** — lier les contrôles ISO 9001 via "🔗 Liens"
+2. Risques liés à la qualité : défaillance fournisseur, défauts produit, lacunes de compétences
+3. Mesures de traitement : documenter les résultats AMDEC comme actions
+
+### Suivi des objectifs QM avec KPI
+1. **Objectifs → Nouvel objectif**
+2. Définir la valeur cible, la valeur actuelle, l'unité (%, nombre, jours) et l'échéance
+3. Mettre à jour régulièrement — la barre de progression affiche la réalisation
+
+### Revue de direction (clause 9.3 ISO 9001)
+1. **Gouvernance → Revue de direction → Nouvelle revue**
+2. Sujets obligatoires ISO 9001 : retours clients, résultats d'audit, statut des objectifs, ressources
+3. Enregistrer les décisions comme plans d'action (propriétaire + date d'échéance)
+
+---
+
+## Rapports & Documents de certification
+
+| Document | Accès | Clause ISO 9001 |
+|---|---|---|
+| Matrice de conformité ISO 9001 | Rapports → Matrice de conformité (Référentiel : ISO 9001) + CSV | 9.1.3 |
+| Réalisation des objectifs | Objectifs → Vue d'ensemble | 9.1 |
+| Enregistrements de formation | Formation → Liste | 7.2 |
+| PV de revue de direction | Gouvernance → Revue → Détail | 9.3 |
+| Évaluation des risques | Risques → Export CSV | 6.1 |
+`
+  },
+  seed_guide_abtlg: {
+    title: 'Guide utilisateur : Chef de département / Expert métier',
+    content: `# Guide utilisateur : Chef de département / Expert métier
+
+Ce guide s'adresse aux chefs de département et aux experts métier qui maintiennent les politiques, les risques et les formations pour leur domaine.
+
+---
+
+## Votre rôle dans le SMSI
+
+| Tâche | Module | Accès |
+|---|---|---|
+| Maintenir les politiques de votre domaine | Politiques | Lecture + création/édition |
+| Signaler et évaluer les risques | Gestion des risques | Lecture + édition |
+| Planifier les mesures de formation | Formation | Lecture + édition |
+| Gérer les actifs de votre domaine | Gestion des actifs | Lecture + édition |
+| Commenter les contrôles SoA | SoA | Lecture (+ édition en ligne avec contentowner) |
+| Signaler les incidents | Formulaire public / Incidents | Soumettre + lire |
+
+---
+
+## Tâches quotidiennes
+
+### Modifier une politique
+1. Ouvrir **Politiques** dans le menu
+2. Sélectionner votre politique dans l'arborescence
+3. Cliquer sur **Modifier** → mettre à jour le contenu, définir la date "Prochaine révision"
+4. Définir le statut sur **"révision"** pour que le CISO/propriétaire de contenu puisse approuver
+5. Après approbation par le propriétaire de contenu, le statut devient **"approuvé"**
+
+### Signaler un risque
+1. **Risques → Nouveau risque**
+2. Décrire la menace, estimer la probabilité et l'impact (1–5)
+3. Saisir une mesure de traitement proposée
+4. Saisir votre département comme "Propriétaire"
+
+### Planifier une formation
+1. **Formation → Nouvelle mesure**
+2. Saisir le sujet, le public cible (département), la date, le caractère obligatoire
+3. Après achèvement : saisir les résultats et le nombre de participants
+
+### Signaler un incident de sécurité
+- **De l'intérieur (connecté) :** Incidents → Nouvel incident
+- **De l'extérieur / anonyme :** Page de connexion → "Signaler un incident de sécurité" (sans connexion)
+- Champs obligatoires : e-mail, type d'incident, description
+
+---
+
+## Tableaux de bord & Aperçus
+
+Le **Tableau de bord** affiche :
+- Les risques actuels dans votre domaine (Top 5)
+- Les révisions à venir et les échéances (aperçu 14 jours)
+- Les DSARs ouverts et les notifications 72h (si accès RGPD)
+- Les cartes KPI pour tous les modules actifs
+
+Le **Calendrier** affiche toutes les échéances :
+- Dates de révision des politiques
+- Dates de formation
+- Dates de fin de vie des actifs
+- Dates d'expiration des contrats
+
+---
+
+## Ce que vous ne pouvez pas faire (et pourquoi)
+
+| Action bloquée | Raison |
+|---|---|
+| Approuver les politiques (définir "Approuvé") | Propriétaire de contenu / admin uniquement (principe des quatre yeux) |
+| Créer des utilisateurs | Admin uniquement |
+| Supprimer définitivement les politiques | Admin uniquement (corbeille disponible) |
+| Approuver les contrôles SoA | CISO / propriétaire de contenu uniquement |
+| Accéder à la console d'administration | Admin uniquement |
+
+---
+
+## Conseils
+
+- **Recherche par nom :** La barre de recherche en haut trouve globalement les politiques, les risques et les contrôles
+- **Liens :** Dans chaque formulaire sous "🔗 Liens" vous pouvez lier les contrôles SoA et les politiques — utile pour les preuves de conformité
+- **Guidance :** Cette section contient des guides supplémentaires pour tous les modules
+`
+  }
+}
+
+const ROLE_GUIDES_NL = {
+  seed_guide_ciso: {
+    title: 'Gebruikershandleiding: CISO / Informatiebeveiligingsmanager',
+    content: `# Gebruikershandleiding: CISO / Informatiebeveiligingsmanager
+
+De CISO (Chief Information Security Officer) draagt de algehele verantwoordelijkheid voor het ISMS. Deze handleiding legt de belangrijkste modules en dagelijkse taken uit.
+
+---
+
+## Module-overzicht
+
+| Module | Taak | Locatie |
+|---|---|---|
+| **Risicobeheer** | Risico's registreren, beoordelen en behandelen | Menu: Risico's |
+| **SoA** | Maatregelen beoordelen, toepasselijkheid & status bijhouden | Menu: SoA |
+| **Beveiligingsdoelstellingen** | KPI's definiëren, voortgang bijhouden | Menu: Doelstellingen |
+| **Incident-inbox** | Gerapporteerde beveiligingsincidenten verwerken | Menu: Incidenten |
+| **Supply Chain** | Leveranciers bewaken, NIS2-verplichtingen | Menu: Leveranciers |
+| **BCM / BCP** | Business Impact Analyses, plannen, oefeningen | Menu: BCM |
+| **Governance** | Directiebeoordelingen, actiepakketten | Menu: Governance |
+| **Rapporten** | Compliancematrix, gaprapport, CSV-export | Menu: Rapporten |
+| **Instellingen (CISO)** | SLA, meldingsdrempel, escalatie-e-mail | Menu: Instellingen |
+
+---
+
+## Dagelijkse taken
+
+### Risicobeoordeling
+1. **Risico's → Nieuw risico** — bedreiging, kans (1–5), impact (1–5) invoeren
+2. Score = kans × impact (automatisch berekend)
+3. **Behandelplannen** toevoegen door op een risico-item te klikken → tabblad "Behandeling"
+4. Koppelen aan SoA-maatregelen via "🔗 Koppelingen" in het bewerkingsformulier
+
+### SoA-maatregelen onderhouden
+1. **SoA → tabblad Norm** (ISO 27001, NIS2, BSI …)
+2. Klik op een maatregel → status instellen (van toepassing / niet van toepassing / gedeeltelijk)
+3. Motivering en maatregelen invoeren
+4. **Inline bewerken:** dubbelklik op een veld voor snelle wijzigingen
+
+### NIS2-meldingsplicht (72u-deadline)
+- Incidenten met status "meldingsplichtig" in CISO-inbox → BSI/autoriteitsrapport voorbereiden
+- Meldingsdrempel configureren in **Instellingen → CISO**
+- Timer start bij registratie; escalatie-e-mail wordt automatisch getriggerd na SLA
+
+### Directiebeoordeling voorbereiden
+1. **Governance → Directiebeoordeling → Nieuwe beoordeling**
+2. Agenda, deelnemers, besluiten invoeren
+3. Actiepunten direct aan de beoordeling koppelen
+4. **Rapporten → Compliancematrix** exporteren als bijlage (CSV)
+
+---
+
+## Rapporten & Bewijs
+
+| Rapport | Toegang | Formaat |
+|---|---|---|
+| Compliancematrix | Rapporten → Compliancematrix | Tabel + CSV |
+| Gaprapport | Rapporten → Gaprapport | Tabel + CSV |
+| Normoverzicht | Rapporten → Norm | Tabel |
+| Risico-export | Risico's → CSV | CSV |
+
+---
+
+## Opmerkingen over onafhankelijkheid
+De CISO rapporteert rechtstreeks aan de directie (ISO 27001 clausule 5.1). De rol mag niet in conflict komen met operationele IT-verantwoordelijkheden.
+`
+  },
+  seed_guide_dsb: {
+    title: 'Gebruikershandleiding: FG / Functionaris voor Gegevensbescherming',
+    content: `# Gebruikershandleiding: FG / Functionaris voor Gegevensbescherming
+
+De Functionaris voor Gegevensbescherming (FG) bewaakt de naleving van de AVG en aanverwante privacyregelgeving.
+
+> **Onafhankelijkheid:** De FG is vrij van instructies bij het uitvoeren van zijn taken (Art. 38(3) AVG) en mag niet worden ontslagen of bestraft voor het uitvoeren van zijn taken. Hij rapporteert rechtstreeks aan het hoogste bestuursniveau.
+
+---
+
+## Module-overzicht
+
+| Module | Taak | Locatie |
+|---|---|---|
+| **Verwerkingsregister** | Register van verwerkingsactiviteiten (Art. 30) | Privacy → Verwerkingsregister |
+| **AVG-overeenkomst** | Verwerkersovereenkomsten | Privacy → AVG-overeenkomst |
+| **DPIA** | Gegevensbeschermingseffectbeoordeling (Art. 35) | Privacy → DPIA |
+| **TOMs** | Technische en organisatorische maatregelen | Privacy → TOMs |
+| **Inzageverzoeken** | Verzoeken van betrokkenen | Privacy → Inzageverzoek |
+| **72u-timer** | Bijhouden van de meldingstermijn voor datalekken | Privacy → Incidenten |
+| **Verwijderingslog** | Art. 17-verwijderingsregistratie | Privacy → Verwijderingslog |
+| **Privacyverklaringen** | Actueel beleid beheren | Juridisch → Verklaringen |
+| **Instellingen (FG)** | DSAR-termijnen, FG-contactgegevens, autoriteiten | Instellingen |
+
+---
+
+## Dagelijkse taken
+
+### Verwerkingsregister bijhouden
+1. **Privacy → Verwerkingsregister → Nieuwe invoer**
+2. Verplichte velden: naam, doel, rechtsgrond (Art. 6/9), datacategorieën, betrokkenen, ontvangers, bewaartermijnen
+3. Doorgifte aan derde landen: land + waarborg invoeren (SCCs, BCR)
+4. CSV-export via de "CSV"-knop in de filterbalk
+
+### DPIA uitvoeren (Art. 35 AVG)
+1. **Privacy → DPIA → Nieuwe beoordeling**
+2. Drempeltoets: risicobeoordeling voor rechten en vrijheden
+3. Geplande maatregelen en restrisico documenteren
+4. Status: concept → in beoordeling → afgerond
+
+### Datalekmelding 72u beheren
+1. Datalek registreren in **Privacy → Incidenten**
+2. Systeem start automatisch 72u-aftelling bij registratie
+3. Bij afloop: autoriteitsmelding documenteren
+4. Contactgegevens autoriteit in **Instellingen → FG**
+
+### Inzageverzoeken verwerken
+1. **Privacy → Inzageverzoek → Nieuw verzoek**
+2. Termijn automatisch berekend per FG-instellingen (standaard: 30 dagen, uitbreidbaar tot 90)
+3. Status: Ontvangen → In behandeling → Afgerond / Afgewezen
+
+---
+
+## Bewijs & Documentatie
+
+| Document | Toegang | Art. AVG |
+|---|---|---|
+| Verwerkingsregister (CSV) | Verwerkingsregister → CSV exporteren | Art. 30 |
+| DPIA-rapport | DPIA → Detailweergave | Art. 35 |
+| AVG-overeenkomstenoverzicht | Privacy → AVG-overeenkomst | Art. 28 |
+| TOM-bewijs | Privacy → TOMs | Art. 32 |
+| Verwijderingslog | Privacy → Verwijderingslog | Art. 17 |
+`
+  },
+  seed_guide_revision: {
+    title: 'Gebruikershandleiding: Interne Audit',
+    content: `# Gebruikershandleiding: Interne Audit
+
+Interne Audit beoordeelt onafhankelijk de effectiviteit van het ISMS en interne controlesystemen.
+
+> **Onafhankelijkheid:** Interne Audit is functioneel en organisatorisch onafhankelijk. Het rapporteert rechtstreeks aan de Raad van Bestuur of het Auditcomité en is vrij van operationele managementinstructies.
+
+---
+
+## Module-overzicht
+
+| Module | Auditonderwerp | Locatie |
+|---|---|---|
+| **SoA** | Implementatiestatus van alle maatregelen | Menu: SoA |
+| **Rapporten** | Compliancematrix, gaprapport, beoordelingscycli | Menu: Rapporten |
+| **Auditlog** | Traceerbaarheid van alle systeemacties | Beheerconsole → Auditlog |
+| **Risicobeheer** | Volledigheid risicoregister, behandelingsstatus | Menu: Risico's |
+| **Governance** | Notulen directiebeoordeling, actiestatus | Menu: Governance |
+| **Training** | Trainingsregistraties, dekkingsgraad | Menu: Training |
+| **BCM** | Oefeningsrapporten, actualiteit BIA | Menu: BCM |
+
+---
+
+## Auditprocedures
+
+### Compliancestatus beoordelen
+1. **Rapporten → Compliancematrix:** verkeerslichtweergave Maatregel × Entiteit
+2. Rode cellen = ontbrekende implementatie → module-eigenaar bevragen
+3. **Rapporten → Gaprapport:** alle maatregelen met status "niet van toepassing" of zonder maatregel
+4. CSV-export als werkdocument
+
+### SoA-maatregelen beoordelen
+1. **SoA → norm selecteren** (ISO 27001, NIS2, BSI …)
+2. Filteren op "niet van toepassing" → motiveringen controleren op plausibiliteit
+3. Steekproef: maatregelen "van toepassing" met status "gepland/gedeeltelijk" → implementatiebewijs opvragen
+
+### Auditlog evalueren (admin-toegang vereist)
+1. **Beheerconsole → Auditlog**
+2. Filteren op periode, gebruiker of actie
+3. Kritieke acties: permanent_verwijderen, demo_reset, instellingswijzigingen
+
+### Risicobeoordeling traceren
+1. **Risico's → Lijst:** score, laatste wijzigingsdatum, behandelingsstatus controleren
+2. Onbehandelde hoge risico's identificeren (score ≥ 15)
+3. Gekoppelde maatregelen traceren in het detailvenster
+
+---
+
+## Auditrapporten & Werkdocumenten
+
+| Bewijs | Toegang | Opmerking |
+|---|---|---|
+| Compliancematrix | Rapporten → Compliancematrix + CSV | Referentiedatum vastleggen |
+| Gaprapport | Rapporten → Gaprapport + CSV | Delta t.o.v. vorig jaar documenteren |
+| Risico-export | Risico's → CSV | Volledigheidscontrole |
+| Auditlog-export | Admin → Auditlog → CSV | Manipulatiebeveiliging vermelden |
+| Trainingsregistraties | Training → Lijst | Dekkingsgraad per afdeling |
+`
+  },
+  seed_guide_qmb: {
+    title: 'Gebruikershandleiding: KAM / Kwaliteitsmanager',
+    content: `# Gebruikershandleiding: KAM / Kwaliteitsmanager
+
+De Kwaliteitsmanager (KAM) coördineert het KMS volgens ISO 9001 of sectorspecifieke normen en zorgt voor integratie met het ISMS.
+
+---
+
+## Module-overzicht
+
+| Module | Taak | Locatie |
+|---|---|---|
+| **SoA – ISO 9001** | ISO 9001:2015 maatregelen beoordelen | SoA → tabblad "ISO 9001" |
+| **Risicobeheer** | Risico's per ISO 9001 clausule 6.1 | Menu: Risico's |
+| **Governance** | Directiebeoordelingen (ISO 9001 clausule 9.3) | Menu: Governance |
+| **Training** | Trainingsmaatregelen, competentieregistraties | Menu: Training |
+| **Beveiligingsdoelstellingen** | KM-doelstellingen met KPI-tracking | Menu: Doelstellingen |
+| **Beleid** | KM-handboek, werkinstructies | Menu: Beleid |
+| **Rapporten** | Compliancematrix ISO 9001, beoordelingscycli | Menu: Rapporten |
+
+---
+
+## Dagelijkse taken
+
+### ISO 9001 maatregelen onderhouden
+1. **SoA → tabblad "ISO 9001"**
+2. Maatregelen beoordelen op huidige implementatie (van toepassing / gedeeltelijk / niet van toepassing)
+3. Sleutelclausules: 4 (Context), 6.1 (Risico's), 7 (Ondersteuning), 8 (Uitvoering), 9 (Evaluatie), 10 (Verbetering)
+4. Koppelen aan beleid via "🔗 Koppelingen"
+
+### KM-risico's beheren
+1. **Risico's → Nieuw risico** — ISO 9001 maatregelen koppelen via "🔗 Koppelingen"
+2. Kwaliteitsgerelateerde risico's: leveranciersfalen, productdefecten, competentiehiaten
+3. Behandelmaatregelen: FMEA-resultaten als acties documenteren
+
+### KM-doelstellingen bijhouden met KPI's
+1. **Doelstellingen → Nieuwe doelstelling**
+2. Streefwaarde, actuele waarde, eenheid (%, aantal, dagen) en deadline definiëren
+3. Regelmatig bijwerken — voortgangsbalk toont realisatie
+
+### Directiebeoordeling (ISO 9001 clausule 9.3)
+1. **Governance → Directiebeoordeling → Nieuwe beoordeling**
+2. ISO 9001 verplichte onderwerpen: klantfeedback, auditresultaten, doelstellingsstatus, middelen
+3. Besluiten vastleggen als actiepunten (eigenaar + vervaldatum)
+
+---
+
+## Rapporten & Certificeringsdocumenten
+
+| Document | Toegang | ISO 9001 Clausule |
+|---|---|---|
+| Compliancematrix ISO 9001 | Rapporten → Compliancematrix (Norm: ISO 9001) + CSV | 9.1.3 |
+| Doelstellingenrealisatie | Doelstellingen → Overzicht | 9.1 |
+| Trainingsregistraties | Training → Lijst | 7.2 |
+| Notulen directiebeoordeling | Governance → Beoordeling → Detail | 9.3 |
+| Risicobeoordeling | Risico's → CSV-export | 6.1 |
+`
+  },
+  seed_guide_abtlg: {
+    title: 'Gebruikershandleiding: Afdelingshoofd / Vakexpert',
+    content: `# Gebruikershandleiding: Afdelingshoofd / Vakexpert
+
+Deze handleiding is bedoeld voor afdelingshoofden en vakexperts die beleid, risico's en trainingen voor hun afdeling beheren.
+
+---
+
+## Uw rol in het ISMS
+
+| Taak | Module | Toegang |
+|---|---|---|
+| Beleid voor uw afdeling beheren | Beleid | Lezen + aanmaken/bewerken |
+| Risico's melden en beoordelen | Risicobeheer | Lezen + bewerken |
+| Trainingsmaatregelen plannen | Training | Lezen + bewerken |
+| Activa van uw afdeling beheren | Activabeheer | Lezen + bewerken |
+| Commentaar geven op SoA-maatregelen | SoA | Lezen (+ inline bewerken met inhoudseigenaar) |
+| Incidenten melden | Openbaar formulier / Incidenten | Indienen + lezen |
+
+---
+
+## Dagelijkse taken
+
+### Een beleidsdocument bewerken
+1. Open **Beleid** vanuit het menu
+2. Selecteer uw beleid uit de boomstructuur
+3. Klik op **Bewerken** → inhoud bijwerken, datum "Volgende beoordeling" instellen
+4. Status instellen op **"beoordeling"** zodat CISO/inhoudseigenaar kan goedkeuren
+5. Na goedkeuring door inhoudseigenaar wordt de status **"goedgekeurd"**
+
+### Een risico melden
+1. **Risico's → Nieuw risico**
+2. Bedreiging beschrijven, kans en impact schatten (1–5)
+3. Een voorgestelde behandelmaatregel invoeren
+4. Uw afdeling invoeren als "Eigenaar"
+
+### Training plannen
+1. **Training → Nieuwe maatregel**
+2. Onderwerp, doelgroep (afdeling), datum, verplicht/niet verplicht invoeren
+3. Na afronding: resultaten en aantal deelnemers invoeren
+
+### Een beveiligingsincident melden
+- **Van binnenuit (ingelogd):** Incidenten → Nieuw incident
+- **Van buiten / anoniem:** Inlogpagina → "Beveiligingsincident melden" (geen login vereist)
+- Verplichte velden: e-mail, incidenttype, beschrijving
+
+---
+
+## Dashboards & Overzichten
+
+Het **Dashboard** toont:
+- Huidige risico's in uw afdeling (Top 5)
+- Aankomende beoordelingen en vervaldatums (14-dagenvooruitblik)
+- Open inzageverzoeken en 72u-meldingen (bij AVG-toegang)
+- KPI-kaarten voor alle actieve modules
+
+De **Kalender** toont alle vervaldatums:
+- Beoordelingsdata beleid
+- Trainingsdatums
+- Eindedatumsdata activa
+- Vervaldatums contracten
+
+---
+
+## Wat u niet kunt doen (en waarom)
+
+| Geblokkeerde actie | Reden |
+|---|---|
+| Beleid goedkeuren (status "Goedgekeurd" instellen) | Alleen inhoudseigenaar / admin (vier-ogenprincipe) |
+| Gebruikers aanmaken | Alleen admin |
+| Beleid permanent verwijderen | Alleen admin (prullenbak beschikbaar) |
+| SoA-maatregelen goedkeuren | Alleen CISO / inhoudseigenaar |
+| Toegang tot beheerconsole | Alleen admin |
+
+---
+
+## Tips
+
+- **Naamzoekopdracht:** De zoekbalk bovenaan vindt globaal beleid, risico's en maatregelen
+- **Koppelingen:** In elk formulier onder "🔗 Koppelingen" kunt u SoA-maatregelen en beleid koppelen — handig voor compliancebewijs
+- **Guidance:** Dit gedeelte bevat verdere handleidingen voor alle modules
+`
+  }
+}
+
+const ROLE_GUIDES_I18N = {
+  de: null,  // DE is in ROLE_GUIDES above
+  en: ROLE_GUIDES_EN,
+  fr: ROLE_GUIDES_FR,
+  nl: ROLE_GUIDES_NL,
+}
+
 function seedRoleGuidesI18n() {
   const lang = _getDemoLang()
+  const langGuides = ROLE_GUIDES_I18N[lang] || ROLE_GUIDES_I18N.en
   const docs = load()
   let changed = false
   for (const guide of ROLE_GUIDES) {
-    const enGuide = ROLE_GUIDES_EN[guide.seedId]
-    const title   = lang === 'de' ? guide.title   : (enGuide ? enGuide.title   : guide.title)
-    const content = lang === 'de' ? guide.content : (enGuide ? enGuide.content : guide.content)
+    const override = langGuides ? langGuides[guide.seedId] : null
+    const title   = override ? override.title   : guide.title
+    const content = override ? override.content : guide.content
     if (_upsertSeed(docs, guide.seedId, { id: guide.id, category: 'rollen', type: 'markdown', pinOrder: guide.pinOrder, minRole: guide.minRole, title, content })) changed = true
   }
   if (changed) save(docs)
@@ -1999,13 +3443,129 @@ without a licence — is **not permitted**.
 The ISMS Builder authors accept no liability for unlicensed use of ISO-protected content.
 `
 
+const ISO_NOTICE_FR = `# <span style="color:#FFD700">⚠</span> Avis juridique : Contrôles ISO — Installation manuelle requise
+
+> <span style="color:#FFD700">**⚠ Cet avis est contraignant. Il s'applique à tous les administrateurs, opérateurs et utilisateurs de cette plateforme.**</span>
+
+---
+
+## Ce que vous devez savoir
+
+**ISO 27001:2022, ISO 9000:2015 et ISO 9001:2015** sont des normes protégées par le droit d'auteur, publiées
+par l'Organisation internationale de normalisation (ISO, © ISO).
+
+Les définitions complètes des contrôles — titres, descriptions et textes d'exigences —
+**ne sont pas incluses dans ce logiciel** et ne doivent **pas être stockées, distribuées ou utilisées sans une licence ISO valide**.
+
+---
+
+## Que doit faire l'administrateur ?
+
+Les modules SoA pour ISO 27001, ISO 9000 et ISO 9001 sont livrés **sans contenu de contrôle**.
+L'administrateur est tenu d'importer les contrôles **manuellement** :
+
+1. **Obtenir une copie sous licence** — sur [iso.org](https://www.iso.org/) ou un organisme national agréé
+2. **Préparer un fichier JSON** — format documenté dans \`scripts/import-iso-controls.sh\`
+3. **Exécuter le script d'importation :**
+   \`\`\`bash
+   bash scripts/import-iso-controls.sh /chemin/vers/iso-controls.json
+   \`\`\`
+4. **Redémarrer le serveur**
+
+---
+
+## Quels référentiels sont déjà inclus ?
+
+Les référentiels suivants sont basés sur des textes législatifs UE publiquement disponibles
+et sont **entièrement préinstallés** — aucune licence requise :
+
+| Référentiel | Base légale |
+|---|---|
+| **BSI IT-Grundschutz** | Office fédéral allemand pour la sécurité de l'information (BSI) |
+| **EU NIS2** | Directive UE 2022/2555 |
+| **EUCS** | Schéma de certification de cybersécurité cloud ENISA |
+| **EU AI Act** | Règlement UE 2024/1689 |
+| **CRA** | Cyber Resilience Act UE |
+
+---
+
+## Base juridique
+
+Les normes ISO sont protégées par le droit d'auteur (Convention de Berne, implementations nationales).
+La reproduction, communication publique ou stockage non autorisés — même pour un usage professionnel interne
+sans licence — est **interdit**.
+
+**La responsabilité du fonctionnement conforme aux licences incombe exclusivement à l'opérateur de cette installation.**
+Les auteurs d'ISMS Builder n'acceptent aucune responsabilité pour l'utilisation non licenciée de contenus protégés par ISO.
+`
+
+const ISO_NOTICE_NL = `# <span style="color:#FFD700">⚠</span> Juridische kennisgeving: ISO-maatregelen — Handmatige installatie vereist
+
+> <span style="color:#FFD700">**⚠ Deze kennisgeving is bindend. Ze is van toepassing op alle beheerders, exploitanten en gebruikers van dit platform.**</span>
+
+---
+
+## Wat u moet weten
+
+**ISO 27001:2022, ISO 9000:2015 en ISO 9001:2015** zijn auteursrechtelijk beschermde normen, gepubliceerd
+door de Internationale Organisatie voor Normalisatie (ISO, © ISO).
+
+De volledige maatregelendefinities — titels, beschrijvingen en vereistentekst —
+**zijn niet inbegrepen in deze software** en mogen **niet worden opgeslagen, verspreid of gebruikt zonder een geldige ISO-licentie**.
+
+---
+
+## Wat moet de beheerder doen?
+
+De SoA-modules voor ISO 27001, ISO 9000 en ISO 9001 worden geleverd **zonder maatregel-inhoud**.
+De beheerder is verplicht de maatregelen **handmatig** te importeren:
+
+1. **Een gelicentieerde kopie verkrijgen** — via [iso.org](https://www.iso.org/) of een erkend nationaal normalisatie-instituut
+2. **Een JSON-bestand voorbereiden** — formaat gedocumenteerd in \`scripts/import-iso-controls.sh\`
+3. **Het importscript uitvoeren:**
+   \`\`\`bash
+   bash scripts/import-iso-controls.sh /pad/naar/iso-controls.json
+   \`\`\`
+4. **De server opnieuw starten**
+
+---
+
+## Welke normen zijn al inbegrepen?
+
+De volgende normen zijn gebaseerd op publiek beschikbare EU-wetgeving
+en zijn **volledig voorgeïnstalleerd** — geen licentie vereist:
+
+| Norm | Rechtsgrondslag |
+|---|---|
+| **BSI IT-Grundschutz** | Duits Federaal Bureau voor Informatiebeveiliging (BSI) |
+| **EU NIS2** | EU-richtlijn 2022/2555 |
+| **EUCS** | ENISA Europees certificeringsschema voor cloudcyberveiligheid |
+| **EU AI Act** | EU-verordening 2024/1689 |
+| **CRA** | EU Cyber Resilience Act |
+
+---
+
+## Juridische grondslag
+
+ISO-normen zijn beschermd door het auteursrecht (Berner Conventie, nationale implementaties).
+Onbevoegde reproductie, openbare mededeling of opslag — zelfs voor intern bedrijfsgebruik
+zonder licentie — is **niet toegestaan**.
+
+**De verantwoordelijkheid voor licentiemconform gebruik berust uitsluitend bij de exploitant van deze installatie.**
+De auteurs van ISMS Builder aanvaarden geen aansprakelijkheid voor ongelicentieerd gebruik van ISO-beschermde inhoud.
+`
+
+const ISO_NOTICE = {
+  de: { title: '⚠ Rechtlicher Hinweis: ISO-Controls — Manuelle Installation erforderlich', content: ISO_NOTICE_DE },
+  en: { title: '⚠ Legal Notice: ISO Controls — Manual Installation Required', content: ISO_NOTICE_EN },
+  fr: { title: '⚠ Avis juridique : Contrôles ISO — Installation manuelle requise', content: ISO_NOTICE_FR },
+  nl: { title: '⚠ Juridische kennisgeving: ISO-maatregelen — Handmatige installatie vereist', content: ISO_NOTICE_NL },
+}
+
 function seedIsoNotice() {
   const lang = _getDemoLang()
   const docs = load()
-  const content = lang === 'de' ? ISO_NOTICE_DE : ISO_NOTICE_EN
-  const title   = lang === 'de'
-    ? '⚠ Rechtlicher Hinweis: ISO-Controls — Manuelle Installation erforderlich'
-    : '⚠ Legal Notice: ISO Controls — Manual Installation Required'
+  const { title, content } = ISO_NOTICE[lang] || ISO_NOTICE.en
   const existing = docs.find(d => d.seedId === ISO_NOTICE_SEED_ID && !d.deletedAt)
   if (!existing) {
     docs.push({ id: 'guid_iso_controls_notice', seedId: ISO_NOTICE_SEED_ID, seedLang: lang,

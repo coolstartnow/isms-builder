@@ -15,6 +15,7 @@ app.use(express.json())
 
 // ── UI-Dateien: Login-Seite öffentlich, alles andere nur mit gültigem JWT ──
 const uiDir    = path.join(__dirname, '../ui')
+const docsDir  = path.join(__dirname, '../docs')
 const uiStatic = express.static(uiDir)
 
 const PUBLIC_UI_FILES = new Set([
@@ -30,10 +31,19 @@ app.use('/ui', (req, res, next) => {
   const filename = path.basename(req.path)
   if (filename === 'login.html') {
     res.clearCookie('sm_session', { path: '/' })
+    res.setHeader('Cache-Control', 'no-store')
     return uiStatic(req, res, next)
   }
-  // vendor/ assets (fonts, icons) are public — required by login page before auth
+  // vendor/ and i18n/ assets are public — required by login page before auth
   if (req.path.startsWith('/vendor/')) return uiStatic(req, res, next)
+  if (req.path.startsWith('/i18n/'))   return uiStatic(req, res, next)
+  // docs/ served from project root (screenshots, badges etc. referenced in seeded README)
+  if (req.path.startsWith('/docs/')) {
+    const sess = getSessionFromReq(req)
+    if (!sess) return res.redirect('/ui/login.html')
+    req.url = req.path.slice('/docs'.length)
+    return express.static(docsDir)(req, res, next)
+  }
   if (PUBLIC_UI_FILES.has(filename)) return uiStatic(req, res, next)
   const sess = getSessionFromReq(req)
   if (!sess) return res.redirect('/ui/login.html')
@@ -88,6 +98,7 @@ app.use(require('./routes/admin'))
 app.use(require('./routes/public'))
 app.use(require('./routes/trash'))
 app.use(require('./routes/suppliers'))
+app.use(require('./routes/findings'))
 app.use(require('./routes/ai'))
 
 // Test-user management routes (temporary, test-env only)
@@ -149,6 +160,9 @@ function runAutopurge() {
 
   const supplierStore = require('./db/supplierStore')
   purge('Suppliers',          () => supplierStore.getDeleted(),                  (id) => supplierStore.permanentDelete(id))
+
+  const findingStore  = require('./db/findingStore')
+  purge('Findings',           () => findingStore.getDeleted(),                   (id) => findingStore.permanentDelete(id))
 
   if (total > 0) console.log(`[autopurge] ${total} Einträge nach 30 Tagen endgültig gelöscht`)
 }

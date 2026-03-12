@@ -104,6 +104,8 @@ function switchAppLang(lang) {
     msg.style.display = 'inline'
     msg.textContent = t('settings_langSaved')
   }
+  // Seed-language sync happens server-side on the next GET /guidance?lang=xx call.
+  // No separate PUT needed here.
   setTimeout(() => location.reload(), 800)
 }
 
@@ -428,6 +430,15 @@ async function init() {
     if (orgRes.ok) {
       const orgData = await orgRes.json()
       if (Array.isArray(orgData.navOrder) && orgData.navOrder.length) _navOrder = orgData.navOrder
+    }
+  } catch {}
+
+  // ── Sprach-Konfiguration laden ──
+  try {
+    const lcRes = await fetch('/auth/language-config')
+    if (lcRes.ok) {
+      const lc = await lcRes.json()
+      if (lc && Array.isArray(lc.available) && lc.available.length) _langConfig = lc
     }
   } catch {}
 
@@ -865,6 +876,9 @@ function canSeeSection(meta) {
 // Gespeicherte Nav-Reihenfolge (wird beim Login aus org-settings geladen)
 let _navOrder = []
 
+// Sprach-Konfiguration (wird beim Start vom Server geladen)
+let _langConfig = { available: ['de', 'en', 'fr', 'nl'], default: 'en' }
+
 function populateSectionNav(){
   const nav = dom('sectionNav')
   if (!nav) return
@@ -910,6 +924,17 @@ function removeAllDynamicPanels() {
 }
 
 // ── Reports ─────────────────────────────────────────────────────────
+// ── Findings: Severity- und Status-Labels ─────────────────────────────────────
+const FINDING_SEVERITY_LABELS = { critical:'Kritisch', high:'Hoch', medium:'Mittel', low:'Niedrig', observation:'Hinweis' }
+const FINDING_STATUS_LABELS   = { open:'Offen', in_progress:'In Bearbeitung', resolved:'Behoben', accepted:'Akzeptiert' }
+const FINDING_ACT_STATUS_LABELS = { open:'Offen', in_progress:'In Bearbeitung', done:'Erledigt' }
+const FINDING_SEVERITY_COLOR  = { critical:'#f87171', high:'#fb923c', medium:'#fbbf24', low:'#4ade80', observation:'#60a5fa' }
+const FINDING_STATUS_COLOR    = { open:'#f87171', in_progress:'#fbbf24', resolved:'#4ade80', accepted:'#60a5fa' }
+
+let _reportsMainTab  = 'reports'   // 'reports' | 'findings'
+let _findingsTab     = 'list'      // 'list' | 'open' | 'resolved'
+let _findingFormBack = 'list'
+
 const REPORT_TYPES = [
   { id: 'compliance', label: 'Compliance',            icon: 'ph-shield-check',            desc: 'Implementation rate per entity and framework', needsEntity: true },
   { id: 'framework',  label: 'Framework Coverage',   icon: 'ph-chart-bar',               desc: 'Controls per framework: applicable / implemented / gap', needsEntity: false },
@@ -930,11 +955,46 @@ async function renderReports() {
   container.className = 'reports-container'
   main.appendChild(container)
 
-  // Sofort rendern — Entities werden asynchron nachgeladen
   container.innerHTML = `
     <div class="reports-header">
       <h2 class="reports-title"><i class="ph ph-chart-line"></i> Reports &amp; Compliance</h2>
     </div>
+    <div class="training-tab-bar" style="margin-bottom:16px">
+      <button class="training-tab${_reportsMainTab==='reports'?' active':''}" onclick="switchReportsMainTab('reports')">
+        <i class="ph ph-chart-bar"></i> Berichte
+      </button>
+      <button class="training-tab${_reportsMainTab==='findings'?' active':''}" onclick="switchReportsMainTab('findings')">
+        <i class="ph ph-magnifying-glass"></i> Feststellungen
+      </button>
+    </div>
+    <div id="reportsMainContent"></div>
+  `
+  if (_reportsMainTab === 'findings') {
+    renderFindingsTab()
+  } else {
+    renderReportsTabContent(container)
+  }
+}
+
+async function switchReportsMainTab(tab) {
+  _reportsMainTab = tab
+  document.querySelectorAll('#reportsContainer .training-tab').forEach(b =>
+    b.classList.toggle('active', b.textContent.trim().toLowerCase().includes(tab === 'reports' ? 'bericht' : 'feststellung'))
+  )
+  const content = dom('reportsMainContent')
+  if (!content) return
+  if (tab === 'findings') {
+    renderFindingsTab()
+  } else {
+    const container = document.getElementById('reportsContainer')
+    renderReportsTabContent(container)
+  }
+}
+
+function renderReportsTabContent(container) {
+  const content = dom('reportsMainContent')
+  if (!content) return
+  content.innerHTML = `
     <div class="reports-card-grid">
       ${REPORT_TYPES.map(rt => `
         <div class="report-card" data-report="${rt.id}">
@@ -975,28 +1035,22 @@ async function renderReports() {
     </div>
     <div id="reportResult" class="report-result"></div>
   `
-
-  // Report-Karten: Klick → Filter einblenden
-  container.querySelectorAll('.report-run-btn').forEach(btn => {
+  content.querySelectorAll('.report-run-btn').forEach(btn => {
     btn.onclick = () => {
       _activeReportType = btn.dataset.report
       const rt = REPORT_TYPES.find(r => r.id === _activeReportType)
       const filters = dom('reportFilters')
       filters.style.display = 'flex'
-      // Relevante Filter einblenden
       dom('reportEntitySel').parentElement.style.display = (rt?.needsEntity) ? '' : 'none'
-      document.getElementById('reportEntitySel').closest('label')
       dom('reportRunBtn').onclick = () => runReport(_activeReportType)
       document.getElementById('reportResult').innerHTML = ''
     }
   })
-
-  // Entities im Hintergrund nachladen und Select befüllen
   if (_reportEntities.length === 0) {
     fetch('/entities', { headers: apiHeaders('reader') })
       .then(r => r.ok ? r.json() : [])
       .then(list => {
-        if (!container.isConnected || !list.length) return
+        if (!list.length) return
         _reportEntities = list
         const sel = dom('reportEntitySel')
         if (sel) {
@@ -1011,6 +1065,7 @@ async function renderReports() {
       .catch(() => {})
   }
 }
+
 
 let _lastReportData = null
 
@@ -1182,6 +1237,478 @@ function exportReportJson() {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+// ── Findings UI ───────────────────────────────────────────────────────────────
+
+function _findingSeverityBadge(sev) {
+  const label = FINDING_SEVERITY_LABELS[sev] || sev
+  const color = FINDING_SEVERITY_COLOR[sev]  || '#888'
+  return `<span class="soa-status-badge" style="background:${color}22;color:${color};border-color:${color}44">${label}</span>`
+}
+
+function _findingStatusBadge(st) {
+  const label = FINDING_STATUS_LABELS[st] || st
+  const color = FINDING_STATUS_COLOR[st]  || '#888'
+  return `<span class="soa-status-badge" style="background:${color}22;color:${color};border-color:${color}44">${label}</span>`
+}
+
+async function renderFindingsTab() {
+  const content = dom('reportsMainContent')
+  if (!content) return
+  const rank    = ROLE_RANK[getCurrentRole()] || 0
+  const canEdit = rank >= ROLE_RANK.auditor
+  const isAdmin = rank >= ROLE_RANK.admin
+
+  const [findRes, sumRes] = await Promise.all([
+    fetch('/findings', { headers: apiHeaders() }),
+    fetch('/findings/summary', { headers: apiHeaders() }),
+  ])
+  const findings = findRes.ok ? await findRes.json() : []
+  const sum      = sumRes.ok  ? await sumRes.json()  : {}
+
+  const tabs = [
+    { id: 'list',     label: 'Alle',         icon: 'ph-list-bullets' },
+    { id: 'open',     label: 'Offen',        icon: 'ph-warning-circle' },
+    { id: 'resolved', label: 'Behoben',      icon: 'ph-check-circle' },
+  ]
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--text-inv)">
+        <i class="ph ph-magnifying-glass"></i> Audit-Feststellungen
+      </h3>
+      ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openFindingForm()">
+        <i class="ph ph-plus"></i> Neue Feststellung
+      </button>` : ''}
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      ${[
+        { label:'Gesamt',       value: sum.total || 0,           color:'var(--text-primary)' },
+        { label:'Kritisch',     value: sum.bySeverity?.critical||0, color: FINDING_SEVERITY_COLOR.critical },
+        { label:'Hoch',         value: sum.bySeverity?.high||0,     color: FINDING_SEVERITY_COLOR.high },
+        { label:'Offen',        value: sum.byStatus?.open||0,        color: FINDING_STATUS_COLOR.open },
+        { label:'Maßn. offen',  value: sum.openActions||0,           color: sum.openActions > 0 ? '#fbbf24':'#4ade80' },
+        { label:'Maßn. überfällig', value: sum.overdueActions||0,   color: sum.overdueActions > 0 ? FINDING_SEVERITY_COLOR.critical:'#4ade80' },
+      ].map(k => `
+        <div class="dash-card kpi" style="flex:1;min-width:100px;padding:10px 14px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:700;color:${k.color}">${k.value}</div>
+          <div style="font-size:.72rem;color:var(--text-subtle)">${k.label}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="training-tab-bar" style="margin-bottom:12px">
+      ${tabs.map(tb => `<button class="training-tab${_findingsTab===tb.id?' active':''}"
+        onclick="_switchFindingsTab('${tb.id}')">
+        <i class="ph ${tb.icon}"></i> ${tb.label}
+      </button>`).join('')}
+    </div>
+
+    <div id="findingsListArea"></div>
+  `
+  _renderFindingsList(findings, findings)
+}
+
+function _switchFindingsTab(tab) {
+  _findingsTab = tab
+  document.querySelectorAll('#reportsMainContent .training-tab').forEach(b =>
+    b.classList.toggle('active', b.textContent.trim() === ({list:'Alle',open:'Offen',resolved:'Behoben'}[tab]||tab))
+  )
+  fetch('/findings', { headers: apiHeaders() })
+    .then(r => r.ok ? r.json() : [])
+    .then(all => {
+      const filtered = tab === 'open'     ? all.filter(f => f.status === 'open' || f.status === 'in_progress')
+                     : tab === 'resolved' ? all.filter(f => f.status === 'resolved' || f.status === 'accepted')
+                     : all
+      _renderFindingsList(all, filtered)
+    })
+    .catch(() => {})
+}
+
+function _renderFindingsList(all, list) {
+  const area = dom('findingsListArea')
+  if (!area) return
+  const rank    = ROLE_RANK[getCurrentRole()] || 0
+  const canEdit = rank >= ROLE_RANK.auditor
+  const isAdmin = rank >= ROLE_RANK.admin
+
+  if (!list.length) {
+    area.innerHTML = `<div class="report-empty" style="padding:32px;text-align:center;color:var(--text-subtle)">
+      <i class="ph ph-magnifying-glass" style="font-size:32px;display:block;margin-bottom:8px"></i>
+      Keine Feststellungen
+    </div>`
+    return
+  }
+
+  area.innerHTML = list.map(f => {
+    const actOpen = (f.actions || []).filter(a => a.status !== 'done').length
+    const actTotal = (f.actions || []).length
+    return `
+    <div class="risk-item" style="cursor:pointer" onclick="openFindingDetail('${f.id}')">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+            <span style="font-size:11px;color:var(--text-subtle);font-family:monospace">${escHtml(f.ref)}</span>
+            ${_findingSeverityBadge(f.severity)}
+            ${_findingStatusBadge(f.status)}
+          </div>
+          <div style="font-weight:600;color:var(--text-inv);margin-bottom:2px">${escHtml(f.title)}</div>
+          <div style="font-size:12px;color:var(--text-subtle)">${escHtml(f.auditedArea || '')}
+            ${f.auditor ? `· Auditor: ${escHtml(f.auditor)}` : ''}
+            ${f.auditPeriodFrom ? `· ${f.auditPeriodFrom}${f.auditPeriodTo?' – '+f.auditPeriodTo:''}` : ''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span style="font-size:11px;color:${actOpen>0?'#fbbf24':'var(--text-subtle)'}">
+            <i class="ph ph-checks"></i> ${actOpen}/${actTotal} offen
+          </span>
+          ${canEdit ? `
+          <button class="btn btn-sm" onclick="event.stopPropagation();openFindingForm('${f.id}')">
+            <i class="ph ph-pencil-simple"></i>
+          </button>` : ''}
+          ${isAdmin ? `
+          <button class="btn btn-sm" style="color:var(--danger)" onclick="event.stopPropagation();deleteFinding('${f.id}')">
+            <i class="ph ph-trash-simple"></i>
+          </button>` : ''}
+        </div>
+      </div>
+      ${f.observation ? `<div style="font-size:12px;color:var(--text-subtle);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+        <b>IST:</b> ${escHtml(f.observation.slice(0,120))}${f.observation.length>120?'…':''}
+      </div>` : ''}
+    </div>`
+  }).join('')
+}
+
+async function openFindingDetail(id) {
+  const content = dom('reportsMainContent')
+  if (!content) return
+  _findingFormBack = _findingsTab
+  const r = await fetch(`/findings/${id}`, { headers: apiHeaders() })
+  if (!r.ok) return
+  const f = await r.json()
+  const rank    = ROLE_RANK[getCurrentRole()] || 0
+  const canEdit = rank >= ROLE_RANK.auditor
+  const canAct  = rank >= ROLE_RANK.editor
+
+  content.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" onclick="switchReportsMainTab('findings')">
+          <i class="ph ph-arrow-left"></i> Zurück
+        </button>
+        <h3 class="training-form-title">
+          <i class="ph ph-magnifying-glass"></i>
+          <span style="font-size:12px;color:var(--text-subtle);font-family:monospace">${escHtml(f.ref)}</span>
+          ${escHtml(f.title)}
+        </h3>
+      </div>
+      <div class="training-form-body">
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title" style="display:flex;align-items:center;gap:8px">
+            Feststellung ${_findingSeverityBadge(f.severity)} ${_findingStatusBadge(f.status)}
+          </h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin-bottom:12px;font-size:13px">
+            <div><span style="color:var(--text-subtle)">Bereich:</span> ${escHtml(f.auditedArea||'—')}</div>
+            <div><span style="color:var(--text-subtle)">Auditor:</span> ${escHtml(f.auditor||'—')}</div>
+            <div><span style="color:var(--text-subtle)">Zeitraum:</span>
+              ${f.auditPeriodFrom ? escHtml(f.auditPeriodFrom)+(f.auditPeriodTo?' – '+escHtml(f.auditPeriodTo):'') : '—'}
+            </div>
+            <div><span style="color:var(--text-subtle)">Erstellt:</span> ${f.createdAt?.slice(0,10)||'—'}</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="color:var(--warn)">📋 IST-Zustand (Beobachtung)</label>
+            <div style="background:var(--raised);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;white-space:pre-wrap">${escHtml(f.observation||'—')}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:#60a5fa">🎯 SOLL-Zustand (Anforderung)</label>
+            <div style="background:var(--raised);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;white-space:pre-wrap">${escHtml(f.requirement||'—')}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:${FINDING_SEVERITY_COLOR.high}">⚠ Risiko / Auswirkung</label>
+            <div style="background:var(--raised);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;white-space:pre-wrap">${escHtml(f.impact||'—')}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:#4ade80">💡 Empfehlung</label>
+            <div style="background:var(--raised);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;white-space:pre-wrap">${escHtml(f.recommendation||'—')}</div>
+          </div>
+        </div>
+
+        <div class="training-form-section" id="actionsSection">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <h4 class="training-form-section-title" style="margin:0">
+              <i class="ph ph-check-square"></i> Maßnahmenplan
+            </h4>
+            ${canAct ? `<button class="btn btn-primary btn-sm" onclick="openAddActionForm('${f.id}')">
+              <i class="ph ph-plus"></i> Maßnahme
+            </button>` : ''}
+          </div>
+          <div id="actionsList">
+            ${_renderActionsList(f.actions || [], f.id, canAct)}
+          </div>
+        </div>
+
+        ${canEdit ? `
+        <div class="training-form-section">
+          <button class="btn btn-primary" onclick="openFindingForm('${f.id}')">
+            <i class="ph ph-pencil-simple"></i> Feststellung bearbeiten
+          </button>
+        </div>` : ''}
+      </div>
+    </div>
+  `
+}
+
+function _renderActionsList(actions, findingId, canEdit) {
+  if (!actions.length) return `<div style="color:var(--text-subtle);font-size:13px;padding:8px 0">Noch keine Maßnahmen eingetragen.</div>`
+  return actions.map(a => {
+    const colAct = a.status === 'done' ? '#4ade80' : a.status === 'in_progress' ? '#fbbf24' : '#f87171'
+    const overdue = a.status !== 'done' && a.dueDate && new Date(a.dueDate) < new Date()
+    return `
+    <div class="risk-item" style="padding:10px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:13px;margin-bottom:3px">${escHtml(a.description)}</div>
+          <div style="font-size:12px;color:var(--text-subtle)">
+            Verantwortlich: <b>${escHtml(a.responsible||'—')}</b>
+            ${a.dueDate ? `· Fällig: <span style="color:${overdue?'#f87171':'inherit'}">${a.dueDate}${overdue?' ⚠':''}</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${canEdit ? `<select class="select" style="font-size:11px;padding:2px 6px"
+            onchange="updateActionStatus('${findingId}','${a.id}',this.value)">
+            ${Object.entries(FINDING_ACT_STATUS_LABELS).map(([v,l]) =>
+              `<option value="${v}"${a.status===v?' selected':''}>${l}</option>`).join('')}
+          </select>
+          <button class="btn btn-sm" style="color:var(--danger)" title="Löschen"
+            onclick="deleteAction('${findingId}','${a.id}')">
+            <i class="ph ph-trash-simple"></i>
+          </button>` : `<span style="color:${colAct};font-size:12px">${FINDING_ACT_STATUS_LABELS[a.status]||a.status}</span>`}
+        </div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+async function openAddActionForm(findingId) {
+  const area = dom('actionsList')
+  if (!area) return
+  const formId = `addActionForm_${findingId}`
+  if (dom(formId)) { dom(formId).remove(); return }
+  const el = document.createElement('div')
+  el.id = formId
+  el.style.cssText = 'background:var(--raised);border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:10px'
+  el.innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Maßnahme <span class="form-required">*</span></label>
+      <textarea id="actDesc" class="form-input" rows="2" placeholder="Was wird konkret getan?"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Verantwortlich</label>
+        <input id="actResp" class="form-input" placeholder="Name / Rolle">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Zieldatum</label>
+        <input id="actDue" class="form-input" type="date">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-primary btn-sm" onclick="saveNewAction('${findingId}')">Speichern</button>
+      <button class="btn btn-secondary btn-sm" onclick="dom('${formId}').remove()">Abbrechen</button>
+    </div>
+  `
+  area.prepend(el)
+  dom('actDesc').focus()
+}
+
+async function saveNewAction(findingId) {
+  const desc = dom('actDesc')?.value.trim()
+  if (!desc) { dom('actDesc')?.focus(); return }
+  const resp = dom('actResp')?.value.trim()
+  const due  = dom('actDue')?.value || null
+  const r = await fetch(`/findings/${findingId}/actions`, {
+    method: 'POST',
+    headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description: desc, responsible: resp, dueDate: due })
+  })
+  if (!r.ok) { showToast('Fehler beim Speichern', 'error'); return }
+  openFindingDetail(findingId)
+}
+
+async function updateActionStatus(findingId, actionId, status) {
+  await fetch(`/findings/${findingId}/actions/${actionId}`, {
+    method: 'PUT',
+    headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  })
+  // Aktualisiere nur die Actions-Liste ohne ganzes Detail neu zu laden
+  const r = await fetch(`/findings/${findingId}`, { headers: apiHeaders() })
+  if (!r.ok) return
+  const f = await r.json()
+  const rank = ROLE_RANK[getCurrentRole()] || 0
+  const canAct = rank >= ROLE_RANK.editor
+  const area = dom('actionsList')
+  if (area) area.innerHTML = _renderActionsList(f.actions || [], findingId, canAct)
+}
+
+async function deleteAction(findingId, actionId) {
+  if (!confirm('Maßnahme löschen?')) return
+  await fetch(`/findings/${findingId}/actions/${actionId}`, { method: 'DELETE', headers: apiHeaders() })
+  openFindingDetail(findingId)
+}
+
+async function openFindingForm(id = null) {
+  const content = dom('reportsMainContent')
+  if (!content) return
+  const isEdit = !!id
+  let f = null
+  if (isEdit) {
+    const r = await fetch(`/findings/${id}`, { headers: apiHeaders() })
+    if (r.ok) f = await r.json()
+  }
+
+  content.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" onclick="switchReportsMainTab('findings')">
+          <i class="ph ph-arrow-left"></i> Zurück
+        </button>
+        <h3 class="training-form-title">
+          <i class="ph ph-magnifying-glass"></i>
+          ${isEdit ? `Feststellung bearbeiten <span style="font-family:monospace;font-size:12px;color:var(--text-subtle)">${escHtml(f?.ref||'')}</span>` : 'Neue Feststellung'}
+        </h3>
+      </div>
+      <div class="training-form-body">
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-info"></i> Grunddaten</h4>
+          <div class="form-group">
+            <label class="form-label">Titel <span class="form-required">*</span></label>
+            <input id="fndTitle" class="form-input" value="${escHtml(f?.title||'')}" placeholder="Kurzer prägnanter Name der Feststellung">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Schweregrad</label>
+              <select id="fndSeverity" class="select">
+                ${Object.entries(FINDING_SEVERITY_LABELS).map(([v,l]) =>
+                  `<option value="${v}"${(f?.severity||'medium')===v?' selected':''}>${l}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select id="fndStatus" class="select">
+                ${Object.entries(FINDING_STATUS_LABELS).map(([v,l]) =>
+                  `<option value="${v}"${(f?.status||'open')===v?' selected':''}>${l}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Geprüfter Bereich</label>
+              <input id="fndArea" class="form-input" value="${escHtml(f?.auditedArea||'')}" placeholder="z.B. IT-Operations / ISO A.8">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Auditor</label>
+              <input id="fndAuditor" class="form-input" value="${escHtml(f?.auditor||'')}" placeholder="Name oder Kürzel">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Audit-Zeitraum von</label>
+              <input id="fndPeriodFrom" class="form-input" type="date" value="${f?.auditPeriodFrom||''}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">bis</label>
+              <input id="fndPeriodTo" class="form-input" type="date" value="${f?.auditPeriodTo||''}">
+            </div>
+          </div>
+        </div>
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-clipboard-text"></i> Feststellungsdetails</h4>
+          <div class="form-group">
+            <label class="form-label" style="color:var(--warn)">📋 IST-Zustand (Beobachtung)</label>
+            <textarea id="fndObservation" class="form-input" rows="4"
+              placeholder="Was wurde gefunden? Stichprobengröße, konkrete Zahlen…">${escHtml(f?.observation||'')}</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:#60a5fa">🎯 SOLL-Zustand (Anforderung)</label>
+            <textarea id="fndRequirement" class="form-input" rows="3"
+              placeholder="Was verlangt die Norm oder die interne Richtlinie?">${escHtml(f?.requirement||'')}</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:${FINDING_SEVERITY_COLOR.high}">⚠ Risiko / Auswirkung</label>
+            <textarea id="fndImpact" class="form-input" rows="3"
+              placeholder="Was kann passieren, wenn das nicht behoben wird?">${escHtml(f?.impact||'')}</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:#4ade80">💡 Empfehlung</label>
+            <textarea id="fndRecommendation" class="form-input" rows="3"
+              placeholder="Was sollte konkret getan werden?">${escHtml(f?.recommendation||'')}</textarea>
+          </div>
+        </div>
+
+        <div class="training-form-section">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="saveFinding(${id ? `'${id}'` : 'null'})">
+              <i class="ph ph-floppy-disk"></i> ${isEdit ? 'Speichern' : 'Feststellung anlegen'}
+            </button>
+            <button class="btn btn-secondary" onclick="switchReportsMainTab('findings')">Abbrechen</button>
+            ${isEdit ? `<button class="btn btn-secondary" onclick="openFindingDetail('${id}')">
+              <i class="ph ph-eye"></i> Detail-Ansicht
+            </button>` : ''}
+          </div>
+          <p id="findingSaveMsg" style="margin-top:8px;font-size:13px;display:none"></p>
+        </div>
+      </div>
+    </div>
+  `
+  dom('fndTitle').focus()
+}
+
+async function saveFinding(id) {
+  const title = dom('fndTitle')?.value.trim()
+  if (!title) { dom('fndTitle')?.focus(); showToast('Titel ist Pflichtfeld', 'error'); return }
+  const payload = {
+    title,
+    severity:        dom('fndSeverity')?.value,
+    status:          dom('fndStatus')?.value,
+    auditedArea:     dom('fndArea')?.value.trim(),
+    auditor:         dom('fndAuditor')?.value.trim(),
+    auditPeriodFrom: dom('fndPeriodFrom')?.value || null,
+    auditPeriodTo:   dom('fndPeriodTo')?.value   || null,
+    observation:     dom('fndObservation')?.value.trim(),
+    requirement:     dom('fndRequirement')?.value.trim(),
+    impact:          dom('fndImpact')?.value.trim(),
+    recommendation:  dom('fndRecommendation')?.value.trim(),
+  }
+  const r = await fetch(id ? `/findings/${id}` : '/findings', {
+    method: id ? 'PUT' : 'POST',
+    headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const msg = dom('findingSaveMsg')
+  if (r.ok) {
+    const saved = await r.json()
+    if (msg) { msg.textContent = id ? 'Gespeichert.' : `Feststellung ${saved.ref} angelegt.`; msg.style.color = 'var(--success,#4ade80)'; msg.style.display = '' }
+    setTimeout(() => { if (id) openFindingDetail(id); else switchReportsMainTab('findings') }, 1000)
+  } else {
+    const e = await r.json().catch(() => ({}))
+    if (msg) { msg.textContent = 'Fehler: ' + (e.error || r.status); msg.style.color = 'var(--danger-text,#f87171)'; msg.style.display = '' }
+  }
+}
+
+async function deleteFinding(id) {
+  if (!confirm('Feststellung in den Papierkorb verschieben?')) return
+  const r = await fetch(`/findings/${id}`, { method: 'DELETE', headers: apiHeaders() })
+  if (r.ok) { showToast('Feststellung gelöscht', 'success'); switchReportsMainTab('findings') }
+  else showToast('Fehler beim Löschen', 'error')
+}
+
+// ── Ende Findings UI ──────────────────────────────────────────────────────────
 
 function renderSectionContent(sectionId){
   const editorCard = document.querySelector('.editor-card')
@@ -1985,9 +2512,9 @@ async function renderDashboard() {
 
   container.innerHTML = '<div class="dashboard-loading">Loading Dashboard…</div>'
 
-  let data, soaSummary, riskSummary, gdprDash, trainSummary, legalSummary, calEvents, goalsSummary, assetSummary, govSummary, bcmSummary, supplierSummary
+  let data, soaSummary, riskSummary, gdprDash, trainSummary, legalSummary, calEvents, goalsSummary, assetSummary, govSummary, bcmSummary, supplierSummary, findingsSummary
   try {
-    const [dashRes, soaRes, riskRes, gdprRes, trainRes, legalRes, calRes, goalsRes, assetRes, govRes, bcmRes, supplierRes] = await Promise.all([
+    const [dashRes, soaRes, riskRes, gdprRes, trainRes, legalRes, calRes, goalsRes, assetRes, govRes, bcmRes, supplierRes, findRes] = await Promise.all([
       fetch('/dashboard',                                                                       { headers: apiHeaders('reader') }),
       MODULE_CONFIG.soa        ? fetch('/soa/summary',          { headers: apiHeaders('reader') }) : Promise.resolve(null),
       MODULE_CONFIG.risk       ? fetch('/risks/summary',        { headers: apiHeaders('reader') }) : Promise.resolve(null),
@@ -2000,6 +2527,7 @@ async function renderDashboard() {
       MODULE_CONFIG.governance ? fetch('/governance/summary',   { headers: apiHeaders('reader') }) : Promise.resolve(null),
       MODULE_CONFIG.bcm        ? fetch('/bcm/summary',          { headers: apiHeaders('reader') }) : Promise.resolve(null),
       MODULE_CONFIG.suppliers  ? fetch('/suppliers/summary',    { headers: apiHeaders('reader') }) : Promise.resolve(null),
+      fetch('/findings/summary',                                { headers: apiHeaders('reader') }),
     ])
     if (!dashRes.ok) throw new Error('API error')
     data             = await dashRes.json()
@@ -2014,6 +2542,7 @@ async function renderDashboard() {
     govSummary       = govRes?.ok      ? await govRes.json()       : null
     bcmSummary       = bcmRes?.ok      ? await bcmRes.json()       : null
     supplierSummary  = supplierRes?.ok ? await supplierRes.json()  : null
+    findingsSummary  = findRes?.ok     ? await findRes.json()      : null
   } catch (e) {
     if (container.isConnected)
       container.innerHTML = '<div class="dashboard-error">Dashboard konnte nicht geladen werden.</div>'
@@ -2062,6 +2591,10 @@ async function renderDashboard() {
       alerts.push({ color: '#f87171', icon: 'ph-heartbeat', text: `${bcmSummary.plans.overdueTest} BCM plan test(s) overdue`, nav: 'bcm' })
     if (MODULE_CONFIG.suppliers && supplierSummary?.overdueAudits > 0)
       alerts.push({ color: '#f87171', icon: 'ph-truck', text: `${supplierSummary.overdueAudits} supplier audit(s) overdue`, nav: 'suppliers' })
+    if (findingsSummary?.byStatus?.open > 0)
+      alerts.push({ color: '#fb923c', icon: 'ph-magnifying-glass', text: `${findingsSummary.byStatus.open} open audit finding(s)`, nav: 'reports' })
+    if (findingsSummary?.overdueActions > 0)
+      alerts.push({ color: '#f87171', icon: 'ph-magnifying-glass', text: `${findingsSummary.overdueActions} overdue action(s) in findings`, nav: 'reports' })
     if (alerts.length === 0) return '<p class="dash-empty" style="color:var(--success-text)"><i class="ph ph-check-circle"></i> No critical issues</p>'
     return alerts.map(a => `<div class="dash-alert dash-link" data-nav="${a.nav}" style="border-left:3px solid ${a.color};padding:6px 10px;margin-bottom:6px;background:var(--surface);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px">
       <i class="ph ${a.icon}" style="color:${a.color};font-size:1rem"></i>
@@ -2257,6 +2790,34 @@ async function renderDashboard() {
       <div class="dash-card kpi dash-link" data-nav="suppliers">
         <div class="kpi-value" style="color:var(--warning-text)">${supplierSummary.withDataAccess || 0}</div>
         <div class="kpi-label">With Data Access</div>
+      </div>
+    </div>` : ''}
+
+    <!-- KPI Row: Audit-Feststellungen -->
+    ${findingsSummary ? `
+    <div class="dash-section-title" style="margin:16px 0 8px"><i class="ph ph-magnifying-glass"></i> Audit Findings</div>
+    <div class="dashboard-grid" style="margin-bottom:0">
+      <div class="dash-card kpi dash-link" data-nav="reports">
+        <div class="kpi-value">${findingsSummary.total || 0}</div>
+        <div class="kpi-label">Total Findings</div>
+      </div>
+      <div class="dash-card kpi dash-link" data-nav="reports">
+        <div class="kpi-value" style="color:${(findingsSummary.byStatus?.open||0)>0?'#fb923c':'var(--success-text)'}">
+          ${findingsSummary.byStatus?.open || 0}
+        </div>
+        <div class="kpi-label">Open</div>
+      </div>
+      <div class="dash-card kpi dash-link" data-nav="reports">
+        <div class="kpi-value" style="color:${(findingsSummary.bySeverity?.critical||0)>0?'#f87171':(findingsSummary.bySeverity?.high||0)>0?'#fb923c':'var(--success-text)'}">
+          ${(findingsSummary.bySeverity?.critical||0) + (findingsSummary.bySeverity?.high||0)}
+        </div>
+        <div class="kpi-label">Critical/High</div>
+      </div>
+      <div class="dash-card kpi dash-link" data-nav="reports">
+        <div class="kpi-value" style="color:${(findingsSummary.overdueActions||0)>0?'#f87171':'var(--success-text)'}">
+          ${findingsSummary.overdueActions || 0}
+        </div>
+        <div class="kpi-label">Actions Overdue</div>
       </div>
     </div>` : ''}
 
@@ -2767,6 +3328,33 @@ async function renderAdminOrgTab() {
       </div>
 
       <div class="org-section" style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+        <h4 class="org-section-title"><i class="ph ph-translate"></i> Language Configuration</h4>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px">
+          Enable or disable languages system-wide. The default language is shown on the login page
+          for users without a stored preference.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px">
+          ${[{code:'de',label:'🇩🇪 Deutsch'},{code:'en',label:'🇬🇧 English'},{code:'fr',label:'🇫🇷 Français'},{code:'nl',label:'🇳🇱 Nederlands'}].map(l => `
+            <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer">
+              <input type="checkbox" id="langAvail_${l.code}" ${(_langConfig?.available||['de','en','fr','nl']).includes(l.code)?'checked':''}>
+              <span style="font-size:.9rem">${l.label}</span>
+            </label>`).join('')}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <label style="font-size:.85rem;color:var(--text-muted);flex-shrink:0">Default language:</label>
+          <select id="langDefault" style="padding:5px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem">
+            ${[{code:'de',label:'Deutsch'},{code:'en',label:'English'},{code:'fr',label:'Français'},{code:'nl',label:'Nederlands'}].map(l =>
+              `<option value="${l.code}" ${(_langConfig?.default||'en')===l.code?'selected':''}>${l.label}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveLangConfig()">
+          <i class="ph ph-floppy-disk"></i> Save language settings
+        </button>
+        <p id="langConfigMsg" style="margin-top:8px;font-size:13px;display:none"></p>
+      </div>
+
+      <div class="org-section" style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
         <h4 class="org-section-title"><i class="ph ph-envelope"></i> E-Mail Notifications</h4>
         <div class="settings-notice" style="margin-bottom:12px">
           <i class="ph ph-info"></i>
@@ -2917,6 +3505,32 @@ async function saveOrgSettings() {
     const e = await res.json().catch(() => ({}))
     msg.textContent = e.error || 'Error saving'; msg.style.color = 'var(--danger-text,#f87171)'; msg.style.display = ''
   }
+}
+
+async function saveLangConfig() {
+  const available = ['de','en','fr','nl'].filter(c => document.getElementById('langAvail_'+c)?.checked)
+  if (available.length === 0) {
+    const msg = document.getElementById('langConfigMsg')
+    msg.textContent = 'At least one language must be enabled.'; msg.style.color = 'var(--danger-text,#f87171)'; msg.style.display = ''
+    setTimeout(() => { msg.style.display = 'none' }, 3000)
+    return
+  }
+  const def = document.getElementById('langDefault')?.value || 'en'
+  const defaultLang = available.includes(def) ? def : available[0]
+  const res = await fetch('/admin/org-settings', {
+    method: 'PUT',
+    headers: { ...apiHeaders('admin'), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ languageConfig: { available, default: defaultLang } }),
+  })
+  const msg = document.getElementById('langConfigMsg')
+  msg.style.display = ''
+  if (res.ok) {
+    _langConfig = { available, default: defaultLang }
+    msg.textContent = 'Language settings saved.'; msg.style.color = 'var(--success,#4ade80)'
+  } else {
+    msg.textContent = 'Error saving.'; msg.style.color = 'var(--danger-text,#f87171)'
+  }
+  setTimeout(() => { msg.style.display = 'none' }, 3000)
 }
 
 async function saveSecuritySettings() {
@@ -3752,6 +4366,7 @@ async function restoreTrashItem(module, id, meta) {
   else if (module === 'gdpr_dsar') url = `/gdpr/dsar/${id}/restore`
   else if (module === 'gdpr_toms') url = `/gdpr/toms/${id}/restore`
   else if (module === 'public_incident') url = `/public/incident/${id}/restore`
+  else if (module === 'finding') url = `/findings/${id}/restore`
   else { alert('Unknown module'); return }
 
   const res = await fetch(url, { method: 'POST', headers: apiHeaders('admin') })
@@ -3777,6 +4392,7 @@ async function permanentDeleteTrashItem(module, id, meta) {
   else if (module === 'gdpr_dsar') url = `/gdpr/dsar/${id}/permanent`
   else if (module === 'gdpr_toms') url = `/gdpr/toms/${id}/permanent`
   else if (module === 'public_incident') url = `/public/incident/${id}/permanent`
+  else if (module === 'finding') url = `/findings/${id}/permanent`
   else { alert('Unknown module'); return }
 
   const res = await fetch(url, { method: 'DELETE', headers: apiHeaders('admin') })
@@ -4924,18 +5540,16 @@ async function renderSettingsPanel() {
           <h3><i class="ph ph-translate"></i> ${t('settings_lang')}</h3>
           <p class="settings-desc">${t('settings_langDesc')}</p>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px">
-            <button class="btn ${(window.LANG||'en')==='de' ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="switchAppLang('de')">
-              <i class="ph ph-flag"></i> ${t('settings_langDe')}
-            </button>
-            <button class="btn ${(window.LANG||'en')==='en' ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="switchAppLang('en')">
-              <i class="ph ph-flag"></i> ${t('settings_langEn')}
-            </button>
-            <button class="btn ${(window.LANG||'en')==='fr' ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="switchAppLang('fr')">
-              <i class="ph ph-flag"></i> ${t('settings_langFr')}
-            </button>
-            <button class="btn ${(window.LANG||'en')==='nl' ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="switchAppLang('nl')">
-              <i class="ph ph-flag"></i> ${t('settings_langNl')}
-            </button>
+            ${[
+              {code:'de', key:'settings_langDe'},
+              {code:'en', key:'settings_langEn'},
+              {code:'fr', key:'settings_langFr'},
+              {code:'nl', key:'settings_langNl'},
+            ].filter(l => (_langConfig?.available||['de','en','fr','nl']).includes(l.code)).map(l =>
+              `<button class="btn ${(window.LANG||'en')===l.code ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="switchAppLang('${l.code}')">
+                <i class="ph ph-flag"></i> ${t(l.key)}
+              </button>`
+            ).join('')}
             <span id="langSaveMsg" style="font-size:13px;color:var(--success,#4ade80);display:none"></span>
           </div>
         </div>
@@ -5959,7 +6573,7 @@ async function renderGuidance() {
 }
 
 async function loadGuidanceDocs() {
-  const res = await fetch(`/guidance?category=${_guidanceCat}`, { headers: apiHeaders() })
+  const res = await fetch(`/guidance?category=${_guidanceCat}&lang=${window.LANG||'en'}`, { headers: apiHeaders() })
   _guidanceDocs = res.ok ? await res.json() : []
   renderGuidanceList()
   // Re-select current doc if still exists

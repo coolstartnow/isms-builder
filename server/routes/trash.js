@@ -209,6 +209,19 @@ router.get('/trash', requireAuth, authorize('admin'), (req, res) => {
     }))
   } catch {}
 
+  // Findings
+  try {
+    const findingStore = require('../db/findingStore')
+    const deletedFindings = findingStore.getDeleted?.() || []
+    deletedFindings.forEach(f => items.push({
+      module: 'finding', moduleLabel: 'Audit-Feststellung',
+      id: f.id, title: `${f.ref}: ${f.title || f.id}`,
+      deletedAt: f.deletedAt, deletedBy: f.deletedBy,
+      expiresAt: new Date(new Date(f.deletedAt).getTime() + 30*86400000).toISOString(),
+      meta: {}
+    }))
+  } catch {}
+
   items.sort((a, b) => (b.deletedAt || '').localeCompare(a.deletedAt || ''))
   res.json(items)
 })

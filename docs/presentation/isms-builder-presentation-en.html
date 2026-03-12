@@ -1,4 +1,4 @@
-<!-- © 2026 Claude Hecker — ISMS Builder V 1.31 — AGPL-3.0 — https://www.gnu.org/licenses/agpl-3.0.html -->
+<!-- © 2026 Claude Hecker — ISMS Builder V 1.32 — AGPL-3.0 — https://www.gnu.org/licenses/agpl-3.0.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -431,7 +431,7 @@
   <!-- ── 1. TITLE ───────────────────────────────────────────── -->
   <div class="slide slide-title slide-title-banner active" id="s1">
     <div class="title-deco"></div>
-    <div class="overline">Open-Source ISMS Platform · V 1.31</div>
+    <div class="overline">Open-Source ISMS Platform · V 1.32</div>
     <h1>ISMS<br><span>Builder</span></h1>
     <p class="subtitle">
       Integrated Information Security Management System for SMEs and enterprises —
@@ -440,7 +440,7 @@
     <div class="meta">
       <div class="meta-item">
         <span class="label">Version</span>
-        <span class="value">V 1.31</span>
+        <span class="value">V 1.32</span>
       </div>
       <div class="meta-item">
         <span class="label">License</span>
@@ -457,52 +457,52 @@
     </div>
   </div>
 
-  <!-- ── NEW: V 1.31 CHANGES ───────────────────────────────── -->
+  <!-- ── NEW: V 1.32 CHANGES ───────────────────────────────── -->
   <div class="slide slide-content" id="s1b">
-    <h2><span class="icon">🆕</span> What's New in V 1.31</h2>
+    <h2><span class="icon">🆕</span> What's New in V 1.32</h2>
     <div class="cols cols-2" style="flex:1;">
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="card blue">
-          <h3>🌍 Multilingual Demo Bundles</h3>
+          <h3>🔍 Audit Findings Module</h3>
           <ul class="check" style="gap:7px;font-size:13px;">
-            <li>4 complete language packs: 🇩🇪 DE · 🇬🇧 EN · 🇫🇷 FR · 🇳🇱 NL</li>
-            <li>On first login: language picker overlay</li>
-            <li>All modules with realistic demo data per language</li>
-            <li>EN: 12 risks, 4 goals, 8 assets, 10 suppliers, legal</li>
-            <li>DE/FR/NL: 8 risks, 4 goals, 5 assets, 4 suppliers, legal</li>
-            <li>Guidance seeds respond to language selection (DE ↔ EN)</li>
+            <li>Full finding register using IST→SOLL→Risk→Recommendation model</li>
+            <li>Automatic reference number <code>FIND-YYYY-NNNN</code></li>
+            <li>Severities: Critical · High · Medium · Low · Observation</li>
+            <li>Structured action plan per finding (with responsible + due date)</li>
+            <li>Links to SoA controls, policy templates, and risks</li>
+            <li>Soft-delete + trash; 16 automated tests</li>
           </ul>
         </div>
         <div class="card green">
-          <h3>📚 Expanded Guidance Content</h3>
+          <h3>🌍 FR/NL Guidance Translations</h3>
           <ul class="check" style="gap:7px;font-size:13px;">
-            <li>New category <strong>SoA &amp; Audit</strong> — complete SoA guide</li>
-            <li>New category <strong>Policy Processes</strong> — policy lifecycle documentation</li>
-            <li>All 5 role guides in German and English</li>
-            <li>Language-sensitive seeds: content switches automatically with bundle</li>
-            <li>Full architecture documentation now in Guidance (admin-only)</li>
-            <li>Seeds run after bundle import without server restart</li>
+            <li>All guidance seeds fully translated: 🇩🇪 DE · 🇬🇧 EN · 🇫🇷 FR · 🇳🇱 NL</li>
+            <li>FR/NL language switching now works correctly (bug fixed)</li>
+            <li>Server-side sync on GET /guidance?lang=xx — no reload conflict</li>
+            <li>Architecture docs in Guidance: multilingual titles</li>
           </ul>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="card orange">
-          <h3>🐛 Bug Fixes</h3>
+          <h3>⚙️ Admin: Language Configuration</h3>
           <ul class="check" style="gap:7px;font-size:13px;">
-            <li><strong>Login icon invisible</strong> — vendor/ path was blocked by auth middleware; now public</li>
-            <li><strong>Guidance empty after bundle import</strong> — seeds now run after every import, not only at server start</li>
-            <li><strong>Risk heatmap sidebar missing</strong> — risk list panel added next to heatmap grid, sorted by score</li>
+            <li>Admin → Organisation → new "Language Configuration" section</li>
+            <li>Enable / disable languages system-wide</li>
+            <li>Configure default language shown on login page</li>
+            <li>Login page and settings panel show only enabled languages</li>
+            <li>Public API endpoint <code>GET /auth/language-config</code></li>
           </ul>
         </div>
         <div class="card">
-          <h3>🎨 Login Page</h3>
+          <h3>🌐 i18n Extension</h3>
           <ul class="check" style="gap:7px;font-size:13px;">
-            <li>ISMS Builder banner as background image</li>
-            <li>Dark overlay for optimal readability</li>
+            <li>New i18n keys for Findings module in DE/EN/FR/NL</li>
+            <li>New i18n keys for Admin Language Configuration in DE/EN/FR/NL</li>
           </ul>
         </div>
         <div class="highlight green">
-          <strong>176 / 176 tests</strong> — all tests passing after all changes.
+          <strong>192 / 192 tests</strong> — all tests passing after all changes.
         </div>
       </div>
     </div>
@@ -1154,7 +1154,7 @@
             <li>Full JSON export before reset</li>
             <li>All module data cleared</li>
             <li>All users except admin deleted</li>
-            <li>admin → adminpass · 2FA disabled</li>
+            <li>admin@example.com → adminpass · 2FA disabled</li>
             <li>Yellow banner on login page until first admin login</li>
           </ul>
           <p style="font-size:12px;color:var(--text-sub);margin-top:8px;">Confirmation: must type <code>RESET</code></p>
@@ -1334,12 +1334,12 @@ node server/index.js</pre>
     <div class="overline">Questions &amp; Discussion</div>
     <h1>Thank You<br><span>for Your</span><br>Attention</h1>
     <p class="subtitle">
-      ISMS Builder V 1.31 — the open-source platform for practical information security management.
+      ISMS Builder V 1.32 — the open-source platform for practical information security management.
     </p>
     <div class="meta">
       <div class="meta-item">
         <span class="label">Version</span>
-        <span class="value">V 1.31</span>
+        <span class="value">V 1.32</span>
       </div>
       <div class="meta-item">
         <span class="label">Modules</span>
@@ -1351,7 +1351,7 @@ node server/index.js</pre>
       </div>
       <div class="meta-item">
         <span class="label">Tests</span>
-        <span class="value">176 / 176 ✓</span>
+        <span class="value">192 / 192 ✓</span>
       </div>
       <div class="meta-item">
         <span class="label">Demo Languages</span>
@@ -1367,7 +1367,7 @@ node server/index.js</pre>
 </div><!-- /deck -->
 
 <!-- ── Copyright ──────────────────────────────────────────── -->
-<div id="copyright">© 2026 Claude Hecker — ISMS Builder V 1.31 — AGPL-3.0</div>
+<div id="copyright">© 2026 Claude Hecker — ISMS Builder V 1.32 — AGPL-3.0</div>
 
 <!-- ── Navigation ─────────────────────────────────────────── -->
 <div class="nav">

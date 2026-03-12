@@ -20,8 +20,27 @@ const guidanceUpload = multer({
   }
 })
 
+const DEMO_LANG_FILE = path.join(__dirname, '../../data/.demo_lang_set')
+const SUPPORTED_LANGS = ['de', 'en', 'fr', 'nl']
+
+function _syncSeedLang(lang) {
+  try {
+    let current = 'en'
+    try { current = JSON.parse(fs.readFileSync(DEMO_LANG_FILE, 'utf8')).lang || 'en' } catch {}
+    if (current === lang) return
+    fs.writeFileSync(DEMO_LANG_FILE, JSON.stringify({ lang, setAt: new Date().toISOString() }))
+    try { guidanceStore.seedDemoDoc() }          catch {}
+    try { guidanceStore.seedRoleGuides() }       catch {}
+    try { guidanceStore.seedSoaGuide() }         catch {}
+    try { guidanceStore.seedPolicyGuide() }      catch {}
+    try { guidanceStore.seedIsoNotice() }        catch {}
+    try { guidanceStore.seedArchitectureDocs() } catch {}
+  } catch {}
+}
+
 router.get('/guidance', requireAuth, authorize('reader'), (req, res) => {
-  const { category } = req.query
+  const { category, lang } = req.query
+  if (lang && SUPPORTED_LANGS.includes(lang)) _syncSeedLang(lang)
   const rank = req.roleRank || 1
   if (category) return res.json(guidanceStore.getByCategory(category, rank))
   res.json(guidanceStore.getAll(rank))

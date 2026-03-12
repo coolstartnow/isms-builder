@@ -15,6 +15,20 @@ router.get('/auth/demo-reset-done', (req, res) => {
   res.json({ active: fs.existsSync(FLAG_FILE) })
 })
 
+// ── Sprach-Konfiguration (öffentlich — wird von Login-Seite benötigt) ──
+router.get('/auth/language-config', (req, res) => {
+  try {
+    const orgSettings = require('../db/orgSettingsStore').get()
+    const cfg = orgSettings.languageConfig || {}
+    res.json({
+      available: Array.isArray(cfg.available) && cfg.available.length ? cfg.available : ['de', 'en', 'fr', 'nl'],
+      default:   cfg.default || 'en',
+    })
+  } catch {
+    res.json({ available: ['de', 'en', 'fr', 'nl'], default: 'en' })
+  }
+})
+
 // ── Demo-Sprache nötig? (öffentlich) ──
 router.get('/auth/demo-lang-needed', (req, res) => {
   res.json({ needed: !fs.existsSync(DEMO_LANG_FILE) })

@@ -24,7 +24,7 @@
 
     // Demo reset banner
     demoResetTitle:     { de: 'Demo-Modus beendet',                               en: 'Demo mode ended',                                 fr: 'Mode démo terminé',                                   nl: 'Demomodus beëindigd' },
-    demoResetText:      { de: 'Das System wurde für den Produktivbetrieb zurückgesetzt. Bitte melden Sie sich mit Benutzername admin / Passwort adminpass an und ändern Sie das Passwort sofort nach dem ersten Login.', en: 'The system has been reset for production use. Please sign in with username admin / password adminpass and change the password immediately after first login.', fr: 'Le système a été réinitialisé pour la production. Veuillez vous connecter avec le nom d\'utilisateur admin / mot de passe adminpass et changer le mot de passe immédiatement après la première connexion.', nl: 'Het systeem is gereset voor productiegebruik. Meld u aan met gebruikersnaam admin / wachtwoord adminpass en wijzig het wachtwoord direct na de eerste aanmelding.' },
+    demoResetText:      { de: 'Das System wurde für den Produktivbetrieb zurückgesetzt. Bitte melden Sie sich mit admin@example.com / Passwort adminpass an und ändern Sie das Passwort sofort nach dem ersten Login.', en: 'The system has been reset for production use. Please sign in with admin@example.com / password adminpass and change the password immediately after first login.', fr: 'Le système a été réinitialisé pour la production. Veuillez vous connecter avec admin@example.com / mot de passe adminpass et changer le mot de passe immédiatement après la première connexion.', nl: 'Het systeem is gereset voor productiegebruik. Meld u aan met admin@example.com / wachtwoord adminpass en wijzig het wachtwoord direct na de eerste aanmelding.' },
 
     // Incident modal (login page)
     incModalTitle:      { de: 'Sicherheitsvorfall melden',                        en: 'Report a Security Incident',                      fr: 'Signaler un incident de sécurité',                    nl: 'Beveiligingsincident melden' },
@@ -502,6 +502,34 @@
     trash_deletedBy:     { de: 'Gelöscht von',              en: 'Deleted By',                 fr: 'Supprimé par',             nl: 'Verwijderd door' },
     trash_deletedAt:     { de: 'Gelöscht am',               en: 'Deleted At',                 fr: 'Supprimé le',              nl: 'Verwijderd op' },
     trash_expires:       { de: 'Läuft ab',                  en: 'Expires',                    fr: 'Expire le',                nl: 'Vervalt' },
+
+    // ── Findings / Audit module ──────────────────────────────────────────────
+    findings_title:      { de: 'Audit-Feststellungen',      en: 'Audit Findings',             fr: 'Constatations d\'audit',   nl: 'Auditbevindingen' },
+    findings_tabList:    { de: 'Alle',                      en: 'All',                        fr: 'Toutes',                   nl: 'Alle' },
+    findings_tabOpen:    { de: 'Offen',                     en: 'Open',                       fr: 'Ouvertes',                 nl: 'Open' },
+    findings_tabResolved:{ de: 'Behoben',                   en: 'Resolved',                   fr: 'Résolues',                 nl: 'Opgelost' },
+    findings_new:        { de: 'Neue Feststellung',         en: 'New Finding',                fr: 'Nouvelle constatation',    nl: 'Nieuwe bevinding' },
+    findings_total:      { de: 'Feststellungen gesamt',     en: 'Total Findings',             fr: 'Constatations totales',    nl: 'Totaal bevindingen' },
+    findings_open:       { de: 'Offen',                     en: 'Open',                       fr: 'Ouvertes',                 nl: 'Open' },
+    findings_critical:   { de: 'Kritisch',                  en: 'Critical',                   fr: 'Critique',                 nl: 'Kritiek' },
+    findings_high:       { de: 'Hoch',                      en: 'High',                       fr: 'Élevé',                    nl: 'Hoog' },
+    findings_medium:     { de: 'Mittel',                    en: 'Medium',                     fr: 'Moyen',                    nl: 'Middel' },
+    findings_low:        { de: 'Niedrig',                   en: 'Low',                        fr: 'Faible',                   nl: 'Laag' },
+    findings_observation:{ de: 'Hinweis',                   en: 'Observation',                fr: 'Observation',              nl: 'Opmerking' },
+    findings_openActions:{ de: 'Offene Maßnahmen',          en: 'Open Actions',               fr: 'Actions ouvertes',         nl: 'Open acties' },
+    findings_overdue:    { de: 'Überfällige Maßnahmen',     en: 'Overdue Actions',            fr: 'Actions en retard',        nl: 'Achterstallige acties' },
+    findings_observation_field: { de: 'IST-Zustand',        en: 'Observation (IS)',           fr: 'État actuel (RÉEL)',        nl: 'Huidige toestand' },
+    findings_requirement:{ de: 'SOLL-Zustand',              en: 'Requirement (SHALL)',        fr: 'Exigence (DOIT)',           nl: 'Eis (MOET)' },
+    findings_impact:     { de: 'Risiko / Auswirkung',       en: 'Risk / Impact',              fr: 'Risque / Impact',          nl: 'Risico / Impact' },
+    findings_recommendation: { de: 'Empfehlung',            en: 'Recommendation',             fr: 'Recommandation',           nl: 'Aanbeveling' },
+    findings_actions:    { de: 'Maßnahmenplan',             en: 'Action Plan',                fr: 'Plan d\'action',           nl: 'Actieplan' },
+
+    // ── Admin — Language Configuration ───────────────────────────────────────
+    admin_langConfig:    { de: 'Sprachkonfiguration',       en: 'Language Configuration',     fr: 'Configuration des langues', nl: 'Taalconfiguratie' },
+    admin_langConfigDesc:{ de: 'Sprachen systemweit aktivieren oder deaktivieren. Die Standardsprache wird auf der Login-Seite verwendet.', en: 'Enable or disable languages system-wide. The default language is shown on the login page for users without a stored preference.', fr: 'Activez ou désactivez les langues à l\'échelle du système. La langue par défaut est affichée sur la page de connexion.', nl: 'Schakel talen systeem breed in of uit. De standaardtaal wordt weergegeven op de aanmeldpagina.' },
+    admin_langDefault:   { de: 'Standardsprache',           en: 'Default Language',           fr: 'Langue par défaut',        nl: 'Standaardtaal' },
+    admin_langSave:      { de: 'Spracheinstellungen speichern', en: 'Save language settings', fr: 'Enregistrer les paramètres de langue', nl: 'Taalinstellingen opslaan' },
+    admin_langMinOne:    { de: 'Mindestens eine Sprache muss aktiv sein.', en: 'At least one language must be active.', fr: 'Au moins une langue doit être active.', nl: 'Minstens één taal moet actief zijn.' },
 
   };
 })();

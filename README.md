@@ -1,14 +1,21 @@
-<!-- © 2026 Claude Hecker — ISMS Builder V 1.31 — AGPL-3.0 -->
+<!-- © 2026 Claude Hecker — ISMS Builder V 1.32 — AGPL-3.0 -->
 ![ISMS Builder Banner](isms-builder-banner.png)
 # ISMS Builder
 
 **Self-hosted Information Security Management System — open source, no cloud required**
 
-[![CI](https://github.com/claudehecker/isms-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/claudehecker/isms-builder/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-176%20passing-brightgreen)](https://github.com/claudehecker/isms-builder/actions)
+[![CI](https://github.com/coolstartnow/isms-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/coolstartnow/isms-builder/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-192%20passing-brightgreen)](https://github.com/coolstartnow/isms-builder/actions)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![Version](https://img.shields.io/badge/version-1.31-informational)](CHANGELOG.md)
+[![Version](docs/badges/version.svg)](CHANGELOG.md)
+
+<!-- GDPR NOTE: The four badges above (CI, Tests, License, Node.js) load resources
+     from external servers (github.com, shields.io/Cloudflare, img.shields.io).
+     When this README is rendered in a browser, these requests transmit the viewer's
+     IP address to third parties (incl. US-based servers — GDPR Art. 44 ff.).
+     For 100% GDPR-compliant self-hosted documentation, replace these four badge
+     lines with their local equivalents from docs/badges/ or remove them entirely. -->
 
 ---
 
@@ -69,10 +76,11 @@ It covers the full compliance lifecycle — from policy authoring to audit evide
 | **Incident Inbox** | CISO inbox + **public reporting form** (no login required) | NIS2 / BSI |
 | **Governance** | Management reviews, action tracking | ISO 27001 §9.3 |
 | **Reports** | Compliance matrix (Control × Entity), gap report, review cycles, CSV export | |
+| **Audit Findings** | Finding register (IST→SOLL→Risk→Recommendation), action plans, severity/status tracking, FIND-YYYY-NNNN ref | ISO 27001 §9.2 |
 | **Traceability** | Every record links to SoA controls + policy documents — bidirectional | |
 | **Semantic Search** | Local AI search via Ollama (nomic-embed-text) with keyword fallback | |
 | **Multi-Entity** | Corporate structure tree, per-entity applicability for controls and policies | |
-| **Multilingual Demo Data** | First-login language picker loads full demo dataset in 🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL | |
+| **Multilingual UI & Demo Data** | Full UI and demo content in 🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL; admin controls available languages | |
 
 ---
 
@@ -108,14 +116,14 @@ liability for unlicensed use of ISO-protected content.
 ## Quick Start
 
 ```bash
-git clone https://github.com/claudehecker/isms-builder.git
+git clone https://github.com/coolstartnow/isms-builder.git
 cd isms-builder
 npm install
 cp .env.example .env          # set JWT_SECRET to a long random string
 npm start                     # http://localhost:3000
 ```
 
-Login with **`admin` / `adminpass`**. On first login you will be prompted to choose your **demo data language** (🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL) or start with an empty system. Change the admin password immediately after.
+Login with **`admin@example.com` / `adminpass`**. On first login you will be prompted to choose your **demo data language** (🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL) or start with an empty system. Change the admin password immediately after.
 
 For production use with HTTPS and SQLite:
 
@@ -228,6 +236,8 @@ Contributions are very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 | ✅ Done | SQLite backend, Docker, CI/CD |
 | ✅ Done | GDPR deletion log email alerts |
 | ✅ Done | Multilingual demo bundles (DE / EN / FR / NL) |
+| ✅ Done | Audit Findings module with action plans (V 1.32) |
+| ✅ Done | FR/NL Guidance translations + admin language configuration (V 1.32) |
 | 🔜 Next | PostgreSQL backend |
 | 🔜 Next | Scanner → Risk draft (nmap/OpenVAS XML import) |
 | 🔜 Next | Audit-log anomaly detection (LLM batch) |

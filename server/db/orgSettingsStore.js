@@ -120,6 +120,12 @@ const DEFAULTS = {
     duration: 7,      // Anzeigedauer in Sekunden (1–30)
   },
 
+  // Sprach-Konfiguration
+  languageConfig: {
+    available: ['de', 'en', 'fr', 'nl'],   // aktivierte Sprachen
+    default:   'en',                        // Standardsprache auf Login-Seite
+  },
+
   // Navigations-Reihenfolge (array der Section-IDs; fehlende landen am Ende)
   navOrder: ['dashboard','soa','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','bcm','suppliers','reports','calendar','settings','admin'],
 
@@ -169,6 +175,7 @@ function load() {
         emailNotifications: { ...DEFAULTS.emailNotifications, ...(stored.emailNotifications || {}) },
         smtpSettings:       { ...DEFAULTS.smtpSettings,       ...(stored.smtpSettings       || {}) },
         navOrder:           Array.isArray(stored.navOrder) ? stored.navOrder : DEFAULTS.navOrder.slice(),
+        languageConfig:     { ...DEFAULTS.languageConfig, ...(stored.languageConfig || {}), available: Array.isArray(stored.languageConfig?.available) ? stored.languageConfig.available : DEFAULTS.languageConfig.available },
       }
     }
   } catch (e) {

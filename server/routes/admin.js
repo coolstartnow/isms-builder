@@ -513,6 +513,23 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
   }
 })
 
+// ── Seed-Sprache aktualisieren (ohne Bundle-Import) ──────────────────────────
+router.put('/admin/seed-lang', requireAuth, authorize('admin'), express.json(), (req, res) => {
+  const { lang } = req.body || {}
+  const SUPPORTED = ['de', 'en', 'fr', 'nl']
+  if (!SUPPORTED.includes(lang)) return res.status(400).json({ error: 'Unsupported language' })
+  fs.writeFileSync(DEMO_LANG_FILE, JSON.stringify({ lang, setAt: nowISO() }))
+  // Re-run all seed functions so guidance docs are immediately updated
+  const gs = require('../db/guidanceStore')
+  try { gs.seedDemoDoc() }           catch {}
+  try { gs.seedRoleGuides() }        catch {}
+  try { gs.seedSoaGuide() }          catch {}
+  try { gs.seedPolicyGuide() }       catch {}
+  try { gs.seedIsoNotice() }         catch {}
+  try { gs.seedArchitectureDocs() }  catch {}
+  res.json({ ok: true, lang })
+})
+
 // ── Demo-Bundle aus Server-Datei laden (First-Login-Sprachauswahl) ──
 router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.json(), async (req, res) => {
   try {

@@ -1,4 +1,4 @@
-<!-- © 2026 Claude Hecker — ISMS Builder V 1.31 — AGPL-3.0 — https://www.gnu.org/licenses/agpl-3.0.html -->
+<!-- © 2026 Claude Hecker — ISMS Builder V 1.32 — AGPL-3.0 — https://www.gnu.org/licenses/agpl-3.0.html -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -410,7 +410,7 @@
   <!-- ── 1. TITEL ───────────────────────────────────────────── -->
   <div class="slide slide-title slide-title-banner active" id="s1">
     <div class="title-deco"></div>
-    <div class="overline">Open-Source ISMS Platform · V 1.31</div>
+    <div class="overline">Open-Source ISMS Platform · V 1.32</div>
     <h1>ISMS<br><span>Builder</span></h1>
     <p class="subtitle">
       Integriertes Informationssicherheits-Managementsystem für KMU und Konzerne —
@@ -419,7 +419,7 @@
     <div class="meta">
       <div class="meta-item">
         <span class="label">Version</span>
-        <span class="value">V 1.31</span>
+        <span class="value">V 1.32</span>
       </div>
       <div class="meta-item">
         <span class="label">Lizenz</span>
@@ -436,52 +436,52 @@
     </div>
   </div>
 
-  <!-- ── NEU: V 1.31 ÄNDERUNGEN ────────────────────────────── -->
+  <!-- ── NEU: V 1.32 ÄNDERUNGEN ────────────────────────────── -->
   <div class="slide slide-content" id="s1b">
-    <h2><span class="icon">🆕</span> Neu in V 1.31</h2>
+    <h2><span class="icon">🆕</span> Neu in V 1.32</h2>
     <div class="cols cols-2" style="flex:1;">
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="card blue">
-          <h3>🌍 Mehrsprachige Demo-Bundles</h3>
+          <h3>🔍 Audit-Feststellungen (Findings)</h3>
           <ul class="check" style="gap:7px;font-size:13px;">
-            <li>4 vollständige Sprachpakete: 🇩🇪 DE · 🇬🇧 EN · 🇫🇷 FR · 🇳🇱 NL</li>
-            <li>Beim Erst-Login: Sprachauswahl-Overlay (Sprach-Picker)</li>
-            <li>Alle Module mit realistischen Demodaten je Sprache</li>
-            <li>EN: 12 Risiken, 4 Ziele, 8 Assets, 10 Lieferanten, Legal</li>
-            <li>DE/FR/NL: 8 Risiken, 4 Ziele, 5 Assets, 4 Lieferanten, Legal</li>
-            <li>Guidance-Seeds reagieren auf Sprachwahl (DE ↔ EN)</li>
+            <li>Vollständiges Finding-Modul nach IST→SOLL→Risiko→Empfehlung-Modell</li>
+            <li>Automatische Referenznummer <code>FIND-YYYY-NNNN</code></li>
+            <li>Schweregrade: Kritisch · Hoch · Mittel · Niedrig · Hinweis</li>
+            <li>Strukturierter Maßnahmenplan je Feststellung (Actions)</li>
+            <li>Verknüpfung zu SoA-Controls, Policies, Risiken</li>
+            <li>Soft-Delete + Papierkorb; 16 automatisierte Tests</li>
           </ul>
         </div>
         <div class="card green">
-          <h3>📚 Erweiterte Guidance-Inhalte</h3>
+          <h3>🌍 FR/NL Guidance-Übersetzungen</h3>
           <ul class="check" style="gap:7px;font-size:13px;">
-            <li>Neue Kategorie <strong>SoA & Audit</strong> — vollständiger SoA-Leitfaden</li>
-            <li>Neue Kategorie <strong>Policy-Prozesse</strong> — Richtlinien-Lebenszyklus</li>
-            <li>Alle 5 Rollenanleitungen in Deutsch und Englisch</li>
-            <li>Sprachsensitive Seeds: Inhalt wechselt automatisch mit Bundle</li>
-            <li>Vollständige Architekturdokumentation jetzt in Guidance (admin-intern)</li>
-            <li>Seeds laufen nach Bundle-Import ohne Server-Neustart</li>
+            <li>Alle Guidance-Seeds vollständig in 🇩🇪 DE · 🇬🇧 EN · 🇫🇷 FR · 🇳🇱 NL</li>
+            <li>Sprachumschaltung jetzt für alle 4 Sprachen korrekt (FR/NL-Bug behoben)</li>
+            <li>Synchronisation server-seitig beim GET /guidance?lang=xx — kein Reload-Konflikt</li>
+            <li>Architekturdokumentation in Guidance: Titel mehrsprachig</li>
           </ul>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="card orange">
-          <h3>🐛 Bugfixes</h3>
+          <h3>⚙️ Admin: Sprach-Konfiguration</h3>
           <ul class="check" style="gap:7px;font-size:13px;">
-            <li><strong>Login-Logo (Wappen) unsichtbar</strong> — vendor/-Pfad war hinter Auth-Middleware; jetzt öffentlich zugänglich</li>
-            <li><strong>Guidance nach Bundle-Import leer</strong> — Seeds liefen nur beim Serverstart; jetzt auch nach jedem Import</li>
-            <li><strong>Heatmap-Seitenleiste fehlend</strong> — Risiko-Liste rechts neben Grid ergänzt (nach Score sortiert)</li>
+            <li>Admin → Organisation → neue Sektion „Sprachkonfiguration"</li>
+            <li>Sprachen systemweit aktivieren / deaktivieren</li>
+            <li>Standardsprache für Login-Seite konfigurierbar</li>
+            <li>Login-Seite und Einstellungs-Panel zeigen nur aktive Sprachen</li>
+            <li>Öffentlicher API-Endpunkt <code>GET /auth/language-config</code></li>
           </ul>
         </div>
         <div class="card">
-          <h3>🎨 Login-Seite</h3>
+          <h3>🌐 i18n-Erweiterung</h3>
           <ul class="check" style="gap:7px;font-size:13px;">
-            <li>ISMS Builder Banner als Hintergrundbild</li>
-            <li>Dunkle Überlagerung für optimale Lesbarkeit</li>
+            <li>Neue i18n-Keys für Findings in DE/EN/FR/NL</li>
+            <li>Neue i18n-Keys für Admin Sprach-Konfiguration in DE/EN/FR/NL</li>
           </ul>
         </div>
         <div class="highlight green">
-          <strong>176 / 176 Tests</strong> — alle Tests grün nach allen Änderungen.
+          <strong>192 / 192 Tests</strong> — alle Tests grün nach allen Änderungen.
         </div>
       </div>
     </div>
@@ -1134,7 +1134,7 @@
             <div class="flow-arrow" style="transform:rotate(90deg);">→</div>
             <div class="flow-step">③ Alle User außer admin gelöscht</div>
             <div class="flow-arrow" style="transform:rotate(90deg);">→</div>
-            <div class="flow-step">④ admin → adminpass · 2FA deaktiviert</div>
+            <div class="flow-step">④ admin@example.com → adminpass · 2FA deaktiviert</div>
             <div class="flow-arrow" style="transform:rotate(90deg);">→</div>
             <div class="flow-step active">⑤ <code>STORAGE_BACKEND=sqlite</code> in <code>.env</code> gesetzt</div>
             <div class="flow-arrow" style="transform:rotate(90deg);">→</div>
@@ -1157,7 +1157,7 @@
           <ul class="check" style="gap:6px;font-size:13px;">
             <li>JSON-Bundle aus Demo-Reset hochladen</li>
             <li>Alle Moduldaten wiederhergestellt</li>
-            <li>alice (alicepass) + bob (bobpass) neu angelegt</li>
+            <li>alice@it.example (alicepass) + bob@hr.example (bobpass) neu angelegt</li>
             <li>2FA für alice/bob automatisch deaktiviert</li>
             <li>admin-Account unverändert</li>
           </ul>
@@ -1167,7 +1167,7 @@
           <div style="background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.4);border-radius:6px;padding:10px 12px;font-size:12px;color:#FFD700;line-height:1.5;margin:8px 0;">
             <strong>⚠ Demo-Modus beendet</strong><br>
             System für Produktivbetrieb zurückgesetzt.<br>
-            Login: <code>admin</code> / <code>adminpass</code><br>
+            Login: <code>admin@example.com</code> / <code>adminpass</code><br>
             Passwort sofort ändern!
           </div>
           <p style="font-size:11px;color:var(--text-sub);">Banner verschwindet automatisch nach erstem Admin-Login (Flag-Datei <code>.demo_reset_done</code> wird gelöscht).</p>
@@ -1335,12 +1335,12 @@ node server/index.js</pre>
     <div class="overline">Fragen & Diskussion</div>
     <h1>Danke<br><span>für Ihre</span><br>Aufmerksamkeit</h1>
     <p class="subtitle">
-      ISMS Builder V 1.31 — die Open-Source-Plattform für praxisnahes Informationssicherheitsmanagement.
+      ISMS Builder V 1.32 — die Open-Source-Plattform für praxisnahes Informationssicherheitsmanagement.
     </p>
     <div class="meta">
       <div class="meta-item">
         <span class="label">Version</span>
-        <span class="value">V 1.31</span>
+        <span class="value">V 1.32</span>
       </div>
       <div class="meta-item">
         <span class="label">Module</span>

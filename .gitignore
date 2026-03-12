@@ -8,9 +8,11 @@ json-editor-stop.sh
 last_order_claude.md
 .last_order_claude.md.kate-swp
 .server.pid
+internal_audit_report_rules.md
 
 # Dependencies
 node_modules/
+docs/community/
 
 # Environment & secrets — NEVER commit
 .env
@@ -30,6 +32,7 @@ build/
 data.bak.*
 *.bak
 *.bak.*
+/scripts/bacup-and-deploy.sh
 
 # soa.json mit ISO-Controls (urheberrechtlich geschützt, nicht im Repo)
 data/soa.full.json
