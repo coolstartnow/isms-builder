@@ -185,7 +185,25 @@ async function reviewsReport(daysAhead = 30) {
   }
 }
 
-// 7) Compliance-Matrix: Control × Gesellschaft → Ampel-Status
+// 7) Findings-Report: Audit-Feststellungen nach Schweregrad/Status/Auditor
+function findingsReport({ status, severity, auditor } = {}) {
+  const findingStore = require('./db/findingStore')
+  const all = findingStore.getAll({ status, severity, auditor })
+  const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, observation: 0 }
+  const byStatus   = { open: 0, in_progress: 0, resolved: 0, accepted: 0 }
+  for (const f of all) {
+    if (bySeverity[f.severity] !== undefined) bySeverity[f.severity]++
+    if (byStatus[f.status]     !== undefined) byStatus[f.status]++
+  }
+  const openActions    = all.reduce((n, f) => n + (f.actions || []).filter(a => a.status !== 'done').length, 0)
+  const overdueActions = all.reduce((n, f) => {
+    const today = new Date().toISOString().slice(0, 10)
+    return n + (f.actions || []).filter(a => a.status !== 'done' && a.dueDate && a.dueDate < today).length
+  }, 0)
+  return { total: all.length, bySeverity, byStatus, openActions, overdueActions, findings: all }
+}
+
+// 8) Compliance-Matrix: Control × Gesellschaft → Ampel-Status
 async function complianceMatrixReport(framework) {
   const entities = entityStore.getAll()
   const allControls = soaStore.getAll(framework ? { framework } : {})
@@ -257,9 +275,22 @@ async function exportCsv(type, { entityId, framework, from, to } = {}) {
       })
       return csvExport(['Control-ID', 'Framework', 'Titel', ...entityCols], rows)
     }
+    case 'findings': {
+      const data = findingsReport()
+      return csvExport(
+        ['Ref', 'Titel', 'Schweregrad', 'Status', 'Auditor', 'Prüfbereich', 'Von', 'Bis', 'IST-Zustand', 'SOLL-Zustand', 'Risiko', 'Empfehlung', 'Offene Maßnahmen', 'Erstellt'],
+        data.findings.map(f => [
+          f.ref, f.title, f.severity, f.status, f.auditor || '', f.auditedArea || '',
+          f.auditPeriodFrom || '', f.auditPeriodTo || '',
+          f.observation || '', f.requirement || '', f.impact || '', f.recommendation || '',
+          (f.actions || []).filter(a => a.status !== 'done').length,
+          f.createdAt ? f.createdAt.slice(0, 10) : ''
+        ])
+      )
+    }
     default:
       return 'Unbekannter Report-Typ'
   }
 }
 
-module.exports = { complianceReport, frameworkReport, gapReport, templatesReport, auditReport, reviewsReport, complianceMatrixReport, exportCsv }
+module.exports = { complianceReport, frameworkReport, gapReport, templatesReport, auditReport, reviewsReport, complianceMatrixReport, findingsReport, exportCsv }

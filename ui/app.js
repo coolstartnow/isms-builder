@@ -943,6 +943,7 @@ const REPORT_TYPES = [
   { id: 'reviews',    label: 'Due Reviews',           icon: 'ph-calendar-x',             desc: 'Templates with overdue or upcoming review date', needsEntity: false },
   { id: 'matrix',     label: 'Compliance Matrix',     icon: 'ph-table',                  desc: 'Control × Entity traffic light overview', needsEntity: false },
   { id: 'audit',      label: 'Audit Trail',            icon: 'ph-clock-counter-clockwise', desc: 'Status changes on templates in a given period', needsEntity: false },
+  { id: 'findings',   label: 'Audit Findings',         icon: 'ph-magnifying-glass',        desc: 'Audit findings with action plans (IST→SOLL→Risk→Recommendation)', needsEntity: false },
 ]
 
 let _reportEntities = []
@@ -6886,7 +6887,8 @@ const CAL_EVENT_CFG = {
   risk_review:     { get label() { return t('cal_riskReview') },     cls:'cal-chip-review',    icon:'ph-arrows-clockwise' },
   treatment_due:   { get label() { return t('cal_measureDue') },     cls:'cal-chip-treatment', icon:'ph-list-checks' },
   template_review: { get label() { return t('cal_templateReview') }, cls:'cal-chip-template',  icon:'ph-files' },
-  template_due:    { label:'Template Due',       cls:'cal-chip-template',  icon:'ph-clock' },
+  template_due:         { label:'Template Due',            cls:'cal-chip-template',  icon:'ph-clock' },
+  finding_action_due:   { label:'Finding Action Due',      cls:'cal-chip-risk',       icon:'ph-magnifying-glass' },
 }
 
 let _calYear  = new Date().getFullYear()

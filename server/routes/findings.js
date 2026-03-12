@@ -4,8 +4,9 @@
 const express = require('express')
 const router  = express.Router()
 const { requireAuth, authorize } = require('../auth')
-const store = require('../db/findingStore')
-const audit = require('../db/auditStore')
+const store          = require('../db/findingStore')
+const audit          = require('../db/auditStore')
+const embeddingStore = require('../ai/embeddingStore')
 
 // ── Listings & Summary ────────────────────────────────────────────────────────
 router.get('/findings/summary', requireAuth, authorize('reader'), (req, res) => {
@@ -27,6 +28,7 @@ router.get('/findings/:id', requireAuth, authorize('reader'), (req, res) => {
 router.post('/findings', requireAuth, authorize('auditor'), (req, res) => {
   const f = store.create(req.body, req.user)
   audit.append({ user: req.user, action: 'create', resource: 'finding', resourceId: f.id })
+  embeddingStore.indexDoc(f, 'Audit-Feststellung', '#reports').catch(() => {})
   res.status(201).json(f)
 })
 
@@ -34,6 +36,7 @@ router.put('/findings/:id', requireAuth, authorize('auditor'), (req, res) => {
   const f = store.update(req.params.id, req.body, req.user)
   if (!f) return res.status(404).json({ error: 'Not found' })
   audit.append({ user: req.user, action: 'update', resource: 'finding', resourceId: f.id })
+  embeddingStore.indexDoc(f, 'Audit-Feststellung', '#reports').catch(() => {})
   res.json(f)
 })
 
@@ -48,6 +51,7 @@ router.delete('/findings/:id/permanent', requireAuth, authorize('admin'), (req, 
   const ok = store.permanentDelete(req.params.id)
   if (!ok) return res.status(404).json({ error: 'Not found' })
   audit.append({ user: req.user, action: 'permanent_delete', resource: 'finding', resourceId: req.params.id })
+  embeddingStore.removeDoc(req.params.id)
   res.json({ deleted: true, permanent: true })
 })
 

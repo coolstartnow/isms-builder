@@ -150,6 +150,25 @@ router.get('/calendar', requireAuth, authorize('reader'), async (req, res) => {
     }
   } catch {}
 
+  // Audit-Feststellungen: überfällige und bald fällige Actions
+  try {
+    const findingStore = require('../db/findingStore')
+    const today = new Date().toISOString().slice(0, 10)
+    for (const f of findingStore.getAll()) {
+      for (const a of (f.actions || [])) {
+        if (!a.dueDate || a.status === 'done') continue
+        events.push({
+          date:      a.dueDate,
+          type:      'finding_action_due',
+          title:     `Finding-Maßnahme: ${a.description || f.title}`,
+          ref:       f.id,
+          findingRef: f.ref,
+          severity:  a.dueDate < today ? 'high' : 'normal',
+        })
+      }
+    }
+  } catch {}
+
   events.sort((a, b) => new Date(a.date) - new Date(b.date))
   res.json(events)
 })

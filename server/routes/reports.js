@@ -26,6 +26,10 @@ router.get('/reports/reviews', requireAuth, authorize('reader'), async (req, res
 router.get('/reports/matrix', requireAuth, authorize('reader'), async (req, res) => {
   res.json(await reports.complianceMatrixReport(req.query.framework || null))
 })
+router.get('/reports/findings', requireAuth, authorize('reader'), (req, res) => {
+  const { status, severity, auditor } = req.query
+  res.json(reports.findingsReport({ status, severity, auditor }))
+})
 router.get('/reports/export/csv', requireAuth, authorize('reader'), async (req, res) => {
   const { type, entity, framework, from, to } = req.query
   const csv = await reports.exportCsv(type, { entityId: entity, framework, from, to })
