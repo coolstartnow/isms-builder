@@ -1009,11 +1009,13 @@ function renderReportsTabContent(container) {
       `).join('')}
     </div>
     <div id="reportFilters" class="report-filters" style="display:none;">
-      <label class="form-label">Entity</label>
-      <select id="reportEntitySel" class="select report-sel">
-        <option value="">${t('filter_allEntities')}</option>
-        ${_reportEntities.map(e => `<option value="${e.id}">${e.name} (${e.shortCode || e.id})</option>`).join('')}
-      </select>
+      <div id="reportEntityWrap">
+        <label class="form-label">Entity</label>
+        <select id="reportEntitySel" class="select report-sel">
+          <option value="">${t('filter_allEntities')}</option>
+          ${_reportEntities.map(e => `<option value="${e.id}">${e.name} (${e.shortCode || e.id})</option>`).join('')}
+        </select>
+      </div>
       <label class="form-label">Framework</label>
       <select id="reportFwSel" class="select report-sel">
         <option value="">Alle Frameworks</option>
@@ -1042,7 +1044,7 @@ function renderReportsTabContent(container) {
       const rt = REPORT_TYPES.find(r => r.id === _activeReportType)
       const filters = dom('reportFilters')
       filters.style.display = 'flex'
-      dom('reportEntitySel').parentElement.style.display = (rt?.needsEntity) ? '' : 'none'
+      dom('reportEntityWrap').style.display = (rt?.needsEntity) ? '' : 'none'
       dom('reportRunBtn').onclick = () => runReport(_activeReportType)
       document.getElementById('reportResult').innerHTML = ''
     }
