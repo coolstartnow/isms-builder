@@ -1205,6 +1205,37 @@ function renderReportResult(type, data, el) {
               <td>${e.changedBy}</td></tr>`).join('')}
         </tbody>
       </table>`
+  } else if (type === 'findings') {
+    const sevColor = { critical:'#f87171', high:'#fb923c', medium:'#fbbf24', low:'#4ade80', observation:'#60a5fa' }
+    const stColor  = { open:'#f87171', in_progress:'#fbbf24', resolved:'#4ade80', accepted:'#60a5fa' }
+    el.innerHTML = `
+      <h3 class="report-result-title">Audit Findings (${data.total})</h3>
+      <div class="report-kpi-row" style="margin-bottom:16px">
+        <div class="report-kpi"><span class="report-kpi-val red">${data.byStatus?.open||0}</span><span class="report-kpi-label">Open</span></div>
+        <div class="report-kpi"><span class="report-kpi-val yellow">${data.byStatus?.in_progress||0}</span><span class="report-kpi-label">In Progress</span></div>
+        <div class="report-kpi"><span class="report-kpi-val green">${data.byStatus?.resolved||0}</span><span class="report-kpi-label">Resolved</span></div>
+        <div class="report-kpi"><span class="report-kpi-val">${data.byStatus?.accepted||0}</span><span class="report-kpi-label">Accepted</span></div>
+        <div class="report-kpi"><span class="report-kpi-val" style="color:#f87171">${data.bySeverity?.critical||0}</span><span class="report-kpi-label">Critical</span></div>
+        <div class="report-kpi"><span class="report-kpi-val" style="color:#fb923c">${data.bySeverity?.high||0}</span><span class="report-kpi-label">High</span></div>
+        <div class="report-kpi"><span class="report-kpi-val ${data.overdueActions>0?'red':''}">${data.openActions||0}</span><span class="report-kpi-label">Open Actions</span></div>
+        ${data.overdueActions > 0 ? `<div class="report-kpi"><span class="report-kpi-val red">${data.overdueActions}</span><span class="report-kpi-label">Overdue Actions</span></div>` : ''}
+      </div>
+      <table class="report-table">
+        <thead><tr><th>Ref</th><th>Title</th><th>Severity</th><th>Status</th><th>Auditor</th><th>Area</th><th>Open Actions</th></tr></thead>
+        <tbody>${(data.findings||[]).map(f => {
+          const openActs = (f.actions||[]).filter(a => a.status !== 'done').length
+          return `<tr>
+            <td class="picker-id">${f.ref}</td>
+            <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(f.title)}">${escHtml(f.title)}</td>
+            <td><span style="color:${sevColor[f.severity]||'#888'};font-weight:600">${f.severity}</span></td>
+            <td><span style="color:${stColor[f.status]||'#888'}">${f.status.replace(/_/g,' ')}</span></td>
+            <td>${escHtml(f.auditor||'—')}</td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(f.auditedArea||'—')}</td>
+            <td style="text-align:center;color:${openActs>0?'#fb923c':'var(--text-muted)'}">${openActs}</td>
+          </tr>`
+        }).join('')}
+        </tbody>
+      </table>`
   } else {
     el.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`
   }
