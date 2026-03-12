@@ -8,6 +8,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.32.0] — 2026-03-12
+
+### Added
+- **Findings → Calendar**: Finding action due dates appear as `finding_action_due` calendar events; overdue actions are marked as `severity: high`
+- **Findings → Semantic Search**: Findings are automatically indexed via Ollama embeddings (`embeddingStore.indexDoc`) on create/update and removed on permanent delete
+- **Findings → Reports**: New *Audit Findings* report type (`GET /reports/findings`) with KPI row (total, by severity, by status, open actions, overdue actions) and filterable table (Ref / Title / Severity / Status / Auditor / Area / Observation / Requirement / Open Actions)
+- **PDF Export for Reports**: New PDF export button in the reports filter bar — generates a print-ready page in a new browser tab via `window.print()`
+
+### Fixed
+- Reports filter panel was hidden entirely for report types that don't require an entity selection (`needsEntity: false`); fixed by wrapping the entity selector in a dedicated `<div id="reportEntityWrap">`
+
+---
+
 ## [1.31.80] — 2026-03-12
 
 ### Added
