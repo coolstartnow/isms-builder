@@ -276,6 +276,12 @@ const ARCH_SEED = [
     category:      'systemhandbuch',
     minRole:       null,    // für alle Rollen sichtbar
   },
+  {
+    seedId:        'seed_third_party_licenses',
+    title:         { de: 'Drittanbieter-Lizenzen (Third-Party Licenses)', en: 'Third-Party Licenses', fr: 'Licences tierces', nl: 'Licenties van derden' },
+    srcFile:       path.join(PROJECT_ROOT, 'THIRD-PARTY-LICENSES.md'),
+    refreshContent: true,
+  },
 ]
 
 function seedArchitectureDocs() {
