@@ -78,3 +78,31 @@ demo-management/
 # Privates Backlog (nicht publizieren)
 docs/private/
 landing/
+
+# Produktionsconfig (enthält Secrets)
+.env.docker
+ui-app-patched.js
+
+# Operative Laufzeitdaten (nicht ins Repo)
+data/org-settings.json
+data/soa.json
+data/risks.json
+data/assets.json
+data/templates.json
+data/training.json
+data/suppliers.json
+data/goals.json
+data/governance.json
+data/bcm.json
+data/findings.json
+data/entities.json
+data/org-units.json
+data/policy-acks.json
+data/policy-distributions.json
+data/public-incidents.json
+data/scan-import-state.json
+data/assessments.json
+data/guidance.json
+data/crossmap.json
+data/gdpr/
+data/demo-bundles/

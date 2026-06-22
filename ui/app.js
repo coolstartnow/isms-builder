@@ -2500,6 +2500,14 @@ function renderSoaContent(container) {
   container.querySelectorAll('.soa-expand-btn').forEach(btn => {
     btn.onclick = () => toggleSoaDetail(btn.dataset.id, container)
   })
+  // UX-Fix: ganze Zeile klickbar, nicht nur der kleine Pfeil-Button
+  container.querySelectorAll('.soa-row').forEach(row => {
+    row.style.cursor = 'pointer'
+    row.onclick = (e) => {
+      if (e.target.closest('select, input, button, a')) return
+      toggleSoaDetail(row.dataset.id, container)
+    }
+  })
 }
 
 function soaRow(c, canEdit) {

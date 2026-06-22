@@ -1,0 +1,40 @@
+version: '3.9'
+
+networks:
+  coolify:
+    external: true
+
+services:
+  isms:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: isms-builder:latest
+    container_name: isms-builder
+    restart: unless-stopped
+    volumes:
+      - /opt/isms-builder/data:/app/data
+    env_file:
+      - .env.docker
+    environment:
+      - NODE_ENV=production
+    networks:
+      - coolify
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/ui/login.html"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    labels:
+      - traefik.enable=true
+      # HTTPS-Router (Cloudflare Proxy terminiert SSL, Traefik nutzt self-signed)
+      - traefik.http.routers.isms-builder.entrypoints=https
+      - "traefik.http.routers.isms-builder.rule=Host(`isms.jemix.de`)"
+      - traefik.http.routers.isms-builder.tls=true
+      - traefik.http.services.isms-builder.loadbalancer.server.port=3000
+      # HTTP-Router fuer Cloudflare Flexible Mode Fallback
+      - traefik.http.routers.isms-builder-http.entrypoints=http
+      - "traefik.http.routers.isms-builder-http.rule=Host(`isms.jemix.de`)"
+      - traefik.http.routers.isms-builder-http.service=isms-builder
+      - coolify.managed=true
