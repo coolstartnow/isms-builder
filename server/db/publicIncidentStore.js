@@ -78,7 +78,8 @@ function update(id, patch, updatedBy) {
   const list = load()
   const idx  = list.findIndex(i => i.id === id)
   if (idx === -1) return null
-  const allowed = ['status', 'assignedTo', 'reportable', 'cisoNotes']
+  // 'art23' trägt die NIS2-Meldefristen (siehe server/db/art23.js)
+  const allowed = ['status', 'assignedTo', 'reportable', 'cisoNotes', 'art23']
   allowed.forEach(k => { if (k in patch) list[idx][k] = patch[k] })
   list[idx].updatedAt = new Date().toISOString()
   list[idx].updatedBy = updatedBy || null

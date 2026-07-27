@@ -297,7 +297,7 @@ tests/
 
 **Datenisolation:** Jede Testdatei bekommt ein eigenes `mkdtemp`-Verzeichnis mit frischen Seed-Daten. `DATA_DIR`-Umgebungsvariable wird vor dem Server-Require gesetzt — alle Stores lesen diesen Pfad beim Laden. Temp-Dirs werden in `afterAll` gelöscht.
 
-**Aktueller Stand:** 265/265 Tests bestehen.
+**Aktueller Stand:** 322/322 Tests bestehen. Vor einem Push `npm run preflight` ausführen — das spiegelt exakt die harten CI-Schritte (Tests, pdf-parse-Pinning, `npm audit --audit-level=high`). Optionaler `pre-push`-Hook: `git config core.hooksPath .githooks`
 
 ---
 
@@ -1072,8 +1072,10 @@ Inventar aller Informationswerte des Konzerns mit Klassifizierung, Kritikalität
 **Datenspeicherung:** `data/assets.json`
 
 ```
-GET  /assets/summary            – KPI-Übersicht (gesamt, kritisch, unklassifiziert, EoL-soon)
-GET  /assets                    – Liste (?category=&classification=&criticality=&status=&entityId=)
+GET  /assets/summary            – KPI-Übersicht (gesamt, kritisch, unklassifiziert, EoL-soon, Schutzziel-Kennzahlen)
+GET  /assets                    – Liste (?category=&classification=&criticality=&status=&entityId=
+                                         &minC=&minI=&minA=&minAuth=&dependsOn=)
+GET  /assets/graph              – Knoten + Kanten für die Abhängigkeitsvisualisierung
 GET  /assets/:id                – Einzelasset
 POST /assets                    – Erstellen (editor+)
 PUT  /assets/:id                – Aktualisieren (editor+)
@@ -1116,15 +1118,61 @@ DELETE /assets/:id              – Löschen / Soft-Delete (admin)
 | `purchaseDate` / `endOfLifeDate` | Beschaffungs- und EoL-Datum |
 | `tags` | Freitags-Schlagwörter |
 | `notes` | Freitext-Notizen |
+| `protection` | Schutzziele `{ c, i, a, auth }`, je 1–4 (siehe unten) |
+| `dependsOn` | IDs der Assets, von denen dieses Asset abhängt |
 
-**UI — 3 Tabs:**
-- **Alle Assets:** Filtertabelle (Kategorie, Klassifizierung, Kritikalität, Status, Suchfeld) + inline Formular
+### 26.1 Schutzziele und Vererbung (V 1.36.0)
+
+Ein einzelnes `classification`-Feld deckt nur die Vertraulichkeit ab und reicht weder für ISO/IEC 27001 noch für BSI IT-Grundschutz. Jedes Asset trägt daher eine vollständige Schutzbedarfsfeststellung.
+
+**Skala (1–4) je Schutzziel:**
+
+| Wert | Bedeutung |
+|---|---|
+| 1 | Niedrig |
+| 2 | Normal |
+| 3 | Hoch |
+| 4 | Sehr hoch |
+
+| Schutzziel | Feld | Pflicht |
+|---|---|---|
+| Vertraulichkeit (Confidentiality) | `protection.c` | ja |
+| Integrität (Integrity) | `protection.i` | ja |
+| Verfügbarkeit (Availability) | `protection.a` | ja |
+| Authentizität (Authenticity) | `protection.auth` | optional (`null` = nicht bewertet), für regulierte Umgebungen |
+
+**Migration von Bestandsdaten:** Assets ohne `protection` bekommen die Werte beim Lesen abgeleitet — `classification` wird auf `protection.c` abgebildet (`public→1`, `internal→2`, `confidential→3`, `strictly_confidential→4`), Integrität und Verfügbarkeit starten bei `2`. Es ist **kein Migrationslauf nötig** und es gehen keine Daten verloren. `classification` bleibt als Feld erhalten (Filter, Reports, Gruppierung) und wird mit `protection.c` konsistent gehalten: ein explizit gesetztes C überschreibt die Klassifizierung, sonst wird C aus ihr abgeleitet. Im Formular sind beide Felder gekoppelt.
+
+**Abhängigkeiten:** `dependsOn` ist eine Liste von Asset-IDs — kein Baum, ein Asset kann von mehreren anderen abhängen (Anwendung → Webserver, Applikationsserver, DB-Server → Container → Cloud-Anbieter). Beim Schreiben werden Selbstbezüge und Duplikate entfernt; unbekannte Ziele und **zirkuläre Abhängigkeiten** (auch transitive) werden mit HTTP 400 abgelehnt.
+
+**Vererbung — BSI-Maximumprinzip:** Ein Asset erbt je Schutzziel den höchsten Wert aller Assets, die von ihm abhängen — transitiv über die gesamte Kette. Beispiel:
+
+```
+CRM (C=4, I=3)  --dependsOn-->  DB-Server  --dependsOn-->  Container  --dependsOn-->  AWS
+Logserver (I=4) --dependsOn-->  AWS
+
+Effektiv:  DB-Server C=4 (vom CRM)    AWS C=4 (vom CRM), I=4 (vom Logserver)
+```
+
+Vererbte Werte werden **berechnet, nicht gespeichert** — eine Änderung an der Quelle schlägt sofort durch, es können keine veralteten Werte entstehen. Jede Antwort enthält deshalb zusätzlich:
+
+| Feld | Bedeutung |
+|---|---|
+| `effectiveProtection` | Werte nach Vererbung |
+| `protectionOrigins` | je Schutzziel die ID des Assets, dessen Eigenwert den effektiven Wert bestimmt (= eigene ID, wenn nicht geerbt) |
+| `requiredBy` | IDs der Assets, die direkt von diesem Asset abhängen |
+
+Die Logik liegt backend-neutral in `server/db/assetProtection.js` und wird von JSON- und Knex-Store gemeinsam genutzt. Im SQL-Backend liegen `protection` und `dependsOn` im vorhandenen `data`-JSON-Feld — **kein Schema-Change erforderlich**.
+
+**UI — 4 Tabs:**
+- **Alle Assets:** Filtertabelle (Kategorie, Klassifizierung, Kritikalität, Status, Schutzziel + Mindeststufe, Suchfeld) + inline Formular. Schutzziele erscheinen als Chips (`C3 I4↑ A4↑`); geerbte Werte sind gestrichelt umrandet und mit Pfeil markiert, der Tooltip nennt Eigenwert und Vererbungsquelle.
 - **Nach Kategorie:** Assets gruppiert nach Kategorie mit Anzahl je Gruppe
 - **Nach Klassifizierung:** KPI-Karten je Klassifizierungsstufe + gruppierte Listen
+- **Abhängigkeiten:** Canvas-Graph der Abhängigkeits- und Vererbungsbeziehungen. Ebenen ergeben sich aus der Abhängigkeitsrichtung (Anwendungen oben, Infrastruktur unten), Pfeile zeigen in Vererbungsrichtung. Klick auf einen Knoten öffnet ein Detailpanel mit Eigenwert, effektivem Wert, Vererbungsquelle sowie beiden Beziehungsrichtungen. Assets ohne Beziehungen werden nicht gezeichnet, sondern nur gezählt.
 
 **Kalender-Integration:** Assets mit `endOfLifeDate` erscheinen als `asset_eol`-Chips im globalen Kalender.
 
-**Dashboard-Integration:** Asset-KPI-Sektion (Gesamt / Kritisch / Unkategorisiert / EoL bald); Handlungsbedarf-Alerts bei kritischen Assets ohne Klassifizierung oder bald ablaufendem EoL.
+**Dashboard-Integration:** Asset-KPI-Sektion (Gesamt / Kritisch / Unkategorisiert / EoL bald); Handlungsbedarf-Alerts bei kritischen Assets ohne Klassifizierung, bei Assets ohne Schutzbedarfsfeststellung sowie bei bald ablaufendem EoL.
 
 **RBAC:** reader (lesen), editor+ (erstellen/bearbeiten), admin (löschen).
 
@@ -3054,3 +3102,77 @@ Für hochgeladene Dateien gilt: `type` ist `pdf` oder `docx`, `content` ist `nul
 | Überschreiben beim Serverstart | Ja (bei Sprachwechsel) | Nein |
 | Löschbar | Ja (admin, Soft-Delete) | Ja (admin, Soft-Delete) |
 | Wird nach Neustart wiederhergestellt | Ja (wenn nur Soft-Delete) | Nein |
+
+---
+
+## 53. NIS2 — Art. 21 Governance-Checkliste & Art. 23 Meldefristen (V 1.37.0)
+
+Eigenes Modul (Navigationspunkt **NIS2**) mit zwei Tabs. Sichtbar ab Rolle `contentowner` bzw. für die Funktionen `ciso` und `revision`. Lesen ist ab `reader` erlaubt, Änderungen erfordern `contentowner`.
+
+**Abgrenzung:** NIS2 ist eine Richtlinie, die jeder Mitgliedstaat national umsetzt. Zuständige Behörde, Registrierungsportal und Umsetzungsfristen unterscheiden sich je Land. Die Inhalte sind deshalb bewusst EU-weit formuliert und verweisen auf „die zuständige nationale Behörde", statt eine bestimmte Stelle zu nennen.
+
+### 53.1 Art. 21 — Governance-Checkliste
+
+30 Maßnahmen zu den Sub-Paragraphen (a) bis (j) aus Art. 21 Abs. 2, in drei Prioritätsstufen zu je zehn Items.
+
+**Datenspeicherung:** `data/nis2-governance.json`
+
+Der **Katalog** (Titel, Beschreibung, Priorität, Sub-Paragraph, Kategorie) steht als Konstante in `server/db/nis2GovernanceStore.js`. In der JSON-Datei liegt nur der **Bearbeitungsstand**. Dadurch können spätere Versionen den Katalog erweitern oder Formulierungen korrigieren, ohne gepflegte Stände zu verlieren.
+
+```
+GET  /nis2/governance          – alle Items + Summary (?priority=&status=&subParagraph=&category=)
+GET  /nis2/governance/summary  – KPI: Erfüllungsgrad, offene CRITICAL-Items, ohne Verantwortlichen
+GET  /nis2/governance/:id      – Einzelitem
+PUT  /nis2/governance/:id      – Status, Verantwortlicher, Nachweise, Notizen (contentowner+)
+```
+
+**Prioritäten:** `CRITICAL` (10) — vor den nationalen Fristen zu erfüllen · `HIGH` (10) — Kernprozesse · `MEDIUM` (10) — Optimierung und Hygiene
+
+**Statuswerte:** `open` · `in_progress` · `completed` · `na` (nicht anwendbar)
+
+Auf `na` gesetzte Items zählen **nicht gegen den Erfüllungsgrad** — die Quote bezieht sich nur auf die anwendbaren Items. Ein Zurücksetzen von `completed` auf einen anderen Status löscht den Abschlusszeitpunkt wieder.
+
+**Felder je Item:** `status`, `owner`, `ownerEmail` (setzt `assignedAt`), `completedAt`, `evidenceUrls[]` (Leerzeilen werden verworfen), `notes`, `internalNotes`, `updatedAt`, `updatedBy`
+
+**UI:** Kennzahlenkarten (Erfüllungsgrad, erfüllt, offene CRITICAL-Items, ohne Verantwortlichen, mit Nachweis), Filter nach Priorität/Status/Buchstabe sowie Volltextsuche. Bearbeitung über eine ganzseitige Inline-Seite, keine Overlays.
+
+### 53.2 Art. 23 — Meldefristen
+
+Ergänzt gemeldete Sicherheitsvorfälle (`data/public-incidents.json`) um die dreistufige Meldekette.
+
+**Fristen nach Art. 23 Abs. 4:**
+
+| Phase | Frist | Bezugspunkt |
+|---|---|---|
+| Frühwarnung (lit. a) | 24 Stunden | Kenntnisnahme |
+| Meldung (lit. b) | 72 Stunden | Kenntnisnahme |
+| Abschlussbericht (lit. d) | ein Monat | **Abgabe der Meldung**, nicht Kenntnisnahme |
+
+Der Abschlussbericht läuft ausdrücklich ab der Abgabe der 72-Stunden-Meldung. Solange diese nicht abgegeben ist, wird die Frist vom 72-Stunden-Termin aus vorausberechnet und beim tatsächlichen Absenden neu gesetzt. Die Monatsfrist rechnet in **Kalendermonaten** mit Kappung am Monatsende (31.01. + 1 Monat = 28.02.).
+
+```
+GET  /nis2/incidents/deadlines      – alle Vorfälle mit offenen Fristen, dringlichste zuerst
+GET  /nis2/incidents/:id            – Vorfall inkl. berechnetem Fristenstatus
+POST /nis2/incidents/:id/init       – Fristenverfolgung starten (contentowner+)
+POST /nis2/incidents/:id/phase/:p   – Phase als abgegeben markieren (contentowner+)
+PUT  /nis2/incidents/:id/report/:p  – Meldeinhalt einer Phase speichern (contentowner+)
+GET  /nis2/incidents/:id/export     – Meldung als JSON-Download
+```
+
+**Datenstruktur** im Feld `art23` des Vorfalls:
+
+```
+discoveredAt   Zeitpunkt der Kenntnisnahme (setzt alle Fristen)
+deadlines      { earlyWarning, notification, finalReport }
+submitted      { earlyWarning, notification, finalReport }  – Abgabezeitpunkte
+reports        Meldeinhalt je Phase
+alerts         protokollierte Fristwarnungen
+```
+
+Der Fristenstatus wird **berechnet, nicht gespeichert** (`art23Status`): je Phase `pending`, `due_soon`, `overdue` oder `submitted`, dazu die verbleibende Zeit in Minuten.
+
+**Fristenwächter** (`server/art23Watcher.js`): prüft im 15-Minuten-Takt und verschickt je Vorfall und Phase **einmalig** eine Warnung an die Träger der CISO-Funktion, ersatzweise an die Eskalations- bzw. Admin-Adresse. Vorwarnzeit: 4 Stunden vor der 24-h-Frist, 12 Stunden vor der 72-h-Frist, 72 Stunden vor der Monatsfrist. Eine Warnung wird erst protokolliert, wenn sie tatsächlich zugestellt wurde — schlägt der Versand fehl, wird beim nächsten Lauf erneut versucht. Ohne SMTP-Konfiguration läuft der Wächter nicht; die Fristen bleiben in der Oberfläche trotzdem sichtbar. Keine zusätzliche Abhängigkeit — `setInterval` wie beim bestehenden Notifier.
+
+**Export:** `GET /nis2/incidents/:id/export` liefert ein behördenneutrales JSON (`format: "nis2-art23"`) mit Vorfalldaten, Fristen, Abgabezeitpunkten und allen drei Meldeinhalten. Das konkrete Einreichungsformat legt jeder Mitgliedstaat selbst fest, deshalb bewusst kein länderspezifisches Schema.
+
+**Dashboard-Integration:** Alerts bei überschrittenen und bald ablaufenden Meldefristen sowie bei offenen CRITICAL-Items aus Art. 21.

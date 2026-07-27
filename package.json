@@ -1,6 +1,6 @@
 {
   "name": "isms-build",
-  "version": "1.35.0",
+  "version": "1.37.0",
   "description": "ISMS Template Builder – Build Mode",
   "scripts": {
     "start": "node server/index.js",
@@ -9,7 +9,9 @@
     "test:coverage": "jest --runInBand --coverage",
     "security:check": "bash scripts/security-check.sh",
     "security:audit": "npm audit --audit-level=high",
-    "security:outdated": "npm outdated"
+    "security:outdated": "npm outdated",
+    "preflight": "npm test && npm run preflight:pinned && npm audit --audit-level=high",
+    "preflight:pinned": "node -e \"const v=require('./node_modules/pdf-parse/package.json').version; if (v !== '1.1.1') { console.error('FEHLER: pdf-parse ist ' + v + ' — muss exakt 1.1.1 sein (siehe PINNED-DEPS.md)'); process.exit(1) } console.log('pdf-parse ' + v + ' korrekt gepinnt')\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -32,5 +34,9 @@
     "jest": "^30.4.2",
     "puppeteer": "^24.43.1",
     "supertest": "^7.2.2"
+  },
+  "overrides": {
+    "body-parser": "^1.20.6",
+    "brace-expansion": "^5.0.8"
   }
 }

@@ -8,6 +8,58 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.37.0] — 2026-07-27
+
+### Added
+- **NIS2 Art. 21 — Governance-Checkliste**: neues Modul mit 30 Maßnahmen zu den Sub-Paragraphen (a)–(j) aus Art. 21 Abs. 2, in drei Prioritätsstufen zu je zehn Items
+  - Status je Item (`open` / `in_progress` / `completed` / `na`), Verantwortlicher, Nachweis-URLs, Notizen
+  - Auf „nicht anwendbar" gesetzte Items zählen nicht gegen den Erfüllungsgrad
+  - Der Katalog steht im Code, nur der Bearbeitungsstand liegt in `data/nis2-governance.json` — spätere Katalogerweiterungen gehen damit nicht zu Lasten gepflegter Stände
+  - Kennzahlen: Erfüllungsgrad, offene CRITICAL-Items, Items ohne Verantwortlichen, Items mit Nachweis
+  - Filter nach Priorität, Status und Buchstabe (a–j) sowie Volltextsuche
+  - Neue Dateien: `server/db/nis2GovernanceStore.js`, `server/routes/nis2.js`
+- **NIS2 Art. 23 — Meldefristen**: dreistufige Meldekette für gemeldete Sicherheitsvorfälle
+  - Frühwarnung binnen 24 h und Meldung binnen 72 h ab Kenntnisnahme; **Abschlussbericht binnen eines Monats nach Abgabe der Meldung** (Art. 23 Abs. 4 lit. d) — nicht ab Kenntnisnahme. Vor Abgabe wird die Frist vom 72-h-Termin aus vorausberechnet und beim Absenden neu gesetzt
+  - Monatsfrist rechnet in Kalendermonaten mit Kappung am Monatsende (31.01. + 1 Monat = 28.02.)
+  - Fristenstatus wird berechnet statt gespeichert: `pending` / `due_soon` / `overdue` / `submitted` mit verbleibender Zeit
+  - Meldeinhalt je Phase erfassbar, Übersicht aller offenen Fristen nach Dringlichkeit sortiert
+  - Behördenneutraler JSON-Export (`GET /nis2/incidents/:id/export`)
+  - Neue Dateien: `server/db/art23.js`, `server/art23Watcher.js`
+- **Fristenwächter**: prüft alle 15 Minuten und warnt einmalig je Vorfall und Phase per E-Mail (4 h / 12 h / 72 h Vorlauf) an die Träger der CISO-Funktion. Warnungen werden erst nach erfolgreicher Zustellung protokolliert, damit ein fehlgeschlagener Versand nicht verlorengeht. Keine neue Abhängigkeit — `setInterval` wie beim bestehenden Notifier
+- Dashboard-Alerts für überschrittene und bald ablaufende Meldefristen sowie offene CRITICAL-Items
+- 36 neue Tests in `tests/nis2.test.js` (322 gesamt); NIS2-Übersetzungen für DE/EN/FR/NL
+
+### Fixed
+- **Doppelzählung in der Asset-Kennzahl `unclassified`**: Assets ohne Klassifizierung trafen zwei Bedingungen und wurden doppelt gezählt, wodurch der Wert die Gesamtzahl übersteigen konnte. Betraf JSON- und Knex-Backend
+
+### Notes
+- Die Inhalte sind bewusst EU-weit formuliert. NIS2 wird national unterschiedlich umgesetzt — zuständige Behörde, Registrierungsportal und Fristen richten sich nach dem jeweiligen Mitgliedstaat, deshalb wird auf „die zuständige nationale Behörde" verwiesen statt auf eine bestimmte Stelle
+
+---
+
+## [1.36.0] — 2026-07-27
+
+### Added
+- **Schutzziele für Assets (CIA + Authentizität)** — schließt [#29](https://github.com/coolstartnow/isms-builder/issues/29). Ein einzelnes `classification`-Feld deckte nur die Vertraulichkeit ab und reichte weder für ISO/IEC 27001 noch für BSI IT-Grundschutz:
+  - Vier Schutzziele je Asset auf Skala 1–4: Vertraulichkeit, Integrität, Verfügbarkeit sowie optionale Authentizität (`null` = nicht bewertet) für regulierte Umgebungen
+  - Neues Feld `protection: { c, i, a, auth }`; `classification` bleibt erhalten und wird bidirektional mit `protection.c` konsistent gehalten (im Formular sind beide Felder gekoppelt)
+  - Bestandsdaten werden beim Lesen abgeleitet (`public→1` … `strictly_confidential→4`) — **kein Migrationslauf nötig, kein Datenverlust**
+- **Asset-Abhängigkeiten**: `dependsOn` als Liste von Asset-IDs (kein Baum — ein Asset kann von mehreren abhängen). Selbstbezüge und Duplikate werden entfernt, unbekannte Ziele und zirkuläre Abhängigkeiten (auch transitive) mit HTTP 400 abgelehnt
+- **Schutzziel-Vererbung nach BSI-Maximumprinzip**: Ein Asset erbt je Schutzziel den höchsten Wert aller Assets, die von ihm abhängen — transitiv über die gesamte Kette. Vererbte Werte werden berechnet statt gespeichert, Änderungen an der Quelle schlagen sofort durch. Neue Antwortfelder `effectiveProtection`, `protectionOrigins` und `requiredBy`
+- **Abhängigkeitsgraph** als neuer Tab im Asset-Modul: Canvas-Visualisierung ohne externe Bibliotheken (CSP-konform), Ebenen nach Abhängigkeitsrichtung, Pfeile in Vererbungsrichtung, Klick auf einen Knoten öffnet ein Detailpanel mit Eigenwert, effektivem Wert, Vererbungsquelle und beiden Beziehungsrichtungen
+- **Neue Filter** `minC` / `minI` / `minA` / `minAuth` (auf den effektiven, also vererbten Schutzbedarf) und `dependsOn`; neuer Endpoint `GET /assets/graph`
+- **Schutzziel-Kennzahlen** in `GET /assets/summary`: `byProtection`, `protectionUnassessed`, `inheritedAssets`, `withDependencies`, `dependencyEdges`, `authAssessed`; neuer Dashboard-Alert für Assets ohne Schutzbedarfsfeststellung
+- Neue Datei `server/db/assetProtection.js` — backend-neutrale Schutzziel- und Vererbungslogik, gemeinsam genutzt von JSON- und Knex-Store
+- 20 neue Tests in `tests/assets.test.js` (285 gesamt)
+- Schutzziel-Übersetzungen für DE/EN/FR/NL
+
+### Changed
+- Asset-Tabelle zeigt eine Schutzziel-Spalte; geerbte Werte sind gestrichelt umrandet und mit Pfeil markiert, der Tooltip nennt Eigenwert und Vererbungsquelle
+- Asset-Modul hat jetzt vier statt drei Tabs
+- Der Knex-Store legt `protection` und `dependsOn` im vorhandenen `data`-JSON-Feld ab — **kein Schema-Change erforderlich**. `STORAGE_BACKEND` bleibt weiterhin auf `json` voreingestellt (siehe [#42](https://github.com/coolstartnow/isms-builder/issues/42))
+
+---
+
 ## [1.35.0] — 2026-03-13
 
 ### Added

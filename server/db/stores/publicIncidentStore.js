@@ -64,7 +64,8 @@ module.exports = {
     const row = await getDb()('public_incidents').where('id', id).first()
     if (!row) return null
     const inc = rowToIncident(row)
-    const allowed = ['status','assignedTo','reportable','cisoNotes']
+    // 'art23' trägt die NIS2-Meldefristen (siehe server/db/art23.js); liegt im data-Blob
+    const allowed = ['status','assignedTo','reportable','cisoNotes','art23']
     for (const k of allowed) { if (k in patch) inc[k] = patch[k] }
     inc.updatedAt = nowISO()
     inc.updatedBy = updatedBy || null

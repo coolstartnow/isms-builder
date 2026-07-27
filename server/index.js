@@ -133,6 +133,7 @@ app.use(require('./routes/ai'))
 app.use(require('./routes/orgUnits'))
 app.use(require('./routes/acknowledgements'))
 app.use(require('./routes/ackPublic'))
+app.use(require('./routes/nis2'))
 app.use(require('./routes/assessments'))
 app.use(require('./routes/assessmentPublic'))
 
@@ -253,6 +254,7 @@ module.exports = app
 // ── SSL / HTTPS + Notifier (nur im Produktivbetrieb) ─────────────────────────
 if (require.main === module) {
   require('./notifier').start()
+  require('./art23Watcher').start()
   const SSL_CERT = process.env.SSL_CERT_FILE
   const SSL_KEY  = process.env.SSL_KEY_FILE
 

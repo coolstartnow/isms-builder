@@ -602,5 +602,23 @@
     "createdBy": "system",
     "linkedControls": [],
     "linkedPolicies": []
+  },
+  {
+    "id": "guid_nis2",
+    "seedId": "seed_nis2",
+    "seedLang": "de",
+    "category": "systemhandbuch",
+    "type": "markdown",
+    "title": "NIS2 — Governance-Checkliste (Art. 21) und Meldefristen (Art. 23)",
+    "content": "# NIS2 — Art. 21 Governance-Checkliste und Art. 23 Meldefristen\n\nDas Modul **NIS2** bündelt die beiden Pflichten, die sich am schlechtesten nebenbei erledigen lassen:\ndie systematische Umsetzung der Risikomanagementmaßnahmen und die Einhaltung der Meldefristen.\n\n> **Wichtig:** NIS2 ist eine Richtlinie. Jeder Mitgliedstaat setzt sie eigenständig um — zuständige\n> Behörde, Registrierungsportal und Umsetzungsfristen unterscheiden sich. Die Checkliste ist deshalb\n> EU-weit formuliert und verweist auf \"die zuständige nationale Behörde\". Tragen Sie die für Sie\n> geltende Stelle in den Notizen des jeweiligen Items nach.\n\n## Art. 21 — Governance-Checkliste\n\n30 Maßnahmen zu den Buchstaben (a) bis (j) aus Art. 21 Abs. 2, in drei Stufen zu je zehn Items:\n\n| Priorität | Bedeutung |\n|---|---|\n| CRITICAL | Vor den nationalen Fristen zu erfüllen — hier zuerst ansetzen |\n| HIGH | Kernprozesse des Sicherheitsmanagements |\n| MEDIUM | Optimierung und Hygiene |\n\n**So arbeiten Sie damit:**\n\n1. Filtern Sie zuerst auf **CRITICAL** und weisen Sie jedem Item einen Verantwortlichen zu.\n2. Setzen Sie den Status auf *In Arbeit*, sobald jemand daran arbeitet.\n3. Hinterlegen Sie beim Abschluss einen **Nachweis** (Link auf Richtlinie, Protokoll, Screenshot).\n   Ohne Nachweis ist ein Item im Audit wertlos.\n4. Nicht zutreffende Items setzen Sie auf **Nicht anwendbar** — die zählen dann nicht gegen den\n   Erfüllungsgrad, bleiben aber mit Begründung dokumentiert.\n\nDer Erfüllungsgrad bezieht sich nur auf die anwendbaren Items.\n\n## Art. 23 — Meldefristen\n\n| Phase | Frist | läuft ab |\n|---|---|---|\n| Frühwarnung | 24 Stunden | Kenntnisnahme |\n| Meldung | 72 Stunden | Kenntnisnahme |\n| Abschlussbericht | ein Monat | **Abgabe der Meldung**, nicht Kenntnisnahme |\n\nDer häufigste Rechenfehler steckt in der dritten Zeile: Die Monatsfrist beginnt mit der Abgabe der\n72-Stunden-Meldung (Art. 23 Abs. 4 lit. d), nicht mit dem Zeitpunkt der Kenntnisnahme. Solange die\nMeldung nicht abgegeben ist, rechnet das System vom 72-Stunden-Termin aus vor und setzt die Frist\nbeim tatsächlichen Absenden neu.\n\n**Ablauf:**\n\n1. Vorfall im Modul *Incident Inbox* erfassen (oder über das öffentliche Meldeformular).\n2. Im Tab **Art. 23 — Meldefristen** die Fristenverfolgung starten und den **Zeitpunkt der\n   Kenntnisnahme** eintragen. Dieser Zeitpunkt setzt alle drei Fristen — nicht das Meldedatum.\n3. Meldeinhalt je Phase erfassen und die Phase nach Übermittlung als *abgegeben* markieren.\n4. Über **Meldung exportieren (JSON)** die Daten für die Einreichung herausziehen.\n\n## Fristenwarnungen\n\nBei konfiguriertem SMTP-Versand prüft das System alle 15 Minuten und warnt einmalig je Vorfall und\nPhase: 4 Stunden vor der 24-Stunden-Frist, 12 Stunden vor der 72-Stunden-Frist und 72 Stunden vor\nder Monatsfrist. Empfänger sind die Träger der CISO-Funktion, ersatzweise die Eskalationsadresse.\n\nOhne SMTP-Konfiguration bleiben die Fristen in der Oberfläche und auf dem Dashboard sichtbar, es\nwird lediglich nichts aktiv zugestellt.",
+    "pinOrder": 4,
+    "minRole": null,
+    "createdAt": "2026-07-27T07:04:15.114Z",
+    "updatedAt": "2026-07-27T07:04:15.114Z",
+    "deletedAt": null,
+    "deletedBy": null,
+    "createdBy": "system",
+    "linkedControls": [],
+    "linkedPolicies": []
   }
 ]

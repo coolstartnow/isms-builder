@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# © 2026 Claude Hecker — ISMS Builder — AGPL-3.0
+#
+# pre-push — führt vor jedem Push genau die Prüfungen aus, an denen die CI
+# hart scheitert (npm test, pdf-parse-Pinning, npm audit --audit-level=high).
+#
+# Hintergrund: Erforderliche Status-Checks können einen direkten Push auf einen
+# geschützten Branch nicht absichern — der Commit existiert vorher noch gar
+# nicht. Dieser Hook zieht das Tor deshalb nach vorn, auf den lokalen Rechner.
+#
+# Aktivieren (einmalig, pro Arbeitskopie):
+#   git config core.hooksPath .githooks
+#
+# Deaktivieren:
+#   git config --unset core.hooksPath
+#
+# Einzelnen Push bewusst durchlassen:
+#   git push --no-verify
+
+set -u
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT" || exit 1
+
+# Reine Lösch-Pushes (git push --delete) brauchen keine Prüfung
+ALL_DELETES=1
+HAS_REF=0
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  HAS_REF=1
+  [ "$local_sha" = "0000000000000000000000000000000000000000" ] || ALL_DELETES=0
+done
+if [ "$HAS_REF" -eq 1 ] && [ "$ALL_DELETES" -eq 1 ]; then
+  echo "pre-push: nur Löschungen — Prüfung übersprungen"
+  exit 0
+fi
+
+if [ ! -d node_modules ]; then
+  echo "pre-push: node_modules fehlt — bitte 'npm ci' ausführen" >&2
+  exit 1
+fi
+
+echo "pre-push: führe die harten CI-Prüfungen aus (npm run preflight) …"
+echo
+
+if npm run --silent preflight; then
+  echo
+  echo "pre-push: alle CI-Tore grün — Push wird ausgeführt"
+  exit 0
+fi
+
+cat >&2 <<'MSG'
+
+──────────────────────────────────────────────────────────────
+  Push abgebrochen: mindestens eine Prüfung ist rot.
+
+  Genau daran scheitert auch die CI. Bitte zuerst beheben —
+  ein Push würde 'main' rot hinterlassen.
+
+  Bewusst trotzdem pushen:  git push --no-verify
+──────────────────────────────────────────────────────────────
+MSG
+exit 1

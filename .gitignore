@@ -15,6 +15,7 @@ internal_audit_report_rules.md
 gh-token.md
 current_conversation.md
 resume.sh
+ARBEITSPAKET_NIS2_ART21_ART23.md
 
 # Internal-only scripts — personal infra/workflow, not for public repo
 scripts/setup-server.sh
@@ -53,6 +54,8 @@ data/soa.full.json
 
 # Sensitive runtime data (generated, not needed for demo)
 data/audit-log.json
+# NIS2-Bearbeitungsstand — wird beim ersten Speichern angelegt, Katalog steht im Code
+data/nis2-governance.json
 data/embeddings.json
 data/rbac_users.json.bak*
 data/.demo_reset_done

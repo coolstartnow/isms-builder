@@ -5,7 +5,7 @@
 **Self-hosted Information Security Management System — open source, no cloud required**
 
 [![CI](https://github.com/coolstartnow/isms-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/coolstartnow/isms-builder/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-192%20passing-brightgreen)](https://github.com/coolstartnow/isms-builder/actions)
+[![Tests](https://img.shields.io/badge/tests-322%20passing-brightgreen)](https://github.com/coolstartnow/isms-builder/actions)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Version](docs/badges/version.svg)](CHANGELOG.md)
@@ -241,7 +241,8 @@ See [`docs/architecture/`](docs/architecture/) for C4 diagrams, full data model,
 > relation to any production or demo data.
 
 ```bash
-npm test                  # runs all 265 tests
+npm test                  # runs all 322 tests
+npm run preflight         # exactly what CI gates on (tests + pinning + audit)
 npm test -- --verbose     # with test names
 ```
 
@@ -277,6 +278,8 @@ Contributions are very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 | ✅ Done | Policy Acknowledgement — staff confirm policies digitally with audit trail (V 1.35.0) |
 | ✅ Done | Guidance CRUD — create, edit and upload own documentation (V 1.35.0) |
 | ✅ Done | Guidance Search — cross-category full-text search with excerpt (V 1.35.0) |
+| ✅ Done | Asset protection goals — CIA + authenticity (1–4), dependencies and BSI maximum-principle inheritance (V 1.36.0) |
+| ✅ Done | NIS2 Art. 21 governance checklist (30 items) and Art. 23 reporting deadlines with automatic alerts (V 1.37.0) |
 | 🔜 Next | AI Policy Assistant — Ollama drafts policy content from title + framework |
 | 🔜 Next | Scheduled Reports — weekly/monthly compliance report delivered by email |
 | 🔜 Next | PostgreSQL backend |
