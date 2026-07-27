@@ -93,6 +93,12 @@
       margin-top: 24px; font-size: 12px; color: var(--subtle); text-align: center;
     }
 
+    .license-notice {
+      margin-top: 8px; font-size: 11px; color: var(--subtle); text-align: center;
+    }
+    .license-notice a { color: var(--subtle); text-decoration: underline; }
+    .license-notice a:hover { color: var(--text-inv); }
+
     /* ── Demo-Reset-Banner ── */
     .dev-warning-banner {
       display: none; width: 360px; max-width: 95vw;
@@ -385,6 +391,10 @@
 
   <div class="login-footer" data-i18n="loginFooter">
     ISMS Builder · ISO 27001 · BSI · NIS2 · EUCS · EU AI Act
+  </div>
+  <div class="license-notice">
+    <span data-i18n="licenseNotice">© Claude Hecker · Open Source (AGPL-3.0)</span>
+    · <a href="https://github.com/coolstartnow/isms-builder" target="_blank" rel="noopener" data-i18n="licenseSourceLink">Quellcode auf GitHub</a>
   </div>
 
   <!-- ── Incident-Melde-Modal ── -->

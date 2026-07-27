@@ -43,6 +43,7 @@ const SECTION_META = [
   { id:'suppliers',  labelKey:'nav_suppliers',  label:'Supply Chain',       icon:'ph-truck',               minRole:'contentowner', functions:['ciso','revision'] },
   { id:'bcm',        labelKey:'nav_bcm',        label:'Business Continuity',icon:'ph-heartbeat',           minRole:'contentowner', functions:['ciso','revision'] },
   { id:'governance', labelKey:'nav_governance', label:'Governance',         icon:'ph-chalkboard-teacher',  minRole:'contentowner', functions:['ciso','dso','revision','qmb'] },
+  { id:'nis2',       labelKey:'nav_nis2',       label:'NIS2',               icon:'ph-shield-star',         minRole:'contentowner', functions:['ciso','revision'] },
   { id:'policy-acks', labelKey:'nav_policyAcks', label:'Policy Acknowledgements', icon:'ph-check-circle', minRole:'contentowner', functions:['ciso','revision','qmb'] },
   { id:'reports',    labelKey:'nav_reports',    label:'Reports',            icon:'ph-chart-line',          minRole:'contentowner', functions:['ciso','dso','revision','qmb'] },
   { id:'settings',   labelKey:'nav_settings',   label:'Settings',           icon:'ph-gear',                minRole:'contentowner', functions:['ciso','dso','revision','qmb'] },
@@ -2093,6 +2094,11 @@ function renderSectionContent(sectionId){
     listPanel.style.display = 'none'
     renderGovernance()
     return
+  } else if (sectionId === 'nis2') {
+    editorCard.style.display = 'none'
+    listPanel.style.display = 'none'
+    renderNis2()
+    return
   } else if (sectionId === 'bcm') {
     editorCard.style.display = 'none'
     listPanel.style.display = 'none'
@@ -2894,9 +2900,9 @@ async function renderDashboard() {
 
   container.innerHTML = '<div class="dashboard-loading">Loading Dashboard…</div>'
 
-  let data, soaSummary, riskSummary, gdprDash, trainSummary, legalSummary, calEvents, goalsSummary, assetSummary, govSummary, bcmSummary, supplierSummary, findingsSummary, reviewPending, ackSummary
+  let data, soaSummary, riskSummary, gdprDash, trainSummary, legalSummary, calEvents, goalsSummary, assetSummary, govSummary, bcmSummary, supplierSummary, findingsSummary, reviewPending, ackSummary, nis2Summary, nis2Deadlines
   try {
-    const [dashRes, soaRes, riskRes, gdprRes, trainRes, legalRes, calRes, goalsRes, assetRes, govRes, bcmRes, supplierRes, findRes, reviewRes, ackRes] = await Promise.all([
+    const [dashRes, soaRes, riskRes, gdprRes, trainRes, legalRes, calRes, goalsRes, assetRes, govRes, bcmRes, supplierRes, findRes, reviewRes, ackRes, nis2Res, nis2DlRes] = await Promise.all([
       fetch('/dashboard',                                                                       { headers: apiHeaders('reader') }),
       MODULE_CONFIG.soa        ? fetch('/soa/summary',          { headers: apiHeaders('reader') }) : Promise.resolve(null),
       MODULE_CONFIG.risk       ? fetch('/risks/summary',        { headers: apiHeaders('reader') }) : Promise.resolve(null),
@@ -2912,6 +2918,8 @@ async function renderDashboard() {
       fetch('/findings/summary',                                { headers: apiHeaders('reader') }),
       MODULE_CONFIG.risk       ? fetch('/risks/review-pending', { headers: apiHeaders('reader') }) : Promise.resolve(null),
       fetch('/distributions/summary',                           { headers: apiHeaders('reader') }),
+      fetch('/nis2/governance/summary',                         { headers: apiHeaders('reader') }),
+      fetch('/nis2/incidents/deadlines',                        { headers: apiHeaders('reader') }),
     ])
     if (!dashRes.ok) throw new Error('API error')
     data             = await dashRes.json()
@@ -2929,6 +2937,15 @@ async function renderDashboard() {
     findingsSummary  = findRes?.ok     ? await findRes.json()      : null
     reviewPending    = reviewRes?.ok   ? await reviewRes.json()    : []
     ackSummary       = ackRes?.ok      ? await ackRes.json()       : null
+    nis2Summary      = nis2Res?.ok     ? await nis2Res.json()      : null
+    // Fristenliste zu Kennzahlen verdichten (überschritten / läuft bald ab)
+    if (nis2DlRes?.ok) {
+      const rows = await nis2DlRes.json()
+      nis2Deadlines = {
+        overdue: rows.filter(r => r.overdue?.length).length,
+        dueSoon: rows.filter(r => r.dueSoon?.length).length,
+      }
+    }
   } catch (e) {
     if (container.isConnected)
       container.innerHTML = '<div class="dashboard-error">Dashboard konnte nicht geladen werden.</div>'
@@ -2969,6 +2986,14 @@ async function renderDashboard() {
       alerts.push({ color: '#f0b429', icon: 'ph-warning', text: `${assetSummary.endOfLifeSoon} asset(s) approaching end-of-life`, nav: 'assets' })
     if (MODULE_CONFIG.assets && assetSummary?.criticalUnclassified > 0)
       alerts.push({ color: '#fb923c', icon: 'ph-buildings', text: `${assetSummary.criticalUnclassified} critical/high assets without classification`, nav: 'assets' })
+    if (MODULE_CONFIG.assets && assetSummary?.protectionUnassessed > 0)
+      alerts.push({ color: '#fb923c', icon: 'ph-shield-star', text: `${assetSummary.protectionUnassessed} asset(s) without protection goal assessment`, nav: 'assets' })
+    if (nis2Deadlines?.overdue > 0)
+      alerts.push({ color: '#f87171', icon: 'ph-warning-octagon', text: `${nis2Deadlines.overdue} NIS2 Art. 23 reporting deadline(s) overdue`, nav: 'nis2' })
+    if (nis2Deadlines?.dueSoon > 0)
+      alerts.push({ color: '#f0b429', icon: 'ph-timer', text: `${nis2Deadlines.dueSoon} NIS2 Art. 23 reporting deadline(s) due soon`, nav: 'nis2' })
+    if (nis2Summary?.criticalOpen > 0)
+      alerts.push({ color: '#fb923c', icon: 'ph-shield-star', text: `${nis2Summary.criticalOpen} NIS2 Art. 21 CRITICAL item(s) open`, nav: 'nis2' })
     if (MODULE_CONFIG.governance && govSummary?.actions?.overdue > 0)
       alerts.push({ color: '#f87171', icon: 'ph-chalkboard-teacher', text: `${govSummary.actions.overdue} governance action(s) overdue`, nav: 'governance' })
     if (MODULE_CONFIG.governance && govSummary?.actions?.critical > 0)
@@ -11205,6 +11230,46 @@ function assetCritBadge(crit) {
   return `<span class="asset-badge" style="color:${c.color};border-color:${c.color}">${c.label}</span>`
 }
 
+// ── Schutzziele (CIA + Authentizität) — Issue #29 ─────────────
+// Vererbung folgt dem BSI-Maximumprinzip: ein Asset erbt den höchsten
+// Schutzbedarf aller Assets, die von ihm abhängen.
+
+const ASSET_PROT_LEVELS = {
+  1: { color: '#4ade80', get label() { return t('assets_lvl1') } },
+  2: { color: '#60a5fa', get label() { return t('assets_lvl2') } },
+  3: { color: '#f0b429', get label() { return t('assets_lvl3') } },
+  4: { color: '#f87171', get label() { return t('assets_lvl4') } },
+}
+
+const ASSET_PROT_GOALS = [
+  { key: 'c',    letter: 'C',  i18n: 'assets_protC'    },
+  { key: 'i',    letter: 'I',  i18n: 'assets_protI'    },
+  { key: 'a',    letter: 'A',  i18n: 'assets_protA'    },
+  { key: 'auth', letter: 'Au', i18n: 'assets_protAuth' },
+]
+
+function protLevelColor(v) { return ASSET_PROT_LEVELS[v]?.color || '#8C9BAB' }
+
+/** Kompakte Schutzziel-Chips für Tabellen; geerbte Werte gestrichelt + Pfeil. */
+function assetProtChips(a, nameById) {
+  const eff = a.effectiveProtection || a.protection || {}
+  const own = a.protection || {}
+  const org = a.protectionOrigins || {}
+
+  const chips = ASSET_PROT_GOALS.map(g => {
+    const v = eff[g.key]
+    if (v === null || v === undefined) return ''    // Authentizität: nicht bewertet
+    const inherited = org[g.key] && org[g.key] !== a.id
+    const srcName   = inherited ? (nameById?.[org[g.key]] || org[g.key]) : ''
+    const title = inherited
+      ? `${t(g.i18n)}: ${ASSET_PROT_LEVELS[v].label} — ${t('assets_inheritedFrom')} ${srcName} (${t('assets_ownValue')}: ${own[g.key] ?? '—'})`
+      : `${t(g.i18n)}: ${ASSET_PROT_LEVELS[v].label}`
+    return `<span class="asset-prot-chip${inherited ? ' inherited' : ''}" style="color:${protLevelColor(v)}" title="${escHtml(title)}">${g.letter}${v}${inherited ? '<i class="ph ph-arrow-fat-line-up"></i>' : ''}</span>`
+  }).filter(Boolean).join('')
+
+  return chips ? `<span class="asset-prot-chips">${chips}</span>` : '<span class="asset-prot-none">—</span>'
+}
+
 async function renderAssets() {
   dom('assetsContainer')?.remove()
   const main = document.querySelector('main') || document.body
@@ -11217,6 +11282,7 @@ async function renderAssets() {
     { id: 'list',           get label() { return t('assets_tabAll') },     icon: 'ph-list' },
     { id: 'by-category',    get label() { return t('assets_tabByCat') },   icon: 'ph-squares-four' },
     { id: 'by-class',       get label() { return t('assets_tabByClass') }, icon: 'ph-shield-check' },
+    { id: 'dependencies',   get label() { return t('assets_tabDeps') },    icon: 'ph-graph' },
   ]
 
   container.innerHTML = `
@@ -11246,9 +11312,10 @@ async function switchAssetsTab(tab) {
   if (!el) return
   el.innerHTML = '<p style="color:var(--text-subtle);padding:24px">Loading…</p>'
   try {
-    if (tab === 'list')        await renderAssetsList(el)
-    if (tab === 'by-category') await renderAssetsByCategory(el)
-    if (tab === 'by-class')    await renderAssetsByClass(el)
+    if (tab === 'list')         await renderAssetsList(el)
+    if (tab === 'by-category')  await renderAssetsByCategory(el)
+    if (tab === 'by-class')     await renderAssetsByClass(el)
+    if (tab === 'dependencies') await renderAssetsGraph(el)
   } catch(e) {
     el.innerHTML = `<p style="color:var(--danger-text);padding:24px"><i class="ph ph-warning"></i> Error: ${e.message}</p>`
   }
@@ -11270,6 +11337,7 @@ async function renderAssetsList(el) {
   entities.forEach(e => { entMap[e.id] = e.name })
 
   let list = Array.isArray(rawList) ? rawList : []
+  _cacheAssetNames(list)
 
   el.innerHTML = `
     <div class="asset-filter-bar">
@@ -11290,12 +11358,26 @@ async function renderAssetsList(el) {
         <option value="">${t('filter_allStatuses')}</option>
         ${Object.entries(ASSET_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
       </select>
+      <select id="assetFilterProtGoal" onchange="_filterAssets()" title="${escHtml(t('assets_protection'))}">
+        ${ASSET_PROT_GOALS.map(g=>`<option value="${g.key}">${escHtml(t(g.i18n))}</option>`).join('')}
+      </select>
+      <select id="assetFilterProtMin" onchange="_filterAssets()" title="${escHtml(t('assets_effective'))}">
+        <option value="">${escHtml(t('assets_lvlNone'))}</option>
+        ${[1,2,3,4].map(v=>`<option value="${v}">≥ ${v}</option>`).join('')}
+      </select>
       <input id="assetSearch" placeholder="Search…" oninput="_filterAssets()" style="flex:1;min-width:140px">
     </div>
     <div id="assetsTableWrap"></div>
   `
 
   _renderAssetsTable(list, canEdit, isAdmin, entMap)
+}
+
+// Namen aller je geladenen Assets, damit Vererbungsquellen benannt werden können
+// (die Quelle kann durch einen aktiven Filter aus der Liste gefallen sein).
+const _assetNames = {}
+function _cacheAssetNames(list) {
+  for (const a of (list || [])) { if (a && a.id) _assetNames[a.id] = a.name || a.id }
 }
 
 function _renderAssetsTable(list, canEdit, isAdmin, entMap) {
@@ -11306,7 +11388,7 @@ function _renderAssetsTable(list, canEdit, isAdmin, entMap) {
   el.innerHTML = `
     <table class="asset-table">
       <thead><tr>
-        <th>Name</th><th>Type</th><th>Classification</th><th>Criticality</th><th>Owner</th><th>Status</th><th>EoL</th>${canEdit?'<th></th>':''}
+        <th>Name</th><th>Type</th><th title="${escHtml(t('assets_inheritHint'))}">${escHtml(t('assets_protection'))}</th><th>Classification</th><th>Criticality</th><th>Owner</th><th>Status</th><th>EoL</th>${canEdit?'<th></th>':''}
       </tr></thead>
       <tbody>
         ${list.map(a => {
@@ -11315,6 +11397,7 @@ function _renderAssetsTable(list, canEdit, isAdmin, entMap) {
           return `<tr>
             <td><strong>${escHtml(a.name)}</strong><br><span style="font-size:.75rem;color:var(--text-subtle)">${escHtml(ASSET_CAT_LABELS[a.category]||a.category)}</span></td>
             <td style="font-size:.78rem;color:var(--text-subtle)">${escHtml(ASSET_TYPES_MAP[a.type]||a.type||'—')}</td>
+            <td>${assetProtChips(a, _assetNames)}</td>
             <td>${assetClassBadge(a.classification)}</td>
             <td>${assetCritBadge(a.criticality)}</td>
             <td style="font-size:.78rem">${escHtml(a.owner||'—')}</td>
@@ -11337,18 +11420,23 @@ async function _filterAssets() {
   const crit   = dom('assetFilterCrit')?.value   || ''
   const status = dom('assetFilterStatus')?.value || ''
   const search = (dom('assetSearch')?.value || '').toLowerCase()
+  const protGoal = dom('assetFilterProtGoal')?.value || 'c'
+  const protMin  = dom('assetFilterProtMin')?.value  || ''
 
   const params = new URLSearchParams()
   if (cat)    params.set('category', cat)
   if (cls)    params.set('classification', cls)
   if (crit)   params.set('criticality', crit)
   if (status) params.set('status', status)
+  // Filter auf den effektiven (vererbten) Schutzbedarf
+  if (protMin) params.set({ c: 'minC', i: 'minI', a: 'minA', auth: 'minAuth' }[protGoal] || 'minC', protMin)
 
   const [listRes, entRes] = await Promise.all([
     fetch(`/assets?${params}`, { headers: apiHeaders() }),
     fetch('/entities', { headers: apiHeaders() }),
   ])
   let list = listRes.ok ? await listRes.json() : []
+  _cacheAssetNames(list)
   const entities = entRes.ok ? (await entRes.json()) : []
   const entMap = {}
   entities.forEach(e => { entMap[e.id] = e.name })
@@ -11459,6 +11547,112 @@ async function renderAssetsByClass(el) {
   el.innerHTML = kpiHtml + tableHtml
 }
 
+// Im Formular ausgewählte Abhängigkeiten (IDs)
+let _assetFormDeps = new Set()
+
+// Klassifizierung (Altfeld) und Vertraulichkeit sind dasselbe Merkmal in zwei
+// Skalen — im Formular werden beide Felder gekoppelt, damit sie nicht auseinanderlaufen.
+const ASSET_CLASS_TO_LEVEL = { public: 1, internal: 2, confidential: 3, strictly_confidential: 4 }
+const ASSET_LEVEL_TO_CLASS = { 1: 'public', 2: 'internal', 3: 'confidential', 4: 'strictly_confidential' }
+
+function _syncAssetConfidentiality(source) {
+  const clsEl = dom('asClass')
+  const cEl   = dom('asProt_c')
+  if (!clsEl || !cEl) return
+  if (source === 'class') cEl.value   = String(ASSET_CLASS_TO_LEVEL[clsEl.value] || 2)
+  else                    clsEl.value = ASSET_LEVEL_TO_CLASS[Number(cEl.value)] || 'internal'
+}
+
+/** Eingabefelder für die vier Schutzziele inkl. Hinweis auf geerbte Werte. */
+function _assetProtFields(item) {
+  const own = item?.protection          || {}
+  const eff = item?.effectiveProtection || {}
+  const org = item?.protectionOrigins   || {}
+  const defaults = { c: 2, i: 2, a: 2, auth: null }
+
+  return ASSET_PROT_GOALS.map(g => {
+    const optional = g.key === 'auth'
+    const cur = own[g.key] !== undefined ? own[g.key] : defaults[g.key]
+
+    const opts = (optional ? `<option value=""${cur == null ? ' selected' : ''}>${escHtml(t('assets_lvlNone'))}</option>` : '')
+      + [1, 2, 3, 4].map(v =>
+          `<option value="${v}"${cur === v ? ' selected' : ''}>${escHtml(ASSET_PROT_LEVELS[v].label)}</option>`
+        ).join('')
+
+    const src = (item && org[g.key] && org[g.key] !== item.id) ? org[g.key] : null
+    let hint = ''
+    if (src) {
+      hint = `<span class="apf-inherit"><i class="ph ph-arrow-fat-line-up"></i> ${escHtml(t('assets_effective'))}:
+        <strong style="color:${protLevelColor(eff[g.key])}">${eff[g.key]}</strong>
+        — ${escHtml(t('assets_inheritedFrom'))} ${escHtml(_assetNames[src] || src)}</span>`
+    } else if (optional) {
+      hint = `<span class="apf-inherit">${escHtml(t('assets_protAuthHint'))}</span>`
+    }
+
+    return `<div class="asset-prot-field">
+      <div class="apf-head">
+        <span class="apf-label">${escHtml(t(g.i18n))}</span>
+        <span class="apf-letter">${g.letter}</span>
+      </div>
+      <select id="asProt_${g.key}" class="select"${g.key === 'c' ? ' onchange="_syncAssetConfidentiality(\'level\')"' : ''}>${opts}</select>
+      ${hint}
+    </div>`
+  }).join('')
+}
+
+/** Checkbox-Liste aller anderen Assets als Abhängigkeits-Auswahl. */
+function _assetDepPicker(list) {
+  if (!list.length) {
+    return `<div class="asset-dep-picker"><div class="asset-dep-empty">${escHtml(t('assets_noDeps'))}</div></div>`
+  }
+  const items = list
+    .slice()
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    .map(a => `<label class="asset-dep-item" data-name="${escHtml((a.name || '').toLowerCase())}">
+        <input type="checkbox" value="${a.id}"${_assetFormDeps.has(a.id) ? ' checked' : ''} onchange="_toggleAssetDep('${a.id}')">
+        <span>${escHtml(a.name || a.id)}</span>
+        <span class="adi-meta">${escHtml(ASSET_CAT_LABELS[a.category] || a.category || '')}</span>
+      </label>`).join('')
+
+  return `<div class="asset-dep-picker">
+    <input id="asDepSearch" class="asset-dep-search" placeholder="Search…" oninput="_filterAssetDepList()">
+    <div id="asDepList" class="asset-dep-list">${items}</div>
+  </div>`
+}
+
+function _toggleAssetDep(assetId) {
+  if (_assetFormDeps.has(assetId)) _assetFormDeps.delete(assetId)
+  else _assetFormDeps.add(assetId)
+  _renderAssetDepTags()
+}
+
+function _removeAssetDep(assetId) {
+  _assetFormDeps.delete(assetId)
+  const cb = document.querySelector(`#asDepList input[value="${assetId}"]`)
+  if (cb) cb.checked = false
+  _renderAssetDepTags()
+}
+
+function _renderAssetDepTags() {
+  const el = dom('asDepTags')
+  if (!el) return
+  if (!_assetFormDeps.size) {
+    el.innerHTML = `<span class="asset-prot-none">${escHtml(t('assets_noDeps'))}</span>`
+    return
+  }
+  el.innerHTML = [..._assetFormDeps].map(depId => `<span class="asset-dep-tag">
+      ${escHtml(_assetNames[depId] || depId)}
+      <button type="button" title="Remove" onclick="_removeAssetDep('${depId}')">&times;</button>
+    </span>`).join('')
+}
+
+function _filterAssetDepList() {
+  const q = (dom('asDepSearch')?.value || '').toLowerCase()
+  document.querySelectorAll('#asDepList .asset-dep-item').forEach(row => {
+    row.style.display = !q || (row.dataset.name || '').includes(q) ? '' : 'none'
+  })
+}
+
 async function openAssetForm(id) {
   const isEdit = !!id
   let item = null
@@ -11472,6 +11666,15 @@ async function openAssetForm(id) {
     const er = await fetch('/entities', { headers: apiHeaders() })
     if (er.ok) entities = await er.json()
   } catch {}
+
+  // Kandidaten für Abhängigkeiten: alle Assets außer diesem selbst
+  let allAssets = []
+  try {
+    const ar = await fetch('/assets', { headers: apiHeaders() })
+    if (ar.ok) allAssets = (await ar.json()).filter(a => a.id !== id)
+  } catch {}
+  _cacheAssetNames(allAssets)
+  _assetFormDeps = new Set(item?.dependsOn || [])
 
   const el = dom('assetsTabContent')
   if (!el) return
@@ -11553,13 +11756,31 @@ async function openAssetForm(id) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Classification</label>
-              <select id="asClass" class="select">${classOptions}</select>
+              <select id="asClass" class="select" onchange="_syncAssetConfidentiality('class')">${classOptions}</select>
             </div>
             <div class="form-group">
               <label class="form-label">Criticality</label>
               <select id="asCrit" class="select">${critOptions}</select>
             </div>
           </div>
+        </div>
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title">
+            <i class="ph ph-shield-star"></i> ${escHtml(t('assets_protection'))}
+            <span style="font-size:.75rem;color:var(--text-subtle);font-weight:400">(ISO 27001 / BSI IT-Grundschutz)</span>
+          </h4>
+          <p class="asset-prot-hint">${escHtml(t('assets_inheritHint'))}</p>
+          <div class="asset-prot-grid">
+            ${_assetProtFields(item)}
+          </div>
+        </div>
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-graph"></i> ${escHtml(t('assets_dependsOn'))}</h4>
+          <p class="asset-prot-hint">${escHtml(t('assets_selectDeps'))}</p>
+          ${_assetDepPicker(allAssets)}
+          <div id="asDepTags" class="asset-dep-selected"></div>
         </div>
 
         <div class="training-form-section">
@@ -11644,6 +11865,7 @@ async function openAssetForm(id) {
     </div>
   `
   initLinkPickers('as')
+  _renderAssetDepTags()
 }
 
 async function saveAsset(id) {
@@ -11672,6 +11894,13 @@ async function saveAsset(id) {
     notes:          dom('asNotes')?.value             || '',
     linkedControls: getLinkedValues('as', 'ctrl'),
     linkedPolicies: getLinkedValues('as', 'pol'),
+    protection: {
+      c:    dom('asProt_c')?.value    || null,
+      i:    dom('asProt_i')?.value    || null,
+      a:    dom('asProt_a')?.value    || null,
+      auth: dom('asProt_auth')?.value || null,
+    },
+    dependsOn: [..._assetFormDeps],
   }
   if (!payload.name) { alert('Name is required'); return }
   const url    = id ? `/assets/${id}` : '/assets'
@@ -11686,6 +11915,839 @@ async function deleteAsset(id) {
   const res = await fetch(`/assets/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
   switchAssetsTab(_assetsTab)
+}
+
+// ── Abhängigkeits- und Vererbungsgraph (Canvas) ───────────────
+// Ebenen ergeben sich aus der Abhängigkeitsrichtung: Assets, von denen nichts
+// abhängt (typisch Anwendungen), stehen oben; Infrastruktur wandert nach unten.
+// Vererbung fließt entlang der Pfeile von oben nach unten.
+
+const AG_NODE_W = 200, AG_NODE_H = 58, AG_GAP_X = 26, AG_GAP_Y = 78, AG_PAD = 28
+
+let _assetGraphState = null
+
+function _layoutAssetGraph(nodes, edges) {
+  const byId  = new Map(nodes.map(n => [n.id, n]))
+  const layer = new Map()
+  const busy  = new Set()
+
+  function calcLayer(id) {
+    if (layer.has(id)) return layer.get(id)
+    if (busy.has(id)) return 0                    // Zyklenschutz bei Altdaten
+    busy.add(id)
+    const node    = byId.get(id)
+    const parents = (node.requiredBy || []).filter(p => byId.has(p))
+    const value   = parents.length ? Math.max(...parents.map(calcLayer)) + 1 : 0
+    busy.delete(id)
+    layer.set(id, value)
+    return value
+  }
+  nodes.forEach(n => calcLayer(n.id))
+
+  const rows = []
+  for (const node of nodes) {
+    const l = layer.get(node.id) || 0
+    ;(rows[l] = rows[l] || []).push(node)
+  }
+  rows.forEach(row => row.sort((a, b) => (a.name || '').localeCompare(b.name || '')))
+
+  const widest = Math.max(1, ...rows.map(r => r.length))
+  const width  = AG_PAD * 2 + widest * AG_NODE_W + (widest - 1) * AG_GAP_X
+  const height = AG_PAD * 2 + rows.length * AG_NODE_H + Math.max(0, rows.length - 1) * AG_GAP_Y
+
+  const placed = new Map()
+  rows.forEach((row, li) => {
+    const rowWidth = row.length * AG_NODE_W + (row.length - 1) * AG_GAP_X
+    const startX   = (width - rowWidth) / 2
+    row.forEach((node, ci) => {
+      placed.set(node.id, {
+        node,
+        x: startX + ci * (AG_NODE_W + AG_GAP_X),
+        y: AG_PAD + li * (AG_NODE_H + AG_GAP_Y),
+        w: AG_NODE_W, h: AG_NODE_H,
+      })
+    })
+  })
+
+  return { placed, width, height, edges: edges.filter(e => placed.has(e.from) && placed.has(e.to)) }
+}
+
+function _agTheme() {
+  const cs = getComputedStyle(document.documentElement)
+  const pick = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback
+  return {
+    text:   pick('--text', '#e6edf3'),
+    subtle: pick('--text-subtle', '#8C9BAB'),
+    border: pick('--border', '#30363d'),
+    panel:  pick('--surface', '#161b22'),
+  }
+}
+
+function _drawAssetGraph(canvas, layout, selectedId) {
+  const theme = _agTheme()
+  const dpr   = window.devicePixelRatio || 1
+  canvas.width        = Math.round(layout.width  * dpr)
+  canvas.height       = Math.round(layout.height * dpr)
+  canvas.style.width  = layout.width  + 'px'
+  canvas.style.height = layout.height + 'px'
+
+  const ctx = canvas.getContext('2d')
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, layout.width, layout.height)
+
+  // Kanten: vom abhängigen Asset (oben) zur Abhängigkeit (unten)
+  for (const edge of layout.edges) {
+    const from = layout.placed.get(edge.from)
+    const to   = layout.placed.get(edge.to)
+    const x1 = from.x + from.w / 2, y1 = from.y + from.h
+    const x2 = to.x   + to.w   / 2, y2 = to.y
+    const active = selectedId && (edge.from === selectedId || edge.to === selectedId)
+
+    ctx.save()
+    ctx.strokeStyle = active ? '#60a5fa' : theme.border
+    ctx.lineWidth   = active ? 2 : 1.2
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.bezierCurveTo(x1, y1 + AG_GAP_Y * 0.5, x2, y2 - AG_GAP_Y * 0.5, x2, y2)
+    ctx.stroke()
+
+    // Pfeilspitze in Vererbungsrichtung (nach unten)
+    const size = 6
+    ctx.fillStyle = active ? '#60a5fa' : theme.border
+    ctx.beginPath()
+    ctx.moveTo(x2, y2)
+    ctx.lineTo(x2 - size, y2 - size * 1.6)
+    ctx.lineTo(x2 + size, y2 - size * 1.6)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+  }
+
+  // Knoten
+  for (const { node, x, y, w, h } of layout.placed.values()) {
+    const selected = node.id === selectedId
+    ctx.save()
+    ctx.beginPath()
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, 8)
+    else ctx.rect(x, y, w, h)
+    ctx.fillStyle = theme.panel
+    ctx.fill()
+    ctx.lineWidth   = selected ? 2 : 1
+    ctx.strokeStyle = selected ? '#60a5fa' : (node.inherited ? '#f0b429' : theme.border)
+    if (node.inherited && !selected) ctx.setLineDash([4, 3])
+    ctx.stroke()
+    ctx.setLineDash([])
+
+    // Name (bei Bedarf gekürzt)
+    ctx.fillStyle = theme.text
+    ctx.font = '600 12.5px system-ui, sans-serif'
+    let label = node.name || node.id
+    const maxW = w - 20
+    if (ctx.measureText(label).width > maxW) {
+      while (label.length > 1 && ctx.measureText(label + '…').width > maxW) label = label.slice(0, -1)
+      label += '…'
+    }
+    ctx.fillText(label, x + 10, y + 21)
+
+    // Effektive Schutzziele als farbige Kürzel
+    ctx.font = '700 11px ui-monospace, monospace'
+    let cx = x + 10
+    for (const goal of ASSET_PROT_GOALS) {
+      const v = node.effectiveProtection?.[goal.key]
+      if (v === null || v === undefined) continue
+      const own       = node.protection?.[goal.key]
+      const inherited = node.protectionOrigins?.[goal.key] && node.protectionOrigins[goal.key] !== node.id
+      const text      = `${goal.letter}${v}${inherited ? '↑' : ''}`
+      ctx.fillStyle   = protLevelColor(v)
+      ctx.globalAlpha = inherited && own !== v ? 0.95 : 1
+      ctx.fillText(text, cx, y + 41)
+      cx += ctx.measureText(text).width + 9
+      ctx.globalAlpha = 1
+    }
+    ctx.restore()
+  }
+}
+
+function _assetGraphDetail(node, byId) {
+  if (!node) return ''
+  const rowsHtml = ASSET_PROT_GOALS.map(g => {
+    const eff = node.effectiveProtection?.[g.key]
+    if (eff === null || eff === undefined) return ''
+    const own = node.protection?.[g.key]
+    const src = node.protectionOrigins?.[g.key]
+    const inherited = src && src !== node.id
+    return `<div class="agd-row">
+      <span class="agd-key">${escHtml(t(g.i18n))}</span>
+      <span><strong style="color:${protLevelColor(eff)}">${eff}</strong>
+        ${inherited
+          ? `<span style="color:var(--text-subtle)"> — ${escHtml(t('assets_ownValue'))} ${own ?? '—'},
+             ${escHtml(t('assets_inheritedFrom'))} <strong>${escHtml(byId.get(src)?.name || src)}</strong></span>`
+          : ''}
+      </span>
+    </div>`
+  }).join('')
+
+  const nameList = ids => (ids || []).length
+    ? (ids || []).map(i => escHtml(byId.get(i)?.name || i)).join(', ')
+    : `<span style="color:var(--text-subtle)">—</span>`
+
+  return `<div class="asset-graph-detail">
+    <h4><i class="ph ph-buildings"></i> ${escHtml(node.name || node.id)}</h4>
+    ${rowsHtml}
+    <div class="agd-row"><span class="agd-key">${escHtml(t('assets_dependsOn'))}</span><span>${nameList(node.dependsOn)}</span></div>
+    <div class="agd-row"><span class="agd-key">${escHtml(t('assets_requiredBy'))}</span><span>${nameList(node.requiredBy)}</span></div>
+  </div>`
+}
+
+function _selectAssetGraphNode(id) {
+  if (!_assetGraphState) return
+  _assetGraphState.selected = _assetGraphState.selected === id ? null : id
+  const { canvas, layout, byId, selected } = _assetGraphState
+  _drawAssetGraph(canvas, layout, selected)
+  const detail = dom('assetGraphDetail')
+  if (detail) detail.innerHTML = selected ? _assetGraphDetail(byId.get(selected), byId) : ''
+}
+
+async function renderAssetsGraph(el) {
+  const res = await fetch('/assets/graph', { headers: apiHeaders() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const graph = await res.json()
+  _cacheAssetNames(graph.nodes)
+
+  // Nur Assets zeigen, die tatsächlich in Beziehungen stehen — isolierte Assets
+  // würden den Graphen fluten, ohne Aussage zu liefern.
+  const connected = graph.nodes.filter(n => (n.dependsOn || []).length || (n.requiredBy || []).length)
+  const isolated  = graph.nodes.length - connected.length
+
+  const summary = `
+    <div class="asset-summary-grid">
+      <div class="asset-summary-card">
+        <div class="assc-value">${connected.length}</div>
+        <div class="assc-label">${escHtml(t('assets_tabDeps'))}</div>
+      </div>
+      <div class="asset-summary-card">
+        <div class="assc-value">${graph.edges.length}</div>
+        <div class="assc-label">Relations</div>
+      </div>
+      <div class="asset-summary-card">
+        <div class="assc-value" style="color:#f0b429">${graph.nodes.filter(n => n.inherited).length}</div>
+        <div class="assc-label">${escHtml(t('assets_inheritedCount'))}</div>
+      </div>
+      <div class="asset-summary-card">
+        <div class="assc-value" style="color:var(--text-subtle)">${isolated}</div>
+        <div class="assc-label">${escHtml(t('assets_noDeps'))}</div>
+      </div>
+    </div>`
+
+  if (!connected.length) {
+    el.innerHTML = summary + `<p class="asset-prot-hint" style="padding:16px">${escHtml(t('assets_graphEmpty'))}</p>`
+    return
+  }
+
+  const layout = _layoutAssetGraph(connected, graph.edges)
+
+  el.innerHTML = summary + `
+    <p class="asset-prot-hint">${escHtml(t('assets_inheritHint'))}</p>
+    <div class="asset-graph-wrap">
+      <canvas id="assetGraphCanvas"></canvas>
+      <div class="asset-graph-legend">
+        <span class="agl-item"><span class="agl-swatch" style="color:#f0b429"></span> ${escHtml(t('assets_inheritedCount'))}</span>
+        ${[1,2,3,4].map(v => `<span class="agl-item"><span class="agl-swatch" style="color:${protLevelColor(v)};background:${protLevelColor(v)}"></span> ${escHtml(ASSET_PROT_LEVELS[v].label)}</span>`).join('')}
+        <span class="agl-item" style="margin-left:auto"><i class="ph ph-arrow-down"></i> ${escHtml(t('assets_inheritedFrom'))} ↓</span>
+      </div>
+    </div>
+    <div id="assetGraphDetail"></div>`
+
+  const canvas = dom('assetGraphCanvas')
+  const byId   = new Map(connected.map(n => [n.id, n]))
+  _assetGraphState = { canvas, layout, byId, selected: null }
+  _drawAssetGraph(canvas, layout, null)
+
+  canvas.addEventListener('click', ev => {
+    const rect = canvas.getBoundingClientRect()
+    const px = ev.clientX - rect.left
+    const py = ev.clientY - rect.top
+    for (const { node, x, y, w, h } of layout.placed.values()) {
+      if (px >= x && px <= x + w && py >= y && py <= y + h) { _selectAssetGraphNode(node.id); return }
+    }
+    _selectAssetGraphNode(null)
+  })
+}
+
+// ════════════════════════════════════════════════════════════
+// NIS2 — Art. 21 Governance-Checkliste + Art. 23 Meldefristen
+// ════════════════════════════════════════════════════════════
+
+let _nis2Tab = 'governance'
+
+const NIS2_PRIO = {
+  CRITICAL: { color: '#f87171' },
+  HIGH:     { color: '#f0b429' },
+  MEDIUM:   { color: '#60a5fa' },
+}
+
+const NIS2_STATUS = {
+  open:        { color: '#8C9BAB', i18n: 'nis2_statusOpen'     },
+  in_progress: { color: '#60a5fa', i18n: 'nis2_statusProgress' },
+  completed:   { color: '#4ade80', i18n: 'nis2_statusDone'     },
+  na:          { color: '#6b7280', i18n: 'nis2_statusNa'       },
+}
+
+const NIS2_PHASE_STATE = {
+  pending:   { color: '#8C9BAB', icon: 'ph-clock',          i18n: 'nis2_statePending'   },
+  due_soon:  { color: '#f0b429', icon: 'ph-warning',        i18n: 'nis2_stateDueSoon'   },
+  overdue:   { color: '#f87171', icon: 'ph-warning-octagon',i18n: 'nis2_stateOverdue'   },
+  submitted: { color: '#4ade80', icon: 'ph-check-circle',   i18n: 'nis2_stateSubmitted' },
+}
+
+const NIS2_PHASE_I18N = {
+  earlyWarning: 'nis2_phaseEarly',
+  notification: 'nis2_phaseNotify',
+  finalReport:  'nis2_phaseFinal',
+}
+
+function nis2Badge(text, color) {
+  return `<span class="asset-badge" style="color:${color};border-color:${color}">${escHtml(text)}</span>`
+}
+
+function nis2StatusBadge(status) {
+  const s = NIS2_STATUS[status] || NIS2_STATUS.open
+  return nis2Badge(t(s.i18n), s.color)
+}
+
+function fmtDateTime(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString()
+}
+
+async function renderNis2() {
+  dom('nis2Container')?.remove()
+  const main = document.querySelector('main') || document.body
+  const container = document.createElement('div')
+  container.id = 'nis2Container'
+  container.className = 'training-container'
+  main.appendChild(container)
+
+  const tabs = [
+    { id: 'governance', get label() { return t('nis2_tabGovernance') }, icon: 'ph-list-checks' },
+    { id: 'deadlines',  get label() { return t('nis2_tabDeadlines')  }, icon: 'ph-timer' },
+  ]
+
+  container.innerHTML = `
+    <div class="training-header">
+      <h2 class="training-title"><i class="ph ph-shield-star"></i> NIS2</h2>
+      <div class="training-tab-bar">
+        ${tabs.map(tab => `<button class="training-tab${tab.id === _nis2Tab ? ' active' : ''}" data-tab="${tab.id}">
+          <i class="ph ${tab.icon}"></i> ${tab.label}
+        </button>`).join('')}
+      </div>
+    </div>
+    <div id="nis2TabContent" class="training-tab-content"></div>
+  `
+  container.querySelectorAll('.training-tab').forEach(btn => {
+    btn.addEventListener('click', () => switchNis2Tab(btn.dataset.tab))
+  })
+  switchNis2Tab(_nis2Tab)
+}
+
+async function switchNis2Tab(tab) {
+  _nis2Tab = tab
+  // Auch bei programmatischem Wechsel (z. B. "Back" aus einem Formular) muss
+  // die Tab-Leiste mitziehen, sonst bleibt die Markierung stehen.
+  document.querySelectorAll('#nis2Container .training-tab')
+    .forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
+
+  const el = dom('nis2TabContent')
+  if (!el) return
+  el.innerHTML = '<p style="color:var(--text-subtle);padding:24px">Loading…</p>'
+  try {
+    if (tab === 'governance') await renderNis2Governance(el)
+    if (tab === 'deadlines')  await renderNis2Deadlines(el)
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--danger-text);padding:24px"><i class="ph ph-warning"></i> Error: ${escHtml(e.message)}</p>`
+  }
+}
+
+// ── Art. 21 — Governance-Checkliste ───────────────────────────
+
+async function renderNis2Governance(el) {
+  const res = await fetch('/nis2/governance', { headers: apiHeaders() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const { items, summary } = await res.json()
+
+  const canEdit = (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.contentowner
+
+  el.innerHTML = `
+    <div class="asset-summary-grid">
+      <div class="asset-summary-card">
+        <div class="assc-value" style="color:#4ade80">${summary.completionPct}%</div>
+        <div class="assc-label">${escHtml(t('nis2_completion'))}</div>
+      </div>
+      <div class="asset-summary-card">
+        <div class="assc-value">${summary.completed} / ${summary.total}</div>
+        <div class="assc-label">${escHtml(t('nis2_statusDone'))}</div>
+      </div>
+      <div class="asset-summary-card">
+        <div class="assc-value" style="color:${summary.criticalOpen ? '#f87171' : '#4ade80'}">${summary.criticalOpen}</div>
+        <div class="assc-label">${escHtml(t('nis2_criticalOpen'))}</div>
+      </div>
+      <div class="asset-summary-card">
+        <div class="assc-value" style="color:${summary.unassigned ? '#f0b429' : '#4ade80'}">${summary.unassigned}</div>
+        <div class="assc-label">${escHtml(t('nis2_unassigned'))}</div>
+      </div>
+      <div class="asset-summary-card">
+        <div class="assc-value">${summary.withEvidence}</div>
+        <div class="assc-label">${escHtml(t('nis2_withEvidence'))}</div>
+      </div>
+    </div>
+
+    <p class="asset-prot-hint">${escHtml(t('nis2_art21Hint'))}</p>
+
+    <div class="asset-filter-bar">
+      <select id="nis2FilterPrio" onchange="_filterNis2()">
+        <option value="">${escHtml(t('nis2_allPriorities'))}</option>
+        ${Object.keys(NIS2_PRIO).map(p => `<option value="${p}">${p}</option>`).join('')}
+      </select>
+      <select id="nis2FilterStatus" onchange="_filterNis2()">
+        <option value="">${escHtml(t('nis2_allStatuses'))}</option>
+        ${Object.entries(NIS2_STATUS).map(([v, s]) => `<option value="${v}">${escHtml(t(s.i18n))}</option>`).join('')}
+      </select>
+      <select id="nis2FilterSub" onchange="_filterNis2()">
+        <option value="">${escHtml(t('nis2_allSubs'))}</option>
+        ${'abcdefghij'.split('').map(c => `<option value="${c}">${c})</option>`).join('')}
+      </select>
+      <input id="nis2Search" placeholder="Search…" oninput="_filterNis2()" style="flex:1;min-width:140px">
+    </div>
+    <div id="nis2TableWrap"></div>
+  `
+
+  _nis2AllItems = items
+  _renderNis2Table(items, canEdit)
+}
+
+let _nis2AllItems = []
+
+function _renderNis2Table(items, canEdit) {
+  const el = dom('nis2TableWrap')
+  if (!el) return
+  if (!items.length) {
+    el.innerHTML = '<p style="color:var(--text-subtle);padding:16px">No items found.</p>'
+    return
+  }
+
+  el.innerHTML = `
+    <table class="asset-table">
+      <thead><tr>
+        <th>#</th>
+        <th>${escHtml(t('nis2_subParagraph'))}</th>
+        <th>Priorität</th>
+        <th>Titel</th>
+        <th>Status</th>
+        <th>${escHtml(t('nis2_owner'))}</th>
+        <th>${escHtml(t('nis2_withEvidence'))}</th>
+        ${canEdit ? '<th></th>' : ''}
+      </tr></thead>
+      <tbody>
+        ${items.map(item => `<tr>
+          <td style="font-size:.75rem;color:var(--text-subtle)">${escHtml(item.id.replace('nis2_gov_', ''))}</td>
+          <td style="font-size:.78rem" title="${escHtml(item.subParagraphText)}">${escHtml(item.subParagraph)})</td>
+          <td>${nis2Badge(item.priority, NIS2_PRIO[item.priority]?.color || '#8C9BAB')}</td>
+          <td>
+            <strong>${escHtml(item.title)}</strong>
+            <br><span style="font-size:.74rem;color:var(--text-subtle)">${escHtml(item.category)}</span>
+          </td>
+          <td>${nis2StatusBadge(item.status)}</td>
+          <td style="font-size:.78rem">${escHtml(item.ownerEmail || '—')}</td>
+          <td style="font-size:.78rem">${item.evidenceUrls.length ? `<i class="ph ph-paperclip"></i> ${item.evidenceUrls.length}` : '—'}</td>
+          ${canEdit ? `<td>
+            <button class="btn btn-secondary btn-xs" onclick="openNis2ItemForm('${item.id}')">
+              <i class="ph ph-pencil"></i>
+            </button>
+          </td>` : ''}
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  `
+}
+
+function _filterNis2() {
+  const prio   = dom('nis2FilterPrio')?.value   || ''
+  const status = dom('nis2FilterStatus')?.value || ''
+  const sub    = dom('nis2FilterSub')?.value    || ''
+  const search = (dom('nis2Search')?.value || '').toLowerCase()
+
+  let list = _nis2AllItems
+  if (prio)   list = list.filter(i => i.priority     === prio)
+  if (status) list = list.filter(i => i.status       === status)
+  if (sub)    list = list.filter(i => i.subParagraph === sub)
+  if (search) list = list.filter(i =>
+    (i.title || '').toLowerCase().includes(search) ||
+    (i.description || '').toLowerCase().includes(search) ||
+    (i.category || '').toLowerCase().includes(search))
+
+  const canEdit = (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.contentowner
+  _renderNis2Table(list, canEdit)
+}
+
+/** Ganzseitiges Inline-Formular (kein Modal) für ein Checklisten-Item. */
+async function openNis2ItemForm(id) {
+  const res = await fetch(`/nis2/governance/${id}`, { headers: apiHeaders() })
+  if (!res.ok) return
+  const item = await res.json()
+
+  const el = dom('nis2TabContent')
+  if (!el) return
+
+  const statusOptions = Object.entries(NIS2_STATUS)
+    .map(([v, s]) => `<option value="${v}"${item.status === v ? ' selected' : ''}>${escHtml(t(s.i18n))}</option>`).join('')
+
+  el.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" onclick="switchNis2Tab('governance')">
+          <i class="ph ph-arrow-left"></i> Back
+        </button>
+        <h3 class="training-form-title">
+          <i class="ph ph-shield-star"></i> ${escHtml(item.title)}
+        </h3>
+      </div>
+      <div class="training-form-body">
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title">
+            <i class="ph ph-info"></i> Art. ${escHtml(item.article)} lit. ${escHtml(item.subParagraph)}
+            ${nis2Badge(item.priority, NIS2_PRIO[item.priority]?.color || '#8C9BAB')}
+          </h4>
+          <p style="font-size:.86rem;line-height:1.5">${escHtml(item.description)}</p>
+          <p style="font-size:.76rem;color:var(--text-subtle);margin-top:8px">
+            <strong>${escHtml(item.subParagraph)})</strong> ${escHtml(item.subParagraphText)}
+          </p>
+        </div>
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-check-square"></i> Status</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select id="nis2Status" class="select">${statusOptions}</select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">${escHtml(t('nis2_ownerEmail'))}</label>
+              <input id="nis2OwnerEmail" type="email" class="form-input"
+                     value="${escHtml(item.ownerEmail || '')}" placeholder="owner@company.com">
+            </div>
+          </div>
+          ${item.completedAt ? `<p style="font-size:.76rem;color:var(--text-subtle)">
+            <i class="ph ph-check-circle"></i> ${escHtml(t('nis2_statusDone'))}: ${escHtml(fmtDateTime(item.completedAt))}
+          </p>` : ''}
+        </div>
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-paperclip"></i> ${escHtml(t('nis2_evidence'))}</h4>
+          <div class="form-group">
+            <textarea id="nis2Evidence" class="form-input" rows="3"
+              placeholder="https://intranet/nachweis.pdf">${escHtml((item.evidenceUrls || []).join('\n'))}</textarea>
+          </div>
+        </div>
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-note-pencil"></i> ${escHtml(t('nis2_notes'))}</h4>
+          <div class="form-group">
+            <textarea id="nis2Notes" class="form-input" rows="4">${escHtml(item.notes || '')}</textarea>
+          </div>
+        </div>
+
+      </div>
+      <div class="training-form-footer">
+        <button class="btn btn-secondary" onclick="switchNis2Tab('governance')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveNis2Item('${item.id}')">
+          <i class="ph ph-floppy-disk"></i> Save
+        </button>
+      </div>
+    </div>
+  `
+}
+
+async function saveNis2Item(id) {
+  const payload = {
+    status:       dom('nis2Status')?.value || 'open',
+    ownerEmail:   dom('nis2OwnerEmail')?.value?.trim() || '',
+    notes:        dom('nis2Notes')?.value || '',
+    evidenceUrls: (dom('nis2Evidence')?.value || '').split('\n').map(s => s.trim()).filter(Boolean),
+  }
+  const res = await fetch(`/nis2/governance/${id}`, {
+    method: 'PUT',
+    headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}))
+    alert(e.error || 'Error saving')
+    return
+  }
+  switchNis2Tab('governance')
+}
+
+// ── Art. 23 — Meldefristen ────────────────────────────────────
+
+async function renderNis2Deadlines(el) {
+  const [dlRes, incRes] = await Promise.all([
+    fetch('/nis2/incidents/deadlines', { headers: apiHeaders() }),
+    fetch('/public/incidents', { headers: apiHeaders() }),
+  ])
+  if (!dlRes.ok) throw new Error(`HTTP ${dlRes.status}`)
+
+  const rows      = await dlRes.json()
+  const incidents = incRes.ok ? await incRes.json() : []
+  const canEdit   = (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.contentowner
+
+  const overdue = rows.filter(r => r.overdue.length).length
+  const dueSoon = rows.filter(r => r.dueSoon.length).length
+
+  // Vorfälle, für die noch keine Fristenverfolgung läuft
+  const tracked   = new Set(rows.map(r => r.id))
+  const untracked = incidents.filter(i => !tracked.has(i.id) && !i.art23)
+
+  const deadlineRows = rows.map(row => {
+    const phaseCells = row.phases.map(p => {
+      const st = NIS2_PHASE_STATE[p.state] || NIS2_PHASE_STATE.pending
+      const left = p.minutesLeft === null ? ''
+        : p.minutesLeft < 0
+          ? ` (−${Math.abs(Math.round(p.minutesLeft / 60))} h)`
+          : ` (${Math.round(p.minutesLeft / 60)} h)`
+      return `<div style="font-size:.78rem;padding:1px 0">
+        <i class="ph ${st.icon}" style="color:${st.color}"></i>
+        ${escHtml(t(NIS2_PHASE_I18N[p.phase]))} — ${escHtml(fmtDateTime(p.deadline))}${left}
+      </div>`
+    }).join('')
+
+    return `<tr>
+      <td><strong>${escHtml(row.refNumber || row.id)}</strong>
+        <br><span style="font-size:.74rem;color:var(--text-subtle)">${escHtml(row.entityName || '—')}</span></td>
+      <td>${phaseCells}</td>
+      <td>${row.overdue.length
+        ? nis2Badge(t('nis2_stateOverdue'), '#f87171')
+        : row.dueSoon.length ? nis2Badge(t('nis2_stateDueSoon'), '#f0b429') : nis2Badge(t('nis2_statePending'), '#8C9BAB')}</td>
+      <td>
+        <button class="btn btn-secondary btn-xs" onclick="openNis2IncidentForm('${row.id}')">
+          <i class="ph ph-arrow-right"></i> ${escHtml(t('nis2_details'))}
+        </button>
+      </td>
+    </tr>`
+  }).join('')
+
+  el.innerHTML = `
+    <div class="asset-summary-grid">
+      <div class="asset-summary-card">
+        <div class="assc-value">${rows.length}</div>
+        <div class="assc-label">${escHtml(t('nis2_tabDeadlines'))}</div>
+      </div>
+      <div class="asset-summary-card">
+        <div class="assc-value" style="color:${overdue ? '#f87171' : '#4ade80'}">${overdue}</div>
+        <div class="assc-label">${escHtml(t('nis2_stateOverdue'))}</div>
+      </div>
+      <div class="asset-summary-card">
+        <div class="assc-value" style="color:${dueSoon ? '#f0b429' : '#4ade80'}">${dueSoon}</div>
+        <div class="assc-label">${escHtml(t('nis2_stateDueSoon'))}</div>
+      </div>
+      <div class="asset-summary-card">
+        <div class="assc-value" style="color:var(--text-subtle)">${untracked.length}</div>
+        <div class="assc-label">${escHtml(t('nis2_startTracking'))}</div>
+      </div>
+    </div>
+
+    <p class="asset-prot-hint">${escHtml(t('nis2_art23Hint'))}</p>
+
+    ${rows.length ? `<table class="asset-table">
+      <thead><tr>
+        <th>Vorfall</th><th>${escHtml(t('nis2_deadline'))}</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody>${deadlineRows}</tbody>
+    </table>` : `<p class="asset-prot-hint" style="padding:16px">${escHtml(t('nis2_noDeadlines'))}</p>`}
+
+    ${untracked.length && canEdit ? `
+      <div class="asset-category-section" style="margin-top:24px">
+        <div class="asset-category-header">
+          <i class="ph ph-plus-circle"></i> ${escHtml(t('nis2_startTracking'))}
+        </div>
+        <table class="asset-table">
+          <tbody>
+            ${untracked.map(i => `<tr>
+              <td><strong>${escHtml(i.refNumber || i.id)}</strong>
+                <br><span style="font-size:.74rem;color:var(--text-subtle)">${escHtml(i.entityName || '—')}</span></td>
+              <td style="font-size:.78rem">${escHtml(fmtDateTime(i.createdAt))}</td>
+              <td><button class="btn btn-secondary btn-xs" onclick="openNis2IncidentForm('${i.id}')">
+                <i class="ph ph-timer"></i> ${escHtml(t('nis2_startTracking'))}
+              </button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : ''}
+    ${!incidents.length ? `<p class="asset-prot-hint" style="padding:16px">${escHtml(t('nis2_noIncidents'))}</p>` : ''}
+  `
+}
+
+/** Ganzseitige Inline-Ansicht der Meldefristen eines Vorfalls (kein Modal). */
+async function openNis2IncidentForm(id) {
+  const res = await fetch(`/nis2/incidents/${id}`, { headers: apiHeaders() })
+  if (!res.ok) return
+  const incident = await res.json()
+
+  const el = dom('nis2TabContent')
+  if (!el) return
+  const canEdit = (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.contentowner
+
+  // Noch keine Fristenverfolgung: nur den Startzeitpunkt abfragen
+  if (!incident.art23) {
+    const defaultWhen = (incident.createdAt || new Date().toISOString()).slice(0, 16)
+    el.innerHTML = `
+      <div class="training-form-page">
+        <div class="training-form-header">
+          <button class="btn btn-secondary btn-sm" onclick="switchNis2Tab('deadlines')">
+            <i class="ph ph-arrow-left"></i> Back
+          </button>
+          <h3 class="training-form-title">
+            <i class="ph ph-timer"></i> ${escHtml(incident.refNumber || incident.id)}
+          </h3>
+        </div>
+        <div class="training-form-body">
+          <div class="training-form-section">
+            <h4 class="training-form-section-title"><i class="ph ph-info"></i> ${escHtml(t('nis2_startTracking'))}</h4>
+            <p class="asset-prot-hint">${escHtml(t('nis2_art23Hint'))}</p>
+            <div class="form-group">
+              <label class="form-label">${escHtml(t('nis2_discoveredAt'))}</label>
+              <input id="nis2Discovered" type="datetime-local" class="form-input"
+                     value="${escHtml(defaultWhen)}" style="color-scheme:dark">
+            </div>
+          </div>
+        </div>
+        <div class="training-form-footer">
+          <button class="btn btn-secondary" onclick="switchNis2Tab('deadlines')">Cancel</button>
+          ${canEdit ? `<button class="btn btn-primary" onclick="startNis2Tracking('${incident.id}')">
+            <i class="ph ph-timer"></i> ${escHtml(t('nis2_startTracking'))}
+          </button>` : ''}
+        </div>
+      </div>`
+    return
+  }
+
+  const phasesHtml = incident.art23Status.phases.map(p => {
+    const st     = NIS2_PHASE_STATE[p.state] || NIS2_PHASE_STATE.pending
+    const report = incident.art23.reports?.[p.phase] || {}
+    const left   = p.minutesLeft === null ? ''
+      : p.minutesLeft < 0
+        ? ` — ${Math.abs(Math.round(p.minutesLeft / 60))} h ${t('nis2_stateOverdue').toLowerCase()}`
+        : ` — noch ${Math.round(p.minutesLeft / 60)} h`
+
+    return `<div class="training-form-section">
+      <h4 class="training-form-section-title">
+        <i class="ph ${st.icon}" style="color:${st.color}"></i>
+        ${escHtml(t(NIS2_PHASE_I18N[p.phase]))}
+        ${nis2Badge(t(st.i18n), st.color)}
+      </h4>
+      <p style="font-size:.8rem;color:var(--text-subtle);margin-bottom:10px">
+        ${escHtml(t('nis2_deadline'))}: <strong>${escHtml(fmtDateTime(p.deadline))}</strong>${escHtml(left)}
+        ${p.submittedAt ? `<br><i class="ph ph-check"></i> ${escHtml(t('nis2_stateSubmitted'))}: ${escHtml(fmtDateTime(p.submittedAt))}` : ''}
+      </p>
+      <div class="form-group">
+        <label class="form-label">${escHtml(t('nis2_reportContent'))}</label>
+        <textarea id="nis2Report_${p.phase}" class="form-input" rows="4"
+          ${canEdit ? '' : 'readonly'}>${escHtml(report.content || '')}</textarea>
+      </div>
+      ${canEdit ? `<div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="saveNis2Report('${incident.id}','${p.phase}')">
+          <i class="ph ph-floppy-disk"></i> ${escHtml(t('nis2_saveReport'))}
+        </button>
+        ${!p.submittedAt ? `<button class="btn btn-primary btn-sm" onclick="submitNis2Phase('${incident.id}','${p.phase}')">
+          <i class="ph ph-paper-plane-tilt"></i> ${escHtml(t('nis2_markSubmitted'))}
+        </button>` : ''}
+      </div>` : ''}
+    </div>`
+  }).join('')
+
+  el.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" onclick="switchNis2Tab('deadlines')">
+          <i class="ph ph-arrow-left"></i> Back
+        </button>
+        <h3 class="training-form-title">
+          <i class="ph ph-timer"></i> ${escHtml(incident.refNumber || incident.id)}
+          ${incident.entityName ? `<span style="font-size:.8rem;color:var(--text-subtle);font-weight:400">${escHtml(incident.entityName)}</span>` : ''}
+        </h3>
+      </div>
+      <div class="training-form-body">
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-info"></i> ${escHtml(t('nis2_discoveredAt'))}</h4>
+          <p style="font-size:.85rem">${escHtml(fmtDateTime(incident.art23.discoveredAt))}</p>
+          <p style="font-size:.82rem;color:var(--text-subtle);margin-top:6px">${escHtml(incident.description || '')}</p>
+        </div>
+        ${phasesHtml}
+      </div>
+      <div class="training-form-footer">
+        <button class="btn btn-secondary" onclick="switchNis2Tab('deadlines')">Back</button>
+        <button class="btn btn-primary" onclick="exportNis2Report('${incident.id}')">
+          <i class="ph ph-download-simple"></i> ${escHtml(t('nis2_exportReport'))}
+        </button>
+      </div>
+    </div>
+  `
+}
+
+async function startNis2Tracking(id) {
+  const raw = dom('nis2Discovered')?.value
+  const res = await fetch(`/nis2/incidents/${id}/init`, {
+    method: 'POST',
+    headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ discoveredAt: raw ? new Date(raw).toISOString() : undefined }),
+  })
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}))
+    alert(e.error || 'Error')
+    return
+  }
+  openNis2IncidentForm(id)
+}
+
+async function saveNis2Report(id, phase) {
+  const content = dom(`nis2Report_${phase}`)?.value || ''
+  const res = await fetch(`/nis2/incidents/${id}/report/${phase}`, {
+    method: 'PUT',
+    headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  })
+  if (!res.ok) { alert('Error'); return }
+  openNis2IncidentForm(id)
+}
+
+async function submitNis2Phase(id, phase) {
+  if (!confirm(`${t('nis2_markSubmitted')}?`)) return
+  const res = await fetch(`/nis2/incidents/${id}/phase/${phase}`, {
+    method: 'POST',
+    headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}))
+    alert(e.error || 'Error')
+    return
+  }
+  openNis2IncidentForm(id)
+}
+
+async function exportNis2Report(id) {
+  const res = await fetch(`/nis2/incidents/${id}/export`, { headers: apiHeaders() })
+  if (!res.ok) { alert('Error'); return }
+  const blob = await res.blob()
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url
+  a.download = `nis2-art23-${id}.json`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 // ════════════════════════════════════════════════════════════

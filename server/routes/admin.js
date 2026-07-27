@@ -407,6 +407,9 @@ router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, re
     if (fs.existsSync(DEMO_LANG_FILE)) try { fs.unlinkSync(DEMO_LANG_FILE) } catch {}
 
     // Auf SQLite-Backend umstellen (falls noch nicht gesetzt)
+    // Bewusste Ausnahme von der aktuellen Default-Empfehlung (json, siehe .env.example/#42):
+    // dieser Endpoint ist der Demo→Produktiv-Übergang und war schon vor Issue #42 auf SQLite
+    // ausgelegt (DB-Neuanlage, Restart-Logik). Nicht mitgezogen, bis bewusst entschieden.
     const envFile = path.join(__dirname, '../../.env')
     let envSwitched = false
     let restartRequired = false

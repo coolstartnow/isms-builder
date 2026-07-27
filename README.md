@@ -5,7 +5,7 @@
 **Self-hosted Information Security Management System — open source, no cloud required**
 
 [![CI](https://github.com/coolstartnow/isms-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/coolstartnow/isms-builder/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-192%20passing-brightgreen)](https://github.com/coolstartnow/isms-builder/actions)
+[![Tests](https://img.shields.io/badge/tests-322%20passing-brightgreen)](https://github.com/coolstartnow/isms-builder/actions)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Version](docs/badges/version.svg)](CHANGELOG.md)
@@ -16,6 +16,19 @@
      IP address to third parties (incl. US-based servers — GDPR Art. 44 ff.).
      For 100% GDPR-compliant self-hosted documentation, replace these four badge
      lines with their local equivalents from docs/badges/ or remove them entirely. -->
+
+---
+
+> ## ⚠️ Security Warning: Fake repositories and copies distributing malware
+> ISMS Builder has **no packaged "releases", installers, or downloadable ZIP files** — the only
+> legitimate source is this repository, cloned or downloaded directly from GitHub as plain
+> source code. We are aware of at least one **malicious repository impersonating this project**
+> (fake README, fake "Download" button linking to a ZIP disguised as a screenshot, containing a
+> Windows malware loader — `.cmd` → `.exe` → Lua-DLL payload chain). **Do not download or run any
+> "isms_builder" ZIP/installer/exe from anywhere other than this repository.**
+> If you find a suspicious repo or site impersonating this project, please open an
+> [issue](https://github.com/coolstartnow/isms-builder/issues) or a
+> [discussion](https://github.com/coolstartnow/isms-builder/discussions) so we can flag it.
 
 ---
 
@@ -125,15 +138,30 @@ npm start                     # http://localhost:3000
 
 Login with **`admin@example.com` / `adminpass`**. On first login you will be prompted to choose your **demo data language** (🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL) or start with an empty system. Change the admin password immediately after.
 
-For production use with HTTPS and SQLite:
+For production use with HTTPS:
 
 ```bash
 # .env
 JWT_SECRET=your-very-long-random-secret
-STORAGE_BACKEND=sqlite
+STORAGE_BACKEND=json
 SSL_CERT_FILE=/etc/ssl/certs/your.crt
 SSL_KEY_FILE=/etc/ssl/private/your.key
 ```
+
+**Going live after evaluating with demo data?** Run the interactive production-prep tool instead
+of starting from a fresh install — it clears demo/test content module by module (or all at once),
+so any real data you've already entered (e.g. risks, assets) doesn't have to be re-entered:
+
+```bash
+bash stop.sh
+node scripts/prepare-production.js
+bash start.sh
+```
+
+It always creates a backup (`data.bak.<timestamp>/`, next to your `data/` directory) before
+changing anything, and never touches `STORAGE_BACKEND` — unlike the in-app "Demo Reset" admin
+action, which is meant for the demo instance and still switches to `sqlite` for historical reasons
+(see [Issue #42](https://github.com/coolstartnow/isms-builder/issues/42)).
 
 ---
 
@@ -213,7 +241,8 @@ See [`docs/architecture/`](docs/architecture/) for C4 diagrams, full data model,
 > relation to any production or demo data.
 
 ```bash
-npm test                  # runs all 265 tests
+npm test                  # runs all 322 tests
+npm run preflight         # exactly what CI gates on (tests + pinning + audit)
 npm test -- --verbose     # with test names
 ```
 
@@ -249,6 +278,8 @@ Contributions are very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 | ✅ Done | Policy Acknowledgement — staff confirm policies digitally with audit trail (V 1.35.0) |
 | ✅ Done | Guidance CRUD — create, edit and upload own documentation (V 1.35.0) |
 | ✅ Done | Guidance Search — cross-category full-text search with excerpt (V 1.35.0) |
+| ✅ Done | Asset protection goals — CIA + authenticity (1–4), dependencies and BSI maximum-principle inheritance (V 1.36.0) |
+| ✅ Done | NIS2 Art. 21 governance checklist (30 items) and Art. 23 reporting deadlines with automatic alerts (V 1.37.0) |
 | 🔜 Next | AI Policy Assistant — Ollama drafts policy content from title + framework |
 | 🔜 Next | Scheduled Reports — weekly/monthly compliance report delivered by email |
 | 🔜 Next | PostgreSQL backend |
