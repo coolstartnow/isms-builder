@@ -10,6 +10,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.37.5.3] — 2026-08-25
+
 ### Fixed
 - **Fehlendes `await` bei Knex-Store-Aufrufen brach mehrere Routen unter SQL-Backends** ([#70](https://github.com/coolstartnow/isms-builder/issues/70), gemeldet und mit vollständiger Root-Cause-Analyse sowie Fix-Vorschlag eingereicht von @ronnyolesch). Betraf jedes Nicht-`json`-Backend (SQLite, MariaDB, PostgreSQL): mehrere Route-Handler riefen async Knex-Store-Methoden ohne `await` auf und gaben das rohe `Promise`-Objekt direkt an `res.json()` weiter — die JSON-Antwort war praktisch immer `{}` statt der echten Daten. Am sichtbarsten beim Asset-Anlegen (`entities.forEach is not a function`, da `/entities` `{}` statt eines Arrays lieferte) und einer leeren Seite unter Administration → Wartung (die ebenfalls von `/entities` abhängt).
 
