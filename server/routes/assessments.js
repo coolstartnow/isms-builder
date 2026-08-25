@@ -26,19 +26,19 @@ router.get('/assessments/:id', requireAuth, authorize('reader'), (req, res) => {
 })
 
 // ── POST /assessments — Assessment-Link erstellen ────────────────────────────
-router.post('/assessments', requireAuth, authorize('editor'), (req, res) => {
+router.post('/assessments', requireAuth, authorize('editor'), async (req, res) => {
   try {
     const { supplierId } = req.body
     if (!supplierId) return res.status(400).json({ error: 'supplierId required' })
 
-    const supplier = supplierStore.getById(supplierId)
+    const supplier = await supplierStore.getById(supplierId)
     if (!supplier) return res.status(404).json({ error: 'Supplier not found' })
 
     const item = assessmentStore.create(
       { ...req.body, supplierName: supplier.name },
       { createdBy: req.user }
     )
-    auditStore.append({ user: req.user, action: 'create', resource: 'assessment', detail: supplier.name })
+    await auditStore.append({ user: req.user, action: 'create', resource: 'assessment', detail: supplier.name })
     res.status(201).json(item)
   } catch (e) {
     res.status(500).json({ error: e.message })
@@ -46,7 +46,7 @@ router.post('/assessments', requireAuth, authorize('editor'), (req, res) => {
 })
 
 // ── PUT /assessments/:id/review — Ergebnis bewerten ──────────────────────────
-router.put('/assessments/:id/review', requireAuth, authorize('editor'), (req, res) => {
+router.put('/assessments/:id/review', requireAuth, authorize('editor'), async (req, res) => {
   try {
     const updated = assessmentStore.review(req.params.id, {
       reviewNote: req.body.reviewNote,
@@ -54,7 +54,7 @@ router.put('/assessments/:id/review', requireAuth, authorize('editor'), (req, re
       reviewedBy: req.user,
     })
     if (!updated) return res.status(404).json({ error: 'Not found' })
-    auditStore.append({ user: req.user, action: 'review', resource: 'assessment', detail: updated.supplierName })
+    await auditStore.append({ user: req.user, action: 'review', resource: 'assessment', detail: updated.supplierName })
     res.json(updated)
   } catch (e) {
     res.status(500).json({ error: e.message })
@@ -62,11 +62,11 @@ router.put('/assessments/:id/review', requireAuth, authorize('editor'), (req, re
 })
 
 // ── DELETE /assessments/:id ──────────────────────────────────────────────────
-router.delete('/assessments/:id', requireAuth, authorize('admin'), (req, res) => {
+router.delete('/assessments/:id', requireAuth, authorize('admin'), async (req, res) => {
   try {
     const ok = assessmentStore.remove(req.params.id, { deletedBy: req.user })
     if (!ok) return res.status(404).json({ error: 'Not found' })
-    auditStore.append({ user: req.user, action: 'delete', resource: 'assessment', detail: req.params.id })
+    await auditStore.append({ user: req.user, action: 'delete', resource: 'assessment', detail: req.params.id })
     res.json({ ok: true })
   } catch (e) {
     res.status(500).json({ error: e.message })

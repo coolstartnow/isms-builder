@@ -17,15 +17,15 @@ router.get('/templates', requireAuth, authorize('reader'), async (req, res) => {
   res.json(list)
 })
 
-router.get('/templates/tree', requireAuth, authorize('reader'), (req, res) => {
+router.get('/templates/tree', requireAuth, authorize('reader'), async (req, res) => {
   const { type, language } = req.query
-  res.json(storage.getTemplateTree?.(type, language) || [])
+  res.json((await storage.getTemplateTree?.(type, language)) || [])
 })
 
 router.post('/templates/reorder', requireAuth, authorize('contentowner'), async (req, res) => {
   const { updates } = req.body
   if (!Array.isArray(updates)) return res.status(400).json({ error: 'updates must be array' })
-  storage.reorderTemplates?.(updates)
+  await storage.reorderTemplates?.(updates)
   res.json({ ok: true })
 })
 
@@ -42,7 +42,7 @@ router.post('/template', requireAuth, authorize('contentowner'), async (req, res
     return res.status(400).json({ error: 'Missing required fields' })
   }
   const t = await storage.createTemplate?.({ type, language, title, content, parentId: parentId || null, owner: req.user })
-  require('../db/auditStore').append({ user: req.user, action: 'create', resource: 'template', resourceId: t?.id, detail: `${type}: ${title}` })
+  await require('../db/auditStore').append({ user: req.user, action: 'create', resource: 'template', resourceId: t?.id, detail: `${type}: ${title}` })
   res.status(201).json(t)
 })
 
@@ -62,17 +62,17 @@ router.put('/template/:type/:id', requireAuth, authorize('editor'), async (req, 
   }
 
   const t = await storage.updateTemplate?.(type, id, { title, content, applicableEntities, linkedControls, parentId, nextReviewDate })
-  require('../db/auditStore').append({ user: req.user, action: 'update', resource: 'template', resourceId: id, detail: `${type}: ${title || existing.title}` })
+  await require('../db/auditStore').append({ user: req.user, action: 'update', resource: 'template', resourceId: id, detail: `${type}: ${title || existing.title}` })
   res.json(t)
 })
 
 router.put('/template/:type/:id/move', requireAuth, authorize('contentowner'), async (req, res) => {
   const { type, id } = req.params
   const { parentId, sortOrder } = req.body
-  const result = storage.moveTemplate?.(type, id, { parentId: parentId || null, sortOrder })
+  const result = await storage.moveTemplate?.(type, id, { parentId: parentId || null, sortOrder })
   if (!result) return res.status(404).json({ error: 'Not found' })
   if (result.error === 'circular') return res.status(400).json({ error: 'Zirkuläre Verknüpfung nicht erlaubt' })
-  require('../db/auditStore').append({ user: req.user, action: 'move', resource: 'template', resourceId: id, detail: `parentId: ${parentId || 'root'}` })
+  await require('../db/auditStore').append({ user: req.user, action: 'move', resource: 'template', resourceId: id, detail: `parentId: ${parentId || 'root'}` })
   res.json(result)
 })
 
@@ -80,23 +80,23 @@ router.delete('/template/:type/:id', requireAuth, authorize('contentowner'), asy
   const { type, id } = req.params
   const ok = await storage.deleteTemplate?.(type, id, req.user)
   if (!ok) return res.status(404).json({ error: 'Not found' })
-  require('../db/auditStore').append({ user: req.user, action: 'delete', resource: 'template', resourceId: id, detail: type })
+  await require('../db/auditStore').append({ user: req.user, action: 'delete', resource: 'template', resourceId: id, detail: type })
   res.json({ deleted: true })
 })
 
 router.delete('/template/:type/:id/permanent', requireAuth, authorize('admin'), async (req, res) => {
   const { type, id } = req.params
-  const ok = storage.permanentDeleteTemplate?.(type, id)
+  const ok = await storage.permanentDeleteTemplate?.(type, id)
   if (!ok) return res.status(404).json({ error: 'Not found' })
-  require('../db/auditStore').append({ user: req.user, action: 'permanent_delete', resource: 'template', resourceId: id, detail: type })
+  await require('../db/auditStore').append({ user: req.user, action: 'permanent_delete', resource: 'template', resourceId: id, detail: type })
   res.json({ deleted: true, permanent: true })
 })
 
 router.post('/template/:type/:id/restore', requireAuth, authorize('admin'), async (req, res) => {
   const { type, id } = req.params
-  const item = storage.restoreTemplate?.(type, id)
+  const item = await storage.restoreTemplate?.(type, id)
   if (!item) return res.status(404).json({ error: 'Not found' })
-  require('../db/auditStore').append({ user: req.user, action: 'restore', resource: 'template', resourceId: id, detail: type })
+  await require('../db/auditStore').append({ user: req.user, action: 'restore', resource: 'template', resourceId: id, detail: type })
   res.json(item)
 })
 
@@ -150,7 +150,7 @@ router.post('/template/:type/:id/publish-webdav', requireAuth, authorize('editor
   const webdav = require('../webdav')
   const result = await webdav.publishDocument(doc)
   const updated = await storage.setWebdavPublish?.(type, id, result)
-  require('../db/auditStore').append({ user: req.user, action: 'publish_webdav', resource: 'template', resourceId: id, detail: result.ok ? 'ok' : `error: ${result.error}` })
+  await require('../db/auditStore').append({ user: req.user, action: 'publish_webdav', resource: 'template', resourceId: id, detail: result.ok ? 'ok' : `error: ${result.error}` })
   res.json({ ...result, template: updated })
 })
 
@@ -186,7 +186,7 @@ router.post('/template/:type/:id/attachments', requireAuth, authorize('editor'),
       uploadedAt: new Date().toISOString(),
       filePath: req.file.path
     }
-    const updated = storage.addAttachment?.(type, id, meta)
+    const updated = await storage.addAttachment?.(type, id, meta)
     if (!updated) { fs.unlink(req.file.path, () => {}); return res.status(500).json({ error: 'Speicherfehler' }) }
     res.status(201).json(meta)
   })
@@ -208,7 +208,7 @@ router.get('/template/:type/:id/attachments/:attId/file', requireAuth, authorize
 
 router.delete('/template/:type/:id/attachments/:attId', requireAuth, authorize('editor'), async (req, res) => {
   const { type, id, attId } = req.params
-  const result = storage.removeAttachment?.(type, id, attId)
+  const result = await storage.removeAttachment?.(type, id, attId)
   if (!result) return res.status(404).json({ error: 'Not found' })
   if (result.attachment?.filePath) fs.unlink(result.attachment.filePath, () => {})
   res.json({ deleted: true })
@@ -216,31 +216,31 @@ router.delete('/template/:type/:id/attachments/:attId', requireAuth, authorize('
 
 // ── Konzernstruktur: Entities ──
 
-router.get('/entities/tree', requireAuth, authorize('reader'), (req, res) => {
-  res.json(entityStore.getTree())
+router.get('/entities/tree', requireAuth, authorize('reader'), async (req, res) => {
+  res.json(await entityStore.getTree())
 })
-router.get('/entities', requireAuth, authorize('reader'), (req, res) => {
-  res.json(entityStore.getAll())
+router.get('/entities', requireAuth, authorize('reader'), async (req, res) => {
+  res.json(await entityStore.getAll())
 })
-router.get('/entities/:id', requireAuth, authorize('reader'), (req, res) => {
-  const e = entityStore.getById(req.params.id)
+router.get('/entities/:id', requireAuth, authorize('reader'), async (req, res) => {
+  const e = await entityStore.getById(req.params.id)
   if (!e) return res.status(404).json({ error: 'Not found' })
   res.json(e)
 })
-router.post('/entities', requireAuth, authorize('admin'), (req, res) => {
+router.post('/entities', requireAuth, authorize('admin'), async (req, res) => {
   const { name, type, parent, shortCode } = req.body
   if (!name) return res.status(400).json({ error: 'name is required' })
-  res.status(201).json(entityStore.create({ name, type, parent, shortCode }))
+  res.status(201).json(await entityStore.create({ name, type, parent, shortCode }))
 })
-router.put('/entities/:id', requireAuth, authorize('admin'), (req, res) => {
-  const updated = entityStore.update(req.params.id, req.body)
+router.put('/entities/:id', requireAuth, authorize('admin'), async (req, res) => {
+  const updated = await entityStore.update(req.params.id, req.body)
   if (!updated) return res.status(404).json({ error: 'Not found' })
   res.json(updated)
 })
-router.delete('/entities/:id', requireAuth, authorize('admin'), (req, res) => {
-  const ok = entityStore.delete(req.params.id)
+router.delete('/entities/:id', requireAuth, authorize('admin'), async (req, res) => {
+  const ok = await entityStore.delete(req.params.id)
   if (!ok) return res.status(404).json({ error: 'Not found' })
-  require('../db/auditStore').append({ user: req.user, action: 'delete', resource: 'entity', resourceId: req.params.id })
+  await require('../db/auditStore').append({ user: req.user, action: 'delete', resource: 'entity', resourceId: req.params.id })
   res.json({ deleted: true })
 })
 
