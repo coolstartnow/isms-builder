@@ -337,6 +337,7 @@ Contributions are very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 | ✅ Done | NIS2 Art. 21 governance checklist (30 items) and Art. 23 reporting deadlines with automatic alerts (V 1.37.2.0) |
 | ✅ Done | PostgreSQL backend (`STORAGE_BACKEND=pg`) — same Knex store layer as MariaDB, verified against a real PostgreSQL 17 instance incl. full `docker compose` path (V 1.37.5) |
 | ✅ Done | ownCloud / Nextcloud integration — approved policies auto-published as PDF via WebDAV, optional favorite/public-link visibility, live-verified against a real NextcloudPi instance (#66, V 1.37.5.1) |
+| ✅ Done | Docker image published to GitHub Container Registry after every release (`ghcr.io/coolstartnow/isms-builder`, `linux/amd64` + `linux/arm64`, signed build provenance) — contributed by @bucherfa (#71, V 1.40.0). Maintenance-effort trial: dropped again if it turns out to be more upkeep than expected. |
 | 🔜 Next | AI Policy Assistant — Ollama drafts policy content from title + framework |
 | 🔜 Next | Scheduled Reports — weekly/monthly compliance report delivered by email |
 | 🔜 Next | Audit-log anomaly detection (LLM batch) |
