@@ -10,6 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.40.0] — 2026-08-26
+
+### Added
+- **Docker-Image als GitHub Package** ([#71](https://github.com/coolstartnow/isms-builder/pull/71), beigesteuert von @bucherfa) — nach jedem Release wird das Image automatisch nach `ghcr.io/coolstartnow/isms-builder` veröffentlicht (`:<version>` und `:latest`, `linux/amd64` + `linux/arm64`), bisher musste jeder Betreiber es selbst aus dem Dockerfile bauen. Vor der Freigabe wird der Container gestartet und auf Erreichbarkeit geprüft; jedes Image hat eine signierte Build-Provenance (`gh attestation verify`). Neuer Job `docker-image` in `.github/workflows/release.yml`; `docker-compose.yml` nutzt jetzt standardmäßig das fertige Image, der lokale Build bleibt als auskommentierter `build`-Block erhalten.
+
 ### Changed
 - **"Templates" in "Documents" umbenannt (UI, Stage 1 von [#62](https://github.com/coolstartnow/isms-builder/issues/62))** — gemeldet von @jasc76 in [#60](https://github.com/coolstartnow/isms-builder/issues/60): die Objekte tragen Owner, Version, Review-Datum, einen Freigabe-Lebenszyklus und werden an Mitarbeitende zur Bestätigung verteilt — das ist die Definition eines gelenkten Dokuments nach ISO 27001 Kapitel 7.5, keine Vorlage. Umbenannt sind ausschließlich UI-Texte und Übersetzungen (alle vier Sprachen DE/EN/FR/NL): Sidebar, Dashboard, Admin-Panel, Reports, Einstellungen, Kalender, Dialoge und Meldungen. IDs, API-Routen (`/template/:type/:id`), Datenmodell und Store-Dateien bleiben bewusst unverändert — Stage 2 (Daten-/API-Umbenennung inkl. Migration bestehender IDs) folgt erst zusammen mit der ohnehin geplanten Datenbank-Migration, damit Bestandsdaten nur einmal statt zweimal angefasst werden.
 
@@ -27,8 +32,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.37.5.2] — 2026-08-19
 
 ### Added
-- **Docker-Image als GitHub Package** — nach jedem Release wird das Image automatisch nach `ghcr.io/coolstartnow/isms-builder` veröffentlicht (`:<version>` und `:latest`, `linux/amd64` + `linux/arm64`), bisher musste jeder Betreiber es selbst aus dem Dockerfile bauen. Vor der Freigabe wird der Container gestartet und auf Erreichbarkeit geprüft; jedes Image hat eine signierte Build-Provenance (`gh attestation verify`). Neuer Job `docker-image` in `.github/workflows/release.yml`; `docker-compose.yml` nutzt jetzt standardmäßig das fertige Image, der lokale Build bleibt als auskommentierter `build`-Block erhalten.
-
 - **Update-Check** — Admin → Wartung hat jetzt einen Button "Nach Updates suchen", der den neuesten GitHub-Release abfragt und mit der laufenden Version vergleicht. Bewusst **nur ein Hinweis**, kein Auto-Update: Selbstgehostete Software, die selbstständig Code aus dem Internet nachzieht, ist eine der riskantesten Funktionen überhaupt (Supply-Chain-Angriffsfläche — ein kompromittierter Release würde sich sonst automatisch auf jede Installation verteilen, vgl. SolarWinds/xz-Backdoor) und widerspricht dem Betriebsmodell des Projekts ("Betrieb liegt beim Betreiber", siehe bestehende Sicherheitswarnung vor Fake-Repos in der README). Backend-neutrales Modul `server/updateCheck.js`, kein Hintergrund-Cron — die Abfrage läuft nur, wenn ein Admin sie aktiv auslöst; Ergebnis 1h serverseitig gecacht, um GitHubs unauthentifiziertes Rate-Limit zu schonen. Wirft nie (Netzwerkausfall, Rate-Limit, Timeout → sichtbarer Hinweis statt Absturz). 6 neue Tests (`tests/updateCheck.test.js`), Netzwerk gemockt.
 
 - **Versionsanzeige** — nirgends im UI stand bisher, welche Version läuft. Neuer, ungeschützter `GET /api/version`-Endpoint liefert die `package.json`-Version; angezeigt im Sidebar-Footer der Hauptanwendung und im Footer der Login-Seite, direkt neben dem bestehenden Lizenzhinweis. Dabei aufgefallen: `package.json` stand noch auf `1.37.5`, obwohl der zuletzt getaggte Stand `1.37.5.1` war (GDPR-Scrollfix, #67) — mit `scripts/bump-version.sh` korrigiert.
