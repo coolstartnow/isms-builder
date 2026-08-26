@@ -19,6 +19,8 @@ ARBEITSPAKET_NIS2_ART21_ART23.md
 
 # Protokolle
 *usage.txt
+session.md
+session-ses_3570.md
 
 # Internal-only scripts — personal infra/workflow, not for public repo
 scripts/setup-server.sh

@@ -10,6 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- **"Templates" in "Documents" umbenannt (UI, Stage 1 von [#62](https://github.com/coolstartnow/isms-builder/issues/62))** — gemeldet von @jasc76 in [#60](https://github.com/coolstartnow/isms-builder/issues/60): die Objekte tragen Owner, Version, Review-Datum, einen Freigabe-Lebenszyklus und werden an Mitarbeitende zur Bestätigung verteilt — das ist die Definition eines gelenkten Dokuments nach ISO 27001 Kapitel 7.5, keine Vorlage. Umbenannt sind ausschließlich UI-Texte und Übersetzungen (alle vier Sprachen DE/EN/FR/NL): Sidebar, Dashboard, Admin-Panel, Reports, Einstellungen, Kalender, Dialoge und Meldungen. IDs, API-Routen (`/template/:type/:id`), Datenmodell und Store-Dateien bleiben bewusst unverändert — Stage 2 (Daten-/API-Umbenennung inkl. Migration bestehender IDs) folgt erst zusammen mit der ohnehin geplanten Datenbank-Migration, damit Bestandsdaten nur einmal statt zweimal angefasst werden.
+
+  Dabei zwei unabhängige, vorbestehende Anzeigefehler gefunden und mitbehoben: der Modal-Titel beim Anlegen eines neuen Dokuments bzw. einer Kind-Seite wurde unabhängig von der UI-Sprache immer mit hartcodiertem Englisch überschrieben (`openModal()`); und die SoA-Übersicht zeigte durch eine überzählige geschweifte Klammer im Template-Literal "0 Anwendbar}" statt "0 Anwendbar" an.
+
 ## [1.37.5.3] — 2026-08-25
 
 ### Fixed

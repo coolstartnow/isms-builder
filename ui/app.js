@@ -660,7 +660,7 @@ function selectType(type, init=false) {
       if (treeData.length === 0) {
         const empty = document.createElement('li')
         empty.className = 'tmpl-tree-empty'
-        empty.textContent = 'No templates found.'
+        empty.textContent = t('noTemplates')
         list.appendChild(empty)
         return
       }
@@ -875,7 +875,7 @@ function _moveNodeTo(id, type, newParentId, sortOrder) {
 }
 
 async function deleteTemplate(t) {
-  if (!confirm(`Delete template "${t.title}"?\nThis action cannot be undone.`)) return
+  if (!confirm(`Delete document "${t.title}"?\nThis action cannot be undone.`)) return
   const res = await fetch(`/template/${t.type}/${encodeURIComponent(t.id)}`, {
     method: 'DELETE',
     headers: apiHeaders('admin')
@@ -893,7 +893,7 @@ function refreshSidebarTree(type, treeData) {
   if (!ul || ul.style.display === 'none') return
   ul.innerHTML = ''
   if (!treeData || treeData.length === 0) {
-    ul.innerHTML = '<li class="sidebar-tree-empty">No templates</li>'
+    ul.innerHTML = '<li class="sidebar-tree-empty">No documents</li>'
     return
   }
   function appendSidebarNodes(nodes, parentEl, depth) {
@@ -2536,7 +2536,7 @@ function renderSoaContent(container) {
       <div class="soa-fw-tabs">${tabsHtml}</div>
       <div class="soa-summary-row">
         <span class="soa-kpi">${total} Controls</span>
-        <span class="soa-kpi soa-kpi-green">${applied} ${t('soa_applicable')}}</span>
+        <span class="soa-kpi soa-kpi-green">${applied} ${t('soa_applicable')}</span>
         <span class="soa-kpi soa-kpi-blue">${implRate}% ${t('soa_implemented')}</span>
         <a class="btn btn-export" href="/soa/export" download="soa-export.json">${t('export')} JSON</a>
         ${(ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK['admin'] ? `<button class="btn btn-import-iso" onclick="openSoaIsoImport()" title="${t('soa_importIsoControls')}">⬆ ${t('soa_importIsoControls')}</button>` : ''}
@@ -2611,7 +2611,7 @@ function soaRow(c, canEdit) {
   const color = THEME_COLORS[c.theme] || '#888'
   const linkedCount = (c.linkedTemplates || []).length
   const linkedBadge = linkedCount > 0
-    ? `<span class="soa-linked-badge">${linkedCount} Template${linkedCount > 1 ? 's' : ''}</span>`
+    ? `<span class="soa-linked-badge">${linkedCount} Document${linkedCount > 1 ? 's' : ''}</span>`
     : ''
   return `
     <tr class="soa-row ${c.applicable ? '' : 'soa-row-na'}" data-id="${c.id}">
@@ -2810,7 +2810,7 @@ async function saveSoaLinkedTemplates(id, linkedTemplates, detailEl, tableContai
       linkedTemplates
     })
   })
-  if (!res.ok) { alert('Error saving template link'); return }
+  if (!res.ok) { alert('Error saving document link'); return }
 
   const updated = await res.json()
   const idx = soaData.findIndex(c => c.id === id)
@@ -2823,7 +2823,7 @@ async function saveSoaLinkedTemplates(id, linkedTemplates, detailEl, tableContai
     if (linkedTemplates.length > 0) {
       const badge = document.createElement('span')
       badge.className = 'soa-linked-badge'
-      badge.textContent = `${linkedTemplates.length} Template${linkedTemplates.length > 1 ? 's' : ''}`
+      badge.textContent = `${linkedTemplates.length} Document${linkedTemplates.length > 1 ? 's' : ''}`
       titleCell.appendChild(badge)
     }
   }
@@ -2950,7 +2950,7 @@ async function submitCustomControlModal(id) {
 }
 
 async function deleteCustomControl(id, title) {
-  if (!confirm(`Delete custom control "${title}"?\nOnly possible if no templates are linked.`)) return
+  if (!confirm(`Delete custom control "${title}"?\nOnly possible if no documents are linked.`)) return
   const res = await fetch(`/soa/custom/${id}`, { method: 'DELETE', headers: apiHeaders('contentowner') })
   if (!res.ok) {
     const e = await res.json().catch(()=>({}))
@@ -3068,7 +3068,7 @@ async function renderDashboard() {
   const alertsHtml = (() => {
     const alerts = []
     if (data.byStatus?.review > 0)
-      alerts.push({ color: 'var(--warning-text)', icon: 'ph-clock', text: `${data.byStatus.review} Template(s) awaiting review`, nav: 'policy' })
+      alerts.push({ color: 'var(--warning-text)', icon: 'ph-clock', text: `${data.byStatus.review} Document(s) awaiting review`, nav: 'policy' })
     if (MODULE_CONFIG.risk && riskSummary?.byLevel?.critical > 0)
       alerts.push({ color: '#f87171', icon: 'ph-warning', text: `${riskSummary.byLevel.critical} critical risks open`, nav: 'risk' })
     if (MODULE_CONFIG.risk && riskSummary?.byLevel?.high > 0)
@@ -3129,7 +3129,7 @@ async function renderDashboard() {
     <!-- KPI Row 1: Templates & Compliance -->
     <div class="dash-section-title" style="margin:16px 0 8px"><i class="ph ph-files"></i> ${t('dash_policies')}</div>
     <div class="dashboard-grid" style="margin-bottom:0">
-      <div class="dash-card kpi dash-link" data-nav="policy" title="Open templates">
+      <div class="dash-card kpi dash-link" data-nav="policy" title="Open documents">
         <div class="kpi-value">${data.total}</div>
         <div class="kpi-label">${t('dash_templates')}</div>
       </div>
@@ -5269,7 +5269,7 @@ const MODULE_META = [
   },
   {
     id: 'reports', label: 'Reports', icon: 'ph-chart-line',
-    desc: '7 report types: Compliance, Framework, Gap Analysis, Templates, Reviews, Compliance Matrix, Audit Trail. CSV export.',
+    desc: '7 report types: Compliance, Framework, Gap Analysis, Documents, Reviews, Compliance Matrix, Audit Trail. CSV export.',
     norms: ['ISO 27001 Cl. 9.1', 'ISO 9001 Cl. 9.1'],
   },
   {
@@ -7309,7 +7309,7 @@ function renderTmplEntityBar(t) {
 }
 
 async function openControlPicker() {
-  if (!currentTemplate) return alert('Please select a template first.')
+  if (!currentTemplate) return alert('Please select a document first.')
   const modal = dom('controlPickerModal')
   if (!modal) return
 
@@ -7418,7 +7418,7 @@ async function _ensureEntityCache() {
 }
 
 async function openEntityPickerForTemplate() {
-  if (!currentTemplate) return alert('Please select a template first.')
+  if (!currentTemplate) return alert('Please select a document first.')
   await _ensureEntityCache()
   _entityPickerSelected = new Set(currentTemplate.applicableEntities || [])
   _entityPickerCallback = async (selected) => {
@@ -7555,7 +7555,7 @@ function loadTemplateHistory(type, id) {
 }
 
 function showHistory(){
-  if (!currentTemplate) return alert('Please select a template first.')
+  if (!currentTemplate) return alert('Please select a document first.')
   loadTemplateHistory(currentTemplate.type, currentTemplate.id).then(hist => {
     const lines = hist.map(h => `Version ${h.version} - ${new Date(h.updatedAt).toLocaleString()}`).join('\n')
     alert(`History:\n${lines}`)
@@ -7590,7 +7590,7 @@ function saveCurrent(){
     }).then(res=>res.json()).then(t => {
       currentTemplate = t
       updateReviewHint(t.nextReviewDate)
-      alert('Template aktualisiert (Version '+t.version+')')
+      alert('Dokument aktualisiert (Version '+t.version+')')
     })
   } else {
     // create new with default type as currentType
@@ -7602,7 +7602,7 @@ function saveCurrent(){
       currentTemplate = t
       // reopen list
       selectType(currentType)
-      alert('Template erstellt (Version '+t.version+')')
+      alert('Dokument erstellt (Version '+t.version+')')
     })
   }
 }
@@ -7625,13 +7625,13 @@ function openModal(opts = {}){
     if (parentIdEl) parentIdEl.value = opts.parentId
     if (opts.parentType) select.value = opts.parentType
     select.disabled = true
-    if (hintEl) { hintEl.textContent = `Subpage of: ${opts.parentTitle}`; hintEl.style.display = '' }
-    if (titleEl) titleEl.textContent = 'Create Child Page'
+    if (hintEl) { hintEl.textContent = t('tmpl_subpageOf').replace('{title}', opts.parentTitle); hintEl.style.display = '' }
+    if (titleEl) titleEl.textContent = t('tmpl_createChildPage')
   } else {
     if (parentIdEl) parentIdEl.value = ''
     select.disabled = false
     if (hintEl) hintEl.style.display = 'none'
-    if (titleEl) titleEl.textContent = 'Create New Template'
+    if (titleEl) titleEl.textContent = t('tmpl_createNew')
   }
   modal.style.visibility = 'visible'
 }
@@ -8281,7 +8281,7 @@ const CAL_EVENT_CFG = {
   risk_review:     { get label() { return t('cal_riskReview') },     cls:'cal-chip-review',    icon:'ph-arrows-clockwise' },
   treatment_due:   { get label() { return t('cal_measureDue') },     cls:'cal-chip-treatment', icon:'ph-list-checks' },
   template_review: { get label() { return t('cal_templateReview') }, cls:'cal-chip-template',  icon:'ph-files' },
-  template_due:         { label:'Template Due',            cls:'cal-chip-template',  icon:'ph-clock' },
+  template_due:         { label:'Document Due',            cls:'cal-chip-template',  icon:'ph-clock' },
   finding_action_due:   { label:'Finding Action Due',      cls:'cal-chip-risk',       icon:'ph-magnifying-glass' },
 }
 
