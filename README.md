@@ -39,6 +39,13 @@
 
 ---
 
+> 🛡️ **Related project: [NIS2 Quick-Check](https://github.com/coolstartnow/nis2-quickcheck)** —
+> a free, standalone NIS2 self-check (10 domains × 5 questions, all 27 EU member states, all 24
+> EU official languages). Runs entirely in the browser, no backend, no install. Not part of
+> ISMS Builder and not required to use it — just a companion tool for a quick first orientation.
+
+---
+
 ## What is ISMS Builder?
 
 ISMS Builder is a **self-hosted web platform** for managing an Information Security Management System (ISMS).
