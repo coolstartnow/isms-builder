@@ -198,9 +198,30 @@ action, which is meant for the demo instance and still switches to `sqlite` for 
 
 ## Docker
 
+Every release is published as a GitHub Package in the GitHub Container Registry, for
+`linux/amd64` and `linux/arm64` — tagged `:latest` and `:<version>` (e.g. `:1.37.5.2`):
+
 ```bash
-docker compose up -d --build
+docker compose up -d
 # App runs at http://localhost:3000
+```
+
+Or without Compose (`data/` must be a bind mount — data is never baked into the image):
+
+```bash
+docker run -d --name isms-builder -p 3000:3000 \
+  -e JWT_SECRET="$(openssl rand -hex 32)" \
+  -v "$PWD/data:/app/data" \
+  ghcr.io/coolstartnow/isms-builder:latest
+```
+
+To build from source instead, uncomment the `build:` block in `docker-compose.yml` and run
+`docker compose up -d --build`.
+
+Images carry a signed build provenance attestation:
+
+```bash
+gh attestation verify oci://ghcr.io/coolstartnow/isms-builder:latest --owner coolstartnow
 ```
 
 ---

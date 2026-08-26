@@ -1,9 +1,11 @@
 services:
   isms:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: isms-builder:latest
+    # Fertiges Image von GHCR. Stattdessen lokal aus dem Dockerfile bauen:
+    # den build-Block einkommentieren und `docker compose up -d --build`.
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    image: ghcr.io/coolstartnow/isms-builder:latest
     container_name: isms-builder
     restart: unless-stopped
     ports:
