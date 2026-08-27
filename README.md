@@ -222,6 +222,83 @@ docker run -d --name isms-builder -p 3000:3000 \
   ghcr.io/coolstartnow/isms-builder:latest
 ```
 
+This is the default, storing data as plain JSON files in `./data` — no database container needed
+at all. It's the recommended setup for small teams and is what the two commands above use.
+
+**Using PostgreSQL (or MariaDB) instead of JSON.** The image supports this out of the box, but —
+unlike the JSON setup above — it needs a second container (the actual database) plus a handful of
+environment variables telling the app how to reach it. If you only pulled the image itself
+(`docker pull ghcr.io/coolstartnow/isms-builder`) without ever cloning this repository, those
+variable names aren't visible anywhere by default — `docker-compose.yml` and `.env.example`, where
+they're documented, are files in this Git repository, not part of the image. This section exists
+so that information isn't a repo-only secret.
+
+The `isms-builder` image itself never bundles a database server — `postgres:17` (or `mariadb:11`)
+is a completely generic, empty database engine from Docker Hub with zero knowledge of this
+project's tables. Those tables (risks, assets, SoA controls, and so on) are created automatically
+by the application itself the moment it starts up and finds an empty database — no manual SQL
+import, no separate migration step you have to run. See "How does the database schema get
+created?" below if you want the full mechanics.
+
+Two containers, one shared Docker network, then the app is told where to find the database:
+
+```bash
+# 1) An isolated network so the two containers can reach each other by name
+docker network create isms-net
+
+# 2) The database — empty until the app first connects and creates its tables
+docker run -d --name isms-postgres --network isms-net \
+  -e POSTGRES_DB=isms_builder \
+  -e POSTGRES_USER=isms \
+  -e POSTGRES_PASSWORD="$(openssl rand -hex 16)" \
+  -v isms-postgres-data:/var/lib/postgresql/data \
+  postgres:17-alpine
+
+# 3) The app, pointed at that database by container name (isms-postgres) via
+#    Docker's built-in DNS on the shared network — no host/port juggling needed
+docker run -d --name isms-builder --network isms-net -p 3000:3000 \
+  -e JWT_SECRET="$(openssl rand -hex 32)" \
+  -e STORAGE_BACKEND=postgres \
+  -e DB_HOST=isms-postgres \
+  -e DB_PORT=5432 \
+  -e DB_USER=isms \
+  -e DB_PASS="<same password as POSTGRES_PASSWORD above>" \
+  -e DB_NAME=isms_builder \
+  ghcr.io/coolstartnow/isms-builder:latest
+```
+
+What each variable means:
+
+| Variable | Purpose |
+|---|---|
+| `STORAGE_BACKEND` | `postgres` (or `pg`) for PostgreSQL, `mariadb` for MariaDB/MySQL. Leave unset (or `json`) for the default JSON setup. |
+| `DB_HOST` | Hostname of the database container. On a shared Docker network, this is just the container's `--name` — Docker resolves it automatically. |
+| `DB_PORT` | `5432` for PostgreSQL, `3306` for MariaDB. |
+| `DB_USER` / `DB_PASS` / `DB_NAME` | Must match whatever you set on the database container (`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB` above, or the MariaDB equivalents). |
+
+For MariaDB, swap `postgres:17-alpine` for `mariadb:11`, use its `MARIADB_DATABASE` /
+`MARIADB_USER` / `MARIADB_PASSWORD` variables in step 2, and `STORAGE_BACKEND=mariadb` /
+`DB_PORT=3306` in step 3. The full, cross-referenced list of every environment variable this
+project understands — including the ones not covered here (SSL, reverse-proxy trust, SMTP,
+2FA, …) — lives in [`.env.example`](.env.example) in this repository.
+
+Compose users get this for free: `docker-compose.yml` already ships `mariadb` and `postgres`
+service profiles (commented out by default, alongside the equivalent env-var explanations) —
+`docker compose --profile postgres up -d` starts both containers wired together automatically,
+no manual networking or copy-pasting of passwords required.
+
+**How does the database schema get created?** Neither the `postgres:17` nor the `mariadb:11`
+image knows anything about this project — they're generic, empty database engines straight from
+Docker Hub. There's no SQL dump file to import and no separate migration command to run by hand.
+Instead, the moment the `isms-builder` container starts up and connects to an empty database, its
+own application code (not the database image) creates every table it needs on the spot — see
+[`server/db/knexDatabase.js`](server/db/knexDatabase.js): a list of table definitions, each
+checked with `hasTable()` and created with `createTable()` if missing, all before the app starts
+accepting HTTP requests. That makes it idempotent — the very first start builds the full schema
+from nothing, and every later restart against the same database is a silent no-op because the
+tables already exist. This is the same mechanism, unmodified, that was live-verified against
+SQLite, MariaDB 11, and PostgreSQL 17 (see [#70](https://github.com/coolstartnow/isms-builder/issues/70)).
+
 To build from source instead, uncomment the `build:` block in `docker-compose.yml` and run
 `docker compose up -d --build`.
 
