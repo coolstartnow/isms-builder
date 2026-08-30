@@ -10,6 +10,9 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Version](docs/badges/version.svg)](CHANGELOG.md)
 
+📖 **[Wiki](https://github.com/coolstartnow/isms-builder/wiki)** — Docker-Image-Nutzung &
+Umgebungsvariablen, Architektur & Module, FAQ, Mitwirken (DE/EN)
+
 <!-- GDPR NOTE: The four badges above (CI, Tests, License, Node.js) load resources
      from external servers (github.com, shields.io/Cloudflare, img.shields.io).
      When this README is rendered in a browser, these requests transmit the viewer's
