@@ -652,7 +652,7 @@ function selectType(type, init=false) {
 
   const isAdmin = (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK['admin']
 
-  fetch(`/templates/tree?type=${encodeURIComponent(type)}&language=de`, { headers: apiHeaders('reader') })
+  return fetch(`/templates/tree?type=${encodeURIComponent(type)}&language=de`, { headers: apiHeaders('reader') })
     .then(r => r.json())
     .then(treeData => {
       const list = dom('templateList')
@@ -904,7 +904,13 @@ function refreshSidebarTree(type, treeData) {
         <span class="status-dot ${t.status || 'draft'}"></span>
         <span>${t.title}</span>
       </button>`
-      li.querySelector('button').onclick = () => { selectType(type); loadTemplate(t) }
+      // #74: selectType() lädt den Baum asynchron nach und räumt danach den
+      // Editor leer (Wechsel auf einen anderen Dokumententyp). Wurde
+      // loadTemplate(t) direkt danach synchron aufgerufen, überschrieb dieser
+      // spätere Leer-Räum-Schritt das gerade geöffnete Dokument wieder — es
+      // war kurz sichtbar und verschwand dann. Erst warten, bis selectType()
+      // fertig ist, dann laden.
+      li.querySelector('button').onclick = () => { selectType(type).then(() => loadTemplate(t)) }
       parentEl.appendChild(li)
       if (t.children && t.children.length > 0) appendSidebarNodes(t.children, parentEl, depth + 1)
     })
@@ -7745,8 +7751,12 @@ function createFromModal(){
     body: JSON.stringify({ type: typeVal, language: 'de', title: titleVal, content: '', parentId })
   }).then(res=>res.json()).then(t => {
     closeModal()
-    selectType(typeVal)
-    setTimeout(() => loadTemplate(t), 300)
+    // #74: der feste 300ms-Timeout war eine Race Condition — lief die
+    // Baum-Aktualisierung aus selectType() (Server-Roundtrip) langsamer als
+    // 300ms, räumte sie das gerade per loadTemplate() geöffnete, neu
+    // angelegte Dokument sofort wieder leer. Stattdessen erst laden, wenn
+    // selectType() wirklich fertig ist.
+    selectType(typeVal).then(() => loadTemplate(t))
   })
 }
 

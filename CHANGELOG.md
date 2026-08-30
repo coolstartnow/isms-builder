@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.40.2] — 2026-08-30
+
+### Fixed
+- **Audit Findings fehlten komplett in der Volltextsuche** ([#72](https://github.com/coolstartnow/isms-builder/discussions/72), gemeldet von @pcyber-code). `reindexAll()` in `server/ai/embeddingStore.js` (semantische Suche) und der Keyword-Fallback in `server/ai/lexicalSearch.js` iterierten über alle anderen Module (Templates, Risks, Goals, Guidance, Training, Assets, Suppliers, BCM), aber nicht über `findingStore`. Findings (IST/SOLL/Risiko/Empfehlung-Inhalte) waren dadurch über die Topbar-Suche nicht auffindbar — weder mit noch ohne laufendes Ollama. Betrifft besonders größere Audit-Datensätze (im gemeldeten Fall 161 Findings aus einem NIS2-Gap-Assessment). Beide Suchpfade indizieren Findings jetzt mit `title`, `observation`, `requirement`, `recommendation` und `auditedArea`.
+- **Dokument verschwand kurz nach dem Öffnen wieder** ([#74](https://github.com/coolstartnow/isms-builder/issues/74)). `selectType()` lädt den Dokumentenbaum asynchron per Server-Roundtrip nach und leert danach den Editor (Wechsel des Dokumententyps). Zwei Aufrufstellen (Sidebar-Baum-Klick, `createFromModal()`) riefen `loadTemplate()` synchron direkt danach bzw. nach einem festen `setTimeout(…, 300)` auf — lief die Baum-Aktualisierung langsamer, überschrieb `selectType()` das gerade geöffnete bzw. neu angelegte Dokument wieder. Beide Stellen warten jetzt auf das Promise von `selectType()`, bevor `loadTemplate()` läuft.
+
 ## [1.40.0] — 2026-08-26
 
 ### Added

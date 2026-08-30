@@ -76,6 +76,17 @@ async function search(query, topK = 8) {
     results.push(...collect(suppliers, 'Lieferant', '#suppliers', terms))
   } catch {}
 
+  try {
+    // #72: gleiche Lücke wie im semantischen Index (embeddingStore.js) — Findings
+    // fehlten hier ebenfalls komplett.
+    const findingStore = require('../db/findingStore')
+    const findings = (findingStore.getAll?.() || []).map(f => ({
+      ...f,
+      description: [f.observation, f.requirement, f.recommendation, f.auditedArea].filter(Boolean).join(' '),
+    }))
+    results.push(...collect(findings, 'Finding', '#reports', terms))
+  } catch {}
+
   return results
     .sort((a, b) => b.s - a.s)
     .slice(0, topK)
