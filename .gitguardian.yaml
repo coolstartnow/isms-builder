@@ -1,0 +1,23 @@
+# © 2026 Claude Hecker — ISMS Builder — AGPL-3.0
+#
+# Dauerhafte Ignore-Liste für ggshield/GitGuardian.
+#
+# Die hier gelisteten Pfade enthalten AUSSCHLIESSLICH dokumentierte
+# Demo-/Test-Zugangsdaten, keine echten Secrets:
+#   - tests/**            – Login-Tests gegen die seedbare Demo-DB
+#                            (adminpass, editorpass, readerpass, ...)
+#   - data/rbac_users.json – committeter Demo-Seed (admin/ciso/...),
+#                            bcrypt-Hashes + inaktive totpSecret-Reste
+#                            (totpVerified nie gesetzt → 2FA nie aktiv,
+#                            siehe server/routes/auth.js)
+#   - .env.example         – reine Platzhalterwerte (SMTP_PASS=your-...)
+#
+# Docker-Deployments sind ohnehin nicht betroffen: data/ wird laut
+# Dockerfile bewusst NICHT ins Image gebacken, sondern frisch als
+# Bind-Mount gemountet (siehe .dockerignore).
+version: 2
+secret:
+  ignored-paths:
+    - "tests/**"
+    - "data/rbac_users.json"
+    - ".env.example"
