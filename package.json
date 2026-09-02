@@ -21,7 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.2.9",
     "multer": "^2.1.1",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^9.0.6",
     "pdf-parse": "1.1.1",
     "pdfkit": "^0.19.1",
     "pg": "^8.20.0",
