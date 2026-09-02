@@ -10,6 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.40.3] — 2026-09-02
+
+### Security
+- **Broken access control in `GET /admin/org-settings` leaked SMTP-/WebDAV-Zugangsdaten** ([GHSA-63xg-pg3x-g36f](https://github.com/coolstartnow/isms-builder/security/advisories/GHSA-63xg-pg3x-g36f), CVSS 6.5/medium, gemeldet von @dav-rest). Der Lese-Pfad war mit `authorize('reader')` geschützt — der niedrigsten Rolle — und gab das komplette Organisationseinstellungen-Objekt unredigiert zurück, inklusive `smtpSettings.pass` und `webdavSettings.appPassword` im Klartext. Jede eingeloggte Rolle (bis hinunter zu `reader`) konnte damit die Zugangsdaten des organisationseigenen Mailservers und/oder WebDAV-Speichers auslesen, obwohl die Schwester-Endpunkte (`/admin/role-settings`, `/admin/users`) korrekt auf `admin` beschränkt waren. Da alle Rollen beim Login auf denselben Endpunkt angewiesen sind (Navigationsreihenfolge, Splash-Einstellungen), wurde der Zugriff nicht komplett gesperrt, sondern `server/routes/admin.js` filtert `smtpSettings.pass` und `webdavSettings.appPassword` jetzt für alle Rollen unterhalb `admin` heraus — alle übrigen (nicht-geheimen) Felder bleiben wie bisher lesbar. Betroffen: alle Versionen bis 1.40.2, sofern SMTP- und/oder WebDAV-Einstellungen konfiguriert wurden.
+
 ## [1.40.2] — 2026-08-30
 
 ### Fixed

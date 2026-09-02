@@ -126,6 +126,32 @@ describe('Org-Einstellungen', () => {
     const res = await authedPut(app, readerCookie, '/admin/org-settings', { companyName: 'X' })
     expect(res.status).toBe(403)
   })
+
+  // GHSA-63xg-pg3x-g36f: GET /admin/org-settings gab SMTP-/WebDAV-Zugangsdaten
+  // im Klartext an jede Rolle ab 'reader' zurück. Fix: Felder werden für
+  // Nicht-Admins herausgefiltert, der Rest (u. a. navOrder) bleibt lesbar,
+  // da alle Rollen ihn beim Login brauchen.
+  test('GET /admin/org-settings – reader sieht KEINE Zugangsdaten (GHSA-63xg-pg3x-g36f)', async () => {
+    await authedPut(app, adminCookie, '/admin/org-settings', {
+      smtpSettings:   { host: 'smtp.example.com', user: 'notify@example.com', pass: 'super-secret-smtp' },
+      webdavSettings: { enabled: true, baseUrl: 'https://cloud.example.com', username: 'isms', appPassword: 'super-secret-webdav' },
+    })
+
+    const res = await authedGet(app, readerCookie, '/admin/org-settings')
+    expect(res.status).toBe(200)
+    expect(res.body.smtpSettings?.pass).toBeUndefined()
+    expect(res.body.webdavSettings?.appPassword).toBeUndefined()
+    // Nicht-geheime Felder bleiben für reader sichtbar
+    expect(res.body.smtpSettings?.host).toBe('smtp.example.com')
+    expect(res.body.webdavSettings?.username).toBe('isms')
+  })
+
+  test('GET /admin/org-settings – admin sieht weiterhin die vollen Zugangsdaten', async () => {
+    const res = await authedGet(app, adminCookie, '/admin/org-settings')
+    expect(res.status).toBe(200)
+    expect(res.body.smtpSettings?.pass).toBe('super-secret-smtp')
+    expect(res.body.webdavSettings?.appPassword).toBe('super-secret-webdav')
+  })
 })
 
 describe('Audit-Log', () => {

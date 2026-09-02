@@ -4,7 +4,7 @@ const express = require('express')
 const router = express.Router()
 const fs = require('fs')
 const path = require('path')
-const { requireAuth, authorize } = require('../auth')
+const { requireAuth, authorize, ROLE_RANK } = require('../auth')
 const orgSettingsStore = require('../db/orgSettingsStore')
 const auditStore       = require('../db/auditStore')
 const customListsStore = require('../db/customListsStore')
@@ -214,8 +214,20 @@ router.post('/admin/list/:listId/reset', requireAuth, authorize('admin'), async 
 })
 
 // ── Organisationseinstellungen ──
+// GHSA-63xg-pg3x-g36f: alle Rollen brauchen diesen Endpunkt beim Login (navOrder,
+// Splash-Settings) — deshalb bleibt er bei 'reader', aber Zugangsdaten werden für
+// Nicht-Admins herausgefiltert statt den kompletten Endpunkt zu sperren.
 router.get('/admin/org-settings', requireAuth, authorize('reader'), async (req, res) => {
-  res.json(await orgSettingsStore.get())
+  const settings = await orgSettingsStore.get()
+  if (req.roleRank < ROLE_RANK.admin) {
+    const { smtpSettings, webdavSettings, ...rest } = settings
+    return res.json({
+      ...rest,
+      smtpSettings:   smtpSettings   ? { ...smtpSettings,   pass: undefined }         : smtpSettings,
+      webdavSettings: webdavSettings ? { ...webdavSettings, appPassword: undefined }  : webdavSettings,
+    })
+  }
+  res.json(settings)
 })
 router.put('/admin/org-settings', requireAuth, authorize('admin'), async (req, res) => {
   const updated = await orgSettingsStore.update(req.body)
