@@ -38,6 +38,13 @@ COPY README.md CONTRIBUTING.md CHANGELOG.md THIRD-PARTY-LICENSES.md ./
 COPY package.json ./
 COPY docker-entrypoint.sh ./
 
+# Demo-Bundles (de/en/fr/nl.json, statische Seed-Daten fuer den "Demo-Sprache
+# waehlen"-Dialog) bewusst NICHT nach ./data (das ist der Bind-Mount-Pfad und
+# wuerde beim Start komplett vom Host-Verzeichnis ueberschattet) sondern an
+# einen eigenen, nicht gemounteten Pfad. docker-entrypoint.sh kopiert sie von
+# dort ins (ggf. leere) Bind-Mount-Verzeichnis, falls dort noch keine liegen.
+COPY data/demo-bundles ./demo-bundles-seed
+
 RUN chmod +x docker-entrypoint.sh \
     && chown -R isms:isms /app
 

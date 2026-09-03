@@ -5,6 +5,13 @@ node_modules
 .server.pid
 .server.log
 data
+# Ausnahme: data/demo-bundles/ sind statische Seed-Dateien (de/en/fr/nl.json,
+# ~350 KB, keine Nutzerdaten) für den "Demo-Sprache wählen"-Dialog beim
+# Erstlogin. Ohne diese Ausnahme fehlten sie im Image (#Bug seit V1.40.0:
+# "Demo bundle for '<lang>' not found" bei jeder Docker-Installation) — data/
+# selbst bleibt zur Laufzeit ein Bind-Mount, s.u. bei COPY im Dockerfile.
+!data/demo-bundles
+!data/demo-bundles/**
 # docs/ wird ins Image kopiert — die Guidance-Seeds (ARCH_SEED in
 # guidanceStore.js) lesen README.md, CONTRIBUTING.md, CHANGELOG.md,
 # THIRD-PARTY-LICENSES.md und Teile von docs/ zur Laufzeit. Nur die

@@ -10,6 +10,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **Docker-Image: "Demo bundle for '\<lang\>' not found" bei jeder frischen Installation** — beim Erstellen neuer Screenshots für die Anwenderdokumentation aufgefallen. `.dockerignore` schloss `data/` komplett aus (data/ ist zur Laufzeit ein Bind-Mount, siehe Dockerfile-Kommentar), traf damit aber ungewollt auch `data/demo-bundles/` (~350 KB statische Seed-Dateien für den "Demo-Sprache wählen"-Dialog beim Erstlogin — keine Nutzerdaten). Jede Docker-Installation seit V1.40.0 (Einführung des GHCR-Images) konnte dadurch keine Demo-Sprache laden. Fix: `.dockerignore` nimmt `data/demo-bundles/` gezielt aus der Ausnahme heraus; das Dockerfile kopiert die Bundles an einen eigenen, nicht gemounteten Image-Pfad (`./demo-bundles-seed`, da `./data` beim Start ohnehin vom Host-Bind-Mount überschattet würde); `docker-entrypoint.sh` zieht sie beim Containerstart ins (ggf. leere) `data/`-Verzeichnis nach, sofern dort noch keine liegen — bestehende, vom Betreiber angepasste Bundles werden nie überschrieben. Lokal end-to-end verifiziert (frisches Image, leeres Bind-Mount-Verzeichnis, `/admin/demo-load-bundle` erfolgreich).
+
 ## [1.40.4] — 2026-09-03
 
 ### Security

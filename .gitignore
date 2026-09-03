@@ -98,3 +98,6 @@ demo-management/
 # Privates Backlog (nicht publizieren)
 docs/private/
 landing/
+
+# Backups alter Screenshot-Stände (bei Screenshot-Refresh angelegt, nicht publizieren)
+docs/screenshots/_archiv-*/
