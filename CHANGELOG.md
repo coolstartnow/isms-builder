@@ -10,6 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.40.4] — 2026-09-03
+
+### Security
+- **Kein Brute-Force-Schutz auf `POST /login`** — beim Schreiben der Anwenderdokumentation aufgefallen: der Login-Endpunkt (Passwort- UND 2FA-Prüfung) hatte keinerlei Verzögerung, Sperre oder Rate-Limit nach wiederholten Fehlversuchen — beliebig viele automatisierte Versuche pro Benutzername/E-Mail waren möglich. Neu: `server/loginThrottle.js`, ein leichtgewichtiger, rein In-Memory-basierter Zähler pro Kombination aus eingegebenem Identifier (Benutzername/E-Mail) und Quell-IP (`req.ip`, respektiert die bestehende `TRUST_PROXY`-Härtung) — bewusst ohne neue Abhängigkeit, analog zur bereits vorhandenen Eigenlösung für `trust proxy`. Nach 3 Fehlversuchen (Passwort oder 2FA) antwortet `/login` mit `429` und exponentiell steigender Wartezeit (1s, 2s, 4s, … gedeckelt bei 30s), bis zur nächsten korrekten Anmeldung oder 15 Minuten Inaktivität. Zähler wird auch für unbekannte Benutzernamen geführt, um Enumeration über die fehlende Sperre zu verhindern. In-Memory-Zustand ist ein bewusster Kompromiss für die Zielgruppe (Solo-/Kleinteam-Self-Hosting, i. d. R. eine einzelne Instanz) — bei mehreren Instanzen hinter einem Load Balancer wird der Zähler nicht instanzübergreifend geteilt.
+
 ## [1.40.3] — 2026-09-02
 
 ### Security

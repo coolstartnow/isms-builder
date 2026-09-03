@@ -5,6 +5,7 @@ const router = express.Router()
 const fs = require('fs')
 const path = require('path')
 const { requireAuth, authorize, signToken, getSessionFromReq } = require('../auth')
+const loginThrottle = require('../loginThrottle')
 
 const DATA_DIR       = process.env.DATA_DIR || path.join(__dirname, '../../data')
 const FLAG_FILE      = path.join(DATA_DIR, '.demo_reset_done')
@@ -39,6 +40,20 @@ router.post('/login', async (req, res) => {
   const { email, username: usernameField, password, totp } = req.body || {}
   const rbac = require('../rbacStore')
 
+  // Brute-Force-Schutz: Zaehler pro Kombination aus eingegebenem Identifier
+  // (E-Mail/Benutzername, wie eingetippt) + Quell-IP. Bewusst VOR jedem
+  // Datenbankzugriff geprueft, damit auch ein Angriff gegen unbekannte
+  // Benutzernamen ausgebremst wird.
+  const throttleId = (email || usernameField || '').toLowerCase()
+  const requiredDelay = loginThrottle.getRequiredDelayMs(throttleId, req.ip)
+  if (requiredDelay > 0) {
+    res.set('Retry-After', String(Math.ceil(requiredDelay / 1000)))
+    return res.status(429).json({
+      error: 'Zu viele Fehlversuche. Bitte kurz warten und erneut versuchen.',
+      retryAfterMs: requiredDelay,
+    })
+  }
+
   let userRaw = null
   if (email) {
     const uname = rbac.getUsernameByEmail(email)
@@ -47,11 +62,13 @@ router.post('/login', async (req, res) => {
     userRaw = rbac.getUserByUsername(usernameField)
   }
   if (!userRaw) {
+    loginThrottle.recordFailure(throttleId, req.ip)
     return res.status(401).json({ error: 'Invalid credentials' })
   }
 
   const passwordOk = await rbac.verifyPassword(userRaw.username, password || '')
   if (!passwordOk) {
+    loginThrottle.recordFailure(throttleId, req.ip)
     return res.status(401).json({ error: 'Invalid credentials' })
   }
 
@@ -70,6 +87,7 @@ router.post('/login', async (req, res) => {
         valid = verifyTotp(secret, totp)
       }
       if (!valid) {
+        loginThrottle.recordFailure(throttleId, req.ip)
         return res.status(401).json({ error: 'Ungültiger 2FA-Code', twoFactorRequired: true })
       }
     } catch (e) {
@@ -84,6 +102,8 @@ router.post('/login', async (req, res) => {
       })
     }
   }
+
+  loginThrottle.recordSuccess(throttleId, req.ip)
 
   const functions = userRaw.functions || []
   const token = signToken({ username: userRaw.username, role: userRaw.role, domain: userRaw.domain, functions })
