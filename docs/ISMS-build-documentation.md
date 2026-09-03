@@ -1,9 +1,9 @@
-<!-- © 2026 Claude Hecker — ISMS Builder V 1.28 — AGPL-3.0 -->
+<!-- © 2026 Claude Hecker — ISMS Builder V 1.40.3 — AGPL-3.0 -->
 ![ISMS Builder Banner](isms-builder-banner.png)
 
 # ISMS Builder – Dokumentation & Architektur
 
-Stand: 2026-03-09 | Version: V 1.28 (Lieferkettenmodul + Risikomanagement Multi-Framework, GDPR in SPA, Copyright-Header)
+Stand: 2026-09-03 | Version: V 1.40.3 (Docker-Image, MariaDB/PostgreSQL-Backends, NIS2-Modul, Audit Findings, Policy Acknowledgement, Nextcloud/WebDAV-Integration, Scanner-Import, vollständige DE/EN/FR/NL-i18n, Security-Fix GHSA-63xg-pg3x-g36f)
 
 ---
 
@@ -46,12 +46,33 @@ Stand: 2026-03-09 | Version: V 1.28 (Lieferkettenmodul + Risikomanagement Multi-
 35. Präsentation
 36. Geplante Erweiterungen & offene TODOs
 37. Risikomanagement – Multi-Framework
+38. Demo-Reset & Demo-Import
+39. Bugfixes & UI-Korrekturen (V 1.28)
+40. Mehrsprachigkeit (i18n) — DE / EN (V 1.29)
+41. English Demo Data (V 1.30)
+42. Offline-First / No External Requests (V 1.30)
+43. Mehrsprachige Demo-Bundles (V 1.31)
+44. Guidance – Vollständige Seed-Struktur & i18n (V 1.31)
+45. Bugfixes (V 1.31)
+46. FR/NL Guidance-Übersetzungen (V 1.32.0)
+47. Sprach-Konfiguration (Admin, V 1.32.0)
+48. Audit-Feststellungen / Findings-Modul (V 1.32.0)
+49. Dependency-Management & Security-Patching (V 1.33.x)
+50. Policy Acknowledgement — Richtlinien-Bestätigungssystem (V 1.35.0)
+51. Scanner-Integration — Greenbone / OpenVAS XML & PDF Import (V 1.33.0)
+52. Guidance – Vollständiges CRUD & Suche (V 1.35.0)
+53. NIS2 — Art. 21 Governance-Checkliste & Art. 23 Meldefristen (V 1.37.0)
+54. Docker-Deployment
+55. ownCloud/Nextcloud-Integration (WebDAV-Auto-Publish)
+56. Security-Historie seit V 1.37 & CI-Härtung
 
 ---
 
 ## 1. Überblick
 
 Der ISMS Builder ist eine eigenständige Node.js/Express-Anwendung mit Vanilla-JS-SPA zur Erstellung, Verwaltung und Versionierung von ISMS-Dokumenten. Unterstützt werden mehrere Compliance-Frameworks sowie GDPR, Risikomanagement, Training und Reporting.
+
+> **Terminologie „Templates" vs. „Documents" (seit V 1.40.0):** Die Objekte tragen Owner, Version, Review-Datum, einen Freigabe-Lebenszyklus und werden an Mitarbeitende zur Bestätigung verteilt — das ist die Definition eines gelenkten Dokuments nach ISO 27001 Kapitel 7.5, keine Vorlage. Seit V 1.40.0 heißen sie in der Oberfläche daher „Documents" statt „Templates" (Sidebar, Dashboard, Admin-Panel, Reports, Einstellungen, Kalender, Dialoge, Meldungen — alle vier Sprachen DE/EN/FR/NL). Das ist bewusst nur die **erste Stufe** (Issue [#62](https://github.com/coolstartnow/isms-builder/issues/62)) — IDs, API-Routen (`/template/:type/:id`, `/templates`, `/templates/tree`) und Datenmodell/Store-Dateien (`templateStore`, `data/templates.json`) heißen weiterhin `template*`. Diese Dokumentation verwendet daher konsequent **„Templates" auf der Code-/API-Ebene** (Endpunkte, Dateien, Store-Namen) und **„Dokumente" auf der Konzept-/UI-Ebene** — genau wie der Programmcode selbst. Die zweite Stufe (Umbenennung von IDs, Routen und Datenmodell inkl. Migration von Bestandsdaten) ist bewusst zurückgestellt, bis sie zusammen mit einer ohnehin fälligen Datenänderung erledigt werden kann, damit Bestandsdaten nur einmal statt zweimal angefasst werden — die zugrunde liegende Datenbank-Migration (Abschnitt 31) ist inzwischen abgeschlossen, Stufe 2 selbst steht noch aus.
 
 **Tech-Stack:** Node.js ≥18, Express, JWT, bcryptjs, multer, better-sqlite3
 **Persistenz:** JSON-Dateien (Standard, aktuell empfohlen), SQLite (`STORAGE_BACKEND=sqlite`, siehe Hinweis in Abschnitt 31), MariaDB/MySQL (`STORAGE_BACKEND=mariadb`), PostgreSQL (`STORAGE_BACKEND=pg`)
@@ -326,6 +347,17 @@ Unauthentifizierte Anfragen auf geschützte Dateien werden mit `HTTP 302 → /ui
 
 **Stale-Cookie-Schutz (Chrome bfcache):** Beim Abrufen von `login.html` löscht der Server aktiv das `sm_session`-Cookie (`res.clearCookie`). Dies verhindert, dass Chrome einen abgelaufenen JWT aus dem Back/Forward-Cache wiederherstellt und Seiteninhalt aufgrund eines stillen 401 ausgeblendet wird.
 
+**Trust Proxy / X-Forwarded-\* (seit V 1.37.5):** Express' `trust proxy` ist standardmäßig **aus** — `req.ip`, `req.protocol` und `req.hostname` spiegeln immer die tatsächliche TCP-Verbindung, ein Client kann `X-Forwarded-For`/`-Host`/`-Proto` nicht fälschen. Hintergrund: Ohne diese Absicherung ließ sich die im Audit-Trail einer Richtlinien-Bestätigung gespeicherte IP-Adresse fälschen, und der Bestätigungslink in E-Mails an Mitarbeitende konnte per `X-Forwarded-Host` auf eine beliebige fremde Domain umgeleitet werden.
+
+Wer die App bewusst hinter einem Reverse-Proxy betreibt (z. B. bei Netzsegmentierung mit DMZ), muss das explizit aktivieren:
+
+| Variable | Zweck |
+|---|---|
+| `TRUST_PROXY` | Anzahl der Hops, denen vertraut werden soll (z. B. `1` bei einem einzelnen vorgeschalteten Reverse-Proxy) |
+| `PUBLIC_URL` | Alternative, wenn der extern sichtbare Host zuverlässiger als der weitergereichte Header bekannt ist |
+
+Ohne gesetztes `TRUST_PROXY` bleibt der Schutz aktiv — auch hinter einem echten Proxy zeigt `req.ip` dann auf dessen Adresse statt auf den echten Client, aber es kann nichts gefälscht werden.
+
 ---
 
 ## 10. RBAC & Benutzer
@@ -465,17 +497,19 @@ Benutzer werden in `data/rbac_users.json` als bcrypt-Hashes gespeichert. Verwalt
 
 ## 11. Reports & Compliance
 
-**7 Report-Typen:**
+**9 Report-Typen:**
 
 | Typ | Beschreibung | CSV | Entitäts-Filter |
 |---|---|---|---|
 | `compliance` | Implementierungsrate pro Gesellschaft & Framework | ✓ | ✓ |
 | `framework` | Controls pro Framework: applicable / implementiert / Gap | ✓ | — |
 | `gap` | Controls ohne verknüpfte Policy-Templates | ✓ | ✓ |
-| `templates` | Alle Templates nach Status und Gesellschaft | ✓ | ✓ |
+| `templates` | Alle Templates (Dokumente) nach Status und Gesellschaft | ✓ | ✓ |
 | `reviews` | Überfällige und kommende Template-Reviews | ✓ | — |
 | `matrix` | Compliance-Matrix: Control × Gesellschaft (Ampelfarben) | ✓ | Framework |
 | `audit` | Status-Änderungen an Templates im Zeitraum | — | — |
+| `findings` | Audit Findings — KPI (gesamt, nach Schwere/Status, offene/überfällige Maßnahmen), filterbare Tabelle | ✓ | — |
+| `risks` | Risikoregister — alle freigegebenen Risiken mit CVSS-Score, CVE-ID, Quelle (Scan/manuell), KPI je Schweregrad | ✓ | — |
 
 **Endpunkte:**
 ```
@@ -486,8 +520,12 @@ GET /reports/templates      – Template-Übersicht
 GET /reports/reviews        – Fällige Reviews (?days=30)
 GET /reports/matrix         – Compliance-Matrix (?framework=)
 GET /reports/audit          – Audit-Trail (?from=&to=)
+GET /reports/findings       – Audit-Feststellungen (V 1.37.5)
+GET /reports/risks          – Risikoregister (V 1.37.5)
 GET /reports/export/csv     – CSV-Export ?type=...&entity=...&framework=...
 ```
+
+**PDF-Export (V 1.37.5):** Zusätzlicher PDF-Export-Button in der Reports-Filterleiste — erzeugt eine druckfertige Seite in einem neuen Browser-Tab über `window.print()`, wie beim bestehenden Guidance-Druck. Keine neue Abhängigkeit, kein serverseitiges PDF-Rendering für diesen Weg (im Unterschied zur Nextcloud-Auto-Publish-Funktion, siehe Abschnitt 55, die echte PDF-Bytes auf dem Server erzeugt).
 
 ---
 
@@ -826,10 +864,12 @@ POST /gdpr/deletion-log           – Löschung bestätigen (contentowner+)
 
 ## 18. Storage-Backend wechseln
 
-**Empfehlung:** JSON, solange die SQL-Backend-Migration nicht abgeschlossen ist (siehe Hinweis in
-Abschnitt 31 und [Issue #42](https://github.com/coolstartnow/isms-builder/issues/42)). SQLite ist
-nutzbar, hat aber aktuell ein bekanntes, ungefixtes Startup-Race-Condition-Problem.
-Ausführliche Migrations-Anleitung inkl. PostgreSQL: **→ Abschnitt 31**.
+**Empfehlung:** JSON bleibt die aktuelle Standardempfehlung (Einfachheit, kein zusätzlicher
+Infrastrukturbedarf). SQLite, MariaDB und PostgreSQL sind vollständig implementiert und über
+den gemeinsamen Knex-Store-Layer nutzbar — die früher bekannte Startup-Race-Condition
+([Issue #42](https://github.com/coolstartnow/isms-builder/issues/42)) ist seit V 1.37.5 behoben
+(siehe Hinweis in Abschnitt 31). Ausführliche Migrations-Anleitung inkl. MariaDB/PostgreSQL:
+**→ Abschnitt 31**.
 
 **Schnellübersicht JSON → SQLite:**
 ```bash
@@ -900,6 +940,7 @@ Das Dashboard (`GET /dashboard` + diverse Summary-Endpunkte) aggregiert alle Mod
 | Schulungen | `/training/summary` | Abschlussrate, überfällige Schulungen |
 | Assets | `/assets/summary` | Gesamt, Kritisch, ohne Klassifizierung, EoL in 90 Tagen |
 | Governance | `/governance/summary` | Reviews gesamt, offene Maßnahmen, überfällige Maßnahmen, Sitzungen |
+| Lieferanten | `/suppliers/summary` | Gesamt, Kritisch, Audit überfällig, Triage-Stufen (siehe Abschnitt 33) |
 | Kalender | `/calendar` | Nächste-14-Tage-Vorschau |
 
 **Handlungsbedarf-Sektion:** Zeigt automatisch kritische Hinweise (Risiken, offene Vorfälle, ablaufende Verträge, überfällige Schulungen) mit Direktlinks in die jeweiligen Module.
@@ -1165,6 +1206,21 @@ Vererbte Werte werden **berechnet, nicht gespeichert** — eine Änderung an der
 Die Logik liegt backend-neutral in `server/db/assetProtection.js` und wird von JSON- und Knex-Store gemeinsam genutzt. Nach demselben Muster hält `server/db/assetTypes.js` die Asset-Typen und Kategorien — die einzige Deklaration im Projekt. Sie war zuvor dreifach vorhanden (beide Stores plus `ASSET_TYPES_MAP` im Frontend) und bereits auseinandergelaufen. Editierbar sind die Typen über `customListsStore` (Administration → Listen); das Frontend bezieht sie über `/admin/lists` und hält keine eigene Kopie mehr.
 
 Zur Mehrsprachigkeit gilt eine bewusste Festlegung: Die 24 Vorgabetypen tragen i18n-Schlüssel (`assetType_<id>`, dazu `assetCat_<id>`) und werden übersetzt. `assetTypeLabel()` in `ui/app.js` übersetzt aber nur, solange das gespeicherte Label exakt dem `en`-Wert des Schlüssels entspricht — daran erkennt es einen unveränderten Vorgabetyp. Selbst angelegte und umbenannte Typen werden nicht übersetzt, weil für sie keine Übersetzung existieren kann und eine Umbenennung sonst stillschweigend überschrieben würde. **Wer ein Vorgabe-Label in `server/db/assetTypes.js` ändert, muss den `en`-Wert in `ui/i18n/translations.js` mitziehen**; `tests/assetTypes.test.js` prüft diese Invariante. Ein mehrsprachiges Labelfeld je Typ ist ausdrücklich nicht vorgesehen. Im SQL-Backend liegen `protection` und `dependsOn` im vorhandenen `data`-JSON-Feld — **kein Schema-Change erforderlich**.
+
+### 26.2 Schutzziel-Vorgaben je Asset-Typ (V 1.37.2/1.37.3)
+
+Zusätzlich zur Vererbung über Abhängigkeiten (26.1) kann ein **Asset-Typ selbst** Schutzziel-Vorgaben tragen (Administration → Listen → Asset-Typen): vier Stufenfelder für C/I/A/Authentizität, leer bedeutet „keine Vorgabe". Assets dieses Typs übernehmen die Werte, solange sie nicht `protectionOverride` setzen — die Vorgabe wirkt **je Schutzziel einzeln** (ein Typ „Datenbank: C=4" lässt I und A beim Asset unangetastet) und ist ein **dauerhafter Bezug**: eine Korrektur am Typ wirkt sofort auf alle nicht übersteuernden Assets.
+
+Im Asset-Formular gibt es dafür den Schalter „Schutzziele abweichend vom Typ festlegen". Solange nicht übersteuert wird, sind die vier Felder am Asset **gesperrt** und zeigen den Wert des Typs — ohne diese Sperre würde ein Speichern den Typwert stillschweigend als Eigenwert festschreiben und der Bezug zum Typ ginge verloren.
+
+**Zwei getrennte Herkunftsangaben** je Asset, damit in der Oberfläche erklärbar bleibt, warum ein Wert so hoch ist:
+
+| Feld | Bedeutung |
+|---|---|
+| `protectionOrigins` | wie in 26.1 — je Schutzziel die ID des **Assets**, dessen Wert den effektiven Wert bestimmt |
+| `protectionSources` | je Schutzziel `own` oder `type` — ob der Wert vom Asset selbst oder vom Asset-**Typ** stammt |
+
+Beide Vererbungsquellen laufen zusammen: Die Abhängigkeitsvererbung aus 26.1 (Maximumprinzip über `dependsOn`) läuft unverändert über den so bestimmten Ausgangswert — das Maximum gewinnt, auch gegen einen bewusst niedrigeren Typ-Wert. Schutzziele am Typ werden im Knex-Backend im vorhandenen `data`-JSON-Feld mitgeführt, kein Schema-Change.
 
 **UI — 4 Tabs:**
 - **Alle Assets:** Filtertabelle (Kategorie, Klassifizierung, Kritikalität, Status, Schutzziel + Mindeststufe, Suchfeld) + inline Formular. Schutzziele erscheinen als Chips (`C3 I4↑ A4↑`); geerbte Werte sind gestrichelt umrandet und mit Pfeil markiert, der Tooltip nennt Eigenwert und Vererbungsquelle.
@@ -1451,13 +1507,18 @@ SMTP_USER=isms@yourcompany.com
 | **MariaDB/MySQL** | `STORAGE_BACKEND=mariadb` | Kleines Team, vorhandene MySQL-Infra |
 | **PostgreSQL** | `STORAGE_BACKEND=pg` | Multi-Instanz, hohe Last |
 
-> **⚠️ Hinweis zu SQLite:** SQLite ist konzeptionell für einen selbst gehosteten ISMS-Dienst mit
+> **ℹ️ Hinweis zu SQLite:** SQLite ist konzeptionell für einen selbst gehosteten ISMS-Dienst mit
 > einer bis wenigen gleichzeitigen Nutzern ideal (keine Serverinfrastruktur, ACID-Transaktionen,
-> WAL-Modus, Foreign Keys, einfaches Backup per `cp data/isms.db backup.db`) — die SQL-Backend-
-> Migration ist aber noch ein offenes Arbeitspaket. Aktuell gibt es beim Serverstart eine bekannte
-> Race Condition zwischen Schema-Initialisierung und Autopurge, die zu einem Absturz führen kann
-> (**[Issue #42](https://github.com/coolstartnow/isms-builder/issues/42)**). Solange dieses Issue
-> offen ist, wird JSON auch für den Produktivbetrieb empfohlen.
+> WAL-Modus, Foreign Keys, einfaches Backup per `cp data/isms.db backup.db`). Die zuvor bekannte
+> Race Condition beim Serverstart zwischen Schema-Initialisierung und Autopurge
+> (**[Issue #42](https://github.com/coolstartnow/isms-builder/issues/42)**) ist seit **V 1.37.5**
+> behoben — ein einzelnes `bootstrap()`-Gate wartet jetzt vor jedem DB-Zugriff auf die
+> abgeschlossene Schema-Initialisierung. Verifiziert gegen alle drei SQL-Backends (SQLite,
+> MariaDB 11, PostgreSQL 17) sowie den vollständigen Docker-Weg (App-Container + DB-Container im
+> selben Netzwerk). Das Issue bleibt vorerst offen, bis eine externe Validierung in einer echten
+> Kubernetes/PostgreSQL-Produktivumgebung vorliegt. **JSON bleibt trotzdem die aktuelle
+> Standardempfehlung** (README, `.env.example`) — primär aus Einfachheit (kein zusätzlicher
+> Infrastrukturbedarf), nicht mehr wegen eines bekannten Absturzrisikos.
 
 **Wann MariaDB?** Wenn bereits eine MySQL/MariaDB-Infrastruktur vorhanden ist (z. B. gemeinsam genutzter Datenbankserver), mehrere Instanzen denselben Datenstand teilen sollen, oder bewusst kein SQLite-File im Dateisystem liegen soll.
 
@@ -1683,6 +1744,9 @@ Verwaltet Lieferanten und Dienstleister framework-agnostisch. `linkedControls[]`
   "contractId": "",    // Verknüpfung → Legal/Verträge
   "avContractId": "",  // Verknüpfung → GDPR/AV (wenn Auftragsverarbeiter)
   "riskScore": 0,      // 0–25
+  "piiAccess": "yes|no|unknown",       // Zugriff auf personenbezogene Daten
+  "soc2Status": "yes|no|na|unknown",   // SOC-2-Bericht vorhanden
+  "iso27001Status": "yes|no|unknown",  // ISO-27001-Zertifizierung
   "notes": "",
   "linkedControls": [], "linkedPolicies": [],
   "createdAt": "", "updatedAt": "", "createdBy": "", "deletedAt": null
@@ -1701,6 +1765,14 @@ DELETE /suppliers/:id          – Soft-Delete (admin+)
 DELETE /suppliers/:id/permanent – Endgültig löschen (admin+)
 POST   /suppliers/:id/restore  – Wiederherstellen (admin+)
 ```
+
+### PII/ISO-27001/SOC-2-Schnelltriage (V 1.37.5.2, Issue #63)
+
+Drei zusätzliche Achsen am Lieferanten (personenbezogene Daten, SOC-2-Status, ISO-27001-Status), aus denen sich per **Maximum-Prinzip** automatisch eine Triage-Stufe (`low`/`medium`/`high`/`unassessed`) ergibt — nach demselben Muster wie die BSI-Maximum-Vererbung bei Asset-Schutzzielen (26.1). Der Wert wird **nie gespeichert**, sondern bei jedem Lesen aus den drei Rohantworten neu berechnet, damit ein geänderter Input sofort wirkt.
+
+Wichtige Regel: Ein SOC-2-Bericht, der für diese Art von Lieferant **nicht anwendbar** ist (`na`), zählt als `low`, nicht als unbewertet — Abwesenheit einer Anforderung ist kein Mangel. Fehlt dagegen eine Achse komplett (`unknown`), ist das Ergebnis `unassessed` — Abwesenheit von Information ist kein gutes Ergebnis. Die berechnete Triage-Stufe ist eine Indikation und **ersetzt nicht** den bestehenden manuellen `riskScore`, der weiterhin das finale Urteil bleibt; beide werden nebeneinander angezeigt.
+
+Neue Tabellen-Spalte, Filter (`GET /suppliers?triage=high`) und Zähler in der Zusammenfassung (`byTriageLevel`, `triageUnassessed`). Unbekannte Enum-Werte werden mit HTTP 400 abgelehnt. Backend-neutrales Modul `server/db/supplierTriage.js`, von JSON- und Knex-Backend gemeinsam genutzt (im Knex-Backend im vorhandenen `data`-JSON-Feld, keine Schema-Migration nötig).
 
 ### UI-Übersicht
 
@@ -1727,6 +1799,7 @@ Microsoft 365, DATEV, Telekom, SAP S/4HANA, Hetzner, Securelink, Cisco, AWS EMEA
 | Datei | Zweck |
 |---|---|
 | `server/db/supplierStore.js` | Store (CRUD, Summary, getUpcomingAudits) |
+| `server/db/supplierTriage.js` | PII/ISO-27001/SOC-2-Schnelltriage (Maximum-Prinzip) |
 | `server/routes/suppliers.js` | REST-Routen |
 | `data/suppliers.json` | Persistenz + Seed-Daten |
 | `server/routes/calendar.js` | `supplier_audit`-Ereignisse |
@@ -2638,6 +2711,8 @@ Das Findings-Modul erfasst Audit-Feststellungen nach dem **IST → SOLL → Risi
 
 ## 49. Dependency-Management & Security-Patching (V 1.33.x)
 
+> Konkrete Sicherheitslücken und -fixes seit V 1.37 (Trust-Proxy-Fix, GHSA-63xg-pg3x-g36f) sowie die seit heute aktive GitGuardian-Secret-Scanning-Integration: **→ Abschnitt 56**.
+
 ### Ziel
 
 ISMS Builder verarbeitet personenbezogene und sicherheitsrelevante Daten. Der DSGVO-Anspruch „Ihre Daten bleiben bei Ihnen" verpflichtet dazu, auch die eingesetzten Bibliotheken stets auf einem sicheren Versionsstand zu halten.
@@ -3195,3 +3270,119 @@ Der Fristenstatus wird **berechnet, nicht gespeichert** (`art23Status`): je Phas
 **Export:** `GET /nis2/incidents/:id/export` liefert ein behördenneutrales JSON (`format: "nis2-art23"`) mit Vorfalldaten, Fristen, Abgabezeitpunkten und allen drei Meldeinhalten. Das konkrete Einreichungsformat legt jeder Mitgliedstaat selbst fest, deshalb bewusst kein länderspezifisches Schema.
 
 **Dashboard-Integration:** Alerts bei überschrittenen und bald ablaufenden Meldefristen sowie bei offenen CRITICAL-Items aus Art. 21.
+
+---
+
+## 54. Docker-Deployment (V 1.37.5.2 / V 1.40.0)
+
+### Fertiges Image statt Selbstbau
+
+Seit V 1.40.0 wird nach jedem Release automatisch ein Docker-Image nach `ghcr.io/coolstartnow/isms-builder` veröffentlicht — `:<version>` und `:latest`, jeweils `linux/amd64` **und** `linux/arm64`. Bisher musste jeder Betreiber das Image selbst aus dem `Dockerfile` bauen. `docker-compose.yml` nutzt standardmäßig das fertige Image; der lokale Build bleibt als auskommentierter `build`-Block erhalten, falls jemand bewusst selbst bauen möchte.
+
+```bash
+docker pull ghcr.io/coolstartnow/isms-builder:latest
+# oder eine feste Version:
+docker pull ghcr.io/coolstartnow/isms-builder:1.40.3
+```
+
+**Vor jeder Freigabe** startet die CI den Container und prüft die Erreichbarkeit (`/ui/login.html`); jedes Image trägt zusätzlich eine signierte Build-Provenance, verifizierbar mit `gh attestation verify oci://ghcr.io/coolstartnow/isms-builder:latest --owner coolstartnow`.
+
+### docker-compose: MariaDB-/PostgreSQL-Profile (V 1.37.5.2)
+
+Zwei optionale Services (`mariadb`, `postgres`) in `docker-compose.yml`, standardmäßig **inaktiv** — `docker compose up` startet weiterhin nur `isms` mit `STORAGE_BACKEND=json`, unverändertes Verhalten.
+
+```bash
+# App + MariaDB im selben Docker-Netzwerk
+docker compose --env-file .env.docker --profile mariadb up -d
+
+# App + PostgreSQL im selben Docker-Netzwerk
+docker compose --env-file .env.docker --profile postgres up -d
+```
+
+`--env-file .env.docker` ist nötig, damit Compose seine eigenen `${DB_USER}`/`${DB_PASS}`/`${DB_NAME}`-Platzhalter aus derselben Datei liest wie die App selbst. `DB_PASS` hat bewusst **keinen** Default — Compose bricht ohne gesetztes Passwort mit klarer Fehlermeldung ab, kein unsicherer Default in einem Security-Tool. Persistente Volumes: `mariadb_data`, `postgres_data`. Der App-Service hat bewusst **kein** `depends_on` auf die DB-Services (würde den profil-losen Standardstart brechen); ist die DB beim ersten Start noch nicht bereit, greift der `bootstrap()`-Fix aus Abschnitt 31 mit einer sauberen Fehlermeldung statt eines Crashs, `restart: unless-stopped` versucht es automatisch erneut — derselbe Mechanismus wie bei einem Pod-Neustart in Kubernetes.
+
+### Update-Check (V 1.37.5.2)
+
+Admin → Wartung hat einen Button „Nach Updates suchen", der den neuesten GitHub-Release abfragt und mit der laufenden Version vergleicht. Bewusst **nur ein Hinweis, kein Auto-Update**: Selbstgehostete Software, die selbstständig Code aus dem Internet nachzieht, ist eine der riskantesten Funktionen überhaupt (Supply-Chain-Angriffsfläche — vgl. SolarWinds/xz-Backdoor) und widerspricht dem Betriebsmodell des Projekts („Betrieb liegt beim Betreiber"). Backend-neutrales Modul `server/updateCheck.js`, kein Hintergrund-Cron — die Abfrage läuft nur, wenn ein Admin sie aktiv auslöst; Ergebnis 1 Stunde serverseitig gecacht, um GitHubs unauthentifiziertes Rate-Limit zu schonen. Wirft nie (Netzwerkausfall, Rate-Limit, Timeout → sichtbarer Hinweis statt Absturz).
+
+### Versionsanzeige (V 1.37.5.2)
+
+Ungeschützter `GET /api/version`-Endpunkt liefert die `package.json`-Version; angezeigt im Sidebar-Footer der Hauptanwendung und im Footer der Login-Seite.
+
+### Docker-Image-Inhalt
+
+`.dockerignore` ist gezielt statt pauschal: `docs/private`, `docs/community`, `docs/screenshots`, `docs/presentation` und die Banner-PNG bleiben außen vor. Der Rest von `docs/` (u. a. alle `docs/module-*.md`, `docs/architecture/`) sowie `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `THIRD-PARTY-LICENSES.md` werden ins Image kopiert — diese Dateien werden von den Guidance-Seed-Dokumenten benötigt (Abschnitt 32), sonst blieben mehrere Systemhandbuch-Einträge im Container leer. `data/` wird **nicht** ins Image gebacken, sondern per Bind-Mount aus dem Host gemountet (`./data:/app/data`) — ein frischer Container ohne vorhandenes `data/`-Verzeichnis erzeugt beim ersten Start automatisch einen sicheren Standard-Seed (siehe Abschnitt 56 zum Thema committete Demo-Daten).
+
+### Relevante Dateien
+
+| Datei | Zweck |
+|---|---|
+| `.github/workflows/release.yml` | Job `docker-image`: Build, Push, Attestation, Erreichbarkeitsprüfung |
+| `docker-compose.yml` | Standard-Service `isms` + optionale Profile `mariadb`/`postgres` |
+| `.env.docker` | Compose-eigene Umgebungsvariablen (`DB_USER`, `DB_PASS`, `DB_NAME`) |
+| `server/updateCheck.js` | Update-Check gegen GitHub Releases (kein Auto-Update) |
+| `.dockerignore` | Gezielter Ausschluss (privat/interne Docs, Screenshots, Präsentation) |
+
+---
+
+## 55. ownCloud/Nextcloud-Integration — WebDAV-Auto-Publish (V 1.37.5.2, Issue #66)
+
+### Zweck
+
+Bei jeder Freigabe eines Dokuments (Templates, Abschnitt „Templates" → „Documents"-Umbenennung siehe Abschnitt 1) wird automatisch ein serverseitig gerendertes PDF per WebDAV in einen konfigurierbaren Nextcloud-/ownCloud-Ordner hochgeladen — die Übergabe an ein HR-/Verteilsystem, ohne manuellen Export. Zusätzlich ein manueller Re-Sync-Button im Dokumenten-Editor und ein Verbindungstest in der Admin-Oberfläche (Admin → Organisation).
+
+### Serverseitige PDF-Erzeugung
+
+Vor dieser Integration gab es serverseitige PDF-Erzeugung im Projekt nirgends — sämtliche PDF-Exporte liefen ausschließlich im Browser über `window.print()` (siehe Abschnitt 11). Für den WebDAV-Upload braucht es aber echte PDF-Bytes auf dem Server. Bewusst **kein** Puppeteer/Chromium dafür (hätte ~300 MB Chromium ins Produktiv-Image gezogen, nur um HTML zu drucken) — stattdessen `pdfkit` (reines JS, keine native Kompilierung) plus der ohnehin im Projekt vendorte `ui/vendor/marked.min.js`, serverseitig per `require()` wiederverwendet statt einer zweiten Markdown-Abhängigkeit.
+
+### WebDAV-Client
+
+`server/webdav.js` nutzt Node's eingebautes `fetch` mit Basic Auth für `PUT`/`MKCOL`/`PROPFIND`/`PROPPATCH` — kein SDK, keine neue Abhängigkeit. Zwei optionale, rein additive Sichtbarkeits-Extras (per `.env` schaltbar, Default aus):
+
+| Variable | Wirkung |
+|---|---|
+| `WEBDAV_MARK_FAVORITE` | markiert den Zielordner per WebDAV-Property als Favorit (taucht bei Nutzern mit Zugriff unter Dateien → Favoriten weiter oben auf) |
+| `WEBDAV_CREATE_SHARE_LINK` | legt über die OCS-Share-API einen öffentlichen Lesezugriffs-Link an, sichtbar im Dokumenten-Editor |
+
+Schlagen beide Extras fehl, beeinflusst das den eigentlichen PDF-Upload nicht.
+
+### Ausfallsicherheit
+
+Durchgehendes Designprinzip: Ausfall des Remote-Systems darf nie zum ISMS-Problem werden — `publishDocument()` wirft nie, liefert immer `{ok, error}`. Die Freigabe eines Dokuments bleibt in jedem Fall gültig, auch wenn Nextcloud gerade nicht erreichbar ist; der Fehler landet sichtbar im Feld `webdav_publish` (JSON- und Knex-Backend) und lässt sich per Re-Sync erneut versuchen, ohne den Freigabezyklus zu wiederholen.
+
+### Zugangsdaten
+
+App-Passwort statt Hauptkonto-Passwort für die Nextcloud-Anmeldedaten ist in der Admin-Oberfläche als Pflicht-Empfehlung mit Begründung hinterlegt (einzeln widerrufbar, begrenzt Schaden bei Kompromittierung). Diese Zugangsdaten werden serverseitig unter `smtpSettings`/`webdavSettings` in `data/org-settings.json` gespeichert — siehe Abschnitt 56 zum dort seit V 1.40.3 behobenen Zugriffskontroll-Fehler.
+
+### Relevante Dateien
+
+| Datei | Zweck |
+|---|---|
+| `server/webdav.js` | WebDAV-Client (PUT/MKCOL/PROPFIND/PROPPATCH), Favoriten-Markierung, Share-Link |
+| `server/pdfExport.js` | Serverseitige PDF-Erzeugung via `pdfkit` |
+| `tests/webdav.test.js` | 18 Tests gegen einen In-Process-Stub-WebDAV-Server |
+
+---
+
+## 56. Security-Historie seit V 1.37 & CI-Härtung
+
+Kompakte Übersicht aller seit V 1.37 behobenen Sicherheitsfindings — Details jeweils im referenzierten Abschnitt bzw. Advisory.
+
+| Version | Fund | Kurzbeschreibung | Details |
+|---|---|---|---|
+| V 1.37.5 | Host-Header-Injection / fälschbare Audit-IP | `X-Forwarded-*`-Header waren ungeprüft vertrauenswürdig — Bestätigungs-Mail-Links ließen sich per `X-Forwarded-Host` auf fremde Domains umleiten, Audit-Trail-IPs waren fälschbar | Abschnitt 9 |
+| V 1.37.5 | Startup-Race unter SQL-Backends | Absturzrisiko beim Serverstart unter `STORAGE_BACKEND=sqlite/mariadb/pg` (Issue #42) | Abschnitt 31 |
+| **V 1.40.3** | **GHSA-63xg-pg3x-g36f** — Broken Access Control | `GET /admin/org-settings` gab SMTP-/WebDAV-Zugangsdaten (Abschnitt 55) im Klartext an jede Rolle ab `reader` zurück, statt wie die Schwester-Endpunkte auf `admin` beschränkt zu sein. CVSS 6.5 (medium), gemeldet über GitHubs private Vulnerability-Reporting-Funktion. Fix: Zugangsdaten werden für alle Rollen unterhalb `admin` herausgefiltert; der restliche Endpunkt bleibt erreichbar, da alle Rollen beim Login auf ihn angewiesen sind (Navigationsreihenfolge, Splash-Einstellungen). | [GHSA-63xg-pg3x-g36f](https://github.com/coolstartnow/isms-builder/security/advisories/GHSA-63xg-pg3x-g36f) |
+
+### Secret-Scanning (GitGuardian, seit September 2026)
+
+Das Repository wird zusätzlich zu `npm audit` (Abschnitt 49) fortlaufend von GitGuardian auf versehentlich committete Zugangsdaten überwacht. Da das Projekt bewusst mit dokumentierten Demo-Zugangsdaten ausgeliefert wird (`adminpass`, `bobpass` etc., siehe Abschnitt 10) und Tests entsprechende Fixtures verwenden, sind bekannte Fundorte dauerhaft als False Positive hinterlegt:
+
+- **`.gitguardian.yaml`** (Repo-Root) — deckt lokale/CI-`ggshield`-Läufe ab
+- **Filepath-Exclusions im GitGuardian-Dashboard**, auf das Repository beschränkt — deckt das fortlaufende Dashboard-Scanning ab
+
+Betroffene, bewusst ausgenommene Pfade: `tests/**` (Demo-Login-Credentials in Tests), `data/rbac_users.json` (committeter Demo-Seed — bcrypt-Hashes sind Einwegverschlüsselung, ein enthaltenes `totpSecret`-Feld ist inaktiv, da `totpVerified` nie gesetzt ist, siehe Abschnitt 10), `.env.example` (reine Platzhalterwerte).
+
+### CI-Härtung — Ergänzung zu Abschnitt 49
+
+Über die dort beschriebene Dependabot-/`npm audit`-Automatisierung hinaus prüft jeder CI-Lauf zusätzlich mit **GitGuardian Security Checks** auf neu eingeführte Secrets, bevor ein Pull Request gemergt werden kann.
