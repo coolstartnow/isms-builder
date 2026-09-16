@@ -249,9 +249,66 @@ const QUESTIONS_BY_LANG = {
       ]
     },
   ],
+
+  hu: [
+    {
+      section: 'Információbiztonsági szabályzatok',
+      questions: [
+        { id: 'q_pol_1',  text: 'Rendelkezik szervezete dokumentált információbiztonsági szabályzattal?', type: 'yesno' },
+        { id: 'q_pol_2',  text: 'A szabályzatot rendszeresen (legalább évente) felülvizsgálják?', type: 'yesno' },
+        { id: 'q_pol_3',  text: 'Ki van jelölve Információbiztonsági Vezető (CISO/ISB)?', type: 'yesno' },
+      ]
+    },
+    {
+      section: 'Hozzáférés-szabályozás',
+      questions: [
+        { id: 'q_acc_1',  text: 'A hozzáférési jogosultságokat a minimális jogosultság elvének megfelelően adják meg?', type: 'yesno' },
+        { id: 'q_acc_2',  text: 'Kétfaktoros hitelesítés (2FA) alkalmazott a kiemelt jogosultságú hozzáférésekhez?', type: 'yesno' },
+        { id: 'q_acc_3',  text: 'A hozzáférési jogosultságokat munkaviszony-változás vagy -megszűnés esetén haladéktalanul visszavonják?', type: 'yesno' },
+      ]
+    },
+    {
+      section: 'Adatvédelem és GDPR',
+      questions: [
+        { id: 'q_gdpr_1', text: 'Ki van jelölve Adatvédelmi Tisztviselő (DPO)?', type: 'yesno' },
+        { id: 'q_gdpr_2', text: 'Kötöttek adatfeldolgozói megállapodást (DPA), vagy készek arra?', type: 'yesno' },
+        { id: 'q_gdpr_3', text: 'Mely országokban kerül sor adatkezelésre vagy adattárolásra?', type: 'text' },
+      ]
+    },
+    {
+      section: 'Eseménykezelés',
+      questions: [
+        { id: 'q_inc_1',  text: 'Rendelkezik szervezete dokumentált eseménykezelési (incident response) folyamattal?', type: 'yesno' },
+        { id: 'q_inc_2',  text: 'Képesek biztonsági eseményeket 72 órán belül bejelenteni?', type: 'yesno' },
+        { id: 'q_inc_3',  text: 'Az elmúlt 12 hónapban volt-e bejelentési kötelezettséget keletkeztető adatvédelmi incidens?', type: 'yesno' },
+      ]
+    },
+    {
+      section: 'Üzletmenet-folytonosság',
+      questions: [
+        { id: 'q_bcm_1',  text: 'Létezik üzletmenet-folytonossági terv (BCP)?', type: 'yesno' },
+        { id: 'q_bcm_2',  text: 'Rendszeresen készítenek biztonsági mentést, és tesztelik annak visszaállíthatóságát?', type: 'yesno' },
+        { id: 'q_bcm_3',  text: 'Mekkora az alaprendszerek maximálisan tolerálható leállási ideje (RTO)?', type: 'text' },
+      ]
+    },
+    {
+      section: 'Tanúsítványok és auditok',
+      questions: [
+        { id: 'q_cert_1', text: 'Rendelkezik szervezete ISO 27001 tanúsítvánnyal?', type: 'yesno' },
+        { id: 'q_cert_2', text: 'Végeztek külső biztonsági auditot vagy penetrációs tesztet? (elmúlt év)', type: 'yesno' },
+        { id: 'q_cert_3', text: 'Egyéb releváns tanúsítványok (ISO 9001, SOC 2, TISAX, BSI stb.):', type: 'text' },
+      ]
+    },
+    {
+      section: 'Általános megjegyzések',
+      questions: [
+        { id: 'q_note_1', text: 'Kíván-e egyéb, az információbiztonságra vonatkozó releváns információt megosztani?', type: 'textarea' },
+      ]
+    },
+  ],
 }
 
-const SUPPORTED_LANGS  = ['de', 'en', 'fr', 'nl']
+const SUPPORTED_LANGS  = ['de', 'en', 'fr', 'nl', 'hu']
 const DEFAULT_QUESTIONS = QUESTIONS_BY_LANG.de  // Rückwärtskompatibilität
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
