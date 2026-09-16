@@ -60,7 +60,7 @@ const DEFAULTS = {
     enabled: true, duration: 7,
   },
   languageConfig: {
-    available: ['de', 'en', 'fr', 'nl'], default: 'en',
+    available: ['de', 'en', 'fr', 'nl', 'hu'], default: 'en',
   },
   navOrder: ['dashboard','soa','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','bcm','suppliers','policy-acks','reports','calendar','settings','admin'],
   emailNotifications: {

@@ -22,11 +22,11 @@ router.get('/auth/language-config', (req, res) => {
     const orgSettings = require('../db/orgSettingsStore').get()
     const cfg = orgSettings.languageConfig || {}
     res.json({
-      available: Array.isArray(cfg.available) && cfg.available.length ? cfg.available : ['de', 'en', 'fr', 'nl'],
+      available: Array.isArray(cfg.available) && cfg.available.length ? cfg.available : ['de', 'en', 'fr', 'nl', 'hu'],
       default:   cfg.default || 'en',
     })
   } catch {
-    res.json({ available: ['de', 'en', 'fr', 'nl'], default: 'en' })
+    res.json({ available: ['de', 'en', 'fr', 'nl', 'hu'], default: 'en' })
   }
 })
 

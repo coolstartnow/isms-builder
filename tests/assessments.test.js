@@ -8,6 +8,7 @@ let app, request, dataDir
 beforeAll(() => {
   dataDir = createTestDataDir()
   process.env.DATA_DIR = dataDir
+  process.env.JWT_SECRET = 'jest-test-secret-assessments'
   app     = require('../server/index')
   request = require('supertest')
 })

@@ -382,6 +382,7 @@
       <button class="lang-btn" data-lang="en" onclick="switchLoginLang('en')">EN</button>
       <button class="lang-btn" data-lang="fr" onclick="switchLoginLang('fr')">FR</button>
       <button class="lang-btn" data-lang="nl" onclick="switchLoginLang('nl')">NL</button>
+      <button class="lang-btn" data-lang="hu" onclick="switchLoginLang('hu')">HU</button>
     </div>
   </div>
 
@@ -505,6 +506,7 @@
       en: { flag: '🇬🇧', name: 'English' },
       fr: { flag: '🇫🇷', name: 'Français' },
       nl: { flag: '🇳🇱', name: 'Nederlands' },
+      hu: { flag: '🇭🇺', name: 'Magyar' },
     }
 
     function applyLoginLang() {
@@ -541,7 +543,7 @@
         const res = await fetch('/auth/language-config')
         if (!res.ok) return
         const cfg = await res.json()
-        const available = Array.isArray(cfg.available) && cfg.available.length ? cfg.available : ['de','en','fr','nl']
+        const available = Array.isArray(cfg.available) && cfg.available.length ? cfg.available : ['de','en','fr','nl','hu']
         // Nicht verfügbare Sprach-Buttons ausblenden
         document.querySelectorAll('.lang-btn').forEach(btn => {
           btn.style.display = available.includes(btn.dataset.lang) ? '' : 'none'
