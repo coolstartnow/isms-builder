@@ -135,7 +135,7 @@ const DEFAULTS = {
 
   // Sprach-Konfiguration
   languageConfig: {
-    available: ['de', 'en', 'fr', 'nl'],   // aktivierte Sprachen
+    available: ['de', 'en', 'fr', 'nl', 'hu'],   // aktivierte Sprachen
     default:   'en',                        // Standardsprache auf Login-Seite
   },
 

@@ -23,7 +23,7 @@ const TRANSLATIONS = (() => {
   return win.TRANSLATIONS
 })()
 
-const LANGS = ['de', 'en', 'fr', 'nl']
+const LANGS = ['de', 'en', 'fr', 'nl', 'hu']
 
 /** Alle statisch aufgelösten t('…') / t("…") aus app.js. */
 function usedKeys() {

@@ -976,7 +976,7 @@ function canSeeSection(meta) {
 let _navOrder = []
 
 // Sprach-Konfiguration (wird beim Start vom Server geladen)
-let _langConfig = { available: ['de', 'en', 'fr', 'nl'], default: 'en' }
+let _langConfig = { available: ['de', 'en', 'fr', 'nl', 'hu'], default: 'en' }
 
 function populateSectionNav(){
   const nav = dom('sectionNav')
@@ -3980,16 +3980,16 @@ async function renderAdminOrgTab() {
           ${t('admin_langConfigDesc')}
         </p>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px">
-          ${[{code:'de',label:'🇩🇪 Deutsch'},{code:'en',label:'🇬🇧 English'},{code:'fr',label:'🇫🇷 Français'},{code:'nl',label:'🇳🇱 Nederlands'}].map(l => `
+          ${[{code:'de',label:'🇩🇪 Deutsch'},{code:'en',label:'🇬🇧 English'},{code:'fr',label:'🇫🇷 Français'},{code:'nl',label:'🇳🇱 Nederlands'},{code:'hu',label:'🇭🇺 Magyar'}].map(l => `
             <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer">
-              <input type="checkbox" id="langAvail_${l.code}" ${(_langConfig?.available||['de','en','fr','nl']).includes(l.code)?'checked':''}>
+              <input type="checkbox" id="langAvail_${l.code}" ${(_langConfig?.available||['de','en','fr','nl','hu']).includes(l.code)?'checked':''}>
               <span style="font-size:.9rem">${l.label}</span>
             </label>`).join('')}
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
           <label style="font-size:.85rem;color:var(--text-muted);flex-shrink:0">${t('admin_langDefault')}:</label>
           <select id="langDefault" style="padding:5px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem">
-            ${[{code:'de',label:'Deutsch'},{code:'en',label:'English'},{code:'fr',label:'Français'},{code:'nl',label:'Nederlands'}].map(l =>
+            ${[{code:'de',label:'Deutsch'},{code:'en',label:'English'},{code:'fr',label:'Français'},{code:'nl',label:'Nederlands'},{code:'hu',label:'Magyar'}].map(l =>
               `<option value="${l.code}" ${(_langConfig?.default||'en')===l.code?'selected':''}>${l.label}</option>`
             ).join('')}
           </select>
@@ -4224,7 +4224,7 @@ async function saveOrgSettings() {
 }
 
 async function saveLangConfig() {
-  const available = ['de','en','fr','nl'].filter(c => document.getElementById('langAvail_'+c)?.checked)
+  const available = ['de','en','fr','nl','hu'].filter(c => document.getElementById('langAvail_'+c)?.checked)
   if (available.length === 0) {
     const msg = document.getElementById('langConfigMsg')
     msg.textContent = t('admin_langMinOne'); msg.style.color = 'var(--danger-text,#f87171)'; msg.style.display = ''
@@ -6503,7 +6503,8 @@ async function renderSettingsPanel() {
               {code:'en', key:'settings_langEn'},
               {code:'fr', key:'settings_langFr'},
               {code:'nl', key:'settings_langNl'},
-            ].filter(l => (_langConfig?.available||['de','en','fr','nl']).includes(l.code)).map(l =>
+              {code:'hu', key:'settings_langHu'},
+            ].filter(l => (_langConfig?.available||['de','en','fr','nl','hu']).includes(l.code)).map(l =>
               `<button class="btn ${(window.LANG||'en')===l.code ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="switchAppLang('${l.code}')">
                 <i class="ph ph-flag"></i> ${t(l.key)}
               </button>`
