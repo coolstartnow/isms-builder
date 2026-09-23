@@ -1941,7 +1941,7 @@ Alle KI-generierten Inhalte (Risiken, Lücken-Hinweise) erhalten `status: "draft
 - **Empfohlen:** 32 GB RAM für parallele Modell-Instanzen
 - **Embedding-Modell (`nomic-embed-text`):** läuft bereits auf 4 GB RAM
 
-### AI Policy Assistant (implementiert, V 1.40.5)
+### AI Policy Assistant (implementiert, V 1.45.0)
 
 Anders als die übrigen Punkte in diesem Abschnitt ist dies **nicht mehr geplant, sondern umgesetzt** — angeregt durch [Discussion #87](https://github.com/coolstartnow/isms-builder/discussions/87) (@carlnes), war aber schon zuvor als Roadmap-Punkt in README.md angekündigt.
 
@@ -1956,6 +1956,14 @@ Anders als die übrigen Punkte in diesem Abschnitt ist dies **nicht mehr geplant
 **Fehlerverhalten:** bewusst **kein** stiller Fallback (anders als der bestehende Scanner-Import in `greenobonePdfParser.js`) — Ollama nicht erreichbar, Timeout (60s) oder eine zu kurze/leere Antwort führen zu `502` mit einer für den Nutzer sichtbaren Fehlermeldung, da der Nutzer aktiv geklickt hat und eine Rückmeldung braucht. KI-Integration global deaktiviert (`aiEnabled: false`) → `503`.
 
 **Tests:** `tests/aiPolicyGenerator.test.js` — Rollenprüfung, Pflichtfeld-Validierung, deaktivierte KI-Integration, Erfolgsfall (mehrere Dokumenttypen), Ollama-Fehler/Timeout, zu kurze Antwort. Da in dieser Entwicklungsumgebung kein Ollama betrieben werden kann (Ressourcenlimits), sind alle Ollama-Aufrufe über `global.fetch`-Mocks getestet, analog zu `tests/updateCheck.test.js`. End-to-End manuell gegen einen lokalen Server ohne laufendes Ollama verifiziert (erwarteter `502`-Fehlerpfad, Button/Editor werden danach sauber wieder freigegeben, kein hängender Ladezustand).
+
+### Suche: Deep-Link für Findings (Folgefehler zu #72, V 1.45.0)
+
+Nach dem ursprünglichen Fix in V1.40.2 (Findings fehlten komplett im Suchindex) meldete @pcyber-code in [Discussion #72](https://github.com/coolstartnow/isms-builder/discussions/72) einen Folgefehler: ein Klick auf ein Finding-Suchergebnis öffnete nur das Reports-Modul, nicht das konkrete Finding. Bei der Untersuchung stellte sich heraus, dass **kein** Modul (Risiken, Assets, Sicherheitsziele, Schulungen, Lieferanten, BCM, Dokumente) auf den konkreten Treffer verlinkt — `server/ai/embeddingStore.js` und `server/ai/lexicalSearch.js` geben für jedes Modul nur eine feste Modul-URL zurück (z. B. `#risks`), `_searchNavigate()` (`ui/app.js`) navigierte bisher ausschließlich über `loadSection()`. Bewusste Scope-Entscheidung: nur Findings bekommen jetzt einen echten Deep-Link, da genau das gemeldet wurde — ein genereller Fix für alle Module wäre ein deutlich größerer Eingriff (Item-ID-Auflösung in jedem Modul) und war nicht Gegenstand der Meldung.
+
+**Umsetzung:** Beide Suchpfade liefern für Findings jetzt `url: '#reports?findingId=<id>'` statt `'#reports'` (in `embeddingStore.js` über die bestehende `urlFn`-Funktionsparameter-Konvention, in `lexicalSearch.js` wurde `collect()` dafür um denselben Funktions-Parameter erweitert — beide Suchpfade folgen jetzt demselben Muster). `_searchNavigate()` trennt die Query vom Sektionsnamen, ruft `loadSection('reports')` wie bisher auf und öffnet danach — sofern eine `findingId` mitgegeben wurde — direkt über die bestehende `openFindingDetail(id)` das konkrete Finding.
+
+**Tests:** `tests/findingSearchDeeplink.test.js` — prüft den vollständigen HTTP-Pfad `GET /api/ai/search` (Keyword-Fallback, da kein Ollama in dieser Umgebung läuft) und verifiziert, dass die zurückgegebene URL die angelegte `findingId` enthält. Zusätzlich manuell im Browser end-to-end verifiziert (Finding anlegen → suchen → Klick auf Ergebnis → Finding-Detailansicht öffnet direkt, nicht nur das Modul).
 
 ### Offene TODOs (Architektur / UI)
 

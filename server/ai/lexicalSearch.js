@@ -22,10 +22,13 @@ function score(doc, terms) {
   return Math.round(((hits / terms.length) * 70) + (titleHits > 0 ? 30 : 0))
 }
 
-function collect(items, type, url, terms) {
+// urlOrFn: fester String für die meisten Module (nur Modul-Ebene), oder eine
+// Funktion (doc) => url für Module, die auf den konkreten Treffer verlinken
+// sollen (siehe Finding unten, #72-Folgefehler).
+function collect(items, type, urlOrFn, terms) {
   return items
     .filter(i => !i.deletedAt)
-    .map(i => ({ doc: i, s: score(i, terms), type, url }))
+    .map(i => ({ doc: i, s: score(i, terms), type, url: typeof urlOrFn === 'function' ? urlOrFn(i) : urlOrFn }))
     .filter(r => r.s > 0)
 }
 
@@ -78,13 +81,15 @@ async function search(query, topK = 8) {
 
   try {
     // #72: gleiche Lücke wie im semantischen Index (embeddingStore.js) — Findings
-    // fehlten hier ebenfalls komplett.
+    // fehlten hier ebenfalls komplett. Deep-Link mit findingId (Folgefehler aus
+    // derselben Diskussion): ein Klick auf das Suchergebnis soll das konkrete
+    // Finding öffnen, nicht nur das Modul.
     const findingStore = require('../db/findingStore')
     const findings = (findingStore.getAll?.() || []).map(f => ({
       ...f,
       description: [f.observation, f.requirement, f.recommendation, f.auditedArea].filter(Boolean).join(' '),
     }))
-    results.push(...collect(findings, 'Finding', '#reports', terms))
+    results.push(...collect(findings, 'Finding', f => `#reports?findingId=${f.id}`, terms))
   } catch {}
 
   return results

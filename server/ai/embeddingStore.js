@@ -132,13 +132,15 @@ async function reindexAll() {
   try {
     // #72: Findings fehlten hier komplett — weder semantisch noch per Keyword
     // durchsuchbar. observation/requirement/recommendation/auditedArea werden
-    // wie description/content bei den anderen Modulen mit indexiert.
+    // wie description/content bei den anderen Modulen mit indexiert. Deep-Link
+    // mit findingId (Folgefehler aus derselben Diskussion): ein Klick auf das
+    // Suchergebnis soll das konkrete Finding öffnen, nicht nur das Modul.
     const findingStore = require('../db/findingStore')
     const findings = (findingStore.getAll?.() || []).map(f => ({
       ...f,
       description: [f.observation, f.requirement, f.recommendation, f.auditedArea].filter(Boolean).join(' '),
     }))
-    await indexMany(findings, 'Finding', () => '#reports')
+    await indexMany(findings, 'Finding', f => `#reports?findingId=${f.id}`)
   } catch {}
 
   _save()

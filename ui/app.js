@@ -321,11 +321,19 @@ function _initSemanticSearch() {
   })
 }
 
+// #72-Folgefehler: ein Klick auf ein Finding-Suchergebnis landete nur auf dem
+// Reports-Modul, nicht beim konkreten Finding. url kann jetzt optional eine
+// Query anhängen (z.B. '#reports?findingId=xyz') — nach dem Laden des Moduls
+// wird das konkrete Element geöffnet, sofern eine passende ID mitgegeben wurde.
 function _searchNavigate(url) {
   dom('searchDropdown').style.display = 'none'
   dom('topbarSearch').value = ''
-  const section = url.replace('#', '')
+  const [section, queryStr] = url.replace('#', '').split('?')
   loadSection(section)
+  if (section === 'reports' && queryStr) {
+    const findingId = new URLSearchParams(queryStr).get('findingId')
+    if (findingId) openFindingDetail(findingId)
+  }
 }
 
 // ── Verknüpfungs-Picker (Controls + Policies) ─────────────────────────────
