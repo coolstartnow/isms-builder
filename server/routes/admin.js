@@ -357,18 +357,20 @@ router.get('/admin/ai-settings', requireAuth, authorize('admin'), async (req, re
     aiEnabled:    cfg.aiEnabled    ?? true,
     aiOllamaUrl:  cfg.aiOllamaUrl  || '',
     aiEmbedModel: cfg.aiEmbedModel || '',
+    aiGenModel:   cfg.aiGenModel   || '',
   })
 })
 
 router.put('/admin/ai-settings', requireAuth, authorize('admin'), async (req, res) => {
-  const { aiEnabled, aiOllamaUrl, aiEmbedModel } = req.body || {}
+  const { aiEnabled, aiOllamaUrl, aiEmbedModel, aiGenModel } = req.body || {}
   const patch = {}
   if (typeof aiEnabled    === 'boolean') patch.aiEnabled    = aiEnabled
   if (typeof aiOllamaUrl  === 'string')  patch.aiOllamaUrl  = aiOllamaUrl.trim()
   if (typeof aiEmbedModel === 'string')  patch.aiEmbedModel = aiEmbedModel.trim()
+  if (typeof aiGenModel   === 'string')  patch.aiGenModel   = aiGenModel.trim()
   const updated = await orgSettingsStore.update(patch)
   await auditStore.append({ user: req.user, action: 'update', resource: 'ai-settings', detail: `aiEnabled=${updated.aiEnabled}` })
-  res.json({ ok: true, aiEnabled: updated.aiEnabled, aiOllamaUrl: updated.aiOllamaUrl, aiEmbedModel: updated.aiEmbedModel })
+  res.json({ ok: true, aiEnabled: updated.aiEnabled, aiOllamaUrl: updated.aiOllamaUrl, aiEmbedModel: updated.aiEmbedModel, aiGenModel: updated.aiGenModel })
 })
 
 // ── Daten & Wartung ──

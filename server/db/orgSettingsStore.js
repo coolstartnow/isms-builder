@@ -25,6 +25,7 @@ const DEFAULTS = {
   aiEnabled:       true,   // Semantische Suche und KI-Features global aktivieren
   aiOllamaUrl:     '',     // Ollama-URL (leer = http://localhost:11434)
   aiEmbedModel:    '',     // Embedding-Modell (leer = nomic-embed-text)
+  aiGenModel:      '',     // Generierungs-Modell für den AI Policy Assistant (leer = llama3.2:3b)
 
   // Verantwortlichkeiten
   cisoName:   '',

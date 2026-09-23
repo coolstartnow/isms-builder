@@ -1941,6 +1941,22 @@ Alle KI-generierten Inhalte (Risiken, Lücken-Hinweise) erhalten `status: "draft
 - **Empfohlen:** 32 GB RAM für parallele Modell-Instanzen
 - **Embedding-Modell (`nomic-embed-text`):** läuft bereits auf 4 GB RAM
 
+### AI Policy Assistant (implementiert, V 1.40.5)
+
+Anders als die übrigen Punkte in diesem Abschnitt ist dies **nicht mehr geplant, sondern umgesetzt** — angeregt durch [Discussion #87](https://github.com/coolstartnow/isms-builder/discussions/87) (@carlnes), war aber schon zuvor als Roadmap-Punkt in README.md angekündigt.
+
+**Endpunkt:** `POST /api/ai/generate-policy` (`server/routes/ai.js`), Rolle mind. `contentowner` (dieselbe Berechtigung wie `POST /template`). Request: `{ title, type, language, frameworkHint? }`. Generierungslogik in `server/ai/policyGenerator.js`, Ollama-Konfiguration (URL, aktiviert/deaktiviert) zentral in `server/ai/ollamaConfig.js` — dieselbe Quelle, die auch die semantische Suche nutzt (vorher war das in `ai.js` dupliziert). Modell konfigurierbar über neues Feld `aiGenModel` (Admin → Wartung → KI-Integration, Default `llama3.2:3b`), unabhängig vom Embedding-Modell.
+
+**Prompt-Design:** feste, kurze Struktur-Vorgabe je Dokumenttyp (`TYPE_STRUCTURE_HINTS` in `policyGenerator.js`) — bewusst **nicht** aus `data/demo-bundles/*.json` abgeleitet, da deren Typabdeckung uneinheitlich ist (nicht jede Sprache hat jeden Dokumenttyp als Beispiel, und der englische Bundle nennt den Typ "Risk Policy" abweichend nur "Risk"). Das Modell übersetzt die Abschnittsüberschriften selbst in die im Request angegebene Sprache.
+
+**Sprachauswahl (Frontend):** bewusst keine feste DE/EN/FR/NL-Liste. Angeboten wird die für die Installation konfigurierte Primärsprache (`orgSettingsStore.languageConfig.default`, dasselbe Feld wie bei der Sprachauswahl auf der Login-Seite), plus Englisch als einzige Zusatzoption — nur falls die Primärsprache nicht bereits Englisch ist. Ist die Primärsprache Englisch, gibt es nur eine Option und das Dropdown (`#aiDraftLang` in `ui/index.html`) bleibt versteckt.
+
+**Frontend:** Button "Mit KI entwerfen" (`#btnAiDraft`) direkt in der Editor-Toolbar (`ui/index.html`, kein neues Modal), sichtbar ab Rolle `contentowner` — sowohl beim Anlegen eines neuen Dokuments (`clearEditor()`) als auch beim Bearbeiten eines bestehenden (`loadTemplate()`), gesteuert über die gemeinsame Funktion `setupAiDraftControls()` in `ui/app.js`. Der generierte Text ersetzt nur den Inhalt des Editor-Felds — **kein Auto-Save**, der Nutzer muss wie gewohnt über "Speichern" bestätigen. Vorhandener Inhalt wird vor dem Überschreiben per `confirm()`-Dialog abgefragt.
+
+**Fehlerverhalten:** bewusst **kein** stiller Fallback (anders als der bestehende Scanner-Import in `greenobonePdfParser.js`) — Ollama nicht erreichbar, Timeout (60s) oder eine zu kurze/leere Antwort führen zu `502` mit einer für den Nutzer sichtbaren Fehlermeldung, da der Nutzer aktiv geklickt hat und eine Rückmeldung braucht. KI-Integration global deaktiviert (`aiEnabled: false`) → `503`.
+
+**Tests:** `tests/aiPolicyGenerator.test.js` — Rollenprüfung, Pflichtfeld-Validierung, deaktivierte KI-Integration, Erfolgsfall (mehrere Dokumenttypen), Ollama-Fehler/Timeout, zu kurze Antwort. Da in dieser Entwicklungsumgebung kein Ollama betrieben werden kann (Ressourcenlimits), sind alle Ollama-Aufrufe über `global.fetch`-Mocks getestet, analog zu `tests/updateCheck.test.js`. End-to-End manuell gegen einen lokalen Server ohne laufendes Ollama verifiziert (erwarteter `502`-Fehlerpfad, Button/Editor werden danach sauber wieder freigegeben, kein hängender Ladezustand).
+
 ### Offene TODOs (Architektur / UI)
 
 #### TODO: Template-Editor-UI Konsolidierung

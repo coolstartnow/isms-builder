@@ -4759,6 +4759,11 @@ async function renderAdminMaintenanceTab() {
             <input class="form-input" id="aiEmbedModelInput" placeholder="nomic-embed-text (default)"
                    style="max-width:220px" onblur="saveAiSettings()" />
           </div>
+          <div class="settings-group" style="margin-bottom:14px">
+            <label class="settings-label" for="aiGenModelInput">${t('maint_genModel')}</label>
+            <input class="form-input" id="aiGenModelInput" placeholder="llama3.2:3b (default)"
+                   style="max-width:220px" onblur="saveAiSettings()" />
+          </div>
 
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button class="btn btn-primary" onclick="triggerReindex()" id="btnReindex">
@@ -4956,6 +4961,7 @@ async function refreshAiStatus() {
   const toggle  = document.getElementById('aiEnabledToggle')
   const urlInp  = document.getElementById('aiOllamaUrlInput')
   const modelInp= document.getElementById('aiEmbedModelInput')
+  const genModelInp = document.getElementById('aiGenModelInput')
   const advanced= document.getElementById('aiAdvancedSettings')
   if (!badge) return
 
@@ -4968,6 +4974,7 @@ async function refreshAiStatus() {
     if (toggle)   toggle.checked    = cfg.aiEnabled !== false
     if (urlInp)   urlInp.value      = cfg.aiOllamaUrl  || ''
     if (modelInp) modelInp.value    = cfg.aiEmbedModel || ''
+    if (genModelInp) genModelInp.value = cfg.aiGenModel || ''
     if (advanced) advanced.style.display = cfg.aiEnabled !== false ? '' : 'none'
 
     // Ollama-Status prüfen
@@ -4997,12 +5004,14 @@ async function saveAiSettings() {
   const toggle   = document.getElementById('aiEnabledToggle')
   const urlInp   = document.getElementById('aiOllamaUrlInput')
   const modelInp = document.getElementById('aiEmbedModelInput')
+  const genModelInp = document.getElementById('aiGenModelInput')
   const advanced = document.getElementById('aiAdvancedSettings')
 
   const payload = {
     aiEnabled:    toggle?.checked ?? true,
     aiOllamaUrl:  urlInp?.value.trim()   || '',
     aiEmbedModel: modelInp?.value.trim() || '',
+    aiGenModel:   genModelInp?.value.trim() || '',
   }
   if (advanced) advanced.style.display = payload.aiEnabled ? '' : 'none'
 
@@ -6942,6 +6951,75 @@ function loadTemplate(t) {
   if (btnChild) btnChild.style.display = canMove ? '' : 'none'
   const btnMove = dom('btnMovePage')
   if (btnMove) btnMove.style.display = canMove ? '' : 'none'
+  setupAiDraftControls(canMove, t.language)
+}
+
+// ── AI Policy Assistant (Discussion #87) ─────────────────────────────────────
+//
+// Sprachauswahl bewusst NICHT als feste DE/EN/FR/NL-Liste: die bei der
+// Installation gesetzte Sprache ist die Hauptsprache der Organisation
+// (_langConfig.default, dasselbe Feld wie bei der Login-Sprachauswahl).
+// Als einzige Zusatzoption gibt es Englisch, falls die Hauptsprache nicht
+// bereits Englisch ist — keine große Sprachliste nötig. Sind beide identisch
+// (Hauptsprache = Englisch), gibt es nur eine Option und das Dropdown bleibt
+// versteckt (nichts zum Auswählen).
+function setupAiDraftControls(canEditDoc, docLanguage) {
+  const btn = dom('btnAiDraft')
+  const sel = dom('aiDraftLang')
+  if (!btn || !sel) return
+
+  if (!canEditDoc) {
+    btn.style.display = 'none'
+    sel.style.display = 'none'
+    return
+  }
+
+  const primaryLang = _langConfig?.default || 'de'
+  const langs = primaryLang === 'en' ? ['en'] : [primaryLang, 'en']
+
+  sel.innerHTML = langs.map(l => `<option value="${l}">${l.toUpperCase()}</option>`).join('')
+  sel.value = langs.includes(docLanguage) ? docLanguage : primaryLang
+  sel.style.display = langs.length > 1 ? '' : 'none'
+  btn.style.display = ''
+}
+
+async function aiDraftPolicy() {
+  const title = dom('inputTitle').value.trim()
+  if (!title) { alert(t('tmpl_aiDraftTitleRequired')); return }
+
+  if (dom('contentEditor').value.trim() && !confirm(t('tmpl_aiDraftConfirmOverwrite'))) return
+
+  const btn  = dom('btnAiDraft')
+  const sel  = dom('aiDraftLang')
+  const editor = dom('contentEditor')
+  const language = sel.style.display === 'none' ? (_langConfig?.default || 'de') : sel.value
+  const type = currentTemplate ? currentTemplate.type : currentType
+
+  const originalLabel = btn.innerHTML
+  btn.disabled = true
+  sel.disabled = true
+  editor.disabled = true
+  btn.innerHTML = `<i class="ph ph-circle-notch"></i> ${t('tmpl_aiDraftGenerating')}`
+
+  try {
+    const res = await fetch('/api/ai/generate-policy', {
+      method: 'POST',
+      headers: apiHeaders('contentowner'),
+      body: JSON.stringify({ title, type, language }),
+    })
+    const data = await res.json()
+    if (!res.ok) { alert(data.error || t('tmpl_aiDraftError')); return }
+    editor.value = data.content
+    if (_tmplPreviewOn) applyTemplateViewMode(currentTemplate)
+    alert(t('tmpl_aiDraftSuccess'))
+  } catch {
+    alert(t('tmpl_aiDraftError'))
+  } finally {
+    btn.disabled = false
+    sel.disabled = false
+    editor.disabled = false
+    btn.innerHTML = originalLabel
+  }
 }
 
 // ── #61: Leseansicht statt Eingabefeld ───────────────────────────────────────
@@ -7554,6 +7632,8 @@ function clearEditor(){
   renderLifecycleActions(null)
   const cb = dom('tmplControlsBar'); if (cb) { cb.style.display = 'none'; cb.innerHTML = '' }
   const eb = dom('tmplEntityBar');   if (eb) { eb.style.display = 'none'; eb.innerHTML = '' }
+  const rank = ROLE_RANK[getCurrentRole()] || 0
+  setupAiDraftControls(rank >= ROLE_RANK.contentowner, null)
 }
 
 function loadTemplateHistory(type, id) {
