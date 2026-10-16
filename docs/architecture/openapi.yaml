@@ -209,6 +209,18 @@ components:
               enum: [open, in_progress, closed]
             owner:
               type: string
+            linkedAssets:
+              type: array
+              items: { type: string }
+              description: IDs verknüpfter Assets
+            linkedAssetTypes:
+              type: array
+              items: { type: string }
+              description: IDs verknüpfter Asset-Typen (Klassen)
+            linkedSuppliers:
+              type: array
+              items: { type: string }
+              description: IDs verknüpfter Lieferanten
             treatments:
               type: array
               items:
@@ -1106,6 +1118,22 @@ paths:
       summary: List risks
       security:
         - cookieAuth: []
+      parameters:
+        - { name: category, in: query, schema: { type: string } }
+        - { name: status,   in: query, schema: { type: string } }
+        - { name: entity,   in: query, schema: { type: string } }
+        - name: asset
+          in: query
+          description: Risks linked to this asset (alone or together with assetType - directly or via its class)
+          schema: { type: string }
+        - name: assetType
+          in: query
+          description: Risks linked to this asset type (class)
+          schema: { type: string }
+        - name: supplier
+          in: query
+          description: Risks linked to this supplier
+          schema: { type: string }
       responses:
         '200':
           description: Array of risks

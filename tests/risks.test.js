@@ -204,3 +204,65 @@ describe('Inherent- und Zielbewertung (#94)', () => {
     expect(src).toMatch(/function exportRisksCsv\(/)
   })
 })
+
+// #92 – Verknüpfung mit Assets, Asset-Typen und Lieferanten
+describe('Risiko-Verknüpfungen (#92)', () => {
+  let rA, rB
+
+  afterAll(async () => {
+    for (const id of [rA, rB]) if (id) await authedDelete(app, adminCookie, `/risks/${id}`)
+  })
+
+  test('IDs werden gespeichert, bereinigt und wieder geliefert', async () => {
+    const res = await authedPost(app, auditorCookie, '/risks', {
+      title: 'Verknüpft A', linkedAssets: ['asset_1', 'asset_1', '', 7],
+      linkedAssetTypes: ['hardware_server'], linkedSuppliers: ['sup_1'],
+      linkedTemplates: ['tmpl_1'],
+    })
+    expect(res.status).toBe(201)
+    rA = res.body.id
+    expect(res.body.linkedAssets).toEqual(['asset_1'])
+    expect(res.body.linkedAssetTypes).toEqual(['hardware_server'])
+    expect(res.body.linkedSuppliers).toEqual(['sup_1'])
+    expect(res.body.linkedTemplates).toEqual(['tmpl_1'])      // Policy-Verknüpfung bleibt erhalten
+  })
+
+  test('ohne Angabe sind die Listen leer', async () => {
+    const res = await authedPost(app, auditorCookie, '/risks', { title: 'Verknüpft B' })
+    rB = res.body.id
+    expect(res.body.linkedAssets).toEqual([])
+    expect(res.body.linkedSuppliers).toEqual([])
+  })
+
+  test('GET /risks filtert nach Asset, Asset-Typ (Klasse) und Lieferant', async () => {
+    const byAsset = await authedGet(app, readerCookie, '/risks?asset=asset_1')
+    expect(byAsset.body.map(r => r.id)).toEqual([rA])
+
+    // anderes Asset, aber gleicher Typ → über die Klasse betroffen
+    const viaType = await authedGet(app, readerCookie, '/risks?asset=asset_9&assetType=hardware_server')
+    expect(viaType.body.map(r => r.id)).toEqual([rA])
+
+    const none = await authedGet(app, readerCookie, '/risks?asset=asset_9&assetType=laptop')
+    expect(none.body).toEqual([])
+
+    const bySup = await authedGet(app, readerCookie, '/risks?supplier=sup_1')
+    expect(bySup.body.map(r => r.id)).toEqual([rA])
+  })
+
+  test('PUT ersetzt und leert die Listen', async () => {
+    const res = await authedPut(app, auditorCookie, `/risks/${rA}`, { linkedAssets: [], linkedSuppliers: ['sup_2'] })
+    expect(res.body.linkedAssets).toEqual([])
+    expect(res.body.linkedSuppliers).toEqual(['sup_2'])
+    expect(res.body.linkedAssetTypes).toEqual(['hardware_server'])   // nicht gesendet → unverändert
+  })
+
+  test('UI: Formular sendet die Policy-Verknüpfung als linkedTemplates (nicht linkedPolicies)', () => {
+    const fs = require('fs'), path = require('path')
+    const src = fs.readFileSync(path.join(__dirname, '..', 'ui', 'app.js'), 'utf8')
+    expect(src).toMatch(/linkedTemplates:\s+getLinkedValues\('risk', 'pol'\)/)
+    expect(src).not.toMatch(/linkedPolicies:\s+getLinkedValues\('risk'/)
+    expect(src).toMatch(/linkedAssets:\s+getLinkedValues\('risk', 'asset'\)/)
+    expect(src).toMatch(/loadLinkedRisks\('asRiskLinks'/)
+    expect(src).toMatch(/loadLinkedRisks\('supRiskLinks'/)
+  })
+})

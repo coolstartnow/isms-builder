@@ -23,17 +23,19 @@ const TREATMENT_OPTS = ['accept','reduce','avoid','transfer']
 const STATUSES       = ['open','in_treatment','accepted','closed']
 
 const { riskLevel, calcScore, optRating, OPTIONAL_RATINGS, derivedRatings } = require('./riskScore')
+const { LINK_FIELDS, normalizeIds, matchesLinks } = require('./riskLinks')
 
 function publicRisk(r) {
   const score = calcScore(r)
   return { ...r, ...derivedRatings(r), score, riskLevel: riskLevel(score) }
 }
 
-function getAll({ category, status, entity } = {}) {
+function getAll({ category, status, entity, asset, assetType, supplier } = {}) {
   let list = load().filter(r => !r.deletedAt).map(publicRisk)
   if (category) list = list.filter(r => r.category === category)
   if (status)   list = list.filter(r => r.status   === status)
   if (entity)   list = list.filter(r => !r.applicableEntities?.length || r.applicableEntities.includes(entity))
+  if (asset || assetType || supplier) list = list.filter(r => matchesLinks(r, { asset, assetType, supplier }))
   return list
 }
 
@@ -66,6 +68,9 @@ function create(fields, createdBy) {
     status:            STATUSES.includes(fields.status) ? fields.status : 'open',
     linkedControls:    Array.isArray(fields.linkedControls)   ? fields.linkedControls   : [],
     linkedTemplates:   Array.isArray(fields.linkedTemplates)  ? fields.linkedTemplates  : [],
+    linkedAssets:      normalizeIds(fields.linkedAssets),
+    linkedAssetTypes:  normalizeIds(fields.linkedAssetTypes),
+    linkedSuppliers:   normalizeIds(fields.linkedSuppliers),
     applicableEntities:Array.isArray(fields.applicableEntities)?fields.applicableEntities: [],
     treatmentPlans:    [],
     // Scanner-Import-Felder
@@ -99,6 +104,9 @@ function update(id, fields) {
   if (fields.impact)      r.impact      = Math.min(5, Math.max(1, parseInt(fields.impact)      || 1))
   for (const k of OPTIONAL_RATINGS) {
     if (fields[k] !== undefined) r[k] = optRating(fields[k])
+  }
+  for (const k of LINK_FIELDS) {
+    if (fields[k] !== undefined) r[k] = normalizeIds(fields[k])
   }
   r.updatedAt = nowISO()
   risks[idx] = r

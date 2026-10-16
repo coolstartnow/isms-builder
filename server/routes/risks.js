@@ -21,8 +21,8 @@ router.get('/risks/review-pending', requireAuth, authorize('reader'), async (req
   res.json(await riskStore.getReviewPending())
 })
 router.get('/risks', requireAuth, authorize('reader'), async (req, res) => {
-  const { category, status, entity } = req.query
-  res.json(await riskStore.getAll({ category, status, entity }))
+  const { category, status, entity, asset, assetType, supplier } = req.query
+  res.json(await riskStore.getAll({ category, status, entity, asset, assetType, supplier }))
 })
 router.get('/risks/:id', requireAuth, authorize('reader'), async (req, res) => {
   const r = await riskStore.getById(req.params.id)

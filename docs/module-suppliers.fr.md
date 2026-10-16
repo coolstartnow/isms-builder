@@ -75,6 +75,12 @@ manuellement lors de la saisie AV.
 
 ---
 
+## Risques liés
+
+Dans le formulaire de risque, les risques peuvent être liés à un ou plusieurs fournisseurs (section « Liens » → **Actifs, types d'actifs et fournisseurs concernés**). Dans le formulaire du fournisseur (en modification), la section **Risques liés** liste tous les risques associés avec niveau et statut.
+
+---
+
 ## Tableau de bord
 
 L'aperçu des fournisseurs affiche :

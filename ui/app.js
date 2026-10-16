@@ -442,7 +442,9 @@ function addLinkChip(areaKey, selectEl) {
   const chip = document.createElement('span')
   chip.className = 'link-chip'
   chip.dataset.val = val
-  chip.innerHTML = `${escHtml(val)} <i class="ph ph-x" onclick="removeLinkChip(this,'${areaKey}')"></i>`
+  // data-chip-text am Select: Chip zeigt den Anzeigenamen statt der ID (Assets, Lieferanten, #92)
+  const label = selectEl.dataset.chipText ? opt.text : val
+  chip.innerHTML = `${escHtml(label)} <i class="ph ph-x" onclick="removeLinkChip(this,'${areaKey}')"></i>`
   area.appendChild(chip)
 }
 
@@ -464,6 +466,55 @@ async function initLinkPickers(formId, showPolicies = true) {
     loadControlsIntoSelect(`${formId}_ctrlSelect`),
     showPolicies ? loadPoliciesIntoSelect(`${formId}_polSelect`) : Promise.resolve()
   ])
+}
+
+// Auswahl mit Suchfeld und Chips für Verknüpfungen auf Assets, Asset-Typen und Lieferanten (#92).
+// Nutzt dieselben Handler wie der Controls-/Policies-Picker (filterLinkSelect, addLinkChip, getLinkedValues).
+// options: [{ id, label }], selectedIds: bereits verknüpfte IDs.
+function renderRefPicker(formId, suffix, labelText, options, selectedIds = []) {
+  const byId  = Object.fromEntries(options.map(o => [o.id, o.label]))
+  const chips = selectedIds.map(id =>
+    `<span class="link-chip" onclick="removeLinkChip(this,'${formId}_${suffix}')" data-val="${escHtml(id)}">${escHtml(byId[id] || id)} <i class="ph ph-x"></i></span>`
+  ).join('')
+  return `
+    <div class="link-picker-group" style="margin-top:10px">
+      <label class="form-label" style="margin-bottom:4px">${escHtml(labelText)}</label>
+      <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <input id="${formId}_${suffix}Search" class="form-input" style="width:160px;padding:4px 8px;font-size:.8rem" placeholder="${escHtml(t('link_search'))}"
+            oninput="filterLinkSelect('${formId}_${suffix}Select', this.value)">
+          <select id="${formId}_${suffix}Select" class="select" multiple size="5" data-chip-text="1"
+            style="margin-top:4px;width:340px;font-size:.8rem" ondblclick="addLinkChip('${formId}_${suffix}', this)">
+            ${options.map(o => `<option value="${escHtml(o.id)}">${escHtml(o.label)}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div id="${formId}_${suffix}_chips" class="link-chip-area">${chips}</div>
+          <small style="color:var(--text-subtle);font-size:.72rem">${t('link_dblClickAdd')}</small>
+        </div>
+      </div>
+    </div>`
+}
+
+/** Risiken, die mit einem Asset (inkl. dessen Typ) oder Lieferanten verknüpft sind — nur Lesen (#92). */
+async function loadLinkedRisks(containerId, query) {
+  const el = dom(containerId)
+  if (!el) return
+  const res = await fetch('/risks?' + new URLSearchParams(query), { headers: apiHeaders() })
+  const list = res.ok ? await res.json() : []
+  if (!dom(containerId)) return
+  el.innerHTML = list.length === 0
+    ? `<p class="asset-prot-hint">${escHtml(t('risk_noLinkedRisks'))}</p>`
+    : `<div class="rl-list">${list.map(r => {
+        const lv  = RISK_LEVEL_CFG[r.riskLevel] || { label: r.riskLevel, cls: '' }
+        const via = query.asset && !(r.linkedAssets || []).includes(query.asset)
+        return `<div class="rl-row">
+          <span class="risk-badge ${lv.cls}">${lv.label}</span>
+          <span class="rl-title">${escHtml(r.title)}</span>
+          <span class="risk-status-badge risk-st-${r.status}">${escHtml(RISK_STATUSES.find(x => x.id === r.status)?.label || r.status)}</span>
+          ${via ? `<small>${escHtml(t('risk_linkedViaType'))}</small>` : ''}
+        </div>`
+      }).join('')}</div>`
 }
 
 function _show2FAHint(show = true) {
@@ -9157,13 +9208,19 @@ async function renderRiskReports(el) {
 // ── Risk Detail ──
 
 async function openRiskDetail(id) {
-  const [res, entRes] = await Promise.all([
+  const [res, entRes, assetRes, supRes] = await Promise.all([
     fetch(`/risks/${id}`, { headers: apiHeaders() }),
-    fetch('/entities', { headers: apiHeaders() })
+    fetch('/entities', { headers: apiHeaders() }),
+    fetch('/assets',    { headers: apiHeaders() }),
+    fetch('/suppliers', { headers: apiHeaders() }),
   ])
   if (!res.ok) return
   const r = await res.json()
   const entities = entRes.ok ? await entRes.json() : []
+  const asList = async resp => { const d = resp.ok ? await resp.json() : []; return Array.isArray(d) ? d : [] }
+  const assetNames    = Object.fromEntries((await asList(assetRes)).map(a => [a.id, a.name]))
+  const supplierNames = Object.fromEntries((await asList(supRes)).map(x => [x.id, x.name]))
+  const typeNames     = Object.fromEntries(ASSET_TYPES.map(at => [at.id, assetTypeLabel(at)]))
   const entityMap = Object.fromEntries(entities.map(e => [e.id, e.name]))
   const lv  = RISK_LEVEL_CFG[r.riskLevel] || { label: r.riskLevel, cls: '' }
   const cat = RISK_CATS.find(c => c.id === r.category)
@@ -9284,12 +9341,20 @@ async function openRiskDetail(id) {
         </div>
       </div>` : ''}
 
-      ${r.linkedPolicies?.length ? `<div class="risk-detail-section" style="margin-top:16px">
-        <h4>${t('risk_linkedPolicies')} (${r.linkedPolicies.length})</h4>
+      ${(r.linkedTemplates || r.linkedPolicies)?.length ? `<div class="risk-detail-section" style="margin-top:16px">
+        <h4>${t('risk_linkedPolicies')} (${(r.linkedTemplates || r.linkedPolicies).length})</h4>
         <div class="tmpl-controls-bar" style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${r.linkedPolicies.map(c => `<span class="tmpl-bar-pill">${escHtml(c)}</span>`).join('')}
+          ${(r.linkedTemplates || r.linkedPolicies).map(c => `<span class="tmpl-bar-pill">${escHtml(c)}</span>`).join('')}
         </div>
       </div>` : ''}
+
+      ${[['risk_linkedAssets', r.linkedAssets, assetNames], ['risk_linkedAssetTypes', r.linkedAssetTypes, typeNames], ['risk_linkedSuppliers', r.linkedSuppliers, supplierNames]]
+        .filter(([, ids]) => ids?.length).map(([key, ids, names]) => `<div class="risk-detail-section" style="margin-top:16px">
+        <h4>${t(key)} (${ids.length})</h4>
+        <div class="tmpl-controls-bar" style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${ids.map(x => `<span class="tmpl-bar-pill">${escHtml(names[x] || x)}</span>`).join('')}
+        </div>
+      </div>`).join('')}
 
       ${r.applicableEntities?.length ? `<div class="risk-detail-section" style="margin-top:16px">
         <h4>${t('common_applicableEntities')}</h4>
@@ -9356,8 +9421,15 @@ async function openRiskModal(id) {
     if (res.ok) risk = await res.json()
   }
 
-  const entRes = await fetch('/entities/tree', { headers: apiHeaders() })
+  const [entRes, assetRes, supRes] = await Promise.all([
+    fetch('/entities/tree', { headers: apiHeaders() }),
+    fetch('/assets',        { headers: apiHeaders() }),
+    fetch('/suppliers',     { headers: apiHeaders() }),
+  ])
   const entityTree = entRes.ok ? await entRes.json() : []
+  const asList = async resp => { const d = resp.ok ? await resp.json() : []; return Array.isArray(d) ? d : [] }
+  const refAssets    = await asList(assetRes)
+  const refSuppliers = await asList(supRes)
   const entities = [] // flat list for submit, built from tree
   ;(function flatten(nodes) { for (const n of nodes) { entities.push(n); flatten(n.children||[]) } })(entityTree)
 
@@ -9536,7 +9608,18 @@ async function openRiskModal(id) {
 
           <div class="risk-form-card risk-form-full">
             <h3 class="risk-form-section-title"><i class="ph ph-link"></i> ${t('risk_linkedControlsPolicies')}</h3>
-            ${renderLinksBlock('risk', risk?.linkedControls||[], risk?.linkedPolicies||[])}
+            ${renderLinksBlock('risk', risk?.linkedControls||[], risk?.linkedTemplates||[])}
+            <details class="link-picker-details" style="margin-top:8px">
+              <summary><i class="ph ph-link"></i> ${t('risk_refLinksTitle')}</summary>
+              <div style="padding:10px 0">
+                ${renderRefPicker('risk', 'asset',  t('risk_linkedAssets'),
+                    refAssets.map(a => ({ id: a.id, label: a.name || a.id })).sort((a, b) => a.label.localeCompare(b.label)), risk?.linkedAssets || [])}
+                ${renderRefPicker('risk', 'atype',  t('risk_linkedAssetTypes'),
+                    ASSET_TYPES.map(at => ({ id: at.id, label: assetTypeLabel(at) })), risk?.linkedAssetTypes || [])}
+                ${renderRefPicker('risk', 'sup',    t('risk_linkedSuppliers'),
+                    refSuppliers.map(x => ({ id: x.id, label: x.name || x.id })).sort((a, b) => a.label.localeCompare(b.label)), risk?.linkedSuppliers || [])}
+              </div>
+            </details>
           </div>
 
         </div>
@@ -9644,7 +9727,12 @@ async function submitRiskForm() {
     reviewDate:        dom('rModalReview')?.value   || null,
     applicableEntities,
     linkedControls:    getLinkedValues('risk', 'ctrl'),
-    linkedPolicies:    getLinkedValues('risk', 'pol')
+    // Der Risiko-Store führt die Policy-Verknüpfung als linkedTemplates; unter dem Namen
+    // linkedPolicies gesendete Werte wurden bisher verworfen (#92).
+    linkedTemplates:   getLinkedValues('risk', 'pol'),
+    linkedAssets:      getLinkedValues('risk', 'asset'),
+    linkedAssetTypes:  getLinkedValues('risk', 'atype'),
+    linkedSuppliers:   getLinkedValues('risk', 'sup'),
   }
 
   const editId = _riskEditId
@@ -12597,6 +12685,11 @@ async function openAssetForm(id) {
           <div id="asDepTags" class="asset-dep-selected"></div>
         </div>
 
+        ${item ? `<div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-warning"></i> ${escHtml(t('risk_linkedRisksTitle'))}</h4>
+          <div id="asRiskLinks"></div>
+        </div>` : ''}
+
         <div class="training-form-section">
           <h4 class="training-form-section-title"><i class="ph ph-users"></i> ${t('asset_responsibilities')}</h4>
           <div class="form-row">
@@ -12681,6 +12774,7 @@ async function openAssetForm(id) {
   initLinkPickers('as')
   _renderAssetDepTags()
   if (!item) _onAssetTypeChange()
+  else loadLinkedRisks('asRiskLinks', { asset: item.id, assetType: item.type })
 }
 
 async function saveAsset(id) {
@@ -15316,6 +15410,11 @@ async function openSupplierForm(id = null) {
           </div>
         </div>
 
+        ${item ? `<div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-warning"></i> ${t('risk_linkedRisksTitle')}</h4>
+          <div id="supRiskLinks"></div>
+        </div>` : ''}
+
       </div>
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchSuppliersTab('${_suppliersTab}')">${t('ui_cancel')}</button>
@@ -15326,6 +15425,7 @@ async function openSupplierForm(id = null) {
     </div>
   `
   initLinkPickers('sup')
+  if (item) loadLinkedRisks('supRiskLinks', { supplier: item.id })
 }
 
 async function saveSupplier(id) {

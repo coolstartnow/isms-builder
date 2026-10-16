@@ -73,6 +73,12 @@ a DPA-bejegyzésnél.
 
 ---
 
+## Kapcsolódó kockázatok
+
+A kockázati űrlapon a kockázatok egy vagy több szállítóhoz köthetők („Kapcsolatok” szakasz → **Érintett eszközök, eszköztípusok és szállítók**). A szállító űrlapján (szerkesztéskor) a **Kapcsolódó kockázatok** szakasz az összes kapcsolódó kockázatot mutatja szinttel és állapottal.
+
+---
+
 ## Irányítópult
 
 A szállítói áttekintő a következőket mutatja:

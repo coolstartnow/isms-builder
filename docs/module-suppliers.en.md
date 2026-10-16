@@ -71,6 +71,12 @@ Data Processing Agreements. The link is created manually in the DPA entry.
 
 ---
 
+## Linked Risks
+
+In the risk form, risks can be linked to one or more suppliers (section "Links" → **Affected assets, asset types and suppliers**). In the supplier form (when editing), the **Linked risks** section lists all related risks with level and status.
+
+---
+
 ## Dashboard
 
 The supplier overview shows:

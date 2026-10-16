@@ -123,9 +123,10 @@ unavailable or compromised.
 
 ## Linking to Risks
 
-Via the risk module, risks can be directly linked to affected assets. In the asset
-detail view, all linked risks with their current status are visible. This makes the
-**risk exposure** of an asset transparent.
+In the risk form (section "Links" → **Affected assets, asset types and suppliers**) a risk can be linked to individual **assets**, whole **asset types (classes)** and **suppliers**. The picker has a search box; double-click adds an entry, clicking the chip removes it. A risk linked to an asset type applies to all assets of that type.
+
+In the asset form (when editing), the **Linked risks** section lists all risks with level and status — both directly linked ones and those that apply through the asset type (marked "via asset type"). The risk detail view lists the linked assets, types and suppliers by name.
+This makes the **risk exposure** of an asset transparent.
 
 ---
 

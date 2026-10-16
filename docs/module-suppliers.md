@@ -74,6 +74,12 @@ manuell beim AV-Eintrag.
 
 ---
 
+## Verknüpfte Risiken
+
+Im Risikoformular lassen sich Risiken mit einem oder mehreren Lieferanten verknüpfen (Bereich „Verknüpfungen“ → **Betroffene Assets, Asset-Typen und Lieferanten**). Im Lieferantenformular (beim Bearbeiten) zeigt der Abschnitt **Verknüpfte Risiken** alle damit verbundenen Risiken mit Stufe und Status.
+
+---
+
 ## Dashboard
 
 Die Lieferantenübersicht zeigt:

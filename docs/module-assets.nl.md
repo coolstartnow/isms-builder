@@ -128,8 +128,9 @@ op de bedrijfsactiviteiten.
 
 ## Koppeling met risico's
 
-Via het Risico-module kunnen risico's direct worden gekoppeld aan betrokken assets.
-In het assetdetail zijn alle gekoppelde risico's met hun huidige status zichtbaar.
+In het risicoformulier (sectie „Koppelingen” → **Betrokken assets, assettypen en leveranciers**) kan een risico worden gekoppeld aan afzonderlijke **assets**, hele **assettypen (klassen)** en **leveranciers**. De keuzelijst heeft een zoekveld; dubbelklikken voegt een item toe, klikken op de chip verwijdert het. Een risico dat aan een assettype is gekoppeld, geldt voor alle assets van dat type.
+
+In het assetformulier (bij bewerken) toont de sectie **Gekoppelde risico's** alle risico's met niveau en status — zowel direct gekoppelde als die via het assettype gelden (gemarkeerd met „via assettype”). Het risicodetail toont de gekoppelde assets, typen en leveranciers met naam.
 Dit maakt de **risicoblootstelling** van een asset transparant.
 
 ---

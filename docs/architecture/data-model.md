@@ -123,6 +123,9 @@ Soft-delete: records are never physically removed — `deletedAt` marks them as 
   "owner": "admin",
   "linkedControls": ["ISO-5.29"],
   "linkedTemplates": ["abc123"],
+  "linkedAssets": ["asset-1"],
+  "linkedAssetTypes": ["hardware_server"],
+  "linkedSuppliers": ["supplier-1"],
   "treatments": [
     { "id": "t1", "description": "EDR einführen", "dueDate": "2026-06-01", "status": "in_progress" }
   ]
@@ -133,6 +136,8 @@ Soft-delete: records are never physically removed — `deletedAt` marks them as 
 Schwellen ≤4 / ≤9 / ≤14 / darüber). Die vier Felder `inherent*` und `target*` sind optional (1–5 oder
 `null`); `inherentScore`/`inherentLevel` und `targetScore`/`targetLevel` werden daraus berechnet und
 nicht gespeichert (V 1.60). Bei SQLite/PostgreSQL liegen sie im JSON-Blob der Spalte `treatments`.
+`linkedAssets`, `linkedAssetTypes` und `linkedSuppliers` sind ID-Listen (V 1.60); `GET /risks` filtert über
+`?asset=`, `?assetType=` und `?supplier=`.
 
 ---
 

@@ -11,6 +11,7 @@ const TREATMENT_OPTS = ['accept','reduce','avoid','transfer']
 const STATUSES       = ['open','in_treatment','accepted','closed']
 
 const { riskLevel, calcScore, optRating, OPTIONAL_RATINGS, derivedRatings } = require('../riskScore')
+const { LINK_FIELDS, normalizeIds, matchesLinks } = require('../riskLinks')
 
 function rowToRisk(row) {
   if (!row) return null
@@ -37,6 +38,9 @@ function rowToRisk(row) {
     status: row.status,
     linkedControls: extra.linkedControls || [],
     linkedTemplates: extra.linkedTemplates || [],
+    linkedAssets:     normalizeIds(extra.linkedAssets),
+    linkedAssetTypes: normalizeIds(extra.linkedAssetTypes),
+    linkedSuppliers:  normalizeIds(extra.linkedSuppliers),
     applicableEntities: _json(row.applicable_entities, []),
     treatmentPlans: extra.treatmentPlans || [],
     needsReview: extra.needsReview || false,
@@ -68,6 +72,7 @@ function packExtra(r) {
     treatmentOption: r.treatmentOption, mitigationNotes: r.mitigationNotes,
     dueDate: r.dueDate, reviewDate: r.reviewDate,
     linkedControls: r.linkedControls || [], linkedTemplates: r.linkedTemplates || [],
+    linkedAssets: r.linkedAssets || [], linkedAssetTypes: r.linkedAssetTypes || [], linkedSuppliers: r.linkedSuppliers || [],
     treatmentPlans: r.treatmentPlans || [],
     needsReview: r.needsReview || false, source: r.source, scanRef: r.scanRef,
     cvssScore: r.cvssScore, cveIds: r.cveIds || [],
@@ -78,13 +83,14 @@ function packExtra(r) {
 module.exports = {
   init: async () => { await initDb() },
 
-  getAll: async ({ category, status, entity } = {}) => {
+  getAll: async ({ category, status, entity, asset, assetType, supplier } = {}) => {
     const q = getDb()('risks').whereNull('deleted_at')
     if (category) q.where('category', category)
     if (status)   q.where('status', status)
     const rows = await q.orderBy('created_at', 'desc')
     let list = rows.map(rowToRisk)
     if (entity) list = list.filter(r => !r.applicableEntities?.length || r.applicableEntities.includes(entity))
+    if (asset || assetType || supplier) list = list.filter(r => matchesLinks(r, { asset, assetType, supplier }))
     return list
   },
 
@@ -117,6 +123,9 @@ module.exports = {
       status: STATUSES.includes(fields.status) ? fields.status : 'open',
       linkedControls: Array.isArray(fields.linkedControls) ? fields.linkedControls : [],
       linkedTemplates: Array.isArray(fields.linkedTemplates) ? fields.linkedTemplates : [],
+      linkedAssets: normalizeIds(fields.linkedAssets),
+      linkedAssetTypes: normalizeIds(fields.linkedAssetTypes),
+      linkedSuppliers: normalizeIds(fields.linkedSuppliers),
       applicableEntities: Array.isArray(fields.applicableEntities) ? fields.applicableEntities : [],
       treatmentPlans: [],
       needsReview: fields.needsReview === true,
@@ -154,6 +163,9 @@ module.exports = {
     if (fields.impact) r.impact = Math.min(5, Math.max(1, parseInt(fields.impact) || 1))
     for (const k of OPTIONAL_RATINGS) {
       if (fields[k] !== undefined) r[k] = optRating(fields[k])
+    }
+    for (const k of LINK_FIELDS) {
+      if (fields[k] !== undefined) r[k] = normalizeIds(fields[k])
     }
     const now = nowISO()
     r.updatedAt = now

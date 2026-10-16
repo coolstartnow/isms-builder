@@ -129,8 +129,9 @@ sur l'activité de l'organisation.
 
 ## Lien avec les risques
 
-Via le module Risques, les risques peuvent être directement liés aux assets concernés.
-Dans le détail de l'asset, tous les risques liés avec leur statut actuel sont visibles.
+Dans le formulaire de risque (section « Liens » → **Actifs, types d'actifs et fournisseurs concernés**), un risque peut être lié à des **actifs** individuels, à des **types d'actifs (classes)** entiers et à des **fournisseurs**. La sélection dispose d'un champ de recherche ; un double-clic ajoute une entrée, un clic sur la pastille la retire. Un risque lié à un type d'actif concerne tous les actifs de ce type.
+
+Dans le formulaire d'actif (en modification), la section **Risques liés** liste tous les risques avec niveau et statut — ceux liés directement comme ceux qui s'appliquent via le type d'actif (marqués « via le type d'actif »). Le détail du risque liste les actifs, types et fournisseurs liés par leur nom.
 Cela rend l'**exposition aux risques** d'un asset transparente.
 
 ---

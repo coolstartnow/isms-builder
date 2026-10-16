@@ -127,8 +127,9 @@ auf die Geschäftstätigkeit.
 
 ## Verknüpfung mit Risiken
 
-Über das Risiko-Modul können Risiken direkt mit betroffenen Assets verknüpft werden.
-Im Asset-Detail sind alle verknüpften Risiken mit aktuellem Status sichtbar.
+Im Risikoformular (Bereich „Verknüpfungen“ → **Betroffene Assets, Asset-Typen und Lieferanten**) lässt sich ein Risiko mit einzelnen **Assets**, ganzen **Asset-Typen (Klassen)** und **Lieferanten** verknüpfen. Die Auswahl hat ein Suchfeld; per Doppelklick wird ein Eintrag übernommen, ein Klick auf den Chip entfernt ihn. Ein Risiko an einem Asset-Typ betrifft alle Assets dieses Typs.
+
+Im Asset-Formular (beim Bearbeiten) zeigt der Abschnitt **Verknüpfte Risiken** alle Risiken mit Stufe und Status — sowohl direkt verknüpfte als auch solche, die über den Asset-Typ gelten (gekennzeichnet mit „über Asset-Typ“). Das Risikodetail listet die verknüpften Assets, Typen und Lieferanten mit Namen.
 Dies macht die **Risikoexposition** eines Assets transparent.
 
 ---

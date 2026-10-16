@@ -124,8 +124,9 @@ van az üzleti működésre.
 
 ## Kapcsolódás kockázatokhoz
 
-A kockázatkezelő modulon keresztül a kockázatok közvetlenül hozzárendelhetők az érintett eszközökhöz.
-Az eszköz részletes nézetében az összes kapcsolódó kockázat és azok aktuális állapota megtekinthető.
+A kockázati űrlapon („Kapcsolatok” szakasz → **Érintett eszközök, eszköztípusok és szállítók**) a kockázat egyes **eszközökhöz**, teljes **eszköztípusokhoz (osztályokhoz)** és **szállítókhoz** köthető. A választó keresőmezővel rendelkezik; dupla kattintással adható hozzá egy elem, a címkére kattintva eltávolítható. Az eszköztípushoz kötött kockázat az adott típus minden eszközére érvényes.
+
+Az eszköz űrlapján (szerkesztéskor) a **Kapcsolódó kockázatok** szakasz az összes kockázatot mutatja szinttel és állapottal — a közvetlenül kötötteket és az eszköztípus útján érvényeseket is (megjelölve: „eszköztípus útján”). A kockázat részletes nézete név szerint listázza a kapcsolódó eszközöket, típusokat és szállítókat.
 Ez átláthatóvá teszi az eszköz **kockázati kitettségét**.
 
 ---

@@ -116,6 +116,22 @@ describe(`DB-Stores-Integration [${BACKEND}]`, () => {
       await s.permanentDelete(r.id)
     })
 
+    test('riskStore: Verknüpfungen (#92) überstehen Speichern, Laden und Filtern', async () => {
+      const s = require('../server/db/riskStore')
+      const r = await s.create({ title: 'Verknüpft', linkedAssets: ['a1', 'a1'], linkedAssetTypes: ['server'],
+        linkedSuppliers: ['s1'], linkedTemplates: ['t1'] }, 'tester')
+      const got = await s.getById(r.id)
+      expect([got.linkedAssets, got.linkedAssetTypes, got.linkedSuppliers, got.linkedTemplates])
+        .toEqual([['a1'], ['server'], ['s1'], ['t1']])
+      expect((await s.getAll({ asset: 'a2', assetType: 'server' })).some(x => x.id === r.id)).toBe(true)
+      expect((await s.getAll({ supplier: 's9' })).some(x => x.id === r.id)).toBe(false)
+      const upd = await s.update(r.id, { linkedSuppliers: [] })
+      expect(upd.linkedSuppliers).toEqual([])
+      expect((await s.getById(r.id)).linkedAssets).toEqual(['a1'])
+      await s.delete(r.id, 'tester')
+      await s.permanentDelete(r.id)
+    })
+
     test('goalsStore', async () => {
       const s = require('../server/db/goalsStore')
       const r = await s.create({ title: 'Test-Ziel' }, 'tester')

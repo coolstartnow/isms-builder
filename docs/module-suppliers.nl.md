@@ -74,6 +74,12 @@ aangemaakt bij de VO-vermelding.
 
 ---
 
+## Gekoppelde risico's
+
+In het risicoformulier kunnen risico's aan een of meer leveranciers worden gekoppeld (sectie „Koppelingen” → **Betrokken assets, assettypen en leveranciers**). In het leveranciersformulier (bij bewerken) toont de sectie **Gekoppelde risico's** alle bijbehorende risico's met niveau en status.
+
+---
+
 ## Dashboard
 
 Het leveranciersoverzicht toont:
