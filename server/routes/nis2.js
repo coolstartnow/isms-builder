@@ -13,6 +13,8 @@ const govStore      = require('../db/nis2GovernanceStore')
 const art23         = require('../db/art23')
 const incidentStore = require('../db/publicIncidentStore')
 const auditStore    = require('../db/auditStore')
+const i18n           = require('../i18n')
+const { localizeGovItem } = require('../i18n/catalog')
 
 // ════════════════════════════════════════════════════════════
 // Art. 21 — Governance-Checkliste
@@ -24,7 +26,7 @@ router.get('/nis2/governance/summary', requireAuth, authorize('reader'), (req, r
 
 router.get('/nis2/governance', requireAuth, authorize('reader'), (req, res) => {
   res.json({
-    items:   govStore.getAll(req.query),
+    items:   govStore.getAll(req.query).map(i => localizeGovItem(i, i18n.langOf(req))),
     summary: govStore.getSummary(),
   })
 })
@@ -32,7 +34,7 @@ router.get('/nis2/governance', requireAuth, authorize('reader'), (req, res) => {
 router.get('/nis2/governance/:id', requireAuth, authorize('reader'), (req, res) => {
   const item = govStore.getById(req.params.id)
   if (!item) return res.status(404).json({ error: 'Not found' })
-  res.json(item)
+  res.json(localizeGovItem(item, i18n.langOf(req)))
 })
 
 router.put('/nis2/governance/:id', requireAuth, authorize('contentowner'), async (req, res) => {
@@ -43,7 +45,7 @@ router.put('/nis2/governance/:id', requireAuth, authorize('contentowner'), async
     user: req.user, action: 'update', resource: 'nis2_governance',
     detail: `${result.id} → ${result.status}`,
   })
-  res.json(result)
+  res.json(localizeGovItem(result, i18n.langOf(req)))
 })
 
 // ════════════════════════════════════════════════════════════

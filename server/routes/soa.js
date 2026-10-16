@@ -10,6 +10,8 @@ const crossmapStore = require('../db/crossmapStore')
 const orgSettingsStore = require('../db/orgSettingsStore')
 const auditStore = require('../db/auditStore')
 const storage = require('../storage')
+const { localizeControls, localizeCrossmapGroup } = require('../i18n/catalog')
+const i18n = require('../i18n')
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../../data')
 
@@ -24,7 +26,7 @@ router.get('/soa/frameworks', requireAuth, authorize('reader'), async (req, res)
 // Alle Controls
 router.get('/soa', requireAuth, authorize('reader'), async (req, res) => {
   const { framework, theme } = req.query
-  res.json(await soaStore.getAll({ framework, theme }))
+  res.json(localizeControls(await soaStore.getAll({ framework, theme }), i18n.langOf(req)))
 })
 
 // Zusammenfassung
@@ -84,13 +86,17 @@ router.put('/soa/:id', requireAuth, authorize('editor'), async (req, res) => {
 
 // Cross-Mapping: alle Gruppen
 router.get('/soa/crossmap', requireAuth, authorize('reader'), async (req, res) => {
-  res.json(await crossmapStore.getAll())
+  res.json((await crossmapStore.getAll()).map(g => localizeCrossmapGroup(g, i18n.langOf(req))))
 })
 
 // Cross-Mapping: verwandte Controls
 router.get('/soa/:id/crossmap', requireAuth, authorize('reader'), async (req, res) => {
   const { id } = req.params
-  res.json(await crossmapStore.getRelated(id))
+  const lang = i18n.langOf(req)
+  res.json((await crossmapStore.getRelated(id)).map(r => {
+    const g = localizeCrossmapGroup({ id: r.groupId, topic: r.topic, description: r.description }, lang)
+    return { ...r, topic: g.topic, description: g.description }
+  }))
 })
 
 // JSON-Export
@@ -98,7 +104,7 @@ router.get('/soa/export', requireAuth, authorize('reader'), async (req, res) => 
   const all = await soaStore.getAll()
   const summary = await soaStore.getSummary()
   res.setHeader('Content-Disposition', 'attachment; filename="soa-export.json"')
-  res.json({ exportedAt: new Date().toISOString(), summary, controls: all })
+  res.json({ exportedAt: new Date().toISOString(), summary, controls: localizeControls(all, i18n.langOf(req)) })
 })
 
 // ─────────────────────────────────────────────────────────────────
