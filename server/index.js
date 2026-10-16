@@ -29,6 +29,8 @@ if (process.env.TRUST_PROXY) {
 }
 
 app.use(express.json())
+// Fehlertexte der API in der Sprache der Oberfläche (X-Lang) bzw. der Organisations-Standardsprache
+require('./i18n').installMiddleware(app)
 
 // ── UI-Dateien: Login-Seite öffentlich, alles andere nur mit gültigem JWT ──
 const uiDir    = path.join(__dirname, '../ui')

@@ -2658,6 +2658,12 @@ Der `/auth/language-config`-Endpunkt ist bewusst **öffentlich** (kein Login), d
 
 ---
 
+## 48b. Server-Meldungen in der Sprache der Oberfläche (V 1.60)
+
+`server/i18n.js` übersetzt das Feld `error` jeder JSON-Antwort des Servers in die Sprache des Aufrufers. Reihenfolge: Header **`X-Lang`** (setzt `ui/i18n/t.js` für jeden Request an den eigenen Server automatisch, Login-Seite eingeschlossen) → Standardsprache der Organisation (`languageConfig.default`) → Englisch. Die Tabelle `MESSAGES` enthält pro Meldung die fünf Sprachfassungen (`[en, de, fr, nl, hu]`, Platzhalter wie `{role}`); als Quelltext im Code funktioniert jede dieser Fassungen, bestehende Routen und Stores bleiben unverändert. Unbekannte Texte (z. B. `e.message` von Systemfehlern) werden durchgereicht. **Neue Fehlermeldung hinzufügen:** Text in der Route wie gewohnt schreiben und einen Eintrag in `MESSAGES` ergänzen — `tests/serverI18n.test.js` schlägt sonst fehl (Abdeckungstest über alle festen `error: '…'`-Texte in `server/`). API-Clients, die den Header nicht senden, erhalten die Organisations-Standardsprache.
+
+---
+
 ## 48a. Audit-Management (V 1.60)
 
 Audits, Prüfpunkte und Auditprogramm (Jahresplan) — ISO 27001 Kap. 9.2. Menüpunkt **Audits** (ab `contentowner`, Funktionen CISO/Revision/QMB), Modul-Schalter `modules.audits`. Anwenderdoku: `docs/module-audits*.md` (fünf Sprachen, Guidance-Seed `seed_module_audits`).

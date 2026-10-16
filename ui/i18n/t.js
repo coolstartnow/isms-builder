@@ -57,6 +57,29 @@
     return str;
   }
 
+  // ── X-Lang an jeden Request der Oberfläche ───────────────────────────────
+  // Der Server übersetzt seine Fehlertexte in diese Sprache (server/i18n.js). Nur Anfragen an den
+  // eigenen Server (relative URLs oder gleicher Ursprung) bekommen den Header.
+  if (typeof window.fetch === 'function' && !window.fetch.__islang) {
+    const origFetch = window.fetch.bind(window)
+    const wrapped = function (input, init) {
+      try {
+        const url = typeof input === 'string' ? input : (input && input.url) || ''
+        const sameOrigin = url.startsWith('/') || url.startsWith(location.origin)
+        if (sameOrigin) {
+          init = init ? { ...init } : {}
+          const h = init.headers instanceof Headers ? new Headers(init.headers) : { ...(init.headers || {}) }
+          if (h instanceof Headers) { if (!h.has('X-Lang')) h.set('X-Lang', window.LANG || DEFAULT) }
+          else if (!('X-Lang' in h) && !('x-lang' in h)) h['X-Lang'] = window.LANG || DEFAULT
+          init.headers = h
+        }
+      } catch { /* Header ist nur ein Komfort; der Request läuft in jedem Fall */ }
+      return origFetch(input, init)
+    }
+    wrapped.__islang = true
+    window.fetch = wrapped
+  }
+
   // ── Expose globals ───────────────────────────────────────────────────────
   window.t       = t;
   window.setLang = setLang;

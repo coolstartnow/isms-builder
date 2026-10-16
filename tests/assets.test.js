@@ -309,7 +309,8 @@ describe('Asset-Abhängigkeiten und Vererbung (BSI-Maximumprinzip)', () => {
   })
 
   test('direkter Zyklus wird abgelehnt (400)', async () => {
-    const res = await authedPut(app, editorCookie, `/assets/${db}`, { dependsOn: [crm] })
+    // Fehlertexte kommen in der Sprache aus dem Header X-Lang (hier Deutsch, Standard sonst Englisch)
+    const res = await require('supertest')(app).put(`/assets/${db}`).set('Cookie', editorCookie).set('X-Lang', 'de').send({ dependsOn: [crm] })
     expect(res.status).toBe(400)
     expect(res.body.error).toMatch(/[Zz]irkul/)
   })
@@ -318,7 +319,7 @@ describe('Asset-Abhängigkeiten und Vererbung (BSI-Maximumprinzip)', () => {
     // AWS ist am Ende der Kette; eine Abhängigkeit zum CRM schlösse den Kreis
     const res = await authedPut(app, editorCookie, `/assets/${aws}`, { dependsOn: [crm] })
     expect(res.status).toBe(400)
-    expect(res.body.error).toMatch(/[Zz]irkul/)
+    expect(res.body.error).toMatch(/[Cc]ircular/)       // ohne X-Lang: Standardsprache der Organisation (Englisch)
   })
 
   test('Mehrfach-Abhängigkeiten und Duplikate', async () => {
