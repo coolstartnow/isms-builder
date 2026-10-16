@@ -8712,6 +8712,23 @@ async function switchRiskTab(tab) {
 
 // ── Register ──
 
+/** Score und Stufe aus Wahrscheinlichkeit × Auswirkung; null, wenn ein Wert fehlt (#94). */
+function riskRatingOf(p, i) {
+  if (!p || !i) return null
+  const score = p * i
+  const level = score <= 4 ? 'low' : score <= 9 ? 'medium' : score <= 14 ? 'high' : 'critical'
+  return { p, i, score, level }
+}
+
+/** "W × S = Score" plus Stufen-Badge; '—' ohne Bewertung. */
+function riskRatingHtml(rt) {
+  if (!rt) return '—'
+  const cfg = RISK_LEVEL_CFG[rt.level]
+  return `${rt.p} × ${rt.i} = <strong>${rt.score}</strong> <span class="risk-badge ${cfg.cls}">${cfg.label}</span>`
+}
+
+let _riskRegisterList = []   // zuletzt angezeigte (gefilterte) Liste für CSV/PDF
+
 async function renderRiskRegister(el) {
   const params = new URLSearchParams()
   if (_riskFilterCat)    params.set('category', _riskFilterCat)
@@ -8721,6 +8738,7 @@ async function renderRiskRegister(el) {
   // Stufe: Filter und Sortierung laufen im Browser auf der geladenen Liste (#93)
   const risks = loaded.filter(r => !_riskFilterLevel || r.riskLevel === _riskFilterLevel)
   if (_riskSort) risks.sort((a, b) => _riskSort === 'asc' ? a.score - b.score : b.score - a.score)
+  _riskRegisterList = risks
   const sortIcon = _riskSort === 'asc' ? 'ph-caret-up' : _riskSort === 'desc' ? 'ph-caret-down' : 'ph-caret-up-down'
 
   const lvOpts = [{ id:'', label:t('filter_allLevels') }, ...Object.keys(RISK_LEVEL_CFG).reverse().map(id => ({ id, label: RISK_LEVEL_CFG[id].label }))].map(l =>
@@ -8736,6 +8754,8 @@ async function renderRiskRegister(el) {
       <select class="select risk-filter-sel" onchange="_riskFilterStatus=this.value;switchRiskTab('register')">${stOpts}</select>
       <select class="select risk-filter-sel" onchange="_riskFilterLevel=this.value;switchRiskTab('register')">${lvOpts}</select>
       <span class="risk-filter-count">${risks.length} ${t('risk_countLabel')}</span>
+      <button class="btn btn-secondary btn-sm" onclick="exportRisksCsv()"><i class="ph ph-file-csv"></i> CSV</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportRisksPdf()"><i class="ph ph-file-pdf"></i> PDF</button>
     </div>
     ${risks.length === 0 ? `<p class="risk-empty">${t('risk_noRisksFound')}</p>` : `
     <table class="risk-table">
@@ -8769,6 +8789,68 @@ async function renderRiskRegister(el) {
       </tbody>
     </table>`}
   `
+}
+
+/** Eine Zeile je Risiko für CSV und PDF: Inhärent / Aktuell / Ziel (#94). */
+function _riskExportRows(list) {
+  const fmt = rt => rt ? `${rt.p}x${rt.i}=${rt.score} ${RISK_LEVEL_CFG[rt.level].label}` : ''
+  return list.map(r => ({
+    id: r.id, title: r.title,
+    category: riskCatLabel(RISK_CATS.find(c => c.id === r.category)) || r.category,
+    status:   RISK_STATUSES.find(x => x.id === r.status)?.label || r.status,
+    owner:    r.owner || '',
+    inherent: fmt(riskRatingOf(r.inherentProbability, r.inherentImpact)),
+    current:  fmt(riskRatingOf(r.probability, r.impact)),
+    target:   fmt(riskRatingOf(r.targetProbability, r.targetImpact)),
+  }))
+}
+
+function exportRisksCsv() {
+  const rows = _riskExportRows(_riskRegisterList)
+  const cols = ['id','title','category','status','owner','inherent','current','target']
+  const head = ['ID', t('col_title'), t('col_category'), t('col_status'), t('ui_owner'),
+                t('risk_inherentShort'), t('risk_currentShort'), t('risk_targetShort')]
+  const esc  = v => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const csv  = [head.map(esc).join(','), ...rows.map(r => cols.map(c => esc(r[c])).join(','))].join('\r\n')
+  const url  = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }))
+  const a    = document.createElement('a')
+  a.href = url; a.download = `risks-${new Date().toISOString().slice(0,10)}.csv`; a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportRisksPdf() {
+  const rows = _riskExportRows(_riskRegisterList)
+  const esc  = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  const win  = window.open('', '_blank')
+  if (!win) return alert(t('err_popupBlocked'))
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>${esc(t('risk_register'))} — ${new Date().toLocaleDateString()}</title>
+    <style>
+      body  { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 28px; }
+      h1    { font-size: 15px; margin-bottom: 4px; }
+      .sub  { font-size: 11px; color: #666; margin-bottom: 16px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td{ border: 1px solid #ccc; padding: 4px 8px; font-size: 11px; text-align: left; }
+      th    { background: #f0f0f0; font-weight: bold; }
+      @media print { body { margin: 0; } }
+    </style>
+  </head><body>
+    <h1>${esc(t('risk_register'))}</h1>
+    <div class="sub">${new Date().toLocaleString()} · ISMS Builder · ${rows.length} ${esc(t('risk_countLabel'))}</div>
+    <table>
+      <thead><tr>
+        <th>${esc(t('col_title'))}</th><th>${esc(t('col_category'))}</th><th>${esc(t('col_status'))}</th><th>${esc(t('ui_owner'))}</th>
+        <th>${esc(t('risk_inherentShort'))}</th><th>${esc(t('risk_currentShort'))}</th><th>${esc(t('risk_targetShort'))}</th>
+      </tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td>${esc(r.title)}</td><td>${esc(r.category)}</td><td>${esc(r.status)}</td><td>${esc(r.owner)}</td>
+        <td>${esc(r.inherent)}</td><td>${esc(r.current)}</td><td>${esc(r.target)}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <script>window.onload = () => window.print()<\/script>
+  </body></html>`)
+  win.document.close()
 }
 
 // ── Heatmap ──
@@ -9152,6 +9234,9 @@ async function openRiskDetail(id) {
           <div class="risk-detail-row"><label>${t('risk_probability')}</label><span>${r.probability} / 5</span></div>
           <div class="risk-detail-row"><label>${t('risk_impact')}</label><span>${r.impact} / 5</span></div>
           <div class="risk-detail-row"><label>${t('risk_scoreCol')}</label><span><strong>${r.score}</strong> — <span class="risk-badge ${lv.cls}">${lv.label}</span></span></div>
+          ${(r.inherentScore != null || r.targetScore != null) ? `
+          <div class="risk-detail-row"><label>${t('risk_inherentShort')}</label><span>${riskRatingHtml(riskRatingOf(r.inherentProbability, r.inherentImpact))}</span></div>
+          <div class="risk-detail-row"><label>${t('risk_targetShort')}</label><span>${riskRatingHtml(riskRatingOf(r.targetProbability, r.targetImpact))}</span></div>` : ''}
           <div class="risk-detail-row"><label>${t('risk_treatmentOpt')}</label><span>${escHtml(riskTreatmentLabel(tr)||r.treatmentOption)}</span></div>
           <div class="risk-detail-row"><label>${t('col_status')}</label><span class="risk-status-badge risk-st-${r.status}">${st?.label||r.status}</span></div>
           <div class="risk-detail-row"><label>${t('ui_owner')}</label><span>${escHtml(r.owner||'—')}</span></div>
@@ -9315,6 +9400,8 @@ async function openRiskModal(id) {
   const entTreeHtml = entityTree.length ? buildEntityTree(entityTree, 0) : ''
   const scaleOpts = n => [1,2,3,4,5].map(v =>
     `<option value="${v}" ${risk?.[n]===v?'selected':''}>${v}</option>`).join('')
+  // Optionale Skala (Inherent / Ziel, #94): leere Auswahl = nicht bewertet
+  const optScaleOpts = n => `<option value="">—</option>` + scaleOpts(n)
 
   // Vollseite: riskContainer tauschen
   dom('riskContainer')?.remove()
@@ -9376,6 +9463,31 @@ async function openRiskModal(id) {
               </div>
             </div>
             <div id="rScorePreview" class="risk-score-preview" style="margin-top:12px;"></div>
+            <p class="asset-prot-hint" style="margin-top:14px;">${t('risk_ratingOptionalHint')}</p>
+            <h4 class="risk-rating-sub">${t('risk_inherentRating')}</h4>
+            <div class="risk-form-row">
+              <div class="risk-form-field">
+                <label class="form-label">${t('risk_likelihoodFull')}</label>
+                <select id="rModalInhProb" class="select" onchange="updateRiskScorePreview()">${optScaleOpts('inherentProbability')}</select>
+              </div>
+              <div class="risk-form-field">
+                <label class="form-label">${t('risk_impactFull')}</label>
+                <select id="rModalInhImpact" class="select" onchange="updateRiskScorePreview()">${optScaleOpts('inherentImpact')}</select>
+              </div>
+            </div>
+            <div id="rInhPreview" class="risk-score-preview" style="margin-top:8px;"></div>
+            <h4 class="risk-rating-sub">${t('risk_targetRating')}</h4>
+            <div class="risk-form-row">
+              <div class="risk-form-field">
+                <label class="form-label">${t('risk_likelihoodFull')}</label>
+                <select id="rModalTgtProb" class="select" onchange="updateRiskScorePreview()">${optScaleOpts('targetProbability')}</select>
+              </div>
+              <div class="risk-form-field">
+                <label class="form-label">${t('risk_impactFull')}</label>
+                <select id="rModalTgtImpact" class="select" onchange="updateRiskScorePreview()">${optScaleOpts('targetImpact')}</select>
+              </div>
+            </div>
+            <div id="rTgtPreview" class="risk-score-preview" style="margin-top:8px;"></div>
             <div class="risk-form-field" style="margin-top:12px;">
               <label class="form-label">${t('risk_treatmentOpt')}</label>
               <select id="rModalTreat" class="select">${trOpts}</select>
@@ -9482,19 +9594,20 @@ function _riskEntitySyncAllCheckbox() {
 }
 
 function updateRiskScorePreview() {
-  const p = parseInt(dom('rModalProb')?.value) || 1
-  const i = parseInt(dom('rModalImpact')?.value) || 1
-  const score = p * i
-  const level = score <= 4 ? 'low' : score <= 9 ? 'medium' : score <= 14 ? 'high' : 'critical'
-  const cfg = RISK_LEVEL_CFG[level]
-  const el = dom('rScorePreview')
-  if (!el) return
-  el.innerHTML = `
-    <div class="risk-score-preview-inner">
-      <span class="risk-score-preview-label">${t('risk_scorePreviewLabel')}</span>
-      <span class="risk-score-preview-val">${p} × ${i} = <strong>${score}</strong></span>
-      <span class="risk-badge ${cfg.cls}">${cfg.label}</span>
-    </div>`
+  const val = id => parseInt(dom(id)?.value) || 0
+  const draw = (elId, labelKey, rt) => {
+    const el = dom(elId)
+    if (!el) return
+    el.innerHTML = rt ? `
+      <div class="risk-score-preview-inner">
+        <span class="risk-score-preview-label">${t(labelKey)}</span>
+        <span class="risk-score-preview-val">${riskRatingHtml(rt)}</span>
+      </div>` : ''
+  }
+  // Aktuell: fehlende Werte zählen als 1 (wie am Server)
+  draw('rScorePreview', 'risk_scorePreviewLabel', riskRatingOf(val('rModalProb') || 1, val('rModalImpact') || 1))
+  draw('rInhPreview', 'risk_inherentShort', riskRatingOf(val('rModalInhProb'), val('rModalInhImpact')))
+  draw('rTgtPreview', 'risk_targetShort',   riskRatingOf(val('rModalTgtProb'), val('rModalTgtImpact')))
 }
 
 async function submitRiskForm() {
@@ -9518,6 +9631,11 @@ async function submitRiskForm() {
     category:          dom('rModalCat')?.value,
     probability:       parseInt(dom('rModalProb')?.value)   || 1,
     impact:            parseInt(dom('rModalImpact')?.value) || 1,
+    // leer → null (nicht bewertet); der Server begrenzt auf 1–5
+    inherentProbability: parseInt(dom('rModalInhProb')?.value)   || null,
+    inherentImpact:      parseInt(dom('rModalInhImpact')?.value) || null,
+    targetProbability:   parseInt(dom('rModalTgtProb')?.value)   || null,
+    targetImpact:        parseInt(dom('rModalTgtImpact')?.value) || null,
     treatmentOption:   dom('rModalTreat')?.value,
     mitigationNotes:   dom('rModalMitigation')?.value || '',
     status:            dom('rModalStatus')?.value,

@@ -10,18 +10,7 @@ const CATEGORIES     = ['technical','organizational','physical','legal']
 const TREATMENT_OPTS = ['accept','reduce','avoid','transfer']
 const STATUSES       = ['open','in_treatment','accepted','closed']
 
-function riskLevel(score) {
-  if (score <= 4)  return 'low'
-  if (score <= 9)  return 'medium'
-  if (score <= 14) return 'high'
-  return 'critical'
-}
-
-function calcScore(r) {
-  const p = Math.min(5, Math.max(1, parseInt(r.probability) || 1))
-  const i = Math.min(5, Math.max(1, parseInt(r.impact) || 1))
-  return p * i
-}
+const { riskLevel, calcScore, optRating, OPTIONAL_RATINGS, derivedRatings } = require('../riskScore')
 
 function rowToRisk(row) {
   if (!row) return null
@@ -36,6 +25,10 @@ function rowToRisk(row) {
     vulnerability: extra.vulnerability || '',
     probability: row.likelihood,
     impact: row.impact,
+    inherentProbability: optRating(extra.inherentProbability),
+    inherentImpact:      optRating(extra.inherentImpact),
+    targetProbability:   optRating(extra.targetProbability),
+    targetImpact:        optRating(extra.targetImpact),
     treatmentOption: extra.treatmentOption || 'reduce',
     mitigationNotes: extra.mitigationNotes || '',
     owner: row.owner,
@@ -58,6 +51,10 @@ function rowToRisk(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at || null,
+    ...derivedRatings({
+      inherentProbability: extra.inherentProbability, inherentImpact: extra.inherentImpact,
+      targetProbability:   extra.targetProbability,   targetImpact:   extra.targetImpact,
+    }),
     score,
     riskLevel: riskLevel(score),
   }
@@ -66,6 +63,8 @@ function rowToRisk(row) {
 function packExtra(r) {
   return JSON.stringify({
     threat: r.threat, vulnerability: r.vulnerability,
+    inherentProbability: r.inherentProbability ?? null, inherentImpact: r.inherentImpact ?? null,
+    targetProbability: r.targetProbability ?? null, targetImpact: r.targetImpact ?? null,
     treatmentOption: r.treatmentOption, mitigationNotes: r.mitigationNotes,
     dueDate: r.dueDate, reviewDate: r.reviewDate,
     linkedControls: r.linkedControls || [], linkedTemplates: r.linkedTemplates || [],
@@ -106,6 +105,10 @@ module.exports = {
       vulnerability: fields.vulnerability || '',
       probability,
       impact,
+      inherentProbability: optRating(fields.inherentProbability),
+      inherentImpact:      optRating(fields.inherentImpact),
+      targetProbability:   optRating(fields.targetProbability),
+      targetImpact:        optRating(fields.targetImpact),
       treatmentOption: TREATMENT_OPTS.includes(fields.treatmentOption) ? fields.treatmentOption : 'reduce',
       mitigationNotes: fields.mitigationNotes || '',
       owner: fields.owner || '',
@@ -133,7 +136,7 @@ module.exports = {
       treatments: packExtra(r),
       created_by: r.createdBy, created_at: now, updated_at: now,
     })
-    return { ...r, score, riskLevel: riskLevel(score), createdAt: now, updatedAt: now }
+    return { ...r, ...derivedRatings(r), score, riskLevel: riskLevel(score), createdAt: now, updatedAt: now }
   },
 
   update: async (id, fields) => {
@@ -149,6 +152,9 @@ module.exports = {
     }
     if (fields.probability) r.probability = Math.min(5, Math.max(1, parseInt(fields.probability) || 1))
     if (fields.impact) r.impact = Math.min(5, Math.max(1, parseInt(fields.impact) || 1))
+    for (const k of OPTIONAL_RATINGS) {
+      if (fields[k] !== undefined) r[k] = optRating(fields[k])
+    }
     const now = nowISO()
     r.updatedAt = now
     const score = calcScore(r)
@@ -159,7 +165,7 @@ module.exports = {
       applicable_entities: JSON.stringify(r.applicableEntities || []),
       treatments: packExtra(r), updated_at: now,
     })
-    return { ...r, score, riskLevel: riskLevel(score) }
+    return { ...r, ...derivedRatings(r), score, riskLevel: riskLevel(score) }
   },
 
   delete: async (id, deletedBy) => {

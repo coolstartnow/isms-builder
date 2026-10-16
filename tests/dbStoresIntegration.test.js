@@ -100,6 +100,22 @@ describe(`DB-Stores-Integration [${BACKEND}]`, () => {
       expect((await s.getDeleted()).some(x => x.id === r.id)).toBe(false)
     })
 
+    test('riskStore: Inherent- und Zielbewertung (#94) überstehen Speichern und Laden', async () => {
+      const s = require('../server/db/riskStore')
+      const r = await s.create({ title: 'Bewertung', probability: 4, impact: 4,
+        inherentProbability: 5, inherentImpact: 5, targetProbability: 2, targetImpact: 2 }, 'tester')
+      const got = await s.getById(r.id)
+      expect([got.inherentProbability, got.inherentImpact, got.targetProbability, got.targetImpact]).toEqual([5, 5, 2, 2])
+      expect([got.inherentScore, got.inherentLevel, got.targetScore, got.targetLevel]).toEqual([25, 'critical', 4, 'low'])
+      expect(got.score).toBe(16)
+      const upd = await s.update(r.id, { targetProbability: null })
+      expect(upd.targetProbability).toBeNull()
+      expect(upd.targetScore).toBeNull()
+      expect((await s.getById(r.id)).inherentScore).toBe(25)
+      await s.delete(r.id, 'tester')
+      await s.permanentDelete(r.id)
+    })
+
     test('goalsStore', async () => {
       const s = require('../server/db/goalsStore')
       const r = await s.create({ title: 'Test-Ziel' }, 'tester')

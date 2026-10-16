@@ -22,22 +22,11 @@ const CATEGORIES     = ['technical','organizational','physical','legal']
 const TREATMENT_OPTS = ['accept','reduce','avoid','transfer']
 const STATUSES       = ['open','in_treatment','accepted','closed']
 
-function riskLevel(score) {
-  if (score <= 4)  return 'low'
-  if (score <= 9)  return 'medium'
-  if (score <= 14) return 'high'
-  return 'critical'
-}
-
-function calcScore(r) {
-  const p = Math.min(5, Math.max(1, parseInt(r.probability) || 1))
-  const i = Math.min(5, Math.max(1, parseInt(r.impact)      || 1))
-  return p * i
-}
+const { riskLevel, calcScore, optRating, OPTIONAL_RATINGS, derivedRatings } = require('./riskScore')
 
 function publicRisk(r) {
   const score = calcScore(r)
-  return { ...r, score, riskLevel: riskLevel(score) }
+  return { ...r, ...derivedRatings(r), score, riskLevel: riskLevel(score) }
 }
 
 function getAll({ category, status, entity } = {}) {
@@ -64,6 +53,11 @@ function create(fields, createdBy) {
     vulnerability:     fields.vulnerability     || '',
     probability:       Math.min(5, Math.max(1, parseInt(fields.probability) || 1)),
     impact:            Math.min(5, Math.max(1, parseInt(fields.impact)      || 1)),
+    // Inherent- (vor Maßnahmen) und Zielbewertung (nach Maßnahmen), optional (#94)
+    inherentProbability: optRating(fields.inherentProbability),
+    inherentImpact:      optRating(fields.inherentImpact),
+    targetProbability:   optRating(fields.targetProbability),
+    targetImpact:        optRating(fields.targetImpact),
     treatmentOption:   TREATMENT_OPTS.includes(fields.treatmentOption) ? fields.treatmentOption : 'reduce',
     mitigationNotes:   fields.mitigationNotes   || '',
     owner:             fields.owner             || '',
@@ -103,6 +97,9 @@ function update(id, fields) {
   }
   if (fields.probability) r.probability = Math.min(5, Math.max(1, parseInt(fields.probability) || 1))
   if (fields.impact)      r.impact      = Math.min(5, Math.max(1, parseInt(fields.impact)      || 1))
+  for (const k of OPTIONAL_RATINGS) {
+    if (fields[k] !== undefined) r[k] = optRating(fields[k])
+  }
   r.updatedAt = nowISO()
   risks[idx] = r
   save(risks)

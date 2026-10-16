@@ -1047,6 +1047,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0; }
   border-bottom: 1px solid var(--border);
 }
 .risk-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+.risk-rating-sub { margin: 14px 0 8px; font-size: 12px; font-weight: 600; color: var(--text-subtle); text-transform: uppercase; letter-spacing: .04em; }
 .risk-th-sort { cursor: pointer; user-select: none; white-space: nowrap; }
 .risk-th-sort:hover { color: var(--text); }
 .risk-row { cursor: pointer; }

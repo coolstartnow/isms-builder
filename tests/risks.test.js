@@ -144,3 +144,63 @@ describe('Risiko-Stufe (#93)', () => {
     expect(app).toMatch(/_riskFilterLevel=this\.value/)
   })
 })
+
+// #94 – Inherent- und Zielbewertung
+describe('Inherent- und Zielbewertung (#94)', () => {
+  let rid
+
+  afterAll(async () => {
+    if (rid) await authedDelete(app, adminCookie, `/risks/${rid}`)
+  })
+
+  test('ohne Angabe sind die Werte leer und die berechneten Felder null', async () => {
+    const res = await authedPost(app, auditorCookie, '/risks', { title: 'Ohne Zielwert', probability: 3, impact: 3 })
+    expect(res.status).toBe(201)
+    rid = res.body.id
+    expect(res.body.inherentProbability).toBeNull()
+    expect(res.body.targetScore).toBeNull()
+    expect(res.body.score).toBe(9)
+  })
+
+  test('Werte werden gespeichert, auf 1–5 begrenzt und als Score/Stufe geliefert', async () => {
+    const res = await authedPut(app, auditorCookie, `/risks/${rid}`, {
+      inherentProbability: 5, inherentImpact: 9, targetProbability: '2', targetImpact: 2,
+    })
+    expect(res.status).toBe(200)
+    expect(res.body.inherentImpact).toBe(5)
+    expect(res.body.inherentScore).toBe(25)
+    expect(res.body.inherentLevel).toBe('critical')
+    expect(res.body.targetScore).toBe(4)
+    expect(res.body.targetLevel).toBe('low')
+    expect(res.body.score).toBe(9)            // aktueller Wert bleibt unberührt
+
+    const again = await authedGet(app, readerCookie, `/risks/${rid}`)
+    expect(again.body.targetProbability).toBe(2)
+  })
+
+  test('null löscht einen Wert wieder', async () => {
+    const res = await authedPut(app, auditorCookie, `/risks/${rid}`, { targetProbability: null })
+    expect(res.body.targetProbability).toBeNull()
+    expect(res.body.targetScore).toBeNull()
+    expect(res.body.inherentScore).toBe(25)
+  })
+
+  test('Report und CSV enthalten Inherent- und Zielscore', async () => {
+    await authedPut(app, auditorCookie, `/risks/${rid}`, { targetProbability: 1, targetImpact: 1 })
+    const rep = await authedGet(app, readerCookie, '/reports/risks')
+    const row = rep.body.risks.find(r => r.id === rid)
+    expect([row.inherentScore, row.targetScore]).toEqual([25, 1])
+    const csv = await authedGet(app, readerCookie, '/reports/export/csv?type=risks')
+    expect(csv.text.split('\n')[0]).toMatch(/Inhärenter Score,Zielscore/)
+  })
+
+  test('UI: Formular, Detail und Exporte kennen die Bewertungen', () => {
+    const fs = require('fs'), path = require('path')
+    const src = fs.readFileSync(path.join(__dirname, '..', 'ui', 'app.js'), 'utf8')
+    expect(src).toMatch(/id="rModalInhProb"/)
+    expect(src).toMatch(/id="rModalTgtImpact"/)
+    expect(src).toMatch(/inherentProbability: parseInt\(dom\('rModalInhProb'\)/)
+    expect(src).toMatch(/function exportRisksPdf\(/)
+    expect(src).toMatch(/function exportRisksCsv\(/)
+  })
+})

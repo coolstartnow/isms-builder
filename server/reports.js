@@ -227,6 +227,8 @@ async function risksReport({ entityId, category, status } = {}) {
       id: r.id, title: r.title, category: r.category || '',
       level: r.riskLevel || '', status: r.status || '', owner: r.owner || '',
       probability: r.probability, impact: r.impact, score: r.score,
+      inherentScore: r.inherentScore ?? null, inherentLevel: r.inherentLevel || '',
+      targetScore: r.targetScore ?? null,     targetLevel: r.targetLevel || '',
       cvssScore: r.cvssScore ?? null,
       cveIds: r.cveIds || [],
       source: r.source || 'manual',
@@ -324,10 +326,10 @@ async function exportCsv(type, { entityId, framework, from, to } = {}) {
     case 'risks': {
       const data = await risksReport({ entityId, category: undefined, status: undefined })
       return csvExport(
-        ['ID', 'Titel', 'Kategorie', 'Schweregrad', 'Status', 'Owner', 'Wahrscheinlichkeit', 'Impact', 'Score', 'CVSS', 'CVEs', 'Quelle', 'Genehmigt von', 'Erstellt'],
+        ['ID', 'Titel', 'Kategorie', 'Schweregrad', 'Status', 'Owner', 'Wahrscheinlichkeit', 'Impact', 'Score', 'Inhärenter Score', 'Zielscore', 'CVSS', 'CVEs', 'Quelle', 'Genehmigt von', 'Erstellt'],
         (data.risks || []).map(r => [
           r.id, r.title, r.category, r.level, r.status, r.owner,
-          r.probability ?? '', r.impact ?? '', r.score ?? '',
+          r.probability ?? '', r.impact ?? '', r.score ?? '', r.inherentScore ?? '', r.targetScore ?? '',
           r.cvssScore ?? '', (r.cveIds || []).join(' '),
           r.source, r.approvedBy || '', r.createdAt ? r.createdAt.slice(0, 10) : ''
         ])
