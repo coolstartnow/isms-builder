@@ -2371,6 +2371,9 @@ ISMS Builder liefert vier vollständige Demo-Datenpakete in unterschiedlichen Sp
 | `en` | English | `data/demo-bundles/en.json` | ~152 KB |
 | `fr` | Français | `data/demo-bundles/fr.json` | ~67 KB |
 | `nl` | Nederlands | `data/demo-bundles/nl.json` | ~45 KB |
+| `hu` | Magyar | `data/demo-bundles/hu.json` | ~60 KB (Inhalt wie `de`, Texte übersetzt) |
+
+Die Guidance-Seeds (SoA-/Policy-Leitfaden, Demo-Übersicht, ISO-Hinweis, Rollen-Leitfäden) liegen für Ungarisch als Markdown-Dateien in `server/db/guidance-hu/`; sie werden in `guidanceStore.js` (`registerHungarian`) in die Seed-Tabellen eingetragen. Fehlt eine Datei, bleibt der englische Fallback.
 
 ### Bundle-Inhalt (pro Sprache)
 

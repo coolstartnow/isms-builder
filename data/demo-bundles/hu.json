@@ -1,0 +1,1729 @@
+{
+  "exportedAt": "2026-03-11T13:25:49.305Z",
+  "version": "1.30",
+  "lang": "hu",
+  "files": {
+    "risks.json": [
+      {
+        "id": "risk_demo_hu_001",
+        "title": "Zsarolóvírus-támadás a termelési rendszerek ellen",
+        "description": "Üzletkritikus adatok titkosítása zsarolóvírus-támadással. Érinti az ERP-rendszert, a gyártásirányítást és a mentési infrastruktúrát. Bitcoinban megfogalmazott váltságdíj-követelés.",
+        "category": "technical",
+        "threat": "Zsarolóvírus / titkosító trójai",
+        "vulnerability": "Hiányzó hálózati szegmentálás, nem megfelelő offline mentések",
+        "probability": 4,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f",
+          "EUCS-GOV.3",
+          "BSI-CON.3"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-10T09:00:00.000Z",
+        "updatedAt": "2026-01-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_hu_002",
+        "title": "Jogosulatlan hozzáférés ügyféladatokhoz",
+        "description": "Egy webalkalmazás biztonsági rése lehetővé teszi, hogy illetéktelen harmadik felek hozzáférjenek személyes ügyféladatokhoz (adatvédelmi incidens a GDPR 33. cikke szerint).",
+        "category": "technical",
+        "threat": "Adatvédelmi incidens, hírnévvesztés, bírság",
+        "vulnerability": "Hiányzó WAF, javítatlan webalkalmazás",
+        "probability": 3,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "DPO",
+        "dueDate": "2026-04-30",
+        "reviewDate": "2026-03-15",
+        "status": "in_treatment",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f",
+          "EUCS-GOV.3",
+          "EUCS-LOG.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-15T10:00:00.000Z",
+        "updatedAt": "2026-02-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_hu_003",
+        "title": "Adathalász-támadás munkatársak ellen (CEO-csalás)",
+        "description": "Célzott spear-phishing támadás vezetők és a pénzügyi osztály ellen csalárd átutalások kezdeményezése vagy hozzáférési adatok ellopása céljából.",
+        "category": "human",
+        "threat": "Social engineering, üzleti e-mail-csalás (BEC)",
+        "vulnerability": "Hiányzó többtényezős hitelesítés, nem megfelelő képzés",
+        "probability": 4,
+        "impact": 4,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-05-31",
+        "reviewDate": "2026-06-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-ORP.3"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-20T09:00:00.000Z",
+        "updatedAt": "2026-01-20T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_hu_004",
+        "title": "Adatvesztés hardverhiba miatt, ellenőrzött mentések nélkül",
+        "description": "A mentések elkészülnek, de helyreállíthatóságukat nem ellenőrzik rendszeresen. Vészhelyzetben a mentések sérültek vagy hiányosak lehetnek.",
+        "category": "technical",
+        "threat": "Adatvesztés, üzemszünet",
+        "vulnerability": "Nincs mentés-visszaállítási tesztfolyamat, hiányzó monitorozási riasztás",
+        "probability": 3,
+        "impact": 3,
+        "treatmentOption": "reduce",
+        "owner": "IT-üzemeltetés",
+        "dueDate": "2026-04-30",
+        "reviewDate": "2026-03-31",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-CON.3"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-01-25T09:00:00.000Z",
+        "updatedAt": "2026-01-25T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_hu_005",
+        "title": "GDPR-megfelelőségi jogsértés – hiányzó dokumentáció",
+        "description": "Az adatkezelési tevékenységek nyilvántartásának (GDPR 30. cikk) és a műszaki-szervezési intézkedéseknek (GDPR 32. cikk) hiánya vagy hiányossága bírságkockázatot jelent.",
+        "category": "compliance",
+        "threat": "Bírság legfeljebb 20 millió EUR vagy az éves árbevétel 4%-a",
+        "vulnerability": "Hiányos adatkezelési nyilvántartás, hiányzó TOM-dokumentáció",
+        "probability": 3,
+        "impact": 4,
+        "treatmentOption": "reduce",
+        "owner": "DPO",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-01T09:00:00.000Z",
+        "updatedAt": "2026-02-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_hu_006",
+        "title": "Bennfentes fenyegetés kiemelt jogosultságú felhasználóktól",
+        "description": "A túlzott hozzáférési jogokkal rendelkező rendszergazdák vagy fejlesztők szándékosan vagy gondatlanul kiszivárogtathatnak adatokat, illetve manipulálhatnak rendszereket.",
+        "category": "organizational",
+        "threat": "Bennfentes támadás, adatszivárgás, szabotázs",
+        "vulnerability": "A legkisebb jogosultság elvének hiányos érvényesítése, nem megfelelő kiemelt hozzáférés-kezelés (PAM)",
+        "probability": 3,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-07-31",
+        "reviewDate": "2026-05-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "EUCS-GOV.3",
+          "EUCS-LOG.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-05T09:00:00.000Z",
+        "updatedAt": "2026-02-05T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_hu_007",
+        "title": "A NIS2 bejelentési kötelezettség megsértése",
+        "description": "Egy biztonsági incidenst nem jelentenek be a BSI-nek az előírt 24 órás korai figyelmeztetési határidőn belül, ami jelentős bírságokhoz vezet.",
+        "category": "compliance",
+        "threat": "Szabályozói szankció, bírság legfeljebb 10 millió EUR vagy az éves árbevétel 2%-a",
+        "vulnerability": "Nincs dokumentált NIS2 bejelentési folyamat, tisztázatlan felelősségek",
+        "probability": 3,
+        "impact": 4,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-05-31",
+        "reviewDate": "2026-04-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-10T09:00:00.000Z",
+        "updatedAt": "2026-02-10T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "risk_demo_hu_008",
+        "title": "Ellátási lánc elleni támadás kritikus szoftveren keresztül",
+        "description": "Egy kritikus szoftverszállítót feltörnek, és az kártékony kódot terjeszt a legitim frissítési csatornákon keresztül (SolarWinds-forgatókönyv).",
+        "category": "organizational",
+        "threat": "Ellátási lánc elleni támadás, megbízhatónak tűnő kártevő",
+        "vulnerability": "Hiányzó szállítói biztonsági értékelés, nincs integritás-ellenőrzés a frissítéseknél",
+        "probability": 2,
+        "impact": 5,
+        "treatmentOption": "reduce",
+        "owner": "CISO",
+        "dueDate": "2026-09-30",
+        "reviewDate": "2026-06-01",
+        "status": "open",
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-d",
+          "CRA-5.3",
+          "EUCS-SCM.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": [],
+        "treatmentPlans": [],
+        "createdAt": "2026-02-15T09:00:00.000Z",
+        "updatedAt": "2026-02-15T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "goals.json": [
+      {
+        "id": "goal_demo_hu_001",
+        "title": "A javítási arány növelése 95%-ra",
+        "description": "95%-os javítási megfelelőségi arány elérése és fenntartása minden kezelt rendszeren a javítás megjelenésétől számított 90 napon belül.",
+        "owner": "IT-üzemeltetés",
+        "dueDate": "2026-06-30",
+        "reviewDate": "2026-04-01",
+        "status": "in_progress",
+        "priority": "high",
+        "targetValue": 95,
+        "currentValue": 84,
+        "unit": "%",
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-OPS.1.1"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_demo_hu_002",
+        "title": "2FA bevezetése minden adminisztrátori fiókhoz",
+        "description": "A többtényezős hitelesítés kikényszerítése minden kiemelt (admin) fiókra a második negyedév végéig.",
+        "owner": "CISO",
+        "dueDate": "2026-04-30",
+        "reviewDate": "2026-05-01",
+        "status": "in_progress",
+        "priority": "critical",
+        "targetValue": 100,
+        "currentValue": 72,
+        "unit": "%",
+        "linkedControls": [
+          "NIS2-a",
+          "EUCS-GOV.3"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_demo_hu_003",
+        "title": "ISO 27001 tanúsítvány megszerzése",
+        "description": "Az 1. és 2. szakaszos audit lezárása a külső tanúsító szervezettel (TÜV Rheinland), és az ISO 27001 tanúsítvány megszerzése.",
+        "owner": "CISO",
+        "dueDate": "2026-09-30",
+        "reviewDate": "2026-09-30",
+        "status": "open",
+        "priority": "critical",
+        "targetValue": 1,
+        "currentValue": 0,
+        "unit": "Tanúsítvány",
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-ORP.1"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-01-01T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "goal_demo_hu_004",
+        "title": "Az adathalász-kattintási arány 5% alá csökkentése",
+        "description": "A munkatársak kattintási arányának csökkentése a szimulált adathalász-kampányokban a jelenlegi 14%-ról 5% alá célzott tudatosságnövelő képzéssel.",
+        "owner": "IT-biztonság",
+        "dueDate": "2026-12-31",
+        "reviewDate": "2026-09-30",
+        "status": "in_progress",
+        "priority": "high",
+        "targetValue": 5,
+        "currentValue": 14,
+        "unit": "%",
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-ORP.3"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "training.json": [
+      {
+        "id": "training_demo_hu_001",
+        "title": "Információbiztonsági alapképzés",
+        "description": "Éves kötelező képzés minden munkatársnak az információbiztonság alapjairól, a biztonságos jelszóhasználatról és a bejelentési kötelezettségekről.",
+        "category": "security_awareness",
+        "status": "planned",
+        "dueDate": "2026-04-30",
+        "completedDate": null,
+        "instructor": "IT-biztonsági csapat",
+        "assignees": "Minden munkatárs",
+        "applicableEntities": [],
+        "evidence": "",
+        "mandatory": true,
+        "createdBy": "admin",
+        "createdAt": "2026-01-01T08:00:00.000Z",
+        "updatedAt": "2026-01-01T08:00:00.000Z"
+      },
+      {
+        "id": "training_demo_hu_002",
+        "title": "GDPR-frissítő képzés",
+        "description": "Éves frissítő képzés az általános adatvédelmi rendeletről a GDPR 39. cikke szerint. Fókusz: érintetti jogok, bejelentési kötelezettségek, adatvédelmi incidensek.",
+        "category": "gdpr",
+        "status": "completed",
+        "dueDate": "2026-02-28",
+        "completedDate": "2026-02-20",
+        "instructor": "Adatvédelmi tisztviselő",
+        "assignees": "HR-osztály, új munkatársak az 1. negyedévben",
+        "applicableEntities": [],
+        "evidence": "A résztvevői lista és a tanúsítvány a SharePointban elhelyezve.",
+        "mandatory": true,
+        "createdBy": "admin",
+        "createdAt": "2026-01-01T08:00:00.000Z",
+        "updatedAt": "2026-02-20T10:00:00.000Z"
+      },
+      {
+        "id": "training_demo_hu_003",
+        "title": "Adathalász-tudatossági képzés",
+        "description": "Gyakorlati képzés az adathalász e-mailek, a social engineering támadások és a CEO-csalás felismeréséhez. Élő bemutatót és szimulált támadásokat tartalmaz.",
+        "category": "security_awareness",
+        "status": "in_progress",
+        "dueDate": "2026-05-31",
+        "completedDate": null,
+        "instructor": "Külső biztonsági tanácsadó",
+        "assignees": "Pénzügyi osztály, vezetők, titkárságok",
+        "applicableEntities": [],
+        "evidence": "",
+        "mandatory": true,
+        "createdBy": "admin",
+        "createdAt": "2026-02-01T08:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z"
+      },
+      {
+        "id": "training_demo_hu_004",
+        "title": "ISO 27001 vezető auditor tanúsítás",
+        "description": "Külső tanúsító képzés az ISMS-felelősök számára. Felkészít a tanúsított vezető auditor vizsgára.",
+        "category": "iso27001",
+        "status": "planned",
+        "dueDate": "2026-06-30",
+        "completedDate": null,
+        "instructor": "TÜV Rheinland",
+        "assignees": "ISMS-csapat (2 fő)",
+        "applicableEntities": [],
+        "evidence": "",
+        "mandatory": false,
+        "createdBy": "admin",
+        "createdAt": "2026-02-15T08:00:00.000Z",
+        "updatedAt": "2026-02-15T08:00:00.000Z"
+      }
+    ],
+    "bcm.json": {
+      "bia": [
+        {
+          "id": "bia_demo_hu_001",
+          "title": "ERP-rendszer (SAP S/4HANA)",
+          "processOwner": "Dipl.-Ing. Klaus Bauer (CIO)",
+          "department": "IT",
+          "criticality": "critical",
+          "rto": 4,
+          "rpo": 1,
+          "mtpd": 8,
+          "dependencies": [
+            "Hálózat",
+            "Adatközpont áramellátása",
+            "Oracle DB"
+          ],
+          "affectedSystems": [
+            "SAP S/4HANA",
+            "SAP PI/PO",
+            "SAP BW"
+          ],
+          "status": "approved",
+          "lastReviewDate": "2025-11-15",
+          "notes": "Alapfolyamat: megrendelés-feldolgozás, pénzügyi könyvelés, humánerőforrás. Kiesése közvetlenül a termelés leállásához vezet.",
+          "entityId": "",
+          "createdAt": "2025-06-01T09:00:00.000Z",
+          "updatedAt": "2025-11-15T14:30:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bia_demo_hu_002",
+          "title": "„A” üzem gyártósora",
+          "processOwner": "Maria Hofmann (üzemvezető)",
+          "department": "Termelés",
+          "criticality": "critical",
+          "rto": 2,
+          "rpo": 0,
+          "mtpd": 4,
+          "dependencies": [
+            "Épületfelügyeleti rendszer",
+            "Áramellátás",
+            "SAP PP"
+          ],
+          "affectedSystems": [
+            "MES Siemens",
+            "SPS-Steuerungen",
+            "SCADA-System"
+          ],
+          "status": "approved",
+          "lastReviewDate": "2025-10-20",
+          "notes": "Legmagasabb kritikusság — kiesés esetén azonnali bevételkiesés. RTO=2 óra, RPO=0.",
+          "entityId": "",
+          "createdAt": "2025-06-01T09:10:00.000Z",
+          "updatedAt": "2025-10-20T10:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bia_demo_hu_003",
+          "title": "E-mail és kommunikáció (Microsoft 365)",
+          "processOwner": "Thomas Klein (IT-vezető)",
+          "department": "IT",
+          "criticality": "high",
+          "rto": 8,
+          "rpo": 4,
+          "mtpd": 24,
+          "dependencies": [
+            "Internetkapcsolat",
+            "Azure AD",
+            "DNS"
+          ],
+          "affectedSystems": [
+            "Microsoft 365",
+            "Exchange Online",
+            "Teams"
+          ],
+          "status": "approved",
+          "lastReviewDate": "2025-09-10",
+          "notes": "A kiesés minden osztályt érint. Tartalék megoldás: mobiltelefonok, vészhelyzeti kapcsolattartási lista.",
+          "entityId": "",
+          "createdAt": "2025-06-02T10:00:00.000Z",
+          "updatedAt": "2025-09-10T08:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bia_demo_hu_004",
+          "title": "Személyzeti adminisztráció és bérszámfejtés",
+          "processOwner": "Sandra Meier (HR-vezető)",
+          "department": "HR",
+          "criticality": "high",
+          "rto": 24,
+          "rpo": 4,
+          "mtpd": 72,
+          "dependencies": [
+            "SAP HCM",
+            "DATEV",
+            "Banki interfész"
+          ],
+          "affectedSystems": [
+            "SAP HCM",
+            "DATEV Lohn und Gehalt"
+          ],
+          "status": "reviewed",
+          "lastReviewDate": "2025-08-15",
+          "notes": "Kritikus a fizetési ciklusokhoz (havonta). Jogszabályi határidő: a fizetést a hónap végéig ki kell utalni.",
+          "entityId": "",
+          "createdAt": "2025-06-02T10:30:00.000Z",
+          "updatedAt": "2025-08-15T12:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        }
+      ],
+      "plans": [
+        {
+          "id": "bcp_demo_hu_001",
+          "title": "IT-helyreállítási terv (IWP) SAP",
+          "type": "itp",
+          "scope": "SAP S/4HANA, SAP PI/PO, SAP BW – minden éles kliens",
+          "planOwner": "Dipl.-Ing. Klaus Bauer (CIO)",
+          "status": "tested",
+          "version": "3.1",
+          "lastTested": "2025-09-10",
+          "nextTest": "2026-03-10",
+          "testResult": "pass",
+          "linkedBiaIds": [
+            "bia_demo_hu_001"
+          ],
+          "procedures": "1. Az IT-vészhelyzeti csapat aktiválása\n2. Átkapcsolás a DR-adatközpontra (RZ2)\n3. SAP újraindítása a prioritási lista szerint\n4. Az alapfolyamatok funkcionális tesztje\n5. Jóváhagyás a CIO által\n6. Kommunikáció a szakterületek felé",
+          "entityId": "",
+          "createdAt": "2025-01-15T09:00:00.000Z",
+          "updatedAt": "2025-09-10T16:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bcp_demo_hu_002",
+          "title": "Vészhelyzeti terv kibertámadás / zsarolóvírus esetére",
+          "type": "drp",
+          "scope": "A teljes IT-infrastruktúra az OT-hálózattal együtt",
+          "planOwner": "Claudia Meier (CISO)",
+          "status": "approved",
+          "version": "2.2",
+          "lastTested": "2025-09-01",
+          "nextTest": "2026-03-01",
+          "testResult": "pass",
+          "linkedBiaIds": [
+            "bia_demo_hu_001",
+            "bia_demo_hu_003"
+          ],
+          "procedures": "1. Az érintett rendszerek izolálása\n2. Az incidenskezelő csapat aktiválása\n3. A BSI / hatóságok értesítése (bejelentési kötelezettség esetén)\n4. Kriminalisztikai vizsgálat és a kár mértékének megállapítása\n5. Helyreállítás offline mentésekből\n6. Incidens utáni értékelés",
+          "entityId": "",
+          "createdAt": "2025-02-01T09:00:00.000Z",
+          "updatedAt": "2025-09-01T15:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        }
+      ],
+      "exercises": [
+        {
+          "id": "bex_demo_hu_001",
+          "title": "Asztali gyakorlat zsarolóvírus-forgatókönyvvel",
+          "type": "tabletop",
+          "date": "2025-09-05",
+          "conductor": "Claudia Meier (CISO)",
+          "participants": [
+            "IT-vezető",
+            "CIO",
+            "CISO",
+            "Jogi osztály",
+            "Adatvédelmi tisztviselő"
+          ],
+          "linkedPlanId": "bcp_demo_hu_002",
+          "result": "pass",
+          "findings": "A kommunikációs lánc jól működött. A BSI-bejelentési folyamatot helyesen játszották le. Fejlesztendő: az offline mentésekhez való hozzáférés.",
+          "actions": "Az offline mentési eljárás frissítése (2025.11.30-ig). A BSI-kapcsolattartási lista kiegészítése.",
+          "nextExercise": "2026-03-01",
+          "createdAt": "2025-09-05T18:00:00.000Z",
+          "updatedAt": "2025-09-06T09:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        },
+        {
+          "id": "bex_demo_hu_002",
+          "title": "Tervezett válságbizottsági szimuláció",
+          "type": "simulation",
+          "date": "2026-06-10",
+          "conductor": "Claudia Meier (CISO)",
+          "participants": [
+            "Igazgatóság",
+            "CISO",
+            "CIO",
+            "CFO",
+            "HR-vezető",
+            "Sajtószóvivő"
+          ],
+          "linkedPlanId": "bcp_demo_hu_002",
+          "result": "planned",
+          "findings": "",
+          "actions": "A forgatókönyv előkészítésének befejezése 2026.05.15-ig. Külső moderátor megbízása.",
+          "nextExercise": "",
+          "createdAt": "2025-12-01T10:00:00.000Z",
+          "updatedAt": "2025-12-01T10:00:00.000Z",
+          "createdBy": "admin",
+          "deletedAt": null
+        }
+      ]
+    },
+    "assets.json": [
+      {
+        "id": "asset_demo_hu_001",
+        "name": "ERP-rendszer (SAP S/4HANA)",
+        "category": "software",
+        "type": "software_saas",
+        "description": "Központi ERP-rendszer pénzügyi könyvelésre, kontrollingra, beszerzésre és termelésre. SaaS-ként üzemel az SAP Business Technology Platformon.",
+        "owner": "Claudia Maier",
+        "ownerEmail": "claudia.maier@mustermann-gmbh.de",
+        "custodian": "IT-üzemeltetés / ERP-csapat",
+        "entityId": "",
+        "location": "SAP BTP EU10 (Frankfurt)",
+        "classification": "confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "SAP SE",
+        "version": "S/4HANA 2023",
+        "serialNumber": "",
+        "purchaseDate": "2022-01-01",
+        "endOfLifeDate": "2030-12-31",
+        "tags": [
+          "erp",
+          "sap",
+          "finanzen",
+          "produktion"
+        ],
+        "notes": "Kritikus rendszer – 99,9%-os SLA megállapodva. Vészhelyzeti terv rendelkezésre áll.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_hu_002",
+        "name": "Active Directory / LDAP",
+        "category": "software",
+        "type": "software_app",
+        "description": "Microsoft Active Directory Domain Services és LDAP-címtár a teljes vállalatcsoport-struktúrához. Központi azonosítás- és hozzáférés-kezelés (IAM).",
+        "owner": "Markus Schneider",
+        "ownerEmail": "markus.schneider@mustermann-gmbh.de",
+        "custodian": "IT-biztonság / IAM-csapat",
+        "entityId": "",
+        "location": "Frankfurti adatközpont, A zóna (redundáns)",
+        "classification": "strictly_confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "Microsoft",
+        "version": "Windows Server 2022 / AD DS",
+        "serialNumber": "",
+        "purchaseDate": "2018-09-01",
+        "endOfLifeDate": "2031-10-14",
+        "tags": [
+          "iam",
+          "active-directory",
+          "ldap",
+          "identitaet",
+          "zugriff"
+        ],
+        "notes": "Tier-0 eszköz. Kiemelt hozzáférés kizárólag a PAM-rendszeren keresztül. Negyedéves felülvizsgálat.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_hu_003",
+        "name": "CRM ügyfél-adatbázis",
+        "category": "data",
+        "type": "data_database",
+        "description": "PostgreSQL-adatbázis ügyfél-törzsadatokkal, forgalmi előzményekkel és elérhetőségekkel. Kb. 650 000 rekord, ebből 180 000 személyes adatot tartalmaz (GDPR-releváns).",
+        "owner": "Julia Brandt",
+        "ownerEmail": "julia.brandt@mustermann-gmbh.de",
+        "custodian": "IT-üzemeltetés / adatbázis-csapat",
+        "entityId": "",
+        "location": "Frankfurti adatközpont, B zóna",
+        "classification": "strictly_confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "Open-Source (PostgreSQL)",
+        "version": "PostgreSQL 16",
+        "serialNumber": "",
+        "purchaseDate": "",
+        "endOfLifeDate": "",
+        "tags": [
+          "crm",
+          "kundendaten",
+          "dsgvo",
+          "datenbank",
+          "postgresql"
+        ],
+        "notes": "Adatkezelési nyilvántartási bejegyzés rendelkezésre áll (GDPR 30. cikk). A nyugalmi és a továbbított adatok titkosítása aktív.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_hu_004",
+        "name": "Tűzfalcsoport (peremvédelem)",
+        "category": "hardware",
+        "type": "hardware_network",
+        "description": "Fortinet FortiGate HA-fürt központi peremtűzfalként. Elválasztja az internetet, a DMZ-t és a belső hálózatot. NGFW IPS/IDS-sel és SSL-vizsgálattal.",
+        "owner": "Markus Schneider",
+        "ownerEmail": "markus.schneider@mustermann-gmbh.de",
+        "custodian": "IT-biztonság / hálózati csapat",
+        "entityId": "",
+        "location": "Frankfurti adatközpont, A zóna, A-01/A-02 rack",
+        "classification": "confidential",
+        "criticality": "critical",
+        "status": "active",
+        "vendor": "Fortinet",
+        "version": "FortiGate 600F, FortiOS 7.4",
+        "serialNumber": "FW-RZ-FRA-2023-001",
+        "purchaseDate": "2023-02-01",
+        "endOfLifeDate": "2028-02-28",
+        "tags": [
+          "firewall",
+          "netzwerk",
+          "perimeter",
+          "fortinet"
+        ],
+        "notes": "HA-fürt aktív/passzív. Átkapcsolási idő < 10 mp. Éves behatolásteszt.",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      },
+      {
+        "id": "asset_demo_hu_005",
+        "name": "Microsoft 365 (E3-licenc)",
+        "category": "software",
+        "type": "software_saas",
+        "description": "Microsoft 365 E3 a vállalatcsoport minden munkatársának: Exchange Online, Teams, SharePoint, OneDrive, Office-alkalmazások. Adatok helye: EU (Hollandia).",
+        "owner": "Claudia Maier",
+        "ownerEmail": "claudia.maier@mustermann-gmbh.de",
+        "custodian": "IT-munkahely / felhő-csapat",
+        "entityId": "",
+        "location": "Microsoft Azure EU North (Amszterdam)",
+        "classification": "confidential",
+        "criticality": "high",
+        "status": "active",
+        "vendor": "Microsoft",
+        "version": "Microsoft 365 E3",
+        "serialNumber": "",
+        "purchaseDate": "2021-04-01",
+        "endOfLifeDate": "",
+        "tags": [
+          "m365",
+          "teams",
+          "exchange",
+          "sharepoint",
+          "cloud"
+        ],
+        "notes": "Az MFA minden felhasználónak kötelező. Adatfeldolgozási megállapodás megkötve a Microsofttal (GDPR).",
+        "createdAt": "2025-06-01T08:00:00.000Z",
+        "updatedAt": "2025-06-01T08:00:00.000Z",
+        "createdBy": "system"
+      }
+    ],
+    "suppliers.json": [
+      {
+        "id": "sup_demo_hu_001",
+        "name": "Microsoft Deutschland GmbH",
+        "type": "cloud",
+        "criticality": "critical",
+        "status": "active",
+        "country": "DE",
+        "contactName": "Microsoft Support",
+        "contactEmail": "support@microsoft.com",
+        "website": "https://www.microsoft.com/de-de",
+        "description": "Microsoft-szolgáltatások felhőhöz, együttműködéshez és termelékenységhez. Fő szolgáltató e-mailhez, videokonferenciához, irodai szoftvercsomaghoz és Azure felhő-infrastruktúrához. ISO 27001, SOC 2 és BSI C5 tanúsítvánnyal.",
+        "products": "Microsoft 365 (Exchange, Teams, SharePoint), Azure felhőszolgáltatások, Microsoft Defender",
+        "dataAccess": true,
+        "dataCategories": [
+          "Kommunikációs adatok",
+          "Munkavállalói adatok",
+          "Üzleti dokumentumok"
+        ],
+        "securityRequirements": [
+          "ISO 27001",
+          "SOC 2 Type II",
+          "BSI C5",
+          "DSGVO-Konformität",
+          "Adatfeldolgozási megállapodás megkötve"
+        ],
+        "lastAuditDate": "2025-11-01",
+        "nextAuditDate": "2026-05-01",
+        "auditResult": "passed",
+        "contractId": "",
+        "avContractId": "av_demo_hu_001",
+        "riskScore": 12,
+        "notes": "Kritikus felhőszolgáltató. Adatfeldolgozási megállapodás a Microsoft Data Protection Addendum útján megkötve. A megfelelőségi jelentések éves felülvizsgálata.",
+        "linkedControls": [
+          "NIS2-d",
+          "EUCS-SCM.1",
+          "EUCS-SCM.2"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-11-01T10:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      },
+      {
+        "id": "sup_demo_hu_002",
+        "name": "DATEV eG",
+        "type": "software",
+        "criticality": "critical",
+        "status": "active",
+        "country": "DE",
+        "contactName": "DATEV Kundenservice",
+        "contactEmail": "info@datev.de",
+        "website": "https://www.datev.de",
+        "description": "Adótanácsadói és könyvelő szoftver kkv-knak. Rendkívül érzékeny pénzügyi és bérszámfejtési adatokat dolgoz fel. Szövetkezet saját ISO 27001 tanúsítvánnyal.",
+        "products": "DATEV Unternehmen online, Lohn und Gehalt, DATEV DMS",
+        "dataAccess": true,
+        "dataCategories": [
+          "Pénzügyi adatok",
+          "Bérszámfejtési adatok",
+          "Személyzeti adatok",
+          "Adóadatok"
+        ],
+        "securityRequirements": [
+          "ISO 27001",
+          "DSGVO-Konformität",
+          "IDW PS 951",
+          "Adatfeldolgozási megállapodás megkötve"
+        ],
+        "lastAuditDate": "2025-09-15",
+        "nextAuditDate": "2026-03-15",
+        "auditResult": "passed",
+        "contractId": "",
+        "avContractId": "",
+        "riskScore": 15,
+        "notes": "Érzékeny bér- és pénzügyi adatokat dolgoz fel. Adatfeldolgozási megállapodás a GDPR 28. cikke szerint megkötve.",
+        "linkedControls": [
+          "NIS2-d"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-09-15T10:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      },
+      {
+        "id": "sup_demo_hu_003",
+        "name": "Hetzner Online GmbH",
+        "type": "cloud",
+        "criticality": "high",
+        "status": "active",
+        "country": "DE",
+        "contactName": "Hetzner Support",
+        "contactEmail": "support@hetzner.com",
+        "website": "https://www.hetzner.com",
+        "description": "Német tárhely- és felhőszolgáltató. Dedikált szervereket és felhős virtuális gépeket üzemeltet teszt- és fejlesztői környezetekhez. Adatközpontjai kizárólag Németországban és Finnországban találhatók.",
+        "products": "Dedicated Root Server, Hetzner Cloud, Hetzner Object Storage",
+        "dataAccess": true,
+        "dataCategories": [
+          "Fejlesztési adatok",
+          "Mentési adatok",
+          "Tesztadatok"
+        ],
+        "securityRequirements": [
+          "ISO 27001",
+          "DSGVO-Konformität",
+          "Adatfeldolgozási megállapodás megkötve"
+        ],
+        "lastAuditDate": "",
+        "nextAuditDate": "2026-04-15",
+        "auditResult": "pending",
+        "contractId": "",
+        "avContractId": "",
+        "riskScore": 10,
+        "notes": "Adatközpontok Falkensteinben/Nürnbergben (DE) és Helsinkiben (FI) – teljes egészében az EU területén.",
+        "linkedControls": [
+          "NIS2-d",
+          "EUCS-SCM.1"
+        ],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-10-15T09:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      },
+      {
+        "id": "sup_demo_hu_004",
+        "name": "TÜV Rheinland AG",
+        "type": "consulting",
+        "criticality": "low",
+        "status": "active",
+        "country": "DE",
+        "contactName": "Dr. Sandra Hofmann",
+        "contactEmail": "sandra.hofmann@de.tuv.com",
+        "website": "https://www.tuv.com",
+        "description": "Akkreditált tanúsító szervezet az ISO 27001-hez. Külső ISMS-auditokat (1. és 2. szakasz) végez, és kiadja az ISO 27001 tanúsítványt.",
+        "products": "ISO 27001 tanúsítás (1. és 2. szakasz), felügyeleti audit, újratanúsítási audit",
+        "dataAccess": false,
+        "dataCategories": [],
+        "securityRequirements": [
+          "NDA für Auditinformationen",
+          "DAkkS-Akkreditierung"
+        ],
+        "lastAuditDate": "2023-09-15",
+        "nextAuditDate": "2026-09-01",
+        "auditResult": "not_scheduled",
+        "contractId": "",
+        "avContractId": "",
+        "riskScore": 2,
+        "notes": "Külső auditor a 2026-os ISO 27001 újratanúsításhoz (3 éves ciklus).",
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "createdAt": "2025-01-15T09:00:00.000Z",
+        "updatedAt": "2025-09-01T09:00:00.000Z",
+        "createdBy": "admin",
+        "deletedAt": null
+      }
+    ],
+    "governance.json": {
+      "reviews": [
+        {
+          "id": "mgmt_demo_hu_001",
+          "title": "Vezetőségi átvizsgálás 2025 – éves értékelés",
+          "type": "annual",
+          "date": "2025-11-14",
+          "nextReviewDate": "2026-11-13",
+          "status": "approved",
+          "chair": "Dr. Hans-Werner Mustermann (Geschäftsführer)",
+          "participants": "Claudia Maier (CISO), Petra Vogel (DPO), Thomas Becker (IT-vezető), Sandra Hoffmann (kereskedelmi vezető)",
+          "inputAuditResults": "Belső ISO 27001 audit 2025/3. negyedév: 3 kisebb eltérés azonosítva (hozzáférési jogosultságok felülvizsgálata, javításkezelés dokumentációja, szállítói biztonsági záradékok). Minden megállapítás intézkedésként rögzítve.",
+          "inputStakeholderFeedback": "Ügyfélfelmérés 2025: 92%-os elégedettség az adatvédelmi gyakorlattal. 3 ügyfél az ISO 27001 tanúsítványt nevezte meg választási szempontként.",
+          "inputPerformance": "2025-ös biztonsági célok: 9-ből 6 cél teljesült. Tudatossági képzések aránya: 82% (cél: 90%). Javítási megfelelőség: 91% (cél: 95%).",
+          "inputNonconformities": "3 kisebb eltérés a belső auditból. 1 adatvédelmi incidens (belső jelentés tévedésből rossz címzetthez került) – bejelentve és a GDPR 33. cikke szerint dokumentálva.",
+          "inputPreviousActions": "A 2024-es átvizsgálás intézkedési terve: 13 intézkedésből 10 lezárva (77%). Nyitott: ICS-hálózat szegmentálása (folyamatban, 60%).",
+          "inputRisksOpportunities": "Kockázatértékelés 2025: 2 új kritikus kockázat azonosítva (ellátási lánc elleni támadások, MI-alapú adathalász-támadások). Teljes kockázati profil: 3 kritikus, 8 magas, 14 közepes.",
+          "inputExternalChanges": "Elfogadták az EU MI-rendeletet – a belső MI-alkalmazásokra gyakorolt hatások vizsgálata folyamatban. Hatályba lépett a NIS2-átültető törvény – a hatályvizsgálat lezárult.",
+          "decisions": "1. Az ISMS hatálya 2026-ban változatlan marad. 2. A 2026-os újratanúsítási audit költségvetése jóváhagyva (45 000 EUR). 3. Az ICS-biztonsági program kiegészítő erőforrásokkal való ellátása.",
+          "improvements": "Automatizált javításkezelő eszköz bevezetése (2026/1. negyedév). A szállítói biztonsági záradékok átdolgozása minden új szerződésben.",
+          "resourceNeeds": "További 0,5 teljes munkaidős egyenérték jóváhagyva az ISMS-koordinációhoz. SIEM-megoldás költségvetése: évi 100 000 EUR.",
+          "notes": "A következő vezetőségi átvizsgálás tervezett időpontja: 2026. november 13.",
+          "createdAt": "2025-11-01T09:00:00.000Z",
+          "updatedAt": "2025-11-20T14:30:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        }
+      ],
+      "actions": [
+        {
+          "id": "gact_demo_hu_001",
+          "title": "A termelési hálózat behatolásvizsgálata",
+          "description": "Külső behatolásvizsgálat megbízása és lebonyolítása a termelési hálózaton, a webalkalmazásokat és API-végpontokat is beleértve.",
+          "source": "internal_audit",
+          "sourceRef": "Belső audit 2025/3. negyedév – A-2025-007 megállapítás",
+          "owner": "Markus Schneider",
+          "ownerEmail": "m.schneider@mustermann-gmbh.de",
+          "dueDate": "2026-06-30",
+          "completedDate": "",
+          "priority": "high",
+          "status": "in_progress",
+          "progress": 40,
+          "notes": "Szolgáltató kiválasztva (SRC Security). Kick-off megbeszélés 2026.04.15-én. A hatókör meghatározása lezárult.",
+          "entityId": "",
+          "createdAt": "2025-11-20T10:00:00.000Z",
+          "updatedAt": "2026-03-07T09:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        },
+        {
+          "id": "gact_demo_hu_002",
+          "title": "Tudatosságnövelő képzés minden munkatársnak (kötelező 2026)",
+          "description": "Az éves biztonságtudatossági képzés lebonyolítása minden munkatársnak, a vezetőket is beleértve.",
+          "source": "management_review",
+          "sourceRef": "Vezetőségi átvizsgálás 2025 – 2. határozat",
+          "owner": "Julia Brandt",
+          "ownerEmail": "j.brandt@mustermann-gmbh.de",
+          "dueDate": "2026-04-30",
+          "completedDate": "",
+          "priority": "high",
+          "status": "open",
+          "progress": 0,
+          "notes": "Az e-learning platformot még be kell állítani. A tartalmak elkészültek.",
+          "entityId": "",
+          "createdAt": "2026-01-14T16:00:00.000Z",
+          "updatedAt": "2026-01-14T16:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        },
+        {
+          "id": "gact_demo_hu_003",
+          "title": "ISO 27001 újratanúsítási audit előkészítése",
+          "description": "Teljes körű felkészülés az ISO 27001 újratanúsítási auditra (1. és 2. szakasz). Hiányelemzés, dokumentumellenőrzés, munkatársképzés, próbaaudit.",
+          "source": "management_review",
+          "sourceRef": "Vezetőségi átvizsgálás 2025 – 2. határozat",
+          "owner": "Claudia Maier",
+          "ownerEmail": "c.maier@mustermann-gmbh.de",
+          "dueDate": "2026-09-30",
+          "completedDate": "",
+          "priority": "critical",
+          "status": "open",
+          "progress": 10,
+          "notes": "Projektterv elkészült. Kick-off megbeszélés 2026.04.01-jén. A TÜV Rheinland tanúsító szervezet megbízva.",
+          "entityId": "",
+          "createdAt": "2025-11-20T10:00:00.000Z",
+          "updatedAt": "2026-03-01T09:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        }
+      ],
+      "meetings": [
+        {
+          "id": "meet_demo_hu_001",
+          "title": "ISMS-bizottság 2025/4. negyedév",
+          "committee": "isms_committee",
+          "date": "2025-12-03",
+          "location": "Igazgatósági tanácsterem, földszint",
+          "chair": "Claudia Maier (CISO)",
+          "secretary": "Anna Fischer (ISMS-Koordinatorin)",
+          "participants": "Dr. Hans-Werner Mustermann (ügyvezető), Petra Vogel (DPO), Markus Schneider (IT-vezető), Thomas Becker (CTO), Julia Brandt (HR), Sandra Hoffmann (kereskedelmi vezető)",
+          "agenda": "1. A 2025/3. negyedéves jegyzőkönyv jóváhagyása\n2. A 2025-ös vezetőségi átvizsgálás intézkedési tervének állása\n3. A belső behatolásvizsgálat eredményei\n4. NIS2 hatályvizsgálat – az eredmények ismertetése\n5. ISMS-költségvetés 2026",
+          "decisions": "1. A 2025/3. negyedéves jegyzőkönyv jóváhagyva.\n2. A 2025-ös vezetőségi átvizsgálás intézkedési tervét tudomásul vették. Az ICS-szegmentálás elsőbbsége megerősítve.\n3. Jóváhagyták a behatolásvizsgálat 2 kritikus megállapításának azonnali kijavítására szánt költségvetést (12 000 EUR).\n4. A NIS2-hatály megerősítve. Regisztrációs kötelezettség 2026.09.30-ig.\n5. A 2026-os ISMS-költségvetés jóváhagyva: 260 000 EUR.",
+          "nextMeetingDate": "2026-03-11",
+          "approved": true,
+          "approvedBy": "Dr. Hans-Werner Mustermann",
+          "notes": "Következő megbeszélés: 2026.03.11. (2026/1. negyedév). A jegyzőkönyvet 2025.12.10-én e-mailben elküldték minden résztvevőnek.",
+          "createdAt": "2025-11-25T09:00:00.000Z",
+          "updatedAt": "2025-12-10T11:00:00.000Z",
+          "createdBy": "system",
+          "deletedAt": null
+        }
+      ]
+    },
+    "public-incidents.json": [
+      {
+        "id": "inc_demo_hu_001",
+        "refNumber": "INC-2026-0001",
+        "email": "it-admin@mustermann-gmbh.de",
+        "entityName": "Mustermann GmbH – Hauptsitz",
+        "incidentType": "phishing",
+        "description": "Egy munkatárs egy hamis Microsoft-bejelentkezési hivatkozásra kattintott, és megadta a hozzáférési adatait. A hivatkozás e-mailben érkezett, amely látszólag az IT-osztálytól származott.",
+        "measuresTaken": "A jelszó azonnal visszaállítva, a fiók ideiglenesen zárolva, az e-mail fejléce elemezve.",
+        "localContact": "Klaus Berger (IT-support)",
+        "cleanedUp": "partial",
+        "status": "in_review",
+        "assignedTo": "it",
+        "reportable": "tbd",
+        "cisoNotes": "Az adathalász-kampány még aktív – további címzetteket azonosítottak.",
+        "createdAt": "2026-03-01T08:14:23.000Z",
+        "updatedAt": "2026-03-01T10:30:00.000Z",
+        "updatedBy": "admin@mustermann-gmbh.de"
+      },
+      {
+        "id": "inc_demo_hu_002",
+        "refNumber": "INC-2026-0002",
+        "email": "sandra.meyer@mustermann-logistik.de",
+        "entityName": "Mustermann Logistik GmbH",
+        "incidentType": "ransomware",
+        "description": "A logisztikai telephely három fájlszerverét zsarolóvírus titkosította. 75 000 EUR értékű, Bitcoinban megfizetendő váltságdíj-követelés maradt hátra.",
+        "measuresTaken": "A rendszerek leválasztva a hálózatról, a mentési csapat értesítve, a BSI-bejelentés előkészítve.",
+        "localContact": "Sandra Meyer (logisztikai IT-vezető)",
+        "cleanedUp": "no",
+        "status": "assigned",
+        "assignedTo": "it",
+        "reportable": "yes",
+        "cisoNotes": "Kritikus. A mentésből történő helyreállítás folyamatban. BSI-bejelentés 72 órán belül.",
+        "createdAt": "2026-02-28T22:47:00.000Z",
+        "updatedAt": "2026-03-01T06:00:00.000Z",
+        "updatedBy": "ciso@mustermann-gmbh.de"
+      },
+      {
+        "id": "inc_demo_hu_003",
+        "refNumber": "INC-2026-0003",
+        "email": "datenschutz@mustermann-gmbh.de",
+        "entityName": "Mustermann GmbH – HR",
+        "incidentType": "data_theft",
+        "description": "3 munkatárs személyi anyaga – a fizetési adatokkal, orvosi igazolásokkal és jelentkezési dokumentumokkal együtt – tévedésből e-mailben rossz címzetthez (egy külső pályázóhoz) került.",
+        "measuresTaken": "A címzettet felkeresték, a fájlok törlését megerősítették, a belső bejelentést dokumentálták.",
+        "localContact": "HR-vezetés",
+        "cleanedUp": "yes",
+        "status": "closed",
+        "assignedTo": "datenschutz",
+        "reportable": "yes",
+        "cisoNotes": "A GDPR 33. cikke szerinti bejelentés a felügyeleti hatóságnál 2026.02.16-án benyújtva. Szankció nem várható.",
+        "createdAt": "2026-02-14T09:00:00.000Z",
+        "updatedAt": "2026-02-16T16:30:00.000Z",
+        "updatedBy": "dsb@mustermann-gmbh.de"
+      }
+    ],
+    "guidance.json": [
+      {
+        "id": "guid_demo_hu_001",
+        "category": "systemhandbuch",
+        "title": "ISMS Build rendszerkézikönyv",
+        "type": "markdown",
+        "content": "# ISMS Build rendszerkézikönyv\n\n## Áttekintés\n\nAz ISMS Build egy webalapú platform az információbiztonság-irányítási rendszer (ISMS) dokumentumainak kezelésére.\n\n## Fő funkciók\n\n- **Sablonkezelés**: szabályzati dokumentumok létrehozása, szerkesztése és verziókezelése\n- **Életciklus-kezelés**: Vázlat → Felülvizsgálat → Jóváhagyott → Archivált\n- **SoA-intézkedések**: alkalmazhatósági nyilatkozat 313 intézkedéssel\n- **Kockázat és megfelelőség**: kockázati nyilvántartás, hőtérkép, kezelési tervek\n- **GDPR és adatvédelem**: adatkezelési nyilvántartás, adatfeldolgozási megállapodások, DPIA, adatvédelmi incidensek, DSAR, TOM-ok\n",
+        "filename": null,
+        "filePath": null,
+        "createdAt": "2026-03-06T08:00:00.000Z",
+        "updatedAt": "2026-03-06T08:00:00.000Z",
+        "createdBy": "admin",
+        "version": 1,
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "deletedAt": null
+      },
+      {
+        "id": "guid_demo_hu_002",
+        "category": "rollen",
+        "title": "Szerepkörök és felelősségek",
+        "type": "markdown",
+        "content": "# Szerepkörök és felelősségek\n\n## Szerepkörmodell\n\n| Szerepkör | Rang | Leírás |\n|-------|------|---------------|\n| **reader** | 1 | Olvasási hozzáférés |\n| **editor** | 2 | Létrehoz és szerkeszt |\n| **contentowner** | 3 | Tartalomfelelős – jóváhagy |\n| **auditor** | 3 | Audit szerepkör |\n| **admin** | 4 | Rendszergazda |\n\n## Felelősségek az ISMS-folyamatban\n\n1. **ISMS-megbízott**: contentowner szerepkör, felelős a szabályzatok kiadásáért\n2. **Adatvédelmi tisztviselő (DPO)**: contentowner/auditor szerepkör, a GDPR modul gondozója\n3. **Szakosztályok**: editor szerepkör, osztályspecifikus dokumentumokat készítenek\n4. **IT-biztonság**: contentowner/auditor szerepkör, a SoA-t, az intézkedéseket, a TOM-okat és a kockázatokat gondozza\n",
+        "filename": null,
+        "filePath": null,
+        "createdAt": "2026-03-06T08:00:00.000Z",
+        "updatedAt": "2026-03-06T08:00:00.000Z",
+        "createdBy": "admin",
+        "version": 1,
+        "linkedControls": [],
+        "linkedPolicies": [],
+        "deletedAt": null
+      }
+    ],
+    "templates.json": [
+      {
+        "id": "tmpl_demo_hu_001",
+        "type": "Policy",
+        "language": "hu",
+        "title": "Információbiztonsági szabályzat",
+        "content": "# Információbiztonsági szabályzat\n\n## 1. Cél\n\nEz a szabályzat az ISO 27001 szerint meghatározza a Mustermann GmbH információs vagyonának védelmi keretét.\n\n## 2. Hatály\n\nEz a szabályzat minden munkatársra, megbízottra és harmadik félre vonatkozik, aki hozzáfér a vállalat információs rendszereihez.\n\n## 3. Alapelvek\n\n- Minden információs vagyont érzékenysége szerint kell osztályozni és kezelni\n- Az információs rendszerekhez való hozzáférést a „szükséges tudás” elve szerint kell megadni\n- Minden felhasználó felelős a hozzáférési adatai védelméért és az incidensek bejelentéséért\n\n## 4. Felelősségek\n\n- **CISO**: Felügyeli az ISMS megvalósítását és a megfelelőséget\n- **IT-biztonság**: Megvalósítja a műszaki intézkedéseket\n- **Minden munkatárs**: Betartja ezt a szabályzatot és a kapcsolódó eljárásokat\n",
+        "version": 1,
+        "status": "approved",
+        "owner": "admin",
+        "reviewDate": "2027-01-01",
+        "createdAt": "2026-01-01T08:00:00.000Z",
+        "updatedAt": "2026-01-15T10:00:00.000Z",
+        "history": [],
+        "statusHistory": [
+          {
+            "status": "draft",
+            "changedBy": "admin",
+            "changedAt": "2026-01-01T08:00:00.000Z"
+          },
+          {
+            "status": "review",
+            "changedBy": "alice",
+            "changedAt": "2026-01-10T09:00:00.000Z"
+          },
+          {
+            "status": "approved",
+            "changedBy": "admin",
+            "changedAt": "2026-01-15T10:00:00.000Z"
+          }
+        ],
+        "linkedControls": [
+          "NIS2-a",
+          "BSI-ORP.1"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": []
+      },
+      {
+        "id": "tmpl_demo_hu_002",
+        "type": "Policy",
+        "language": "hu",
+        "title": "Az informatikai erőforrások elfogadható használatának szabályzata",
+        "content": "# Az informatikai erőforrások elfogadható használatának szabályzata\n\n## 1. Cél\n\nEz a szabályzat meghatározza a Mustermann GmbH informatikai erőforrásainak megengedett és tiltott használatát.\n\n## 2. Megengedett használat\n\n- Az informatikai erőforrások használata jogszerű üzleti célokra\n- Hozzáférés a munkához szükséges internetes forrásokhoz\n- A vállalat által jóváhagyott szoftverek használata\n\n## 3. Tiltott használat\n\n- Hozzáférés jogellenes vagy nem megfelelő tartalomhoz\n- Nem engedélyezett szoftverek telepítése\n- Hozzáférési adatok továbbadása vagy a biztonsági kontrollok megkerülése\n- A vállalati erőforrások használata magán üzleti tevékenységre\n",
+        "version": 1,
+        "status": "approved",
+        "owner": "admin",
+        "reviewDate": "2027-01-01",
+        "createdAt": "2026-01-05T08:00:00.000Z",
+        "updatedAt": "2026-01-20T10:00:00.000Z",
+        "history": [],
+        "statusHistory": [
+          {
+            "status": "draft",
+            "changedBy": "admin",
+            "changedAt": "2026-01-05T08:00:00.000Z"
+          },
+          {
+            "status": "approved",
+            "changedBy": "admin",
+            "changedAt": "2026-01-20T10:00:00.000Z"
+          }
+        ],
+        "linkedControls": [
+          "NIS2-a"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": []
+      },
+      {
+        "id": "tmpl_demo_hu_003",
+        "type": "Procedure",
+        "language": "hu",
+        "title": "Incidenskezelési eljárás",
+        "content": "# Incidenskezelési eljárás\n\n## 1. Cél\n\nEz az eljárás meghatározza az információbiztonsági incidensekre való reagálás lépéseit.\n\n## 2. Incidensek osztályozása\n\n| Súlyosság | Reagálási idő | Eszkaláció |\n|-------------|--------------|------------|\n| Kritikus | 1 óra | CISO + vezetőség |\n| Magas | 4 óra | CISO |\n| Közepes | 24 óra | IT-biztonság |\n| Alacsony | 5 munkanap | IT-helpdesk |\n\n## 3. Reagálási lépések\n\n1. **Észlelés**: az incidens azonosítása és validálása\n2. **Elszigetelés**: az érintett rendszerek izolálása\n3. **Megszüntetés**: a fenyegetés eltávolítása\n4. **Helyreállítás**: a rendszerek visszaállítása normál üzemre\n5. **Utómunka**: a tanulságok és fejlesztések dokumentálása\n",
+        "version": 1,
+        "status": "review",
+        "owner": "alice",
+        "reviewDate": "2026-06-01",
+        "createdAt": "2026-02-01T08:00:00.000Z",
+        "updatedAt": "2026-02-15T10:00:00.000Z",
+        "history": [],
+        "statusHistory": [
+          {
+            "status": "draft",
+            "changedBy": "alice",
+            "changedAt": "2026-02-01T08:00:00.000Z"
+          },
+          {
+            "status": "review",
+            "changedBy": "alice",
+            "changedAt": "2026-02-15T10:00:00.000Z"
+          }
+        ],
+        "linkedControls": [
+          "NIS2-a",
+          "NIS2-f"
+        ],
+        "linkedPolicies": [],
+        "applicableEntities": []
+      }
+    ]
+  },
+  "gdpr": {
+    "vvt.json": [
+      {
+        "id": "vvt_demo_hu_001",
+        "title": "CRM ügyfélkezelés",
+        "purpose": "Ügyféladatok kezelése és karbantartása a szerződés teljesítéséhez és a kommunikációhoz",
+        "legalBasis": "contract",
+        "legalBasisNote": "GDPR 6. cikk (1) bekezdés b) pont – szerződés teljesítése",
+        "dataCategories": [
+          "name",
+          "email",
+          "phone"
+        ],
+        "dataSubjectTypes": [
+          "customers"
+        ],
+        "recipients": [
+          "Belső értékesítés",
+          "Ügyfélszolgálat"
+        ],
+        "internationalTransfer": false,
+        "transferMechanism": "",
+        "retentionPeriod": "3 év a szerződés megszűnése után",
+        "retentionMonths": 36,
+        "deletionProcedure": "Automatikus törlés a megőrzési idő lejárta után a CRM-rendszerben",
+        "isHighRisk": false,
+        "automatedDecision": false,
+        "linkedAv": [],
+        "linkedToms": [
+          "tom_demo_hu_001",
+          "tom_demo_hu_002"
+        ],
+        "applicableEntities": [],
+        "status": "approved",
+        "owner": "admin",
+        "createdAt": "2025-01-15T10:00:00.000Z",
+        "updatedAt": "2025-01-15T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "vvt_demo_hu_002",
+        "title": "HR személyzeti adminisztráció",
+        "purpose": "Munkavállalói adatok kezelése a munkajogi kötelezettségek teljesítéséhez és a bérszámfejtéshez",
+        "legalBasis": "legal_obligation",
+        "legalBasisNote": "GDPR 6. cikk (1) bekezdés c) pont – jogi kötelezettség (HGB 257. §, AO 147. §)",
+        "dataCategories": [
+          "name",
+          "address",
+          "financial"
+        ],
+        "dataSubjectTypes": [
+          "employees"
+        ],
+        "recipients": [
+          "HR-osztály",
+          "Adótanácsadó",
+          "Társadalombiztosítási szervek"
+        ],
+        "internationalTransfer": false,
+        "transferMechanism": "",
+        "retentionPeriod": "10 év (HGB 257. §, AO 147. §)",
+        "retentionMonths": 120,
+        "deletionProcedure": "Fizikai és digitális törlés a jogszabályi megőrzési idők lejárta után",
+        "isHighRisk": false,
+        "automatedDecision": false,
+        "linkedAv": [],
+        "linkedToms": [
+          "tom_demo_hu_001",
+          "tom_demo_hu_003"
+        ],
+        "applicableEntities": [],
+        "status": "approved",
+        "owner": "admin",
+        "createdAt": "2025-01-15T10:00:00.000Z",
+        "updatedAt": "2025-01-15T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "vvt_demo_hu_003",
+        "title": "Weboldal-elemzés és marketing",
+        "purpose": "A weboldal használatának elemzése a felhasználói élmény javítására és célzott marketingre",
+        "legalBasis": "consent",
+        "legalBasisNote": "GDPR 6. cikk (1) bekezdés a) pont – hozzájárulás",
+        "dataCategories": [
+          "ip_address",
+          "browser_data",
+          "usage_data"
+        ],
+        "dataSubjectTypes": [
+          "website_visitors"
+        ],
+        "recipients": [
+          "IT-osztály",
+          "Marketing"
+        ],
+        "internationalTransfer": true,
+        "transferMechanism": "scc",
+        "retentionPeriod": "26 hónap",
+        "retentionMonths": 26,
+        "deletionProcedure": "Automatikus törlés az elemzőplatform beállításain keresztül",
+        "isHighRisk": false,
+        "automatedDecision": false,
+        "linkedAv": [],
+        "linkedToms": [
+          "tom_demo_hu_002"
+        ],
+        "applicableEntities": [],
+        "status": "review",
+        "owner": "admin",
+        "createdAt": "2025-03-01T10:00:00.000Z",
+        "updatedAt": "2025-03-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "toms.json": [
+      {
+        "id": "tom_demo_hu_001",
+        "title": "Hozzáférés-szabályozás (MFA és RBAC)",
+        "category": "access",
+        "description": "A többtényezős hitelesítés (MFA) és a szerepköralapú hozzáférés-szabályozás (RBAC) bevezetése minden olyan rendszerre, amely személyes adatokat kezel.",
+        "implementation": "MFA TOTP-alkalmazással minden felhasználói fiókhoz. RBAC-modell a legkisebb jogosultság elvével. Negyedéves hozzáférés-felülvizsgálatok.",
+        "status": "implemented",
+        "owner": "IT-admin",
+        "evidenceNote": "Bizonyíték: MFA-aktiválási arány 100%, RBAC-koncepció v2.1 jóváhagyva",
+        "retentionRule": "",
+        "linkedVvt": [
+          "vvt_demo_hu_001",
+          "vvt_demo_hu_002"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-12-31",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_hu_002",
+        "title": "Szállítás közbeni titkosítás (TLS 1.3)",
+        "category": "encryption",
+        "description": "Minden, nyilvános hálózaton keresztüli adatátvitel TLS 1.3-mal titkosított. Az elavult protokollok (TLS 1.0/1.1, SSL) le vannak tiltva.",
+        "implementation": "TLS 1.3 beállítva minden webszerveren, API-n és e-mail átjárón. HSTS aktív.",
+        "status": "implemented",
+        "owner": "IT-admin",
+        "evidenceNote": "SSL Labs értékelés: A+ (legutóbb ellenőrizve: 2026-01-10)",
+        "retentionRule": "",
+        "linkedVvt": [
+          "vvt_demo_hu_001"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-12-31",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_hu_003",
+        "title": "Mentés és katasztrófa-helyreállítás",
+        "category": "backup",
+        "description": "Rendszeres adatmentés és helyreállítási koncepció a személyes adatok rendelkezésre állásának és integritásának biztosítására.",
+        "implementation": "Napi inkrementális mentések, heti teljes mentések. Telephelyen kívüli mentés georedundáns adatközpontban. 3-2-1 mentési stratégia.",
+        "status": "implemented",
+        "owner": "IT-admin",
+        "evidenceNote": "DR-teszt: RPO < 4 óra, RTO < 8 óra. A mentési naplók teljesek.",
+        "retentionRule": "Mentési adatok: 90 nap; mentési naplók: 1 év",
+        "linkedVvt": [
+          "vvt_demo_hu_001",
+          "vvt_demo_hu_002"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-11-30",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_hu_004",
+        "title": "Javításkezelés és sebezhetőség-kezelés",
+        "category": "application",
+        "description": "Rendszeres folyamat a szoftverek és operációs rendszerek biztonsági réseinek időben történő azonosítására, értékelésére és megszüntetésére.",
+        "implementation": "Automatizált javítástelepítés kritikus alkalmazásokra 72 órán belül CVSS ≥ 9 esetén. Havi javítási ciklusok a rendes javításokhoz.",
+        "status": "implemented",
+        "owner": "IT-admin",
+        "evidenceNote": "Javítási megfelelőségi arány: >95%, vizsgálati jelentés 2026-01",
+        "retentionRule": "",
+        "linkedVvt": [
+          "vvt_demo_hu_001",
+          "vvt_demo_hu_002"
+        ],
+        "riskLevel": "high",
+        "reviewDate": "2026-12-31",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "tom_demo_hu_005",
+        "title": "Incidenskezelési terv (IRP)",
+        "category": "organizational",
+        "description": "Dokumentált és tesztelt terv az adatvédelmi incidensekre és biztonsági eseményekre való strukturált reagáláshoz (GDPR 33/34. cikk).",
+        "implementation": "Az IRP-dokumentum leírja a szerepköröket, az eszkalációs útvonalakat, a 72 órás bejelentési kötelezettséget és az érintettek tájékoztatását. Éves asztali gyakorlat.",
+        "status": "implemented",
+        "owner": "DPO",
+        "evidenceNote": "IRP v2.1 jóváhagyva, az utolsó asztali gyakorlat lezárult",
+        "retentionRule": "Incidensjelentések: 5 év",
+        "linkedVvt": [],
+        "riskLevel": "high",
+        "reviewDate": "2026-11-30",
+        "applicableEntities": [],
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "updatedAt": "2025-01-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "av.json": [
+      {
+        "id": "av_demo_hu_001",
+        "title": "Microsoft 365 / Azure",
+        "processorName": "Microsoft Ireland Limited",
+        "processorCountry": "IE",
+        "processorContactEmail": "msprivacy@microsoft.com",
+        "processingScope": "Felhőszolgáltatások e-mailhez (Exchange Online), dokumentumokhoz (SharePoint/OneDrive), videokonferenciához (Teams) és Azure-infrastruktúrához",
+        "linkedVvt": [
+          "vvt_demo_hu_001",
+          "vvt_demo_hu_002"
+        ],
+        "signatureDate": "2024-01-01",
+        "effectiveUntil": "2026-12-31",
+        "subProcessors": [
+          {
+            "name": "Microsoft Corporation (USA)",
+            "country": "US",
+            "approved": true
+          }
+        ],
+        "status": "signed",
+        "applicableEntities": [],
+        "transferMechanism": "scc",
+        "art28Checklist": {
+          "instructionsOnly": true,
+          "confidentiality": true,
+          "security": true,
+          "subProcessorApproval": true,
+          "assistanceRights": true,
+          "deletionReturn": true,
+          "auditRights": true,
+          "cooperation": true
+        },
+        "filePath": null,
+        "filename": null,
+        "notes": "Microsoft Data Processing Agreement (DPA) v2024 megkötve. Általános szerződési feltételek az EU 2021/914 szerint.",
+        "createdAt": "2025-01-15T10:00:00.000Z",
+        "updatedAt": "2025-01-15T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "dsfa.json": [
+      {
+        "id": "dsfa_demo_hu_001",
+        "title": "DPIA: HR-szoftver felhős tárolással",
+        "linkedVvtId": "vvt_demo_hu_002",
+        "processingDescription": "Felhőalapú HR-szoftver (SaaS) alkalmazása munkavállalói adatok – fizetési adatok, betegszabadságok és teljesítményértékelések – kezelésére.",
+        "necessityAssessment": "Az adatkezelés a munkajogi kötelezettségek teljesítéséhez és a hatékony HR-irányításhoz szükséges.",
+        "risks": [
+          {
+            "id": "dsfa_risk_hu_001",
+            "description": "Jogosulatlan hozzáférés harmadik felek által (hackelés, adatvédelmi incidens a szolgáltatónál)",
+            "likelihood": 2,
+            "impact": 4,
+            "score": 8,
+            "mitigations": [
+              "Adatfeldolgozási megállapodás megkötve",
+              "TLS-titkosítás",
+              "MFA kötelező",
+              "Behatolásvizsgálatok a szolgáltatónál"
+            ]
+          }
+        ],
+        "existingControls": "MFA, szerepköralapú hozzáférés-szabályozás, titkosított átvitel (TLS 1.3), napi mentések, adatfeldolgozási megállapodás a szolgáltatóval.",
+        "residualRisk": "medium",
+        "dpoConsulted": true,
+        "dpoOpinion": "A tervezett intézkedéseket megfelelőnek ítélik. A szolgáltatónál végzett rendszeres auditok ajánlottak.",
+        "saConsultationRequired": false,
+        "decision": "proceed",
+        "decisionJustification": "A megvalósított intézkedéseket figyelembe véve a maradék kockázat elfogadhatónak minősíthető.",
+        "applicableEntities": [],
+        "status": "review",
+        "owner": "admin",
+        "approvedBy": null,
+        "approvedAt": null,
+        "createdAt": "2025-02-01T10:00:00.000Z",
+        "updatedAt": "2025-02-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "dsar.json": [
+      {
+        "id": "dsar_demo_hu_001",
+        "refNumber": "DSAR-2026-0001",
+        "requestType": "access",
+        "dataSubjectName": "Max Müller",
+        "dataSubjectEmail": "m.mueller@beispiel.de",
+        "receivedDate": "2026-02-01",
+        "dueDate": "2026-03-01",
+        "status": "completed",
+        "assignedTo": "DPO",
+        "notes": "Hozzáférési kérelem teljesítve. Az összes releváns rekordot a jogszabályi határidőn belül rendelkezésre bocsátották.",
+        "completedDate": "2026-02-25",
+        "createdAt": "2026-02-01T10:00:00.000Z",
+        "updatedAt": "2026-02-25T15:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "dsar_demo_hu_002",
+        "refNumber": "DSAR-2026-0002",
+        "requestType": "erasure",
+        "dataSubjectName": "Anna Schmidt",
+        "dataSubjectEmail": "a.schmidt@privat.de",
+        "receivedDate": "2026-03-05",
+        "dueDate": "2026-04-04",
+        "status": "in_progress",
+        "assignedTo": "DPO",
+        "notes": "A törlési kérelem vizsgálat alatt áll. A jogszabályi megőrzési kötelezettségek ellenőrzése folyamatban.",
+        "completedDate": null,
+        "createdAt": "2026-03-05T09:00:00.000Z",
+        "updatedAt": "2026-03-07T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "incidents.json": [
+      {
+        "id": "gdpr_inc_demo_hu_001",
+        "refNumber": "GDPR-INC-2026-0001",
+        "title": "Munkavállalói fizetési adatok véletlen nyilvánosságra kerülése",
+        "description": "38 munkavállaló fizetési adatait tartalmazó bértáblázat tévedésből egy általános e-mail-terjesztési listára került.",
+        "category": "disclosure",
+        "affectedPersons": 38,
+        "dataCategories": [
+          "financial",
+          "employee"
+        ],
+        "detectedAt": "2026-01-15T14:00:00.000Z",
+        "reportedAt": "2026-01-15T16:00:00.000Z",
+        "notifiedSA": true,
+        "notifiedSADate": "2026-01-16T10:00:00.000Z",
+        "notifiedDataSubjects": false,
+        "status": "closed",
+        "riskLevel": "medium",
+        "measures": "Az e-mailt visszahívták, a címzetteket törlésre kérték, a folyamatot felülvizsgálták.",
+        "owner": "DPO",
+        "createdAt": "2026-01-15T16:00:00.000Z",
+        "updatedAt": "2026-01-20T10:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "gdpr_inc_demo_hu_002",
+        "refNumber": "GDPR-INC-2026-0002",
+        "title": "Jogosulatlan hozzáférés az ügyfél-adatbázishoz",
+        "description": "SQL-injekciós sebezhetőséget használtak ki egy régi alkalmazásban; a támadó 1800 ügyfélrekordhoz fért hozzá.",
+        "category": "unauthorized_access",
+        "affectedPersons": 1800,
+        "dataCategories": [
+          "name",
+          "email",
+          "address"
+        ],
+        "detectedAt": "2026-02-20T03:00:00.000Z",
+        "reportedAt": "2026-02-20T09:00:00.000Z",
+        "notifiedSA": true,
+        "notifiedSADate": "2026-02-21T10:00:00.000Z",
+        "notifiedDataSubjects": true,
+        "status": "closed",
+        "riskLevel": "high",
+        "measures": "A sebezhetőséget kijavították, az érintett ügyfeleket értesítették, a kriminalisztikai vizsgálat lezárult.",
+        "owner": "DPO",
+        "createdAt": "2026-02-20T09:00:00.000Z",
+        "updatedAt": "2026-03-01T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "deletionLog.json": []
+  },
+  "legal": {
+    "contracts.json": [
+      {
+        "id": "contract_hu_001",
+        "title": "IT-kiszervezési szerződés – adatközpont-üzemeltetés",
+        "contractType": "service",
+        "counterparty": "Deutsche Telekom AG",
+        "description": "A helyi szerverinfrastruktúra üzemeltetése és karbantartása, 24/7 monitorozással, 2. szintű SLA-val és negyedéves kapacitástervezéssel.",
+        "startDate": "2023-01-01",
+        "endDate": "2026-12-31",
+        "autoRenew": true,
+        "noticePeriodDays": 90,
+        "owner": "CISO",
+        "status": "active",
+        "value": "240000",
+        "currency": "EUR",
+        "notes": "Éves felülvizsgálat 2026/4. negyedév. SLA-rendelkezésre állás: 99,9 %.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2023-01-01T08:00:00.000Z",
+        "updatedAt": "2026-01-15T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "contract_hu_002",
+        "title": "Microsoft 365 Enterprise E3 licencszerződés",
+        "contractType": "license",
+        "counterparty": "Microsoft Deutschland GmbH",
+        "description": "Vállalati licencszerződés 350 felhasználóra, Exchange Online, Teams, SharePoint és megfelelőségi eszközökkel.",
+        "startDate": "2025-01-01",
+        "endDate": "2027-12-31",
+        "autoRenew": false,
+        "noticePeriodDays": 60,
+        "owner": "IT-vezetés",
+        "status": "active",
+        "value": "189000",
+        "currency": "EUR",
+        "notes": "Entra ID P1-gyel és Defender for Endpoint-tal együtt.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2024-11-15T10:00:00.000Z",
+        "updatedAt": "2025-01-01T08:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "contract_hu_003",
+        "title": "Menedzselt SOC – 24/7 biztonsági felügyelet",
+        "contractType": "service",
+        "counterparty": "Atos SE – Cybersecurity Division",
+        "description": "Menedzselt biztonsági műveleti központ 24/7 fenyegetésészleléssel, incidens-triázzsal és havi jelentéssel, SIEM-as-a-Service-szel.",
+        "startDate": "2025-04-01",
+        "endDate": "2028-03-31",
+        "autoRenew": true,
+        "noticePeriodDays": 180,
+        "owner": "CISO",
+        "status": "active",
+        "value": "144000",
+        "currency": "EUR",
+        "notes": "SLA: kritikus riasztások 15 percen belül.",
+        "linkedVvt": [],
+        "applicableEntities": [],
+        "attachments": [],
+        "createdAt": "2025-03-01T09:00:00.000Z",
+        "updatedAt": "2025-04-01T08:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "ndas.json": [
+      {
+        "id": "nda_hu_001",
+        "title": "Titoktartási megállapodás – behatolásvizsgálati szolgáltató 2026",
+        "ndaType": "bilateral",
+        "counterparty": "SRC Security Research & Consulting GmbH",
+        "signingDate": "2026-02-15",
+        "expiryDate": "2028-02-15",
+        "scope": "A behatolásvizsgálatok során az infrastruktúráról, a sebezhetőségekről és a belső folyamatokról szerzett összes ismeret.",
+        "owner": "CISO",
+        "status": "active",
+        "applicableEntities": [],
+        "notes": "Éves pentest 2026/2. negyedév.",
+        "attachments": [],
+        "createdAt": "2026-02-15T09:00:00.000Z",
+        "updatedAt": "2026-02-15T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "nda_hu_002",
+        "title": "Titoktartási megállapodás – ISO 27001 tanúsító szervezet",
+        "ndaType": "unilateral",
+        "counterparty": "DQS GmbH",
+        "signingDate": "2026-01-10",
+        "expiryDate": "2029-01-10",
+        "scope": "Minden belső dokumentum, folyamat, kockázatértékelés és auditmegállapítás az 1. és 2. szakaszos auditok során.",
+        "owner": "CISO",
+        "status": "active",
+        "applicableEntities": [],
+        "notes": "1. szakasz: 2026. június. 2. szakasz: 2026. szeptember.",
+        "attachments": [],
+        "createdAt": "2026-01-10T10:00:00.000Z",
+        "updatedAt": "2026-01-10T10:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ],
+    "privacy-policies.json": [
+      {
+        "id": "pp_hu_001",
+        "title": "Adatvédelmi tájékoztató – weboldal és online szolgáltatások",
+        "policyType": "privacy_notice",
+        "description": "Nyilvános adatvédelmi tájékoztató a GDPR 13/14. cikke szerint a weboldal látogatói és online szolgáltatásaink felhasználói számára.",
+        "content": "Személyes adatait a GDPR és a BDSG szerint kezeljük. Adatkezelő: Demo GmbH, Musterstraße 1, 40213 Düsseldorf. DPO: datenschutz@demo.example.",
+        "publishedAt": "2025-05-25",
+        "nextReviewDate": "2026-05-25",
+        "url": "https://demo.example/datenschutz",
+        "owner": "DPO",
+        "status": "active",
+        "version": "3.1",
+        "applicableEntities": [],
+        "notes": "Utoljára frissítve: 2025. május.",
+        "attachments": [],
+        "createdAt": "2025-05-25T09:00:00.000Z",
+        "updatedAt": "2025-05-25T09:00:00.000Z",
+        "createdBy": "admin"
+      },
+      {
+        "id": "pp_hu_002",
+        "title": "Adatvédelmi szabályzat munkavállalók számára",
+        "policyType": "internal_policy",
+        "description": "Belső szabályzat a munkavállalók személyes adatainak – a HR-adatokat, hozzáférési naplókat és monitorozást is beleértve – kezeléséről.",
+        "content": "Jogalap: GDPR 6. cikk (1) bekezdés b) és c) pont, valamint BDSG 26. §. A munkavállalókat a törvényes megőrzési idők keretein belül megilleti a hozzáférés, a helyesbítés és a törlés joga.",
+        "publishedAt": "2025-01-15",
+        "nextReviewDate": "2026-01-15",
+        "url": "",
+        "owner": "DPO",
+        "status": "active",
+        "version": "2.0",
+        "applicableEntities": [],
+        "notes": "A jogi osztály 2025. januárban felülvizsgálta.",
+        "attachments": [],
+        "createdAt": "2025-01-15T08:00:00.000Z",
+        "updatedAt": "2025-01-15T08:00:00.000Z",
+        "createdBy": "admin"
+      }
+    ]
+  }
+}

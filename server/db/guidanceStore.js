@@ -3773,6 +3773,26 @@ const ISO_NOTICE = {
   nl: { title: '⚠ Juridische kennisgeving: ISO-maatregelen — Handmatige installatie vereist', content: ISO_NOTICE_NL },
 }
 
+// ── Ungarisch (hu): Seed-Texte liegen als Markdown-Dateien in guidance-hu/ ────
+// Fehlt eine Datei, bleibt der jeweilige Eintrag beim englischen Fallback.
+function _huText(name) {
+  try { return fs.readFileSync(path.join(__dirname, 'guidance-hu', name), 'utf8').replace(/\n$/, '') } catch { return null }
+}
+;(function registerHungarian() {
+  const put = (target, key, title, file) => { const content = _huText(file); if (content) target[key] = { title, content } }
+  put(SOA_GUIDE, 'hu', 'SoA és audit – útmutató', 'soa.md')
+  put(POLICY_GUIDE, 'hu', 'Szabályzati folyamatok – létrehozás, felülvizsgálat és jóváhagyás', 'policy.md')
+  put(DEMO_DOC, 'hu', 'Demó üzemmód – áttekintés és átállás éles üzemre', 'demo.md')
+  put(ISO_NOTICE, 'hu', '⚠ Jogi tudnivaló: ISO-intézkedések — kézi telepítés szükséges', 'iso.md')
+  const roles = {}
+  put(roles, 'seed_guide_ciso', 'Felhasználói útmutató: CISO / információbiztonsági vezető', 'seed_guide_ciso.md')
+  put(roles, 'seed_guide_dsb', 'Felhasználói útmutató: DPO / adatvédelmi tisztviselő', 'seed_guide_dsb.md')
+  put(roles, 'seed_guide_revision', 'Felhasználói útmutató: belső audit', 'seed_guide_revision.md')
+  put(roles, 'seed_guide_qmb', 'Felhasználói útmutató: QMO / minőségirányítási vezető', 'seed_guide_qmb.md')
+  put(roles, 'seed_guide_abtlg', 'Felhasználói útmutató: osztályvezető / szakterületi szakértő', 'seed_guide_abtlg.md')
+  if (Object.keys(roles).length) ROLE_GUIDES_I18N.hu = roles
+})()
+
 // ── Systemhandbuch ISMS Build — Admin-Schnellreferenz ────────────────────────
 
 const SYSHANDBUCH_SEED_ID = 'seed_syshandbuch_quickref'
