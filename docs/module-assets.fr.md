@@ -96,7 +96,7 @@ alors quel actif relève la valeur.
 
 Il s'agit d'un choix délibéré, non d'une lacune :
 
-- **Les 24 types livrés sont traduits dans toutes les langues de l'interface** (DE/EN/FR/NL) et
+- **Les 24 types livrés sont traduits dans toutes les langues de l'interface** (DE/EN/FR/NL/HU) et
   s'affichent dans la langue choisie par chaque utilisateur.
 - **Un type que vous créez n'est pas traduit.** Il apparaît à tous les utilisateurs exactement
   tel qu'il a été saisi : l'application ne peut inventer une traduction pour un terme qu'elle ne

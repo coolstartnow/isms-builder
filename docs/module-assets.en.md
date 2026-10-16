@@ -93,7 +93,7 @@ application itself. The form then shows which asset raises the value.
 
 This is a deliberate design decision, not a gap:
 
-- **The 24 shipped types are translated into all interface languages** (DE/EN/FR/NL) and appear
+- **The 24 shipped types are translated into all interface languages** (DE/EN/FR/NL/HU) and appear
   in whichever language each user has selected.
 - **A type you create yourself is not translated.** It appears to every user exactly as it was
   entered. The application cannot invent a translation for a term it does not know.

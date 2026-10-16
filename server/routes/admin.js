@@ -607,7 +607,7 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
 // ── Seed-Sprache aktualisieren (ohne Bundle-Import) ──────────────────────────
 router.put('/admin/seed-lang', requireAuth, authorize('admin'), express.json(), async (req, res) => {
   const { lang } = req.body || {}
-  const SUPPORTED = ['de', 'en', 'fr', 'nl']
+  const SUPPORTED = ['de', 'en', 'fr', 'nl', 'hu']
   if (!SUPPORTED.includes(lang)) return res.status(400).json({ error: 'Unsupported language' })
   fs.writeFileSync(DEMO_LANG_FILE, JSON.stringify({ lang, setAt: nowISO() }))
   // Re-run all seed functions so guidance docs are immediately updated
@@ -625,7 +625,7 @@ router.put('/admin/seed-lang', requireAuth, authorize('admin'), express.json(), 
 router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.json(), async (req, res) => {
   try {
     const { lang } = req.body || {}
-    const SUPPORTED = ['de', 'en', 'fr', 'nl']
+    const SUPPORTED = ['de', 'en', 'fr', 'nl', 'hu']
 
     // Mark lang as set regardless of whether data is loaded (skip = no data, just flag)
     fs.writeFileSync(DEMO_LANG_FILE, JSON.stringify({ lang: lang || 'skip', setAt: nowISO() }))
@@ -634,10 +634,11 @@ router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.
       return res.json({ ok: true, skipped: true })
     }
     if (!SUPPORTED.includes(lang)) {
-      return res.status(400).json({ error: 'Unsupported language. Use: de, en, fr, nl' })
+      return res.status(400).json({ error: 'Unsupported language. Use: de, en, fr, nl, hu' })
     }
 
-    const bundleFile = path.join(BUNDLES_DIR, `${lang}.json`)
+    let bundleFile = path.join(BUNDLES_DIR, `${lang}.json`)
+    if (!fs.existsSync(bundleFile)) bundleFile = path.join(BUNDLES_DIR, 'en.json')   // Sprache ohne eigenes Demo-Bundle
     if (!fs.existsSync(bundleFile)) {
       return res.status(404).json({ error: `Demo bundle for '${lang}' not found` })
     }

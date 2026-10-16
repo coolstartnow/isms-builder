@@ -690,7 +690,7 @@ Der Organisation-Tab enthält folgende Sektionen:
 | **KI-Integration** | Ollama-URL (leer = localhost:11434), Embedding-Modell (leer = nomic-embed-text), globaler KI-Toggle |
 | **SMTP-Konfiguration** | Host, Port, TLS, User, Passwort, Absenderadresse; Test-Mail-Button; Hinweis wenn .env-Variablen Vorrang haben |
 | **Splash-Screen** | Aktivieren/deaktivieren, Anzeigedauer (1–30 Sek.) |
-| **Sprach-Konfiguration** | Aktivierte Sprachen (DE/EN/FR/NL), Standard-Sprache für Login-Seite |
+| **Sprach-Konfiguration** | Aktivierte Sprachen (DE/EN/FR/NL/HU), Standard-Sprache für Login-Seite |
 | **Navigationsreihenfolge** | Drag & Drop oder ↑↓-Buttons; Reset auf Standard |
 | **Richtlinien-Bestätigung** | `policyAckMode`: email_campaign / manual / distribution_only (nur admin) |
 | **E-Mail-Benachrichtigungen** | Globaler Toggle; Einzelne Typen: Risiken (→ CISO), DSAR/GDPR-Vorfälle (→ GDPO), Verträge/Templates/Lieferanten-Audits (→ Admin), BCM-Tests, Löschprotokoll |

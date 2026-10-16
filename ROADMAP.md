@@ -8,7 +8,7 @@ It is maintained alongside the codebase and updated as priorities shift.
 ## Internationalisation (i18n)
 
 ### Current state
-The application UI is fully translated into **4 languages**: DE, EN, FR, NL.
+The application UI is fully translated into **5 languages**: DE, EN, FR, NL, HU.
 All module documentation in Guidance is available in DE, EN, FR and NL.
 
 ### Planned: Additional EU languages

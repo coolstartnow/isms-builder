@@ -7,7 +7,7 @@
 // die Ollama-Antwort IST bereits der gewünschte Markdown-Text.
 const { ollamaUrl } = require('./ollamaConfig')
 
-const LANG_NAMES = { de: 'Deutsch', en: 'Englisch', fr: 'Französisch', nl: 'Niederländisch' }
+const LANG_NAMES = { de: 'Deutsch', en: 'Englisch', fr: 'Französisch', nl: 'Niederländisch', hu: 'Ungarisch' }
 
 // Kurze, feste Struktur-Vorgabe je Dokumenttyp. Bewusst NICHT aus den
 // data/demo-bundles/*.json gezogen — deren Typabdeckung ist uneinheitlich

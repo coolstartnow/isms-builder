@@ -15653,7 +15653,7 @@ async function openSupplierAssessments(supplierId) {
     rejected:  `<span class="badge badge-danger">${t('sup_statRejected')}</span>`,
   }
 
-  const LANG_FLAG = { de: '🇩🇪', en: '🇬🇧', fr: '🇫🇷', nl: '🇳🇱' }
+  const LANG_FLAG = { de: '🇩🇪', en: '🇬🇧', fr: '🇫🇷', nl: '🇳🇱', hu: '🇭🇺' }
 
   const rows = list.map(a => {
     const scoreHtml = a.score !== null
@@ -15718,6 +15718,7 @@ async function openCreateAssessment(supplierId) {
           <option value="en">🇬🇧 English</option>
           <option value="fr">🇫🇷 Français</option>
           <option value="nl">🇳🇱 Nederlands</option>
+          <option value="hu">🇭🇺 Magyar</option>
         </select>
 
         <label class="form-label">${t('col_title')}</label>
@@ -15739,7 +15740,7 @@ async function openCreateAssessment(supplierId) {
     </div>`
 }
 
-const ASS_DEFAULT_TITLES = { de: 'Lieferanten-Selbstauskunft', en: 'Supplier Self-Assessment', fr: 'Auto-évaluation fournisseur', nl: 'Leveranciers zelfevaluatie' }
+const ASS_DEFAULT_TITLES = { de: 'Lieferanten-Selbstauskunft', en: 'Supplier Self-Assessment', fr: 'Auto-évaluation fournisseur', nl: 'Leveranciers zelfevaluatie', hu: 'Szállítói önértékelés' }
 
 function updateAssTitle(sel) {
   const t = dom('assTitle')

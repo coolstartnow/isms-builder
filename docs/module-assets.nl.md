@@ -95,7 +95,7 @@ formulier toont dan welk bedrijfsmiddel de waarde verhoogt.
 
 Dit is een bewuste keuze, geen tekortkoming:
 
-- **De 24 meegeleverde typen zijn vertaald in alle interfacetalen** (DE/EN/FR/NL) en verschijnen
+- **De 24 meegeleverde typen zijn vertaald in alle interfacetalen** (DE/EN/FR/NL/HU) en verschijnen
   in de taal die elke gebruiker heeft ingesteld.
 - **Een zelf aangemaakt type wordt niet vertaald.** Het verschijnt bij iedere gebruiker precies
   zoals het is ingevoerd. De toepassing kan geen vertaling verzinnen voor een term die zij niet

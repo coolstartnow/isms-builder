@@ -94,7 +94,7 @@ Asset den Wert anhebt.
 
 Dies ist eine bewusste Festlegung, keine Lücke:
 
-- **Die 24 mitgelieferten Typen sind in alle Oberflächensprachen übersetzt** (DE/EN/FR/NL) und
+- **Die 24 mitgelieferten Typen sind in alle Oberflächensprachen übersetzt** (DE/EN/FR/NL/HU) und
   erscheinen automatisch in der Sprache, die der jeweilige Benutzer eingestellt hat.
 - **Ein selbst angelegter Typ wird nicht übersetzt.** Er erscheint für alle Benutzer genau so,
   wie er eingegeben wurde. Das Programm kann für einen Begriff, den es nicht kennt, keine

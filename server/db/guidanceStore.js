@@ -1145,7 +1145,7 @@ function _getDemoLang() {
   try {
     const d = JSON.parse(fs.readFileSync(path.join(_BASE, '.demo_lang_set'), 'utf8'))
     const l = d.lang
-    if (l && l !== 'skip') return ['de', 'en', 'fr', 'nl'].includes(l) ? l : 'en'
+    if (l && l !== 'skip') return ['de', 'en', 'fr', 'nl', 'hu'].includes(l) ? l : 'en'
   } catch {}
   return 'en'
 }

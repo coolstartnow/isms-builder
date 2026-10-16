@@ -96,6 +96,28 @@ const UI = {
     errSave:         'Fout',
     errSaveMsg:      'Uw antwoorden konden niet worden opgeslagen.',
   },
+  hu: {
+    pageTitle:       'Szállítói önértékelés – ISMS Builder',
+    heading:         s => s,
+    supplier:        'Szállító',
+    due:             'Kérjük, adja be eddig',
+    alreadyDone:     at => `Ezt a kérdőívet már beküldték: ${at}. Köszönjük!`,
+    yes:             'Igen',
+    no:              'Nem',
+    submitHint:      'A beküldéssel megerősíti válaszai helyességét.',
+    submitBtn:       '&#10003;&nbsp; Kérdőív beküldése',
+    footer:          'Szállítói önértékelés &mdash; bizalmas',
+    thankYouTitle:   'Köszönjük!',
+    thankYouBody:    (name, at) => `A(z) <strong>${name}</strong> önértékelése sikeresen beküldésre került.<br>Beküldve: <strong>${at}</strong>.`,
+    thankYouNote:    'Átnézzük a válaszait, és szükség esetén felvesszük Önnel a kapcsolatot.',
+    thankYouClose:   'Ez az oldal bezárható.',
+    errInvalid:      'Érvénytelen hivatkozás',
+    errInvalidMsg:   'Ez az értékelési hivatkozás érvénytelen, vagy már törölték.',
+    errSubmitted:    'Már beküldve',
+    errSubmittedMsg: 'Ezt a kérdőívet már beküldték, és nem tölthető ki újra.',
+    errSave:         'Hiba',
+    errSaveMsg:      'A válaszokat nem sikerült elmenteni.',
+  },
 }
 
 function ui(lang) { return UI[lang] || UI.en }
@@ -107,7 +129,7 @@ router.get('/supplier-assessment/:token', (req, res) => {
     'This assessment link is not valid or has already been deleted.'))
 
   const u = ui(a.language)
-  const locale = { de: 'de-DE', en: 'en-GB', fr: 'fr-FR', nl: 'nl-NL' }[a.language] || 'en-GB'
+  const locale = { de: 'de-DE', en: 'en-GB', fr: 'fr-FR', nl: 'nl-NL', hu: 'hu-HU' }[a.language] || 'en-GB'
 
   const alreadySubmitted = a.status !== 'pending'
   const dueDateHtml = a.dueDate
@@ -278,7 +300,7 @@ router.post('/supplier-assessment/:token', express.urlencoded({ extended: true }
   const updated = assessmentStore.submitAnswers(req.params.token, answers)
   if (!updated) return res.status(500).send(errorPage(u.errSave, u.errSaveMsg))
 
-  const locale = { de: 'de-DE', en: 'en-GB', fr: 'fr-FR', nl: 'nl-NL' }[a.language] || 'en-GB'
+  const locale = { de: 'de-DE', en: 'en-GB', fr: 'fr-FR', nl: 'nl-NL', hu: 'hu-HU' }[a.language] || 'en-GB'
 
   res.send(`<!DOCTYPE html>
 <html lang="${a.language || 'de'}">

@@ -21,7 +21,7 @@ const guidanceUpload = multer({
 })
 
 const DEMO_LANG_FILE = path.join(__dirname, '../../data/.demo_lang_set')
-const SUPPORTED_LANGS = ['de', 'en', 'fr', 'nl']
+const SUPPORTED_LANGS = ['de', 'en', 'fr', 'nl', 'hu']
 
 async function _syncSeedLang(lang) {
   try {
