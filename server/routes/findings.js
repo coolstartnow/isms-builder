@@ -14,8 +14,8 @@ router.get('/findings/summary', requireAuth, authorize('reader'), async (req, re
 })
 
 router.get('/findings', requireAuth, authorize('reader'), async (req, res) => {
-  const { status, severity, auditor } = req.query
-  res.json(await store.getAll({ status, severity, auditor }))
+  const { status, severity, auditor, auditId } = req.query
+  res.json(await store.getAll({ status, severity, auditor, auditId }))
 })
 
 router.get('/findings/:id', requireAuth, authorize('reader'), async (req, res) => {
@@ -28,7 +28,7 @@ router.get('/findings/:id', requireAuth, authorize('reader'), async (req, res) =
 router.post('/findings', requireAuth, authorize('auditor'), async (req, res) => {
   const f = await store.create(req.body, req.user)
   await audit.append({ user: req.user, action: 'create', resource: 'finding', resourceId: f.id })
-  await embeddingStore.indexDoc(f, 'Audit-Feststellung', '#reports')
+  await embeddingStore.indexDoc(f, 'Audit-Feststellung', `#reports?findingId=${f.id}`)
   res.status(201).json(f)
 })
 
@@ -36,7 +36,7 @@ router.put('/findings/:id', requireAuth, authorize('auditor'), async (req, res) 
   const f = await store.update(req.params.id, req.body, req.user)
   if (!f) return res.status(404).json({ error: 'Not found' })
   await audit.append({ user: req.user, action: 'update', resource: 'finding', resourceId: f.id })
-  await embeddingStore.indexDoc(f, 'Audit-Feststellung', '#reports')
+  await embeddingStore.indexDoc(f, 'Audit-Feststellung', `#reports?findingId=${f.id}`)
   res.json(f)
 })
 

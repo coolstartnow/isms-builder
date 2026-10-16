@@ -150,6 +150,7 @@ app.use(require('./routes/public'))
 app.use(require('./routes/trash'))
 app.use(require('./routes/suppliers'))
 app.use(require('./routes/findings'))
+app.use(require('./routes/audits'))
 app.use(require('./routes/scanImport'))
 app.use(require('./routes/ai'))
 app.use(require('./routes/orgUnits'))
@@ -224,6 +225,10 @@ async function runAutopurge() {
 
   const findingStore  = require('./db/findingStore')
   await purge('Findings',           () => findingStore.getDeleted(),                   (id) => findingStore.permanentDelete(id))
+
+  const auditMgmt = require('./db/auditMgmtStore')
+  await purge('Audits',             () => auditMgmt.getDeleted(),                      (id) => auditMgmt.permanentDelete(id))
+  await purge('Audit Programs',     () => auditMgmt.programs.getDeleted(),             (id) => auditMgmt.programs.permanentDelete(id))
 
   if (total > 0) console.log(`[autopurge] ${total} Einträge nach 30 Tagen endgültig gelöscht`)
 }

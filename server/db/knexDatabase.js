@@ -354,6 +354,25 @@ const TABLES = {
     t.string('deleted_at', 30).nullable()
   },
 
+  // Audit-Verwaltung (#Audit-Modul): ein Dokument pro Zeile, wie findings
+  audits(t) {
+    t.string('id', 120).primary()
+    t.text('data').notNullable().defaultTo('{}')
+    t.string('created_by', 120).notNullable().defaultTo('system')
+    t.string('created_at', 30).notNullable()
+    t.string('updated_at', 30).notNullable()
+    t.string('deleted_at', 30).nullable()
+  },
+
+  audit_programs(t) {
+    t.string('id', 120).primary()
+    t.text('data').notNullable().defaultTo('{}')
+    t.string('created_by', 120).notNullable().defaultTo('system')
+    t.string('created_at', 30).notNullable()
+    t.string('updated_at', 30).notNullable()
+    t.string('deleted_at', 30).nullable()
+  },
+
   org_units(t) {
     t.string('id', 120).primary()
     t.text('data').notNullable().defaultTo('{}')

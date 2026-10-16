@@ -32,11 +32,12 @@ function nextRef() {
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
-function getAll({ status, severity, auditor } = {}) {
+function getAll({ status, severity, auditor, auditId } = {}) {
   let list = load().filter(f => !f.deletedAt)
   if (status)   list = list.filter(f => f.status   === status)
   if (severity) list = list.filter(f => f.severity === severity)
   if (auditor)  list = list.filter(f => f.auditor  === auditor)
+  if (auditId)  list = list.filter(f => f.auditId  === auditId)
   return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 }
 
@@ -66,6 +67,9 @@ function create(fields, createdBy) {
     linkedControls:   Array.isArray(fields.linkedControls)  ? fields.linkedControls  : [],
     linkedPolicies:   Array.isArray(fields.linkedPolicies)  ? fields.linkedPolicies  : [],
     linkedRisks:      Array.isArray(fields.linkedRisks)     ? fields.linkedRisks     : [],
+    // Zuordnung zu einem Audit (Audit-Modul); sourceItemId = Prüfpunkt, aus dem das Finding entstand
+    auditId:          typeof fields.auditId === 'string' && fields.auditId ? fields.auditId : null,
+    sourceItemId:     typeof fields.sourceItemId === 'string' && fields.sourceItemId ? fields.sourceItemId : null,
     // Maßnahmenplan
     actions:          [],
     // Metadaten
@@ -87,10 +91,12 @@ function update(id, fields, updatedBy) {
   const f = list[idx]
   const allowed = ['title','severity','status','observation','requirement','impact',
                    'recommendation','auditor','auditedArea','auditPeriodFrom','auditPeriodTo',
-                   'linkedControls','linkedPolicies','linkedRisks']
+                   'linkedControls','linkedPolicies','linkedRisks','auditId']
   for (const k of allowed) {
     if (fields[k] !== undefined) f[k] = fields[k]
   }
+  if (f.auditId !== null && typeof f.auditId !== 'string') f.auditId = null
+  if (f.auditId === '') f.auditId = null
   if (fields.severity && !SEVERITIES.includes(fields.severity)) f.severity = 'medium'
   if (fields.status   && !STATUSES.includes(fields.status))     f.status   = 'open'
   f.updatedAt = nowISO()

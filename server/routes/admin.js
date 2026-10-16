@@ -24,7 +24,8 @@ function buildFullExport(dataDir) {
     'templates.json','soa.json','risks.json','entities.json',
     'rbac_users.json','guidance.json','training.json','public-incidents.json',
     'org-settings.json','custom-lists.json','audit-log.json',
-    'goals.json','assets.json','bcm.json','suppliers.json','governance.json'
+    'goals.json','assets.json','bcm.json','suppliers.json','governance.json',
+    'findings.json','audits.json','audit-programs.json'
   ]
   const bundle = { exportedAt: nowISO(), version: '1.28', files: {}, gdpr: {}, legal: {} }
   for (const f of jsonFiles) {
@@ -441,6 +442,8 @@ router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, re
       { file: 'assets.json',          empty: [] },
       { file: 'bcm.json',             empty: { bia: [], plans: [], exercises: [] } },
       { file: 'suppliers.json',       empty: [] },
+      { file: 'audits.json',          empty: [] },
+      { file: 'audit-programs.json',  empty: [] },
       { file: 'governance.json',      empty: { reviews: [], actions: [], meetings: [] } },
     ]
     for (const { file, empty } of filesToClear) {

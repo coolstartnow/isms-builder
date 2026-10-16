@@ -159,6 +159,30 @@ describe(`DB-Stores-Integration [${BACKEND}]`, () => {
       await s.permanentDeleteTemplate('policy', t.id)
     })
 
+    test('auditMgmtStore: Audit, Prüfpunkte und Programm überstehen Speichern und Laden', async () => {
+      const s = require('../server/db/auditMgmtStore')
+      const a = await s.create({ title: 'Audit', type: 'supplier', plannedStart: '2026-05-01', entityIds: ['e1'] }, 'tester')
+      expect(a.ref).toMatch(/^AUD-\d{4}-0001$/)
+      const item = await s.addItem(a.id, { question: 'Frage?', controlId: 'ISO-5.1', result: 'nonconform' })
+      await s.setItemFinding(a.id, item.id, 'finding_1')
+      const got = await s.getById(a.id)
+      expect(got.type).toBe('supplier')
+      expect(got.checklist[0]).toMatchObject({ question: 'Frage?', result: 'nonconform', findingId: 'finding_1' })
+      expect((await s.getAll({ year: 2026 })).map(x => x.id)).toContain(a.id)
+      expect((await s.getSummary()).nonconform).toBe(1)
+
+      const p = await s.programs.create({ title: 'Programm', year: 2026 }, 'tester')
+      expect((await s.programs.approve(p.id, 'carol')).status).toBe('approved')
+      expect((await s.programs.getById(p.id)).approvedBy).toBe('carol')
+
+      await s.remove(a.id, 'tester')
+      expect((await s.getDeleted()).some(x => x.id === a.id)).toBe(true)
+      expect((await s.restore(a.id)).deletedAt).toBeNull()
+      await s.remove(a.id, 'tester'); await s.permanentDelete(a.id)
+      await s.programs.remove(p.id, 'tester'); await s.programs.permanentDelete(p.id)
+      expect((await s.getDeleted()).some(x => x.id === a.id)).toBe(false)
+    })
+
     test('goalsStore', async () => {
       const s = require('../server/db/goalsStore')
       const r = await s.create({ title: 'Test-Ziel' }, 'tester')

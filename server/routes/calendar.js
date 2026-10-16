@@ -169,6 +169,18 @@ router.get('/calendar', requireAuth, authorize('reader'), async (req, res) => {
     }
   } catch {}
 
+  // Audits: geplanter Beginn, Fälligkeit, Wiedervorlage
+  try {
+    const auditMgmt = require('../db/auditMgmtStore')
+    for (const e of await auditMgmt.getCalendarEvents()) {
+      events.push({
+        date: e.date, type: e.type, ref: e.id, auditRef: e.ref,
+        title: `${e.ref}: ${e.title}`,
+        severity: e.type === 'audit_due' && e.date < new Date().toISOString().slice(0, 10) ? 'high' : 'normal',
+      })
+    }
+  } catch {}
+
   events.sort((a, b) => new Date(a.date) - new Date(b.date))
   res.json(events)
 })

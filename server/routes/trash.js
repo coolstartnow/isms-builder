@@ -222,6 +222,19 @@ router.get('/trash', requireAuth, authorize('admin'), async (req, res) => {
     }))
   } catch {}
 
+  // Audits und Auditprogramme
+  try {
+    const auditMgmt = require('../db/auditMgmtStore')
+    const add = (module, moduleLabel, list) => list.forEach(d => items.push({
+      module, moduleLabel, id: d.id, title: `${d.ref}: ${d.title || d.id}`,
+      deletedAt: d.deletedAt, deletedBy: d.deletedBy,
+      expiresAt: new Date(new Date(d.deletedAt).getTime() + 30*86400000).toISOString(),
+      meta: {}
+    }))
+    add('audit', 'Audit', await auditMgmt.getDeleted())
+    add('audit_program', 'Auditprogramm', await auditMgmt.programs.getDeleted())
+  } catch {}
+
   items.sort((a, b) => (b.deletedAt || '').localeCompare(a.deletedAt || ''))
   res.json(items)
 })
