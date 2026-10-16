@@ -186,9 +186,10 @@ async function reviewsReport(daysAhead = 30) {
 }
 
 // 7) Findings-Report: Audit-Feststellungen nach Schweregrad/Status/Auditor
-function findingsReport({ status, severity, auditor } = {}) {
+async function findingsReport({ status, severity, auditor } = {}) {
   const findingStore = require('./db/findingStore')
-  const all = findingStore.getAll({ status, severity, auditor })
+  // await: beim Knex-Backend (SQLite/Postgres) liefert getAll ein Promise
+  const all = await findingStore.getAll({ status, severity, auditor })
   const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, observation: 0 }
   const byStatus   = { open: 0, in_progress: 0, resolved: 0, accepted: 0 }
   for (const f of all) {
@@ -311,7 +312,7 @@ async function exportCsv(type, { entityId, framework, from, to } = {}) {
       return csvExport(['Control-ID', 'Framework', 'Titel', ...entityCols], rows)
     }
     case 'findings': {
-      const data = findingsReport()
+      const data = await findingsReport()
       return csvExport(
         ['Ref', 'Titel', 'Schweregrad', 'Status', 'Auditor', 'Prüfbereich', 'Von', 'Bis', 'IST-Zustand', 'SOLL-Zustand', 'Risiko', 'Empfehlung', 'Offene Maßnahmen', 'Erstellt'],
         data.findings.map(f => [

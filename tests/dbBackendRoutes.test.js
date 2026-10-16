@@ -126,4 +126,51 @@ describe(`DB-Backend-Routen [${BACKEND}] — #70 Regression`, () => {
     expect(res.status).toBe(201)
     expect(res.body.supplierName).toBe('#70-Lieferant')
   })
+  // ── Folgefehler derselben Art (async Knex-Store ohne await) ───────────────
+  test('GET /reports/findings und /reports/risks liefern Daten, kein leeres Promise', async () => {
+    const f = await authedPost(app, adminCookie, '/findings', { title: 'Report-Test', severity: 'high' })
+    expect(f.status).toBe(201)
+    const rf = await authedGet(app, adminCookie, '/reports/findings')
+    expect(rf.status).toBe(200)
+    expect(rf.body.total).toBeGreaterThanOrEqual(1)
+    expect(rf.body.bySeverity.high).toBeGreaterThanOrEqual(1)
+
+    const risk = await authedPost(app, adminCookie, '/risks', { title: 'Report-Risiko', probability: 5, impact: 5 })
+    expect(risk.status).toBe(201)
+    const rr = await authedGet(app, adminCookie, '/reports/risks')
+    expect(rr.status).toBe(200)
+    expect(rr.body.byLevel.critical).toBeGreaterThanOrEqual(1)
+
+    const csv = await authedGet(app, adminCookie, '/reports/export/csv?type=findings')
+    expect(csv.status).toBe(200)
+    expect(csv.text).toMatch(/Report-Test/)
+  })
+
+  test('Audit-Verwaltung läuft auf dem SQL-Backend (Audit, Prüfpunkt, Finding, Programm)', async () => {
+    const a = await authedPost(app, adminCookie, '/audits', { title: 'SQL-Audit', plannedStart: '2026-04-01' })
+    expect(a.status).toBe(201)
+    const item = await authedPost(app, adminCookie, `/audits/${a.body.id}/checklist`, { question: 'Frage?', result: 'nonconform' })
+    expect(item.status).toBe(201)
+    const fnd = await authedPost(app, adminCookie, `/audits/${a.body.id}/checklist/${item.body.id}/finding`, {})
+    expect(fnd.status).toBe(201)
+    const detail = await authedGet(app, adminCookie, `/audits/${a.body.id}`)
+    expect(detail.body.findings.map(x => x.id)).toEqual([fnd.body.id])
+    expect(detail.body.checklist[0].findingId).toBe(fnd.body.id)
+
+    const p = await authedPost(app, adminCookie, '/audit-programs', { title: 'SQL-Programm', year: 2026 })
+    expect((await authedPost(app, adminCookie, `/audit-programs/${p.body.id}/approve`, {})).body.status).toBe('approved')
+    expect((await authedGet(app, adminCookie, '/audits/summary')).body.total).toBeGreaterThanOrEqual(1)
+  })
+
+  test('Import-Bundle: Dateinamen mit Pfadanteilen werden nicht geschrieben', async () => {
+    const outside = path.join(dataDir, '..', 'escape-test.json')
+    const bundle = { files: { 'goals.json': [], '../escape-test.json': { x: 1 }, 'sub/dir.json': {}, 'ok-name.json': { a: 1 } },
+      gdpr: { '../gdpr-escape.json': {} } }
+    const res = await authedPost(app, adminCookie, '/admin/demo-import', bundle)
+    expect(res.status).toBe(200)
+    expect(fs.existsSync(outside)).toBe(false)
+    expect(fs.existsSync(path.join(dataDir, '..', 'gdpr-escape.json'))).toBe(false)
+    expect(fs.existsSync(path.join(dataDir, 'sub'))).toBe(false)
+    expect(fs.existsSync(path.join(dataDir, 'ok-name.json'))).toBe(true)
+  })
 })

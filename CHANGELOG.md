@@ -15,6 +15,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > Sprung von 1.40.4 auf 1.60.0: Die Zwischenstände (u. a. 1.45.0 für den AI Policy Assistant) wurden nicht einzeln veröffentlicht, alles steht in diesem Release.
 
 ### Security
+- **Daten-/Demo-Import schrieb beliebige Dateinamen aus dem Bundle** — `POST /admin/demo-import` und `POST /admin/demo-load-bundle` übernahmen die Schlüssel von `files`, `gdpr` und `legal` ungeprüft als Dateinamen unter `data/`. Ein manipuliertes Bundle mit `../…` hätte (nur durch Administratoren auslösbar) Dateien außerhalb des Datenverzeichnisses überschreiben können. Zugelassen sind jetzt nur einfache `*.json`-Namen ohne Pfadanteile (`isSafeJsonName` in `server/routes/admin.js`), alles andere wird übersprungen.
 - **Abhängigkeiten aktualisiert** (`npm audit`: 1 kritisch, 4 hoch, 6 mittel in den Produktionsabhängigkeiten, danach 0): `express` 4.22.3 (u. a. `proxy-addr` 2.0.8, kritisch), `multer` 2.4.0, `nodemailer` 10.1.1 (Hauptversionssprung, `createTransport` in `server/mailer.js` unverändert nutzbar), außerdem `js-yaml`, `brace-expansion`, `qs`, `body-parser`, `mysql2` über `npm audit fix`. `pdf-parse` bleibt wie dokumentiert auf 1.1.1 (`PINNED-DEPS.md`). Verbleibend: eine Kette `jest → js-yaml → argparse → sprintf-js` nur in Entwicklungsabhängigkeiten (mittel); der Fix würde `jest` herabstufen und bleibt aus.
 
 ### Changed
@@ -31,6 +32,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - **Asset-Formular: CIA-Vorgaben des Typs erschienen erst nach Speichern** ([#91](https://github.com/coolstartnow/isms-builder/issues/91), gemeldet von @jasc76) — das Typ-Select hatte keinen `onchange`-Handler. Beim Typwechsel werden die Schutzziel-Vorgaben des neuen Typs jetzt sofort gesetzt (solange „Schutzziele abweichend vom Typ festlegen“ nicht aktiv ist), der Schalter wird immer gerendert und nur ein-/ausgeblendet, und der Sperrzustand beim Speichern wird aus dem gewählten Typ abgeleitet. Neue Assets übernehmen die Vorgabe des vorausgewählten Typs gleich beim Öffnen.
+- **Findings-Report mit SQLite/PostgreSQL/MariaDB defekt** — `findingsReport` war synchron, obwohl `findingStore.getAll` beim Knex-Backend ein Promise liefert; `GET /reports/findings` und der CSV-Export `type=findings` schlugen dort fehl. Jetzt `async` (wie beim Risiko-Report), Regressionstest gegen das SQLite-Backend in `tests/dbBackendRoutes.test.js`.
 - **Risiko-Report: Schweregrad leer, Stufen-Zähler 0, Fehler mit SQLite/PostgreSQL** — `risksReport` las `level` statt `riskLevel` (CSV-Spalte „Schweregrad“ leer) und war synchron, obwohl `getAll` beim Knex-Backend ein Promise liefert. Jetzt `async` inklusive Route und CSV-Export.
 - **Admin-Export enthielt keine Findings** — `buildFullExport` (Backup/Export in Admin) kannte `findings.json` nicht; sie ist jetzt zusammen mit den neuen Audit-Dateien im Export. Der Demo-Reset leert die Audit-Dateien mit.
 - **Finding: Such-Deep-Link ging beim Anlegen/Ändern verloren** — `POST`/`PUT /findings` indexierten mit `#reports` statt `#reports?findingId=<id>` und überschrieben damit den Link, den die Neuindizierung gesetzt hatte.

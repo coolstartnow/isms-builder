@@ -26,9 +26,9 @@ router.get('/reports/reviews', requireAuth, authorize('reader'), async (req, res
 router.get('/reports/matrix', requireAuth, authorize('reader'), async (req, res) => {
   res.json(await reports.complianceMatrixReport(req.query.framework || null))
 })
-router.get('/reports/findings', requireAuth, authorize('reader'), (req, res) => {
+router.get('/reports/findings', requireAuth, authorize('reader'), async (req, res) => {
   const { status, severity, auditor } = req.query
-  res.json(reports.findingsReport({ status, severity, auditor }))
+  res.json(await reports.findingsReport({ status, severity, auditor }))
 })
 router.get('/reports/risks', requireAuth, authorize('reader'), async (req, res) => {
   const { entity, category, status } = req.query

@@ -19,6 +19,14 @@ const FLAG_FILE       = path.join(DATA_DIR, '.demo_reset_done')
 const DEMO_LANG_FILE  = path.join(DATA_DIR, '.demo_lang_set')
 const BUNDLES_DIR     = path.join(__dirname, '../../data/demo-bundles')
 
+/**
+ * Dateinamen aus Import-Bundles: nur einfache *.json-Namen, ohne Pfadanteile.
+ * Sonst könnte ein manipuliertes Bundle ("../…") außerhalb von data/ schreiben.
+ */
+function isSafeJsonName(name) {
+  return typeof name === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*\.json$/.test(name) && !name.includes('..')
+}
+
 function buildFullExport(dataDir) {
   const jsonFiles = [
     'templates.json','soa.json','risks.json','entities.json',
@@ -537,6 +545,7 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
     // Restore module data files
     if (bundle.files && typeof bundle.files === 'object') {
       for (const [filename, content] of Object.entries(bundle.files)) {
+        if (!isSafeJsonName(filename)) continue
         if (protectedFiles.has(filename)) continue
         fs.writeFileSync(path.join(dataDir, filename), JSON.stringify(content, null, 2))
       }
@@ -547,6 +556,7 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
     if (bundle.gdpr && typeof bundle.gdpr === 'object') {
       if (!fs.existsSync(gdprDir)) fs.mkdirSync(gdprDir, { recursive: true })
       for (const [filename, content] of Object.entries(bundle.gdpr)) {
+        if (!isSafeJsonName(filename)) continue
         fs.writeFileSync(path.join(gdprDir, filename), JSON.stringify(content, null, 2))
       }
     }
@@ -556,6 +566,7 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
     if (bundle.legal && typeof bundle.legal === 'object') {
       if (!fs.existsSync(legalDir)) fs.mkdirSync(legalDir, { recursive: true })
       for (const [filename, content] of Object.entries(bundle.legal)) {
+        if (!isSafeJsonName(filename)) continue
         fs.writeFileSync(path.join(legalDir, filename), JSON.stringify(content, null, 2))
       }
     }
@@ -637,6 +648,7 @@ router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.
 
     if (bundle.files && typeof bundle.files === 'object') {
       for (const [filename, content] of Object.entries(bundle.files)) {
+        if (!isSafeJsonName(filename)) continue
         if (protectedFiles.has(filename)) continue
         fs.writeFileSync(path.join(dataDir, filename), JSON.stringify(content, null, 2))
       }
@@ -646,6 +658,7 @@ router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.
     if (bundle.gdpr && typeof bundle.gdpr === 'object') {
       if (!fs.existsSync(gdprDir)) fs.mkdirSync(gdprDir, { recursive: true })
       for (const [filename, content] of Object.entries(bundle.gdpr)) {
+        if (!isSafeJsonName(filename)) continue
         fs.writeFileSync(path.join(gdprDir, filename), JSON.stringify(content, null, 2))
       }
     }
@@ -654,6 +667,7 @@ router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.
     if (bundle.legal && typeof bundle.legal === 'object') {
       if (!fs.existsSync(legalDir)) fs.mkdirSync(legalDir, { recursive: true })
       for (const [filename, content] of Object.entries(bundle.legal)) {
+        if (!isSafeJsonName(filename)) continue
         fs.writeFileSync(path.join(legalDir, filename), JSON.stringify(content, null, 2))
       }
     }
