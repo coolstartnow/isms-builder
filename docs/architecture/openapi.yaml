@@ -746,6 +746,51 @@ paths:
         '200':
           description: Array of historical versions
 
+  /template/{type}/{id}/versions:
+    get:
+      tags: [templates]
+      summary: Approval history (version, approved by/on, change comment) and number of the next approval
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: type, in: path, required: true, schema: { type: string } }
+        - { name: id,   in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: "{ current, nextVersion, versions[] }"
+        '404':
+          description: Not found
+
+  /template/{type}/{id}/status:
+    patch:
+      tags: [templates]
+      summary: Change lifecycle status; approving assigns the new version
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: type, in: path, required: true, schema: { type: string } }
+        - { name: id,   in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [draft, review, approved, archived]
+                changes:
+                  type: string
+                  maxLength: 1000
+                  description: Optional change comment, stored with the approval
+      responses:
+        '200':
+          description: Updated template (including versions and nextVersion)
+        '400':
+          description: Transition not allowed or role insufficient
+
   /template/{type}/{id}/status-history:
     get:
       tags: [templates]

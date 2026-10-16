@@ -143,16 +143,34 @@ function renderLifecycleActions(template) {
     const btn = document.createElement('button')
     btn.className = `btn-lifecycle ${tr.cls}`
     btn.textContent = tr.labelKey ? t(tr.labelKey) : tr.label
-    btn.onclick = () => applyStatusTransition(template, tr.to)
+    // #97: Die Freigabe vergibt die neue Version — deshalb erst nach Bestätigung
+    btn.onclick = () => tr.to === 'approved' ? confirmApproval(template) : applyStatusTransition(template, tr.to)
     bar.appendChild(btn)
   })
 }
 
-async function applyStatusTransition(template, newStatus) {
+/** Inline-Bestätigung der Freigabe (kein Modal): „Als Version X freigeben?“ mit optionalem Kommentar. */
+function confirmApproval(template) {
+  const bar = dom('lifecycleActions')
+  if (!bar) return
+  const v = template.nextVersion ?? template.version
+  bar.style.display = 'flex'
+  bar.innerHTML = `<div class="tmpl-approve-confirm">
+    <strong>${escHtml(t('tmpl_approveAsVersion', { v }))}</strong>
+    <input id="approveChanges" class="form-input" maxlength="1000" placeholder="${escHtml(t('tmpl_changesLabel'))}">
+    <button class="btn-lifecycle approve" id="approveYes">${escHtml(t('tmpl_approveYes'))}</button>
+    <button class="btn-lifecycle back" id="approveNo">${escHtml(t('ui_cancel'))}</button>
+  </div>`
+  dom('approveYes').onclick = () => applyStatusTransition(template, 'approved', dom('approveChanges')?.value || '')
+  dom('approveNo').onclick  = () => renderLifecycleActions(template)
+  dom('approveChanges')?.focus()
+}
+
+async function applyStatusTransition(template, newStatus, changes) {
   const res = await fetch(`/template/${template.type}/${template.id}/status`, {
     method: 'PATCH',
     headers: apiHeaders(),
-    body: JSON.stringify({ status: newStatus })
+    body: JSON.stringify(changes ? { status: newStatus, changes } : { status: newStatus })
   })
   const data = await res.json()
   if (!res.ok) {
@@ -166,6 +184,8 @@ async function applyStatusTransition(template, newStatus) {
   dom('ownerInfo').textContent = data.owner ? `Owner: ${data.owner}` : ''
   renderLifecycleActions(data)
   renderWebdavPublishBar(data)
+  applyTemplateViewMode(data)   // Sperre bei Freigabe setzen bzw. aufheben (#97)
+  refreshVersionBox(data)
   // Liste aktualisieren
   selectType(currentType, true)
 }
@@ -7004,6 +7024,7 @@ function loadTemplate(t) {
   renderAttachmentsBar(t)
   renderBreadcrumb(t)
   applyTemplateViewMode(t)
+  refreshVersionBox(t)
   // Kind-Seite + Verschieben nur für contentowner+
   const rank = ROLE_RANK[getCurrentRole()] || 0
   const canMove = rank >= ROLE_RANK.contentowner
@@ -7094,6 +7115,41 @@ function templateCanEdit() {
   return (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.editor
 }
 
+/** Freigegebene Dokumente sind in Titel und Inhalt gesperrt (#97); Metadaten bleiben änderbar. */
+function templateContentLocked(tmpl) {
+  return !!tmpl && tmpl.status === 'approved'
+}
+
+/** Tabelle Version | Freigegeben von | Freigegeben am | Änderungen (#97). */
+function versionTableHtml(rows) {
+  if (!rows || !rows.length) return ''
+  return `<table class="tmpl-version-table"><thead><tr>
+      <th>${escHtml(t('tmpl_version'))}</th><th>${escHtml(t('tmpl_approvedBy'))}</th>
+      <th>${escHtml(t('tmpl_approvedOn'))}</th><th>${escHtml(t('tmpl_changes'))}</th>
+    </tr></thead><tbody>${rows.map(r => `<tr>
+      <td>${escHtml(String(r.version))}</td><td>${escHtml(r.approvedBy || '')}</td>
+      <td>${escHtml(r.approvedAt ? new Date(r.approvedAt).toLocaleDateString() : '')}</td><td>${escHtml(r.changes || '')}</td>
+    </tr>`).join('')}</tbody></table>`
+}
+
+/** Versionshistorie im Dokumentkopf neu zeichnen; holt die Tabelle nach, falls sie fehlt. */
+async function refreshVersionBox(tmpl) {
+  const box = dom('tmplVersionBox')
+  if (!box) return
+  if (!tmpl) { box.style.display = 'none'; return }
+  let rows = tmpl.versions
+  if (!rows) {
+    const r = await fetch(`/template/${tmpl.type}/${tmpl.id}/versions`, { headers: apiHeaders('reader') })
+    rows = r.ok ? (await r.json()).versions : []
+    tmpl.versions = rows
+  }
+  if (currentTemplate?.id !== tmpl.id) return        // inzwischen anderes Dokument geöffnet
+  box.style.display = ''
+  dom('tmplVersionSummary').textContent = `${t('tmpl_versionHistory')} · ${t('tmpl_version')} ${tmpl.version}`
+  dom('tmplVersionTable').innerHTML = rows.length ? versionTableHtml(rows)
+    : `<p class="tmpl-lock-hint">${escHtml(t('tmpl_noVersionYet'))}</p>`
+}
+
 /** Rendert Markdown sicher: kein Roh-HTML, keine javascript:-Verweise. */
 function renderMarkdownSafe(md) {
   const text = String(md || '')
@@ -7122,17 +7178,26 @@ function applyTemplateViewMode(tmpl) {
   if (!editor || !viewer) return
 
   const canEdit = templateCanEdit()
-  const showViewer = !canEdit || _tmplPreviewOn
+  const locked  = templateContentLocked(tmpl)
+  const canEditText = canEdit && !locked
+  const showViewer = !canEditText || _tmplPreviewOn
 
   if (showViewer) viewer.innerHTML = renderMarkdownSafe(tmpl ? tmpl.content : editor.value)
   viewer.style.display = showViewer ? '' : 'none'
   editor.style.display = showViewer ? 'none' : ''
 
   // Ohne Schreibrecht gibt es nichts zu speichern und nichts umzuschalten.
+  // Gesperrt (freigegeben): Speichern bleibt für Metadaten wie das Review-Datum erhalten.
   if (save) save.style.display = canEdit ? '' : 'none'
-  if (prev) prev.style.display = canEdit ? '' : 'none'
+  if (prev) prev.style.display = canEditText ? '' : 'none'
   if (label) label.textContent = _tmplPreviewOn ? t('tmpl_edit') : t('tmpl_preview')
-  document.querySelectorAll('#inputTitle, #inputNextReview').forEach(el => { el.readOnly = !canEdit })
+  const titleEl = dom('inputTitle');       if (titleEl) titleEl.readOnly = !canEditText
+  const reviewEl = dom('inputNextReview'); if (reviewEl) reviewEl.readOnly = !canEdit
+  const hint = dom('tmplLockHint')
+  if (hint) {
+    hint.style.display = (canEdit && locked) ? '' : 'none'
+    hint.textContent = t('tmpl_lockedHint')
+  }
 }
 
 // ── #61: PDF-Ausgabe fuer Richtlinien ────────────────────────────────────────
@@ -7175,6 +7240,7 @@ function _printTemplates(docs, name) {
         ${d.owner ? ` · ${escHtml(t('col_owner'))}: ${escHtml(d.owner)}` : ''}
         ${d.nextReviewDate ? ` · ${escHtml(t('tmpl_nextReview'))} ${escHtml(String(d.nextReviewDate).slice(0, 10))}` : ''}
       </div>
+      ${versionTableHtml(d.versions)}
       <div class="doc-body">${renderMarkdownSafe(d.content)}</div>
     </section>`).join('<div class="page-break"></div>')
 
@@ -7685,6 +7751,8 @@ function closeEntityPicker() {
 }
 
 function clearEditor(){
+  refreshVersionBox(null)
+  const lock = dom('tmplLockHint'); if (lock) lock.style.display = 'none'
   dom('inputTitle').value = ''
   dom('contentEditor').value = ''
   updateStatusBadge('draft')
@@ -7702,10 +7770,9 @@ function loadTemplateHistory(type, id) {
 
 function showHistory(){
   if (!currentTemplate) return alert('Please select a document first.')
-  loadTemplateHistory(currentTemplate.type, currentTemplate.id).then(hist => {
-    const lines = hist.map(h => `Version ${h.version} - ${new Date(h.updatedAt).toLocaleString()}`).join('\n')
-    alert(`History:\n${lines}`)
-  })
+  // #97: statt eines alert() die Versionshistorie im Dokumentkopf auf-/zuklappen
+  const box = dom('tmplVersionBox')
+  refreshVersionBox(currentTemplate).then(() => { if (box) box.open = !box.open })
 }
 
 function updateReviewHint(dateStr) {
@@ -7733,10 +7800,13 @@ function saveCurrent(){
       method: 'PUT',
       headers: apiHeaders('editor'),
       body: JSON.stringify({ title, content, nextReviewDate: nextReviewDate || null })
-    }).then(res=>res.json()).then(t => {
-      currentTemplate = t
-      updateReviewHint(t.nextReviewDate)
-      alert('Dokument aktualisiert (Version '+t.version+')')
+    }).then(async res => {
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 409) { alert(t('tmpl_lockedHint')); return }
+      if (!res.ok) { alert(data.error || 'Error saving'); return }
+      currentTemplate = data
+      updateReviewHint(data.nextReviewDate)
+      alert(t('tmpl_savedNoVersion'))
     })
   } else {
     // create new with default type as currentType

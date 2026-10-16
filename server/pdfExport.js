@@ -21,6 +21,7 @@
 
 const PDFDocument = require('pdfkit')
 const { marked } = require('../ui/vendor/marked.min.js')
+const { versionTable } = require('./db/templateVersioning')
 
 const PAGE_MARGIN = 56
 const FONT_BODY = 'Helvetica'
@@ -216,6 +217,38 @@ function renderToken(doc, token) {
  * @param {{title, type, status, version, owner, nextReviewDate, content}} doc
  * @returns {Promise<Buffer>}
  */
+/** Versionstabelle im Dokumentkopf (#97): Version | Freigegeben von | Freigegeben am | Änderungen. */
+function renderVersionTable(pdf, rows) {
+  if (!rows.length) return
+  const x0 = PAGE_MARGIN
+  const cols = [
+    { label: 'Version',          w: 50 },
+    { label: 'Freigegeben von',  w: 110 },
+    { label: 'Freigegeben am',   w: 90 },
+    { label: 'Änderungen',       w: pdf.page.width - 2 * PAGE_MARGIN - 250 },
+  ]
+  const drawRow = (cells, bold) => {
+    const font = bold ? FONT_BOLD : FONT_BODY
+    pdf.font(font).fontSize(8.5)
+    const h = Math.max(...cells.map((c, i) => pdf.heightOfString(String(c), { width: cols[i].w - 8 }))) + 6
+    if (pdf.y + h > pdf.page.height - pdf.page.margins.bottom) pdf.addPage()
+    const y = pdf.y
+    let x = x0
+    cells.forEach((c, i) => {
+      pdf.fillColor(COLOR_TEXT).text(String(c), x + 4, y + 3, { width: cols[i].w - 8 })
+      pdf.strokeColor(COLOR_RULE).rect(x, y, cols[i].w, h).stroke()
+      x += cols[i].w
+    })
+    pdf.y = y + h
+  }
+  drawRow(cols.map(c => c.label), true)
+  rows.forEach(r => drawRow([
+    r.version, r.approvedBy || '', r.approvedAt ? String(r.approvedAt).slice(0, 10) : '', r.changes || '',
+  ], false))
+  pdf.x = PAGE_MARGIN
+  pdf.moveDown(0.8)
+}
+
 function renderTemplateToPdf(doc) {
   return new Promise((resolve, reject) => {
     const pdf = new PDFDocument({ size: 'A4', margin: PAGE_MARGIN, bufferPages: true })
@@ -240,6 +273,7 @@ function renderTemplateToPdf(doc) {
       pdf.moveDown(0.3)
       pdf.strokeColor(COLOR_RULE).moveTo(PAGE_MARGIN, pdf.y).lineTo(pdf.page.width - PAGE_MARGIN, pdf.y).stroke()
       pdf.moveDown(0.6)
+      renderVersionTable(pdf, doc.versions || versionTable(doc))
 
       const tokens = marked.lexer(String(doc.content || ''))
       for (const token of tokens) renderToken(pdf, token)

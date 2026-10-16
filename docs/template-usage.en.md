@@ -93,12 +93,18 @@ status change is logged with timestamp and user in the **status history**
 
 ## Version History
 
-Every saved change to the content is automatically stored as a version.
-The version history is accessible via the **history icon** in the template and shows:
+The **version only changes on approval**, not when you save. You can save as often as you like without changing the version number; a document gets its version when it moves from `review` to `approved`. The first approval keeps the existing number, every further approval increases it by 1.
 
-- Timestamp of the change
-- User who made the change
-- Previous content (diff available)
+**Approving:** The "Approve" button asks first: **"Approve as version X?"**, plus an optional **change comment**. Only "Yes, approve" performs the approval.
+
+**Approved documents are locked:** Title and content cannot be changed while the status is `approved` (the UI shows the read-only view and a hint, the server rejects changes with `409`). The next review date stays editable. To keep working, set the document back to `review` (role `contentowner`), edit it and approve it again — this creates the next version.
+
+**Version history in the document header:** Above the document (collapsible, also via the **history icon**) there is the table
+
+| Version | Approved by | Approved on | Changes |
+|---|---|---|---|
+
+showing the user name, time and change comment of every approval. The same table appears in the print/PDF output and in the PDF used for the Nextcloud publish. Each approval also stores a snapshot of the content. Documents that were approved before this feature show the last approval from the status history as their first row.
 
 This enables the full traceability that ISO 27001 requires for documents.
 

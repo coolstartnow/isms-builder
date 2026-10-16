@@ -446,6 +446,7 @@ async function ensureColumns(k) {
     { table: 'suppliers',   col: 'data',           fn: (t) => t.text('data').notNullable().defaultTo('{}') },
     { table: 'risks',       col: 'deleted_by',     fn: (t) => t.string('deleted_by', 120).nullable() },
     { table: 'templates',   col: 'webdav_publish', fn: (t) => t.text('webdav_publish').nullable() },
+    { table: 'templates',   col: 'version_history', fn: (t) => t.text('version_history').notNullable().defaultTo('[]') },
   ]
 
   for (const { table, col, fn } of patches) {

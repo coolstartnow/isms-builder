@@ -8,8 +8,14 @@ const multer = require('multer')
 const { requireAuth, authorize } = require('../auth')
 const storage = require('../storage')
 const entityStore = require('../db/entityStore')
+const { versionTable, nextApprovalVersion, contentChangeBlocked } = require('../db/templateVersioning')
 
 // ── Templates ──
+
+/** Antwort mit fertiger Versionstabelle und Nummer der nächsten Freigabe (#97). */
+function withVersions(t) {
+  return t ? { ...t, versions: versionTable(t), nextVersion: nextApprovalVersion(t) } : t
+}
 
 router.get('/templates', requireAuth, authorize('reader'), async (req, res) => {
   const { type, language } = req.query
@@ -33,7 +39,7 @@ router.get('/template/:type/:id', requireAuth, authorize('reader'), async (req, 
   const { type, id } = req.params
   const t = await storage.getTemplate?.(type, id)
   if (!t) return res.status(404).json({ error: 'Not found' })
-  res.json(t)
+  res.json(withVersions(t))
 })
 
 router.post('/template', requireAuth, authorize('contentowner'), async (req, res) => {
@@ -52,6 +58,12 @@ router.put('/template/:type/:id', requireAuth, authorize('editor'), async (req, 
   const existing = await storage.getTemplate?.(type, id)
   if (!existing) return res.status(404).json({ error: 'Not found' })
 
+  // #97: Freigegebene Dokumente sind in Titel und Inhalt gesperrt. Zum Weiterarbeiten wird der
+  // Status zurückgesetzt (approved → review), die nächste Freigabe vergibt die neue Version.
+  if (contentChangeBlocked(existing, { title, content })) {
+    return res.status(409).json({ error: 'Approved documents cannot be edited. Set the status back to review first.' })
+  }
+
   if (Array.isArray(linkedControls)) {
     const soaStore = require('../db/soaStore')
     const prevControls = existing.linkedControls || []
@@ -63,7 +75,7 @@ router.put('/template/:type/:id', requireAuth, authorize('editor'), async (req, 
 
   const t = await storage.updateTemplate?.(type, id, { title, content, applicableEntities, linkedControls, parentId, nextReviewDate })
   await require('../db/auditStore').append({ user: req.user, action: 'update', resource: 'template', resourceId: id, detail: `${type}: ${title || existing.title}` })
-  res.json(t)
+  res.json(withVersions(t))
 })
 
 router.put('/template/:type/:id/move', requireAuth, authorize('contentowner'), async (req, res) => {
@@ -106,6 +118,14 @@ router.get('/template/:type/:id/history', requireAuth, authorize('reader'), asyn
   res.json(hist || [])
 })
 
+// Freigabehistorie (#97): Version, freigegeben von/am, Änderungskommentar; nextVersion = Nummer der nächsten Freigabe
+router.get('/template/:type/:id/versions', requireAuth, authorize('reader'), async (req, res) => {
+  const { type, id } = req.params
+  const t = await storage.getTemplate?.(type, id)
+  if (!t) return res.status(404).json({ error: 'Not found' })
+  res.json({ current: t.version, nextVersion: nextApprovalVersion(t), versions: versionTable(t) })
+})
+
 router.get('/template/:type/:id/status-history', requireAuth, authorize('reader'), async (req, res) => {
   const { type, id } = req.params
   const hist = await storage.getStatusHistory?.(type, id)
@@ -115,13 +135,13 @@ router.get('/template/:type/:id/status-history', requireAuth, authorize('reader'
 
 router.patch('/template/:type/:id/status', requireAuth, authorize('editor'), async (req, res) => {
   const { type, id } = req.params
-  const { status } = req.body
+  const { status, changes } = req.body
   if (!status) return res.status(400).json({ error: 'status is required' })
-  const result = await storage.setStatus?.(type, id, { status, changedBy: req.user, role: req.role })
+  const result = await storage.setStatus?.(type, id, { status, changedBy: req.user, role: req.role, changes })
   if (!result) return res.status(500).json({ error: 'Storage error' })
   if (!result.ok) return res.status(400).json({ error: result.error })
   if (result.template?.status === 'approved') _autoPublishWebdav(type, id)
-  res.json(result.template)
+  res.json(withVersions(result.template))
 })
 
 // Nextcloud/ownCloud-Publish (#66): Ausfall des Remote-Systems darf die

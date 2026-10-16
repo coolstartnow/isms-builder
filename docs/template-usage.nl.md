@@ -87,8 +87,18 @@ draft  →  review  →  approved  →  archived
 
 ## Versiegeschiedenis
 
-Elke opgeslagen wijziging in de inhoud wordt automatisch als versie opgeslagen.
-De versiegeschiedenis is toegankelijk via het **klokpictogram** in het sjabloon.
+De **versie verandert alleen bij goedkeuring**, niet bij opslaan. U kunt zo vaak opslaan als u wilt zonder het versienummer te wijzigen; een document krijgt zijn versie wanneer het van `review` naar `approved` gaat. De eerste goedkeuring behoudt het bestaande nummer, elke volgende verhoogt het met 1.
+
+**Goedkeuren:** de knop „Goedkeuren” vraagt eerst om bevestiging: **„Goedkeuren als versie X?”**, met een optionele **wijzigingsopmerking**. Pas „Ja, goedkeuren” voert de goedkeuring uit.
+
+**Goedgekeurde documenten zijn vergrendeld:** titel en inhoud kunnen niet worden gewijzigd zolang de status `approved` is (de interface toont de leesweergave en een melding, de server weigert wijzigingen met `409`). De volgende beoordelingsdatum blijft bewerkbaar. Om verder te werken zet u het document terug naar `review` (rol `contentowner`), bewerkt u het en keurt u het opnieuw goed — daarbij ontstaat de volgende versie.
+
+**Versiegeschiedenis in de documentkop:** boven het document staat (uitklapbaar, ook via het **klokpictogram**) de tabel
+
+| Versie | Goedgekeurd door | Goedgekeurd op | Wijzigingen |
+|---|---|---|---|
+
+met gebruikersnaam, tijdstip en wijzigingsopmerking van elke goedkeuring. Dezelfde tabel staat in de afdruk/PDF en in de PDF voor de Nextcloud-publicatie. Bij elke goedkeuring wordt ook een momentopname van de inhoud bewaard. Documenten die vóór deze functie al waren goedgekeurd, tonen de laatste goedkeuring uit de statushistorie als eerste regel.
 
 ---
 

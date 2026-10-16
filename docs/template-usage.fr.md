@@ -89,8 +89,18 @@ draft  →  review  →  approved  →  archived
 
 ## Historique des versions
 
-Chaque modification enregistrée du contenu est automatiquement sauvegardée comme
-version. L'historique est accessible via l'**icône d'horloge** dans le modèle.
+La **version n'augmente qu'à l'approbation**, pas à l'enregistrement. On peut enregistrer autant de fois que nécessaire sans changer le numéro de version ; un document reçoit sa version lorsqu'il passe de `review` à `approved`. La première approbation conserve le numéro existant, chaque approbation suivante l'augmente de 1.
+
+**Approuver :** le bouton « Approuver » demande d'abord confirmation : **« Approuver comme version X ? »**, avec un **commentaire de modification** facultatif. Seul « Oui, approuver » exécute l'approbation.
+
+**Les documents approuvés sont verrouillés :** le titre et le contenu ne peuvent pas être modifiés au statut `approved` (l'interface affiche la vue en lecture seule et une remarque, le serveur refuse les modifications avec `409`). La prochaine date de révision reste modifiable. Pour continuer à travailler, on remet le document en `review` (rôle `contentowner`), on le modifie puis on l'approuve à nouveau — la version suivante est alors créée.
+
+**Historique des versions dans l'en-tête du document :** au-dessus du document (repliable, aussi via l'**icône d'horloge**) figure le tableau
+
+| Version | Approuvé par | Approuvé le | Modifications |
+|---|---|---|---|
+
+avec le nom d'utilisateur, la date et le commentaire de chaque approbation. Le même tableau figure dans l'impression/le PDF et dans le PDF de la publication Nextcloud. Chaque approbation enregistre aussi un instantané du contenu. Les documents approuvés avant cette fonction affichent la dernière approbation de l'historique des statuts comme première ligne.
 
 ---
 

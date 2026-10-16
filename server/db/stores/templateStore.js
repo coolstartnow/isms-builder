@@ -2,6 +2,7 @@
 'use strict'
 
 const { getDb, init: initDb } = require('../knexDatabase')
+const { applyApproval } = require('../templateVersioning')
 
 const VALID_STATUSES = ['draft', 'review', 'approved', 'archived']
 const TRANSITIONS = {
@@ -39,6 +40,7 @@ function rowToTemplate(row) {
     applicableEntities: _json(row.applicable_entities, []),
     attachments:        _json(row.attachments, []),
     history:            _json(row.history, []),
+    versionHistory:     _json(row.version_history, []),
     statusHistory:      _json(row.status_history, []),
     webdavPublish:      _json(row.webdav_publish, null),
   }
@@ -92,6 +94,7 @@ module.exports = {
       applicable_entities: '[]',
       attachments: '[]',
       history: JSON.stringify([{ version: 1, content: content || '', updatedAt: now }]),
+      version_history: '[]',
       status_history: JSON.stringify([{ status: 'draft', changedBy: owner || 'system', changedAt: now }]),
     })
     return module.exports.getTemplate(type, id)
@@ -111,21 +114,18 @@ module.exports = {
     if (parentId !== undefined) t.parentId = parentId || null
     if (nextReviewDate !== undefined) t.nextReviewDate = nextReviewDate || null
 
-    t.version += 1
+    // #97: Speichern erhöht die Version nicht mehr — sie steigt erst bei der Freigabe (setStatus).
     t.updatedAt = nowISO()
-    t.history.push({ version: t.version, content: t.content, updatedAt: t.updatedAt })
 
     await getDb()('templates').where('type', type).where('id', id).update({
       title: t.title,
       content: t.content,
-      version: t.version,
       owner: t.owner,
       next_review_date: t.nextReviewDate,
       parent_id: t.parentId,
       updated_at: t.updatedAt,
       linked_controls: JSON.stringify(t.linkedControls),
       applicable_entities: JSON.stringify(t.applicableEntities),
-      history: JSON.stringify(t.history),
       status_history: JSON.stringify(t.statusHistory),
     })
     return t
@@ -161,7 +161,7 @@ module.exports = {
     return t
   },
 
-  setStatus: async (type, id, { status: newStatus, changedBy, role }) => {
+  setStatus: async (type, id, { status: newStatus, changedBy, role, changes }) => {
     const row = await getDb()('templates')
       .where('type', type).where('id', id).whereNull('deleted_at').first()
     if (!row) return { ok: false, error: 'Not found' }
@@ -184,13 +184,18 @@ module.exports = {
     t.status = newStatus
     t.updatedAt = now
     if (!Array.isArray(t.statusHistory)) t.statusHistory = []
+    // #97: Die Freigabe vergibt die neue Version und schreibt sie samt Benutzer in die Versionshistorie.
+    // Reihenfolge wichtig: erst die Version berechnen, dann den neuen Status in die Historie schreiben
+    // (sonst zählt die aktuelle Freigabe schon als frühere).
+    const patch = { status: newStatus, updated_at: now }
+    if (newStatus === 'approved') {
+      applyApproval(t, { approvedBy: changedBy, changes, now })
+      patch.version = t.version
+      patch.version_history = JSON.stringify(t.versionHistory)
+    }
     t.statusHistory.push({ status: newStatus, changedBy: changedBy || 'unknown', changedAt: now })
-
-    await getDb()('templates').where('type', type).where('id', id).update({
-      status: newStatus,
-      updated_at: now,
-      status_history: JSON.stringify(t.statusHistory),
-    })
+    patch.status_history = JSON.stringify(t.statusHistory)
+    await getDb()('templates').where('type', type).where('id', id).update(patch)
     return { ok: true, template: t }
   },
 

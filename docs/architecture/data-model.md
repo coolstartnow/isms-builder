@@ -62,6 +62,9 @@ Soft-delete: records are never physically removed — `deletedAt` marks them as 
   "statusHistory": [
     { "status": "draft", "changedBy": "admin", "changedAt": "2026-01-01T10:00:00Z" }
   ],
+  "versionHistory": [
+    { "version": 3, "approvedBy": "admin", "approvedAt": "2026-03-01T12:00:00Z", "changes": "Abschnitt 4 ergänzt", "title": "Passwort-Richtlinie", "content": "## Inhalt …" }
+  ],
   "parentId": null,
   "sortOrder": 0,
   "nextReviewDate": "2027-01-01",
@@ -77,6 +80,8 @@ Soft-delete: records are never physically removed — `deletedAt` marks them as 
 ```
 
 **Lifecycle states:** `draft` → `review` → `approved` → `archived`
+
+`version` steigt seit V 1.60 nur bei der Freigabe (`review` → `approved`), nicht beim Speichern; jede Freigabe schreibt einen Eintrag in `versionHistory` (mit Inhalts-Snapshot). Im Status `approved` sind `title` und `content` gesperrt. Die Spalte heißt `version_history` (JSON-Text).
 
 ---
 

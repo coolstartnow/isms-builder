@@ -96,14 +96,20 @@ Statuswechsel wird mit Zeitstempel und Nutzer im **Status-Verlauf** protokollier
 
 ## Versionshistorie
 
-Jede gespeicherte Änderung am Inhalt wird automatisch als Version gespeichert.
-Die Versionshistorie ist über das **Verlauf-Icon** im Template abrufbar und zeigt:
+Die **Version steigt nur bei der Freigabe**, nicht beim Speichern. Beliebig oft speichern ändert die Versionsnummer nicht; erst wenn ein Dokument von `review` auf `approved` gesetzt wird, bekommt es seine Version. Die erste Freigabe behält die vorhandene Nummer, jede weitere zählt um 1 hoch.
 
-- Zeitstempel der Änderung
-- Benutzer der geändert hat
-- Vorherigen Inhalt (Diff möglich)
+**Freigeben:** Die Schaltfläche „Genehmigen“ fragt zuerst nach: **„Als Version X freigeben?“**, dazu ein optionaler **Änderungskommentar**. Erst „Ja, freigeben“ führt die Freigabe aus.
 
-Dies ermöglicht die vollständige Nachvollziehbarkeit die ISO 27001 für Dokumente fordert.
+**Freigegebene Dokumente sind gesperrt:** Titel und Inhalt lassen sich im Status `approved` nicht ändern (die Oberfläche zeigt nur die Leseansicht und einen Hinweis, der Server lehnt Änderungen mit `409` ab). Das nächste Review-Datum bleibt bearbeitbar. Zum Weiterarbeiten setzt man das Dokument zurück auf `review` (Rolle `contentowner`), bearbeitet es und gibt es erneut frei — dabei entsteht die nächste Version.
+
+**Versionshistorie im Dokumentkopf:** Über dem Dokument steht (aufklappbar, auch über das **Verlauf-Icon**) die Tabelle
+
+| Version | Freigegeben von | Freigegeben am | Änderungen |
+|---|---|---|---|
+
+mit dem Benutzernamen, dem Zeitpunkt und dem Änderungskommentar jeder Freigabe. Dieselbe Tabelle steht im Ausdruck/PDF und im PDF für den Nextcloud-Publish. Bei jeder Freigabe wird zusätzlich der Inhalt als Schnappschuss gespeichert. Dokumente, die schon vor dieser Funktion freigegeben waren, zeigen die letzte Freigabe aus dem Status-Verlauf als erste Zeile.
+
+Dies ermöglicht die vollständige Nachvollziehbarkeit, die ISO 27001 für Dokumente fordert.
 
 ---
 

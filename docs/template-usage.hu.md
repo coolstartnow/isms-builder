@@ -93,12 +93,18 @@ státuszváltást időbélyeggel és felhasználónévvel naplózza a **státuzt
 
 ## Verziotörténet
 
-A tartalom minden mentett változása automatikusan verzióként kerül tárolásra.
-A verziótörténet a sablonban lévő **előzmény ikonon** keresztül érhető el, és a következőket mutatja:
+A **verzió csak a jóváhagyáskor változik**, mentéskor nem. Tetszőleges számú alkalommal menthet anélkül, hogy a verziószám módosulna; a dokumentum akkor kapja meg a verzióját, amikor `review` állapotból `approved` állapotba kerül. Az első jóváhagyás megtartja a meglévő számot, minden további eggyel növeli.
 
-- A változtatás időbélyege
-- A módosítást végző felhasználó
-- Az előző tartalom (összehasonlítás elérhető)
+**Jóváhagyás:** a „Jóváhagyás” gomb előbb rákérdez: **„Jóváhagyás {X}. verzióként?”**, opcionális **módosítási megjegyzéssel**. Csak az „Igen, jóváhagyom” hajtja végre a jóváhagyást.
+
+**A jóváhagyott dokumentumok zároltak:** `approved` állapotban a cím és a tartalom nem módosítható (a felület csak olvasási nézetet és egy megjegyzést mutat, a szerver `409`-cel utasítja el a módosítást). A következő felülvizsgálati dátum szerkeszthető marad. A továbblépéshez a dokumentumot vissza kell állítani `review` állapotba (`contentowner` szerepkör), szerkeszteni, majd újra jóváhagyni — ekkor jön létre a következő verzió.
+
+**Verziótörténet a dokumentum fejlécében:** a dokumentum felett (összecsukható, az **előzmény ikonon** keresztül is) látható a táblázat
+
+| Verzió | Jóváhagyta | Jóváhagyás dátuma | Módosítások |
+|---|---|---|---|
+
+minden jóváhagyás felhasználónevével, időpontjával és módosítási megjegyzésével. Ugyanez a táblázat szerepel a nyomtatásban/PDF-ben és a Nextcloud-közzététel PDF-jében. Minden jóváhagyás a tartalom pillanatképét is eltárolja. A funkció előtt már jóváhagyott dokumentumoknál az állapottörténet utolsó jóváhagyása jelenik meg első sorként.
 
 Ez lehetővé teszi azt a teljes nyomon követhetőséget, amelyet az ISO 27001 a dokumentumoknál megkövetel.
 

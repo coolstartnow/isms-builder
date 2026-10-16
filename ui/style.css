@@ -346,6 +346,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0; }
 .status-approved { background: var(--success-subtle); color: var(--success-text); }
 .status-archived { background: #1a1a1a; color: var(--text-disabled); }
 
+.tmpl-lock-hint { margin: 6px 0; padding: 8px 12px; font-size: 12.5px; color: var(--text-subtle); background: var(--surface); border-left: 3px solid var(--border); border-radius: 4px; }
+.tmpl-version-box { margin: 6px 0; font-size: 12.5px; }
+.tmpl-version-box summary { cursor: pointer; color: var(--text-subtle); user-select: none; }
+.tmpl-version-table { border-collapse: collapse; width: 100%; margin-top: 6px; }
+.tmpl-version-table th, .tmpl-version-table td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
+.tmpl-version-table th { background: var(--surface); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-subtle); }
+.tmpl-approve-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tmpl-approve-confirm input { min-width: 260px; }
 .lifecycle-actions {
   display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
   padding: 10px 14px; background: var(--bg);

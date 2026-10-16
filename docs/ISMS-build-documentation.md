@@ -1005,6 +1005,14 @@ PUT  /template/:type/:id/move                 – Eltern wechseln (kein Version-
 POST /templates/reorder                       – Geschwister-Reihenfolge (Batch-Update)
 ```
 
+### Versionierung und Freigabe (V 1.60, #97)
+
+- **Speichern erhöht die Version nicht mehr.** `PUT /template/:type/:id` ändert Titel/Inhalt/Metadaten, die Versionsnummer bleibt. Die Version vergibt die Freigabe: `PATCH /template/:type/:id/status` mit `status: "approved"` (und optional `changes`, max. 1000 Zeichen) setzt `version` (erste Freigabe: vorhandene Nummer, jede weitere +1) und hängt einen Eintrag `{ version, approvedBy, approvedAt, changes, title, content }` an `versionHistory` an.
+- **Sperre:** Im Status `approved` lehnt `PUT` Änderungen an `title` und `content` mit `409` ab; Metadaten (z. B. `nextReviewDate`, `applicableEntities`, `linkedControls`) und unveränderte Werte bleiben erlaubt. Zum Bearbeiten: `approved → review` (contentowner), bearbeiten, erneut freigeben.
+- **Lesen:** `GET /template/:type/:id/versions` liefert `{ current, nextVersion, versions[] }` (ohne Inhalts-Snapshot); `GET /template/:type/:id` und die Antworten von `PUT`/`PATCH status` enthalten zusätzlich `versions` und `nextVersion`. Bei Altbestand ohne `versionHistory` wird die letzte Freigabe aus `statusHistory` als erste Zeile abgeleitet (`legacy: true`). `GET …/history` liefert weiterhin die alten Speicher-Snapshots.
+- **UI:** Die Freigabe fragt inline nach („Als Version X freigeben?“, optionaler Änderungskommentar, kein Modal). Über dem Dokument steht die aufklappbare Versionstabelle (Version / Freigegeben von / Freigegeben am / Änderungen), ebenso im Ausdruck, im PDF und im Nextcloud-PDF (`server/pdfExport.js`).
+- **Speicherung:** Neue Spalte `templates.version_history` (JSON-Text, wird beim Start per `ensureColumns` ergänzt). Gemeinsame Logik: `server/db/templateVersioning.js`. Die Legacy-Stores `sqliteStore.js`/`pgStore.js`/`mariadbStore.js` (Fallback, falls der Knex-Store nicht lädt) sind nicht angepasst.
+
 **PUT /template/:type/:id/move** (minRole: contentowner)
 ```json
 { "parentId": "policy_abc123", "sortOrder": 5 }

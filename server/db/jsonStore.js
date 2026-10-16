@@ -3,6 +3,7 @@
 // Path: data/templates.json
 const fs = require('fs')
 const path = require('path')
+const { applyApproval } = require('./templateVersioning')
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../../data')
 const FILE = path.join(DATA_DIR, 'templates.json')
@@ -91,6 +92,7 @@ module.exports = {
       parentId: parentId || null,
       sortOrder: 0,
       history: [{ version: 1, content: content || '', updatedAt: now }],
+      versionHistory: [],
       statusHistory: [{ status: 'draft', changedBy: owner || 'system', changedAt: now }]
     }
     store.push(t)
@@ -109,9 +111,8 @@ module.exports = {
     if (Array.isArray(linkedControls)) t.linkedControls = linkedControls
     if (parentId !== undefined) t.parentId = parentId || null
     if (nextReviewDate !== undefined) t.nextReviewDate = nextReviewDate || null
-    t.version += 1
+    // #97: Speichern erhöht die Version nicht mehr — sie steigt erst bei der Freigabe (setStatus).
     t.updatedAt = nowISO()
-    t.history.push({ version: t.version, content: t.content, updatedAt: t.updatedAt })
     saveAll(store)
     return t
   },
@@ -141,7 +142,7 @@ module.exports = {
   },
 
   // Status-Übergang: gibt { ok, error, template } zurück
-  setStatus: (type, id, { status: newStatus, changedBy, role }) => {
+  setStatus: (type, id, { status: newStatus, changedBy, role, changes }) => {
     const idx = findIndex(type, id)
     if (idx < 0) return { ok: false, error: 'Not found' }
     if (!VALID_STATUSES.includes(newStatus)) return { ok: false, error: 'Invalid status' }
@@ -160,7 +161,10 @@ module.exports = {
     const now = nowISO()
     t.status = newStatus
     t.updatedAt = now
-    if (newStatus === 'approved') t.reviewDate = now
+    if (newStatus === 'approved') {
+      t.reviewDate = now
+      applyApproval(t, { approvedBy: changedBy, changes, now })
+    }
     if (!t.statusHistory) t.statusHistory = []
     t.statusHistory.push({ status: newStatus, changedBy: changedBy || 'unknown', changedAt: now })
 

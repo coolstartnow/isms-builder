@@ -55,7 +55,7 @@ describe(`DB-Stores-Integration [${BACKEND}]`, () => {
   test('alle Tabellen und ihre definierten Spalten existieren', async () => {
     const db = knexDatabase.getDb()
     const expected = {
-      templates: ['id','type','language','title','content','version','status','owner','next_review_date','parent_id','sort_order','created_at','updated_at','linked_controls','applicable_entities','attachments','history','status_history','deleted_at','deleted_by'],
+      templates: ['id','type','language','title','content','version','status','owner','next_review_date','parent_id','sort_order','created_at','updated_at','linked_controls','applicable_entities','attachments','history','status_history','deleted_at','deleted_by','version_history'],
       training: ['id','title','description','category','status','due_date','completed_date','instructor','assignees','applicable_entities','evidence','mandatory','created_by','created_at','updated_at','deleted_at','data'],
       entities: ['id','name','short','type','parent_id','created_at','updated_at'],
       soa_controls: ['id','framework','control_id','title','description','theme','applicable','status','justification','evidence','owner','applicable_entities','linked_templates','updated_by','is_custom','created_at','updated_at'],
@@ -130,6 +130,33 @@ describe(`DB-Stores-Integration [${BACKEND}]`, () => {
       expect((await s.getById(r.id)).linkedAssets).toEqual(['a1'])
       await s.delete(r.id, 'tester')
       await s.permanentDelete(r.id)
+    })
+
+    test('templateStore: Version steigt erst bei der Freigabe (#97), versionHistory bleibt erhalten', async () => {
+      const s = require('../server/db/stores/templateStore')
+      const t = await s.createTemplate({ type: 'policy', language: 'de', title: 'Vers', content: 'a', owner: 'tester' })
+      expect(t.version).toBe(1)
+      await s.updateTemplate('policy', t.id, { content: 'b' })
+      const upd = await s.updateTemplate('policy', t.id, { content: 'c' })
+      expect(upd.version).toBe(1)
+
+      expect((await s.setStatus('policy', t.id, { status: 'review', changedBy: 'ed', role: 'editor' })).ok).toBe(true)
+      const first = await s.setStatus('policy', t.id, { status: 'approved', changedBy: 'carol', role: 'admin', changes: 'Start' })
+      expect(first.ok).toBe(true)
+      expect(first.template.version).toBe(1)
+
+      let got = await s.getTemplate('policy', t.id)
+      expect(got.version).toBe(1)
+      expect(got.versionHistory).toHaveLength(1)
+      expect(got.versionHistory[0]).toMatchObject({ version: 1, approvedBy: 'carol', changes: 'Start', content: 'c' })
+
+      await s.setStatus('policy', t.id, { status: 'review', changedBy: 'carol', role: 'admin' })
+      await s.updateTemplate('policy', t.id, { content: 'd' })
+      await s.setStatus('policy', t.id, { status: 'approved', changedBy: 'dave', role: 'admin' })
+      got = await s.getTemplate('policy', t.id)
+      expect(got.version).toBe(2)
+      expect(got.versionHistory.map(v => [v.version, v.approvedBy])).toEqual([[1, 'carol'], [2, 'dave']])
+      await s.permanentDeleteTemplate('policy', t.id)
     })
 
     test('goalsStore', async () => {
