@@ -75,7 +75,7 @@ async function submitLogin() {
     } else {
       if (data && data.code === 'ENFORCE_2FA') {
         // 2FA systemweit erzwungen, aber für diesen Account noch nicht eingerichtet
-        showError('Zugang gesperrt: Zwei-Faktor-Authentifizierung (2FA) ist für alle Benutzer verpflichtend. Bitte wende dich an den Administrator, damit 2FA für deinen Account eingerichtet wird.')
+        showError(t('lg_enforce2fa'))
         const el = document.getElementById('error-msg')
         if (el) el.style.borderLeft = '4px solid #f0b429'
       } else if (data && data.twoFactorRequired) {
@@ -87,7 +87,7 @@ async function submitLogin() {
         if (totpInput && btn) {
           btn.onclick = async () => {
             const totp = totpInput.value
-            if (!totp) { alert('2FA-Code fehlt'); return }
+            if (!totp) { alert(t('lg_totpMissing')); return }
             payload.totp = totp
             const retry = await fetch('/login', {
               method: 'POST',
@@ -106,17 +106,17 @@ async function submitLogin() {
                 showSplashThenGo()
               }
             } else {
-              showError('Login fehlgeschlagen: ' + (data2.error || 'Unbekannter Fehler'))
+              showError(t('lg_failed') + ': ' + (data2.error || t('lg_unknown')))
             }
           }
         }
       } else {
-        showError('Login fehlgeschlagen: ' + (data.error || 'Unbekannter Fehler'))
+        showError(t('lg_failed') + ': ' + (data.error || t('lg_unknown')))
       }
     }
   } catch (e) {
     console.error(e)
-    showError('Login-Fehler: Netzwerkfehler')
+    showError(t('lg_network'))
   }
 }
 

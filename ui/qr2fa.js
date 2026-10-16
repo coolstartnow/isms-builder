@@ -13,23 +13,23 @@ function show2faSetupModal(username, onSuccess) {
   modal.className = 'twofa-overlay'
   modal.innerHTML = `
     <div class="twofa-dialog">
-      <h3>2FA einrichten – ${username}</h3>
-      <div id="twofa-loading" class="twofa-loading">Lade QR-Code…</div>
+      <h3>${t('twofa_setupTitle', { user: username })}</h3>
+      <div id="twofa-loading" class="twofa-loading">${t('twofa_loadQr')}</div>
       <div id="twofa-content" style="display:none">
-        <p class="twofa-hint">Scanne diesen QR-Code mit Google Authenticator, Authy oder einer anderen TOTP-App:</p>
-        <img id="twofa-qr" src="" alt="QR-Code" class="twofa-qr" />
-        <p class="twofa-hint">Oder gib diesen Secret manuell ein:</p>
+        <p class="twofa-hint">${t('twofa_scanHint')}</p>
+        <img id="twofa-qr" src="" alt="${t('twofa_qrCodeAlt')}" class="twofa-qr" />
+        <p class="twofa-hint">${t('twofa_manualHint')}</p>
         <code id="twofa-secret" class="twofa-secret"></code>
         <hr class="twofa-hr"/>
-        <p class="twofa-hint">Gib anschließend den 6-stelligen Code aus der App ein, um 2FA zu aktivieren:</p>
+        <p class="twofa-hint">${t('twofa_codeHint')}</p>
         <div class="twofa-input-row">
           <input id="twofa-token" class="twofa-token-input" type="text" maxlength="6" inputmode="numeric" placeholder="000000" />
-          <button id="twofa-verify-btn" class="btn primary">Aktivieren</button>
+          <button id="twofa-verify-btn" class="btn primary">${t('twofa_activate')}</button>
         </div>
         <p id="twofa-msg" class="twofa-msg"></p>
       </div>
       <div class="twofa-footer">
-        <button id="twofa-close" class="btn">Schließen</button>
+        <button id="twofa-close" class="btn">${t('incpub_close')}</button>
       </div>
     </div>
   `
@@ -49,14 +49,14 @@ function show2faSetupModal(username, onSuccess) {
       modal.querySelector('#twofa-secret').textContent = data.secret
     })
     .catch(() => {
-      modal.querySelector('#twofa-loading').textContent = 'Fehler beim Laden des QR-Codes.'
+      modal.querySelector('#twofa-loading').textContent = t('twofa_qrLoadFailed')
     })
 
   // Code verifizieren
   modal.querySelector('#twofa-verify-btn').onclick = async () => {
     const token = modal.querySelector('#twofa-token').value.trim()
     const msg = modal.querySelector('#twofa-msg')
-    if (token.length !== 6) { msg.textContent = 'Bitte 6-stelligen Code eingeben.'; return }
+    if (token.length !== 6) { msg.textContent = t('twofa_enter6'); return }
     const res = await fetch('/2fa/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -64,24 +64,24 @@ function show2faSetupModal(username, onSuccess) {
     })
     const data = await res.json()
     if (res.ok) {
-      msg.textContent = '✓ 2FA erfolgreich aktiviert!'
+      msg.textContent = '✓ ' + t('twofa_enabled')
       msg.style.color = '#4ade80'
       if (onSuccess) onSuccess()
     } else {
-      msg.textContent = data.error || 'Ungültiger Code.'
+      msg.textContent = data.error || t('twofa_invalidCode')
       msg.style.color = '#f87171'
     }
   }
 }
 
 async function disable2fa(username, onSuccess) {
-  if (!confirm(`2FA für "${username}" wirklich deaktivieren?`)) return
+  if (!confirm(t('twofa_disableUserConfirm', { user: username }))) return
   const res = await fetch(`/2fa?username=${encodeURIComponent(username)}`, { method: 'DELETE' })
   const data = await res.json()
   if (res.ok) {
-    alert('2FA deaktiviert.')
+    alert(t('twofa_disabled'))
     if (onSuccess) onSuccess()
   } else {
-    alert(data.error || 'Fehler')
+    alert(data.error || t('error'))
   }
 }

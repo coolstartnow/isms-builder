@@ -312,7 +312,7 @@
   <div id="splashOverlay">
     <img src="/ui/isms-builder-banner.png" alt="ISMS Builder">
     <div class="splash-progress"><div class="splash-progress-bar" id="splashBar"></div></div>
-    <button class="splash-skip" onclick="splashDone()">Skip &rarr;</button>
+    <button class="splash-skip" onclick="splashDone()"><span data-i18n="ui_skip">Skip</span> &rarr;</button>
   </div>
 
   <div class="login-brand">
@@ -321,9 +321,9 @@
   </div>
 
   <div class="dev-warning-banner" id="devWarningBanner">
-    <span class="dev-warn-title"><i class="ph ph-warning-diamond-fill"></i> Development Demo</span>
-    This system is under active development. Data may be reset at any time.
-    Do not use for production or store sensitive information.
+    <span class="dev-warn-title"><i class="ph ph-warning-diamond-fill"></i> <span data-i18n="devWarnTitle">Development demo</span></span>
+    <span data-i18n="devWarnText">This system is under active development. Data may be reset at any time.
+    Do not use for production or store sensitive information.</span>
   </div>
 
   <div class="demo-reset-banner" id="demoResetBanner">
@@ -408,87 +408,87 @@
     <div class="inc-dialog" id="incDialog">
 
       <div class="inc-header">
-        <h3><i class="ph ph-siren"></i> Sicherheitsvorfall melden</h3>
-        <button class="inc-close" onclick="closeIncModal()" title="Schließen">&times;</button>
+        <h3><i class="ph ph-siren"></i> <span data-i18n="loginReportIncident">Sicherheitsvorfall melden</span></h3>
+        <button class="inc-close" onclick="closeIncModal()" data-i18n-title="incpub_close" title="Schließen">&times;</button>
       </div>
 
       <div id="incForm">
         <div class="inc-body">
           <div class="inc-row">
             <div class="inc-group">
-              <label class="inc-label">Ihre E-Mail <span class="req">*</span></label>
-              <input class="inc-input" id="iEmail" type="email" placeholder="name@firma.de" />
+              <label class="inc-label"><span data-i18n="incpub_email">Ihre E-Mail</span> <span class="req">*</span></label>
+              <input class="inc-input" id="iEmail" type="email" data-i18n-placeholder="loginEmailPh" placeholder="name@firma.de" />
             </div>
             <div class="inc-group">
-              <label class="inc-label">Gesellschaft / Standort</label>
+              <label class="inc-label" data-i18n="incpub_entity">Gesellschaft / Standort</label>
               <select class="inc-select" id="iEntity">
-                <option value="">– bitte wählen –</option>
+                <option value="" data-i18n="incpub_choose">– bitte wählen –</option>
               </select>
             </div>
           </div>
 
           <div class="inc-group">
-            <label class="inc-label">Art des Vorfalls <span class="req">*</span></label>
+            <label class="inc-label"><span data-i18n="incpub_type">Art des Vorfalls</span> <span class="req">*</span></label>
             <select class="inc-select" id="iType">
-              <option value="">– bitte wählen –</option>
-              <option value="malware">Malware / Schadsoftware</option>
-              <option value="phishing">Phishing / Scam / Social Engineering</option>
-              <option value="data_theft">Datenklau / Datenverlust</option>
-              <option value="ransomware">Ransomware / Erpressung</option>
-              <option value="unauthorized_access">Unbefugter Zugriff auf Systeme</option>
-              <option value="social_engineering">CEO-Fraud / Identitätsmissbrauch</option>
-              <option value="other">Sonstiges</option>
+              <option value="" data-i18n="incpub_choose">– bitte wählen –</option>
+              <option value="malware" data-i18n="incpub_t_malware">Malware / Schadsoftware</option>
+              <option value="phishing" data-i18n="incpub_t_phishing">Phishing / Scam / Social Engineering</option>
+              <option value="data_theft" data-i18n="incpub_t_dataTheft">Datenklau / Datenverlust</option>
+              <option value="ransomware" data-i18n="incpub_t_ransomware">Ransomware / Erpressung</option>
+              <option value="unauthorized_access" data-i18n="incpub_t_unauthorized">Unbefugter Zugriff auf Systeme</option>
+              <option value="social_engineering" data-i18n="incpub_t_social">CEO-Fraud / Identitätsmissbrauch</option>
+              <option value="other" data-i18n="incpub_t_other">Sonstiges</option>
             </select>
           </div>
 
           <div class="inc-group">
-            <label class="inc-label">Was ist vorgefallen? <span class="req">*</span></label>
-            <textarea class="inc-textarea" id="iDesc" placeholder="Bitte schildern Sie den Vorfall so genau wie möglich: Wann, wo, wie wurde es bemerkt?"></textarea>
+            <label class="inc-label"><span data-i18n="incpub_what">Was ist vorgefallen?</span> <span class="req">*</span></label>
+            <textarea class="inc-textarea" id="iDesc" data-i18n-placeholder="incpub_whatPh" placeholder="Bitte schildern Sie den Vorfall so genau wie möglich: Wann, wo, wie wurde es bemerkt?"></textarea>
           </div>
 
           <div class="inc-group">
-            <label class="inc-label">Welche Maßnahmen wurden bereits ergriffen?</label>
-            <textarea class="inc-textarea" id="iMeasures" placeholder="z.B. System vom Netz getrennt, Passwörter geändert, IT informiert…"></textarea>
+            <label class="inc-label" data-i18n="incpub_measures">Welche Maßnahmen wurden bereits ergriffen?</label>
+            <textarea class="inc-textarea" id="iMeasures" data-i18n-placeholder="incpub_measuresPh" placeholder="z.B. System vom Netz getrennt, Passwörter geändert, IT informiert…"></textarea>
           </div>
 
           <div class="inc-row">
             <div class="inc-group">
-              <label class="inc-label">Lokaler Ansprechpartner</label>
-              <input class="inc-input" id="iContact" type="text" placeholder="Name und Telefon / E-Mail" />
+              <label class="inc-label" data-i18n="incpub_contact">Lokaler Ansprechpartner</label>
+              <input class="inc-input" id="iContact" type="text" data-i18n-placeholder="incpub_contactPh" placeholder="Name und Telefon / E-Mail" />
             </div>
             <div class="inc-group">
-              <label class="inc-label">Wurde alles bereinigt?</label>
+              <label class="inc-label" data-i18n="incpub_cleaned">Wurde alles bereinigt?</label>
               <select class="inc-select" id="iCleaned">
-                <option value="no">Nein – Wiedervorlage nötig</option>
-                <option value="partial">Teilweise – weitere Maßnahmen geplant</option>
-                <option value="yes">Ja – vollständig bereinigt</option>
+                <option value="no" data-i18n="incpub_cleanedNo">Nein – Wiedervorlage nötig</option>
+                <option value="partial" data-i18n="incpub_cleanedPartial">Teilweise – weitere Maßnahmen geplant</option>
+                <option value="yes" data-i18n="incpub_cleanedYes">Ja – vollständig bereinigt</option>
               </select>
             </div>
           </div>
 
           <p style="font-size:11px;color:#596773;margin:0;">
             <i class="ph ph-info"></i>
-            Diese Meldung geht direkt an das CISO-Team. Felder mit <span style="color:#e74c3c">*</span> sind Pflichtfelder.
-            Die Zuweisung zu IT oder Datenschutz sowie die Einschätzung zur Meldepflicht erfolgt durch den CISO.
+            <span data-i18n-html="incpub_note">Diese Meldung geht direkt an das CISO-Team. Felder mit <span style="color:#e74c3c">*</span> sind Pflichtfelder.
+            Die Zuweisung zu IT oder Datenschutz sowie die Einschätzung zur Meldepflicht erfolgt durch den CISO.</span>
           </p>
           <p class="inc-err" id="iErr"></p>
         </div>
 
         <div class="inc-footer">
-          <button class="btn-cancel-inc" onclick="closeIncModal()">Abbrechen</button>
+          <button class="btn-cancel-inc" onclick="closeIncModal()" data-i18n="ui_cancel">Abbrechen</button>
           <button class="btn-submit-inc" id="iSubmitBtn" onclick="submitIncident()">
-            <i class="ph ph-paper-plane-tilt"></i> Vorfall melden
+            <i class="ph ph-paper-plane-tilt"></i> <span data-i18n="incpub_submit">Vorfall melden</span>
           </button>
         </div>
       </div>
 
       <div class="inc-confirm" id="incConfirm" style="display:none;">
         <div class="inc-confirm-icon"><i class="ph ph-check-circle"></i></div>
-        <h4>Vorfall gemeldet</h4>
-        <p>Ihr Vorfall wurde erfolgreich übermittelt. Das CISO-Team wird sich um die weitere Bearbeitung kümmern.</p>
-        <p>Ihr Aktenzeichen: <span class="ref" id="iRefNum">—</span></p>
-        <p style="margin-top:4px;">Bitte notieren Sie dieses Aktenzeichen für Rückfragen.</p>
-        <button class="btn-submit-inc" style="margin-top:18px;margin-left:auto;margin-right:auto;" onclick="closeIncModal()">
+        <h4 data-i18n="incpub_doneTitle">Vorfall gemeldet</h4>
+        <p data-i18n="incpub_doneText">Ihr Vorfall wurde erfolgreich übermittelt. Das CISO-Team wird sich um die weitere Bearbeitung kümmern.</p>
+        <p><span data-i18n="incpub_refLabel">Ihr Aktenzeichen:</span> <span class="ref" id="iRefNum">—</span></p>
+        <p style="margin-top:4px;" data-i18n="incpub_refNote">Bitte notieren Sie dieses Aktenzeichen für Rückfragen.</p>
+        <button class="btn-submit-inc" style="margin-top:18px;margin-left:auto;margin-right:auto;" onclick="closeIncModal()" data-i18n="incpub_close">
           Schließen
         </button>
       </div>
@@ -514,6 +514,9 @@
       document.documentElement.lang = lang
       document.querySelectorAll('[data-i18n]').forEach(el => {
         el.textContent = t(el.dataset.i18n)
+      })
+      document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        el.innerHTML = t(el.dataset.i18nHtml)
       })
       document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
         el.placeholder = t(el.dataset.i18nPlaceholder)
@@ -617,14 +620,14 @@
 
       errEl.style.display = 'none'
       if (!email || !incidentType || !description) {
-        errEl.textContent = 'Bitte füllen Sie alle Pflichtfelder aus (E-Mail, Art des Vorfalls, Beschreibung).'
+        errEl.textContent = t('incpub_errRequired')
         errEl.style.display = 'block'
         return
       }
 
       const btn = document.getElementById('iSubmitBtn')
       btn.disabled = true
-      btn.innerHTML = '<i class="ph ph-spinner"></i> Wird gesendet…'
+      btn.innerHTML = '<i class="ph ph-spinner"></i> ' + t('incpub_sending')
 
       try {
         const res = await fetch('/public/incident', {
@@ -633,15 +636,15 @@
           body: JSON.stringify({ email, entityName, incidentType, description, measuresTaken, localContact, cleanedUp })
         })
         const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Fehler beim Senden')
+        if (!res.ok) throw new Error(data.error || t('incpub_errSend'))
         document.getElementById('iRefNum').textContent = data.refNumber
         document.getElementById('incForm').style.display = 'none'
         document.getElementById('incConfirm').style.display = ''
       } catch (e) {
-        errEl.textContent = 'Fehler: ' + e.message
+        errEl.textContent = t('error') + ': ' + e.message
         errEl.style.display = 'block'
         btn.disabled = false
-        btn.innerHTML = '<i class="ph ph-paper-plane-tilt"></i> Vorfall melden'
+        btn.innerHTML = '<i class="ph ph-paper-plane-tilt"></i> ' + t('incpub_submit')
       }
     }
 
@@ -689,7 +692,7 @@
         })
         if (!r.ok) {
           const d = await r.json()
-          loadingEl.textContent = 'Error: ' + (d.error || r.status)
+          loadingEl.textContent = t('error') + ': ' + (d.error || r.status)
           loadingEl.style.color = '#e74c3c'
           grid.style.opacity = '1'
           skipBtn.style.display = ''
@@ -698,7 +701,7 @@
         closeDemoLangOverlay()
         window.location.href = '/ui/index.html'
       } catch (e) {
-        loadingEl.textContent = 'Network error'
+        loadingEl.textContent = t('lg_network')
         grid.style.opacity = '1'
         skipBtn.style.display = ''
       }
@@ -708,8 +711,8 @@
   <!-- ── Demo-Sprach-Overlay ── -->
   <div class="demo-lang-overlay" id="demoLangOverlay">
     <div class="demo-lang-card">
-      <h3>🌍 Welcome to ISMS Builder</h3>
-      <p>Choose your preferred language for the demo data.<br/>The user interface will follow the language you selected on the login page.</p>
+      <h3>🌍 <span data-i18n="demo_welcome">Welcome to ISMS Builder</span></h3>
+      <p data-i18n="demo_choose">Choose your preferred language for the demo data.<br/>The user interface will follow the language you selected on the login page.</p>
       <div class="demo-lang-grid" id="demoLangGrid">
         <button class="demo-lang-btn" onclick="loadDemoBundle('de')">
           <span class="flag">🇩🇪</span>
@@ -737,8 +740,8 @@
           <small style="color:var(--subtle);font-size:11px;">Demóadatok magyarul</small>
         </button>
       </div>
-      <div class="demo-lang-loading" id="demoLangLoading">Loading demo data…</div>
-      <button class="demo-lang-skip" id="demoLangSkip" onclick="loadDemoBundle('skip')">Skip – start with empty system</button>
+      <div class="demo-lang-loading" id="demoLangLoading" data-i18n="demo_loading">Loading demo data…</div>
+      <button class="demo-lang-skip" id="demoLangSkip" onclick="loadDemoBundle('skip')" data-i18n="demo_skip">Skip – start with empty system</button>
     </div>
   </div>
 </body>

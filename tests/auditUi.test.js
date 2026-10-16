@@ -84,7 +84,7 @@ describe('Audit-UI: Verdrahtung', () => {
     expect(APP).toMatch(/audits:true,\n\}/)
     expect(APP).toMatch(/sectionId === 'audits'[\s\S]{0,160}renderAudits\(\)/)
     expect((APP.match(/'auditsContainer'/g) || []).length).toBeGreaterThanOrEqual(2)
-    expect(APP).toMatch(/id: 'audits', label: 'Audit Management'/)
+    expect(APP).toMatch(/id: 'audits',[^\n]*\n\s+get desc\(\) \{ return t\('modmeta_audits'\) \}/)
   })
 
   test('Kalender, Papierkorb, Suche, Dashboard', () => {

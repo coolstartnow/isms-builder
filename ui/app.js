@@ -176,13 +176,13 @@ async function applyStatusTransition(template, newStatus, changes) {
   const data = await res.json()
   if (!res.ok) {
     const errEl = document.getElementById('error-msg')
-    if (errEl) { errEl.textContent = data.error || 'Error'; errEl.style.display = 'block' }
-    else alert(data.error || 'Error')
+    if (errEl) { errEl.textContent = data.error || t('error'); errEl.style.display = 'block' }
+    else alert(data.error || t('error'))
     return
   }
   currentTemplate = data
   updateStatusBadge(data.status)
-  dom('ownerInfo').textContent = data.owner ? `Owner: ${data.owner}` : ''
+  dom('ownerInfo').textContent = data.owner ? `${t('col_owner')}: ${data.owner}` : ''
   renderLifecycleActions(data)
   renderWebdavPublishBar(data)
   applyTemplateViewMode(data)   // Sperre bei Freigabe setzen bzw. aufheben (#97)
@@ -678,7 +678,7 @@ async function init() {
         <button class="sidebar-nav-item sidebar-tree-parent" data-type="${t}">
           <i class="ph ${icon}"></i><span>${t}</span>
         </button>
-        <button class="sidebar-tree-toggle" data-type="${t}" title="${escHtml(t('ui_expand'))}">
+        <button class="sidebar-tree-toggle" data-type="${t}" title="${escHtml(window.t('ui_expand'))}">
           <i class="ph ph-caret-right"></i>
         </button>
       </div>
@@ -752,7 +752,7 @@ function selectType(type, init=false) {
       if (canMove) {
         const rootDz = document.createElement('div')
         rootDz.className = 'tree-drop-zone'
-        rootDz.title = 'Hierher ziehen → Root-Ebene'
+        rootDz.title = t('tmpl_dropToRoot')
         rootDz.style.minHeight = '6px'
         rootDz.addEventListener('dragover', e => { e.preventDefault(); rootDz.classList.add('drag-over-sibling') })
         rootDz.addEventListener('dragleave', () => rootDz.classList.remove('drag-over-sibling'))
@@ -791,7 +791,7 @@ function renderTemplateTree(nodes, ul, isAdmin, depth) {
     expandBtn.className = 'tmpl-tree-expand'
     if (hasChildren) {
       expandBtn.innerHTML = '<i class="ph ph-caret-right"></i>'
-      expandBtn.title = 'Unterseiten ein-/ausklappen'
+      expandBtn.title = window.t('tmpl_toggleChildren')
     } else {
       expandBtn.innerHTML = '<span class="tmpl-tree-spacer"></span>'
       expandBtn.disabled = true
@@ -819,7 +819,7 @@ function renderTemplateTree(nodes, ul, isAdmin, depth) {
       if (idx > 0) {
         const upBtn = document.createElement('button')
         upBtn.className = 'tmpl-tree-action'
-        upBtn.title = t('moveUp')
+        upBtn.title = window.t('moveUp')
         upBtn.innerHTML = '<i class="ph ph-arrow-up"></i>'
         upBtn.addEventListener('click', e => { e.stopPropagation(); _reorderMove(nodes, idx, -1) })
         row.appendChild(upBtn)
@@ -827,7 +827,7 @@ function renderTemplateTree(nodes, ul, isAdmin, depth) {
       if (idx < nodes.length - 1) {
         const downBtn = document.createElement('button')
         downBtn.className = 'tmpl-tree-action'
-        downBtn.title = t('moveDown')
+        downBtn.title = window.t('moveDown')
         downBtn.innerHTML = '<i class="ph ph-arrow-down"></i>'
         downBtn.addEventListener('click', e => { e.stopPropagation(); _reorderMove(nodes, idx, +1) })
         row.appendChild(downBtn)
@@ -837,7 +837,7 @@ function renderTemplateTree(nodes, ul, isAdmin, depth) {
     if (isAdmin) {
       const delBtn = document.createElement('button')
       delBtn.className = 'tmpl-tree-delete'
-      delBtn.title = t('delete')
+      delBtn.title = window.t('delete')
       delBtn.innerHTML = '<i class="ph ph-trash"></i>'
       delBtn.addEventListener('click', e => { e.stopPropagation(); deleteTemplate(t) })
       row.appendChild(delBtn)
@@ -949,14 +949,14 @@ function _moveNodeTo(id, type, newParentId, sortOrder) {
     headers: apiHeaders('contentowner'),
     body: JSON.stringify(body)
   }).then(r => r.json()).then(result => {
-    if (result.error) { alert('Error: ' + result.error); return }
+    if (result.error) { alert(t('error') + ': ' + result.error); return }
     selectType(type)
     if (currentTemplate?.id === id) renderBreadcrumb(result)
   })
 }
 
 async function deleteTemplate(t) {
-  if (!confirm(`Delete document "${t.title}"?\nThis action cannot be undone.`)) return
+  if (!confirm(window.t('tmpl_deleteDocConfirm', { title: t.title }))) return
   const res = await fetch(`/template/${t.type}/${encodeURIComponent(t.id)}`, {
     method: 'DELETE',
     headers: apiHeaders('admin')
@@ -965,7 +965,7 @@ async function deleteTemplate(t) {
     if (currentTemplate?.id === t.id) { currentTemplate = null; clearEditor() }
     selectType(t.type)
   } else {
-    alert(t('trash_deleteFailed'))
+    alert(window.t('trash_deleteFailed'))
   }
 }
 
@@ -1508,7 +1508,7 @@ function exportReportJson() {
 function exportReportPdf() {
   const resultEl = dom('reportResult')
   if (!resultEl || !_lastReportData) return alert(t('rep_generateFirst'))
-  const title = `ISMS Report — ${(_activeReportType||'').replace(/_/g,' ')} — ${new Date().toLocaleDateString('en-GB')}`
+  const title = `${t('reports_printTitle')} — ${(_activeReportType||'').replace(/_/g,' ')} — ${new Date().toLocaleDateString('en-GB')}`
   const win = window.open('', '_blank')
   if (!win) return alert(t('err_popupBlocked'))
   win.document.write(`<!DOCTYPE html><html><head>
@@ -2328,11 +2328,11 @@ function renderSectionContent(sectionId){
 let INC_TYPE_LABELS = {
   malware:            'Malware',
   phishing:           'Phishing / Scam',
-  data_theft:         'Data Theft / Data Loss',
+  get data_theft() { return t('inctype_dataTheft') },
   ransomware:         'Ransomware',
-  unauthorized_access:'Unauthorised Access',
-  social_engineering: 'CEO Fraud / Identity Abuse',
-  other:              'Other',
+  get unauthorized_access() { return t('inctype_unauthorized') },
+  get social_engineering() { return t('inctype_social') },
+  get other() { return t('inctype_other') },
 }
 const INC_CLEANED_LABELS = { get yes() { return t('incl_clYes') }, get no() { return t('incl_clNo') }, get partial() { return t('incl_clPartial') } }
 const INC_STATUS_LABELS  = { get new() { return t('incl_stNew') }, get in_review() { return t('incl_stReview') }, get assigned() { return t('incl_stAssigned') }, get closed() { return t('incl_stClosed') } }
@@ -2494,7 +2494,7 @@ async function openIncidentDetail(id) {
 }
 
 async function deleteIncident(id, refNumber) {
-  if (!confirm(`Delete incident ${refNumber}?\nThis action cannot be undone.`)) return
+  if (!confirm(t('inc_deleteConfirm', { ref: refNumber }))) return
   const res = await fetch(`/public/incident/${id}`, { method: 'DELETE', headers: apiHeaders('admin') })
   if (!res.ok) { alert(t('trash_deleteFailed')); return }
   _incidentDetail = null
@@ -2639,7 +2639,7 @@ function renderSoaContent(container) {
       <h2 class="soa-title">${t('soa_title')}</h2>
       <div class="soa-fw-tabs">${tabsHtml}</div>
       <div class="soa-summary-row">
-        <span class="soa-kpi">${total} Controls</span>
+        <span class="soa-kpi">${total} ${t('soa_controlsWord')}</span>
         <span class="soa-kpi soa-kpi-green">${applied} ${t('soa_applicable')}</span>
         <span class="soa-kpi soa-kpi-blue">${implRate}% ${t('soa_implemented')}</span>
         <a class="btn btn-export" href="/soa/export" download="soa-export.json">${t('export')} JSON</a>
@@ -3046,7 +3046,7 @@ async function submitCustomControlModal(id) {
   const url    = id ? `/soa/custom/${id}` : '/soa/custom'
   const method = id ? 'PUT' : 'POST'
   const res = await fetch(url, { method, headers: { ...apiHeaders('contentowner'), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   document.getElementById('customCtrlModal')?.remove()
   // Reload the CUSTOM framework tab
   const container = document.getElementById('soaContainer')
@@ -3054,11 +3054,11 @@ async function submitCustomControlModal(id) {
 }
 
 async function deleteCustomControl(id, title) {
-  if (!confirm(`Delete custom control "${title}"?\nOnly possible if no documents are linked.`)) return
+  if (!confirm(t('soa_deleteCustomConfirm', { title }))) return
   const res = await fetch(`/soa/custom/${id}`, { method: 'DELETE', headers: apiHeaders('contentowner') })
   if (!res.ok) {
     const e = await res.json().catch(()=>({}))
-    alert(e.error || 'Error deleting control')
+    alert(e.error || t('soa_deleteCustomFailed'))
     return
   }
   const container = document.getElementById('soaContainer')
@@ -3160,7 +3160,7 @@ async function renderDashboard() {
   // Nutzer hat bereits weiternavigiert – veraltetes Render verwerfen
   if (!container.isConnected) return
 
-  const statusLabels = { draft: 'Draft', review: 'Review', approved: 'Approved', archived: 'Archived' }
+  const statusLabels = { draft: t('status_draft'), review: t('status_review'), approved: t('status_approved'), archived: t('status_archived') }
   const statusColors  = { draft: '#888', review: '#f0b429', approved: '#4ade80', archived: '#555' }
   const riskColors    = { low: '#4ade80', medium: '#f0b429', high: '#fb923c', critical: '#f87171' }
 
@@ -3174,43 +3174,43 @@ async function renderDashboard() {
   const alertsHtml = (() => {
     const alerts = []
     if (data.byStatus?.review > 0)
-      alerts.push({ color: 'var(--warning-text)', icon: 'ph-clock', text: `${data.byStatus.review} Document(s) awaiting review`, nav: 'policy' })
+      alerts.push({ color: 'var(--warning-text)', icon: 'ph-clock', text: t('dash_alert_docsReview', { n: data.byStatus.review }), nav: 'policy' })
     if (MODULE_CONFIG.risk && riskSummary?.byLevel?.critical > 0)
-      alerts.push({ color: '#f87171', icon: 'ph-warning', text: `${riskSummary.byLevel.critical} critical risks open`, nav: 'risk' })
+      alerts.push({ color: '#f87171', icon: 'ph-warning', text: t('dash_alert_riskCritical', { n: riskSummary.byLevel.critical }), nav: 'risk' })
     if (MODULE_CONFIG.risk && riskSummary?.byLevel?.high > 0)
-      alerts.push({ color: '#fb923c', icon: 'ph-warning-circle', text: `${riskSummary.byLevel.high} high risks`, nav: 'risk' })
+      alerts.push({ color: '#fb923c', icon: 'ph-warning-circle', text: t('dash_alert_riskHigh', { n: riskSummary.byLevel.high }), nav: 'risk' })
     if (MODULE_CONFIG.gdpr && gdprDash?.incidents?.open > 0)
-      alerts.push({ color: '#f87171', icon: 'ph-shield-warning', text: `${gdprDash.incidents.open} open data breach(es)`, nav: 'gdpr' })
+      alerts.push({ color: '#f87171', icon: 'ph-shield-warning', text: t('dash_alert_breaches', { n: gdprDash.incidents.open }), nav: 'gdpr' })
     if (MODULE_CONFIG.legal && legalSummary?.contracts?.expiring > 0)
-      alerts.push({ color: '#fb923c', icon: 'ph-file-text', text: `${legalSummary.contracts.expiring} contract(s) expiring soon`, nav: 'legal' })
+      alerts.push({ color: '#fb923c', icon: 'ph-file-text', text: t('dash_alert_contracts', { n: legalSummary.contracts.expiring }), nav: 'legal' })
     if (MODULE_CONFIG.training && trainSummary?.overdue > 0)
-      alerts.push({ color: '#f87171', icon: 'ph-graduation-cap', text: `${trainSummary.overdue} overdue training(s)`, nav: 'training' })
+      alerts.push({ color: '#f87171', icon: 'ph-graduation-cap', text: t('dash_alert_training', { n: trainSummary.overdue }), nav: 'training' })
     if (MODULE_CONFIG.goals && goalsSummary?.overdue > 0)
-      alerts.push({ color: '#fb923c', icon: 'ph-target', text: `${goalsSummary.overdue} security goal(s) overdue`, nav: 'goals' })
+      alerts.push({ color: '#fb923c', icon: 'ph-target', text: t('dash_alert_goals', { n: goalsSummary.overdue }), nav: 'goals' })
     if (MODULE_CONFIG.assets && assetSummary?.endOfLifeSoon > 0)
-      alerts.push({ color: '#f0b429', icon: 'ph-warning', text: `${assetSummary.endOfLifeSoon} asset(s) approaching end-of-life`, nav: 'assets' })
+      alerts.push({ color: '#f0b429', icon: 'ph-warning', text: t('dash_alert_eol', { n: assetSummary.endOfLifeSoon }), nav: 'assets' })
     if (MODULE_CONFIG.assets && assetSummary?.criticalUnclassified > 0)
-      alerts.push({ color: '#fb923c', icon: 'ph-buildings', text: `${assetSummary.criticalUnclassified} critical/high assets without classification`, nav: 'assets' })
+      alerts.push({ color: '#fb923c', icon: 'ph-buildings', text: t('dash_alert_unclassified', { n: assetSummary.criticalUnclassified }), nav: 'assets' })
     if (MODULE_CONFIG.assets && assetSummary?.protectionUnassessed > 0)
-      alerts.push({ color: '#fb923c', icon: 'ph-shield-star', text: `${assetSummary.protectionUnassessed} asset(s) without protection goal assessment`, nav: 'assets' })
+      alerts.push({ color: '#fb923c', icon: 'ph-shield-star', text: t('dash_alert_protection', { n: assetSummary.protectionUnassessed }), nav: 'assets' })
     if (nis2Deadlines?.overdue > 0)
-      alerts.push({ color: '#f87171', icon: 'ph-warning-octagon', text: `${nis2Deadlines.overdue} NIS2 Art. 23 reporting deadline(s) overdue`, nav: 'nis2' })
+      alerts.push({ color: '#f87171', icon: 'ph-warning-octagon', text: t('dash_alert_nis2Overdue', { n: nis2Deadlines.overdue }), nav: 'nis2' })
     if (nis2Deadlines?.dueSoon > 0)
-      alerts.push({ color: '#f0b429', icon: 'ph-timer', text: `${nis2Deadlines.dueSoon} NIS2 Art. 23 reporting deadline(s) due soon`, nav: 'nis2' })
+      alerts.push({ color: '#f0b429', icon: 'ph-timer', text: t('dash_alert_nis2Soon', { n: nis2Deadlines.dueSoon }), nav: 'nis2' })
     if (nis2Summary?.criticalOpen > 0)
-      alerts.push({ color: '#fb923c', icon: 'ph-shield-star', text: `${nis2Summary.criticalOpen} NIS2 Art. 21 CRITICAL item(s) open`, nav: 'nis2' })
+      alerts.push({ color: '#fb923c', icon: 'ph-shield-star', text: t('dash_alert_nis2Critical', { n: nis2Summary.criticalOpen }), nav: 'nis2' })
     if (MODULE_CONFIG.governance && govSummary?.actions?.overdue > 0)
-      alerts.push({ color: '#f87171', icon: 'ph-chalkboard-teacher', text: `${govSummary.actions.overdue} governance action(s) overdue`, nav: 'governance' })
+      alerts.push({ color: '#f87171', icon: 'ph-chalkboard-teacher', text: t('dash_alert_govOverdue', { n: govSummary.actions.overdue }), nav: 'governance' })
     if (MODULE_CONFIG.governance && govSummary?.actions?.critical > 0)
-      alerts.push({ color: '#fb923c', icon: 'ph-chalkboard-teacher', text: `${govSummary.actions.critical} critical governance action(s) open`, nav: 'governance' })
+      alerts.push({ color: '#fb923c', icon: 'ph-chalkboard-teacher', text: t('dash_alert_govCritical', { n: govSummary.actions.critical }), nav: 'governance' })
     if (MODULE_CONFIG.bcm && bcmSummary?.plans?.overdueTest > 0)
-      alerts.push({ color: '#f87171', icon: 'ph-heartbeat', text: `${bcmSummary.plans.overdueTest} BCM plan test(s) overdue`, nav: 'bcm' })
+      alerts.push({ color: '#f87171', icon: 'ph-heartbeat', text: t('dash_alert_bcmTests', { n: bcmSummary.plans.overdueTest }), nav: 'bcm' })
     if (MODULE_CONFIG.suppliers && supplierSummary?.overdueAudits > 0)
-      alerts.push({ color: '#f87171', icon: 'ph-truck', text: `${supplierSummary.overdueAudits} supplier audit(s) overdue`, nav: 'suppliers' })
+      alerts.push({ color: '#f87171', icon: 'ph-truck', text: t('dash_alert_supplierAudits', { n: supplierSummary.overdueAudits }), nav: 'suppliers' })
     if (findingsSummary?.byStatus?.open > 0)
-      alerts.push({ color: '#fb923c', icon: 'ph-magnifying-glass', text: `${findingsSummary.byStatus.open} open audit finding(s)`, nav: 'reports' })
+      alerts.push({ color: '#fb923c', icon: 'ph-magnifying-glass', text: t('dash_alert_findingsOpen', { n: findingsSummary.byStatus.open }), nav: 'reports' })
     if (findingsSummary?.overdueActions > 0)
-      alerts.push({ color: '#f87171', icon: 'ph-magnifying-glass', text: `${findingsSummary.overdueActions} overdue action(s) in findings`, nav: 'reports' })
+      alerts.push({ color: '#f87171', icon: 'ph-magnifying-glass', text: t('dash_alert_findingActions', { n: findingsSummary.overdueActions }), nav: 'reports' })
     if (reviewPending?.length > 0)
       alerts.push({ color: '#f59e0b', icon: 'ph-shield-warning', text: t('dash_scanRisksPending', { count: reviewPending.length }), nav: 'risk' })
     if (alerts.length === 0) return '<p class="dash-empty" style="color:var(--success-text)"><i class="ph ph-check-circle"></i> ' + t('dash_noIssues') + '</p>'
@@ -5040,17 +5040,17 @@ async function runCleanup() {
   const btn = document.getElementById('btnCleanup')
   const msg = document.getElementById('cleanupResult')
   btn.disabled = true
-  btn.innerHTML = '<i class="ph ph-spinner"></i> Running…'
+  btn.innerHTML = '<i class="ph ph-spinner"></i> ' + t('admin_running')
   const res = await fetch('/admin/maintenance/cleanup', { method: 'POST', headers: apiHeaders('admin') })
   btn.disabled = false
-  btn.innerHTML = '<i class="ph ph-broom"></i> Start cleanup'
+  btn.innerHTML = '<i class="ph ph-broom"></i> ' + t('admin_startCleanup')
   if (res.ok) {
     const data = await res.json()
     msg.style.display = ''
     msg.style.color = 'var(--success,#4ade80)'
     msg.textContent = data.removed.length
       ? `${data.removed.length} file(s) removed: ${data.removed.join(', ')}`
-      : 'No orphaned files found.'
+      : t('admin_noOrphans')
   } else {
     msg.style.display = ''; msg.style.color = 'var(--danger-text)'; msg.textContent = t('admin_cleanupError')
   }
@@ -5067,7 +5067,7 @@ async function _loadStorageBackendInfo() {
     const isJson   = backend === 'json'
     const color    = isJson ? '#f59e0b' : '#4ade80'
     const icon     = isJson ? 'ph-warning' : 'ph-check-circle'
-    const label    = isJson ? 'JSON (Demo/Development)' : 'SQLite (Production)'
+    const label    = isJson ? t('admin_backendJson') : t('admin_backendSqlite')
     box.innerHTML  = `<i class="ph ${icon}" style="color:${color};margin-right:6px"></i>
       <strong>${t('admin_activeBackend')}</strong> <code>${label}</code>
       ${isJson ? ' &nbsp;— <span style="color:#f59e0b;font-weight:600">' + t('admin_notForProd') + '</span>' : ''}`
@@ -5142,7 +5142,7 @@ async function saveAiSettings() {
       headers: { ...apiHeaders('admin'), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    showToast(payload.aiEnabled ? 'AI integration enabled.' : 'AI integration disabled.', payload.aiEnabled ? 'success' : 'info')
+    showToast(payload.aiEnabled ? t('admin_aiEnabled') : t('admin_aiDisabled'), payload.aiEnabled ? 'success' : 'info')
     refreshAiStatus()
   } catch {
     showToast(t('admin_aiSaveFailed'), 'error')
@@ -5153,7 +5153,7 @@ async function triggerReindex() {
   const btn = document.getElementById('btnReindex')
   const msg = document.getElementById('reindexResult')
   btn.disabled = true
-  btn.innerHTML = '<i class="ph ph-spinner"></i> Indexing…'
+  btn.innerHTML = '<i class="ph ph-spinner"></i> ' + t('admin_indexing')
   try {
     const res = await fetch('/api/ai/reindex', { method: 'POST', credentials: 'include', headers: apiHeaders('admin') })
     const data = await res.json()
@@ -5163,7 +5163,7 @@ async function triggerReindex() {
       msg.textContent = `${data.indexed} documents indexed, ${data.skipped} skipped.`
     } else {
       msg.style.color = 'var(--danger-text,#f87171)'
-      msg.textContent = data.error || 'Error during re-index.'
+      msg.textContent = data.error || t('admin_reindexFailed')
     }
     refreshAiStatus()
   } catch {
@@ -5172,21 +5172,21 @@ async function triggerReindex() {
     msg.textContent = t('admin_reindexError')
   }
   btn.disabled = false
-  btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> Rebuild index'
+  btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> ' + t('admin_rebuildIndex')
 }
 
 async function triggerDemoReset() {
-  const confirm1 = prompt('WARNING: This operation deletes ALL module data irreversibly!\nType RESET to confirm:')
+  const confirm1 = prompt(t('admin_resetPrompt'))
   if (confirm1 !== 'RESET') { showToast(t('admin_demoResetCancelled'), 'info'); return }
   const btn = document.getElementById('btnDemoReset')
   const msg = document.getElementById('demoResetResult')
   btn.disabled = true
-  btn.innerHTML = '<i class="ph ph-spinner"></i> Resetting…'
+  btn.innerHTML = '<i class="ph ph-spinner"></i> ' + t('admin_resetting')
   try {
     const res = await fetch('/admin/demo-reset', { method: 'POST', headers: apiHeaders('admin') })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || 'Error during reset')
+      throw new Error(err.error || t('admin_resetError'))
     }
     const restartRequired = res.headers.get('X-Restart-Required') === '1'
     const envSwitched     = res.headers.get('X-Env-Switched') === '1'
@@ -5202,22 +5202,22 @@ async function triggerDemoReset() {
     if (restartRequired) {
       // Restart needed — no automatic redirect, show clear message instead
       btn.disabled = false
-      btn.innerHTML = '<i class="ph ph-trash"></i> Perform demo reset'
+      btn.innerHTML = '<i class="ph ph-trash"></i> ' + t('admin_demoResetBtn')
       msg.style.display = ''
       msg.style.color = 'var(--warning, #f59e0b)'
       msg.innerHTML = `
         <strong>${t('admin_demoResetDone')}</strong><br>
-        ${envSwitched ? '⚙️ <code>STORAGE_BACKEND=sqlite</code> was set in <code>.env</code>.' : ''}<br>
-        <strong style="color:#e74c3c">⚠️ Server restart required</strong> for SQLite to become active.<br>
-        <code style="font-size:11px">npm start</code> &nbsp;or&nbsp; <code style="font-size:11px">docker compose restart</code>
+        ${envSwitched ? t('admin_envSwitched') : ''}<br>
+        <strong style="color:#e74c3c">⚠️ ${t('admin_restartTitle')}</strong> ${t('admin_restartRest')}<br>
+        <code style="font-size:11px">npm start</code> &nbsp;${t('ui_or')}&nbsp; <code style="font-size:11px">docker compose restart</code>
       `
     } else {
       setTimeout(() => { window.location.href = '/ui/login.html' }, 800)
     }
   } catch (e) {
     btn.disabled = false
-    btn.innerHTML = '<i class="ph ph-trash"></i> Perform demo reset'
-    msg.style.display = ''; msg.style.color = 'var(--danger-text)'; msg.textContent = 'Error: ' + e.message
+    btn.innerHTML = '<i class="ph ph-trash"></i> ' + t('admin_demoResetBtn')
+    msg.style.display = ''; msg.style.color = 'var(--danger-text)'; msg.textContent = t('error') + ': ' + e.message
   }
 }
 
@@ -5226,7 +5226,7 @@ async function triggerDemoImport(input) {
   if (!file) return
   const msg = document.getElementById('demoImportResult')
   msg.style.display = 'none'
-  if (!confirm(`Import demo data from "${file.name}"?\n\nAll module data will be overwritten. The admin account will remain unchanged.`)) {
+  if (!confirm(t('admin_importConfirm', { file: file.name }))) {
     input.value = ''; return
   }
   try {
@@ -5238,12 +5238,12 @@ async function triggerDemoImport(input) {
       body: JSON.stringify(bundle)
     })
     const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Error')
+    if (!res.ok) throw new Error(data.error || t('error'))
     msg.style.display = ''; msg.style.color = 'var(--success,#4ade80)'
     msg.textContent = t('admin_importDone')
     setTimeout(() => location.reload(), 1500)
   } catch (e) {
-    msg.style.display = ''; msg.style.color = 'var(--danger-text)'; msg.textContent = 'Error: ' + e.message
+    msg.style.display = ''; msg.style.color = 'var(--danger-text)'; msg.textContent = t('error') + ': ' + e.message
   }
   input.value = ''
 }
@@ -5368,91 +5368,91 @@ async function permanentDeleteTrashItem(module, id, meta) {
 
 const MODULE_META = [
   {
-    id: 'soa', label: 'SoA – Statement of Applicability', icon: 'ph-shield-check',
-    desc: 'Verwaltung aller Compliance-Controls (ISO 27001, BSI, NIS2, EUCS, EUAI, ISO 9001, CRA). Framework-Tabs, Inline-Edit, Cross-Mapping.',
+    id: 'soa', get label() { return t('nav_soa') }, icon: 'ph-shield-check',
+    get desc() { return t('modmeta_soa') },
     norms: ['ISO 27001', 'BSI IT-Grundschutz', 'NIS2', 'EUCS', 'ISO 9001'],
   },
   {
-    id: 'guidance', label: 'Guidance & Documentation', icon: 'ph-compass',
-    desc: 'Internal documentation hub: system manual, roles, policy processes, SoA guides. Markdown editor + PDF/DOCX upload.',
+    id: 'guidance', get label() { return t('nav_guidance') }, icon: 'ph-compass',
+    get desc() { return t('modmeta_guidance') },
     norms: ['ISO 27001 A.5.1', 'ISO 9001 Cl. 7.5'],
   },
   {
-    id: 'goals', label: 'Security Goals', icon: 'ph-target',
-    desc: 'SMART security goals with KPI tracking, progress bars, priorities and calendar integration.',
+    id: 'goals', get label() { return t('nav_goals') }, icon: 'ph-target',
+    get desc() { return t('modmeta_goals') },
     norms: ['ISO 27001 Cl. 6.2'],
   },
   {
-    id: 'risk', label: 'Risk & Compliance', icon: 'ph-warning',
-    desc: 'Risk register with heatmap, treatment plans, risk matrix and calendar. Roles: contentowner and auditor.',
+    id: 'risk', get label() { return t('nav_risk') }, icon: 'ph-warning',
+    get desc() { return t('modmeta_risk') },
     norms: ['ISO 27001 Cl. 6.1', 'ISO 31000'],
   },
   {
-    id: 'legal', label: 'Legal & Privacy', icon: 'ph-scales',
-    desc: 'Management of contracts, NDAs and privacy policies with term tracking and calendar integration.',
+    id: 'legal', get label() { return t('nav_legal') }, icon: 'ph-scales',
+    get desc() { return t('modmeta_legal') },
     norms: ['ISO 27001 A.5.31', 'GDPR Art. 28'],
   },
   {
-    id: 'incident', label: 'Incident Inbox (CISO)', icon: 'ph-siren',
-    desc: 'Inbox for publicly reported security incidents (no login required for reporting). CISO handling, reference numbers, assignment.',
+    id: 'incident', get label() { return t('nav_incident') }, icon: 'ph-siren',
+    get desc() { return t('modmeta_incident') },
     norms: ['ISO 27001 A.5.24–5.28', 'NIS2 Art. 23'],
   },
   {
-    id: 'gdpr', label: 'GDPR & Privacy', icon: 'ph-lock-key',
-    desc: 'Full GDPR module: RoPA (Art. 30), DPA (Art. 28), DPIA (Art. 35), data breaches (Art. 33/34), DSAR (Art. 15–22), TOMs (Art. 32), DPO (Art. 37), deletion log (Art. 17).',
+    id: 'gdpr', get label() { return t('nav_gdpr') }, icon: 'ph-lock-key',
+    get desc() { return t('modmeta_gdpr') },
     norms: ['GDPR', 'BDSG'],
   },
   {
-    id: 'training', label: 'Training', icon: 'ph-graduation-cap',
-    desc: 'Training planning with status tracking, due dates, assignee groups and calendar integration.',
+    id: 'training', get label() { return t('nav_training') }, icon: 'ph-graduation-cap',
+    get desc() { return t('modmeta_training') },
     norms: ['ISO 27001 A.6.3', 'ISO 9001 Cl. 7.2'],
   },
   {
-    id: 'reports', label: 'Reports', icon: 'ph-chart-line',
-    desc: '7 report types: Compliance, Framework, Gap Analysis, Documents, Reviews, Compliance Matrix, Audit Trail. CSV export.',
+    id: 'reports', get label() { return t('nav_reports') }, icon: 'ph-chart-line',
+    get desc() { return t('modmeta_reports') },
     norms: ['ISO 27001 Cl. 9.1', 'ISO 9001 Cl. 9.1'],
   },
   {
-    id: 'calendar', label: 'Calendar', icon: 'ph-calendar-dots',
-    desc: 'Aggregated monthly view of all dates from all modules: reviews, audits, contract deadlines, DSAR deadlines, goals, training.',
+    id: 'calendar', get label() { return t('nav_calendar') }, icon: 'ph-calendar-dots',
+    get desc() { return t('modmeta_calendar') },
     norms: [],
   },
   {
-    id: 'assets', label: 'Asset Management', icon: 'ph-buildings',
-    desc: 'Inventory of all information assets (hardware, software, data, services, facilities). Classification per ISO 27001 A.5.12, criticality, owner, EoL tracking.',
+    id: 'assets', get label() { return t('nav_assets') }, icon: 'ph-buildings',
+    get desc() { return t('modmeta_assets') },
     norms: ['ISO 27001 A.5.9', 'ISO 27001 A.5.10', 'ISO 27001 A.5.12'],
   },
   {
-    id: 'governance', label: 'Governance & Management Review', icon: 'ph-chalkboard-teacher',
-    desc: 'Management reviews (ISO 27001 Cl. 9.3), action tracking from audits and reviews, meeting minutes for ISMS committee and risk management.',
+    id: 'governance', get label() { return t('nav_governance') }, icon: 'ph-chalkboard-teacher',
+    get desc() { return t('modmeta_governance') },
     norms: ['ISO 27001 Cl. 9.3', 'ISO 27001 Cl. 5.1', 'ISO 9001 Cl. 9.3'],
   },
   {
-    id: 'bcm', label: 'Business Continuity (BCM)', icon: 'ph-heartbeat',
-    desc: 'Business Impact Analyses (BIA), continuity plans (BCP/DRP/ITP/Crisis Communication), exercises & tests. Calendar integration for planned exercises and plan tests.',
+    id: 'bcm', get label() { return t('nav_bcm') }, icon: 'ph-heartbeat',
+    get desc() { return t('modmeta_bcm') },
     norms: ['ISO 22301', 'ISO 27001 A.5.29–5.30', 'BSI 200-4', 'NIS2 Art. 21'],
   },
   {
-    id: 'suppliers', label: 'Supply Chain Management', icon: 'ph-truck',
-    desc: 'Supplier register with risk assessment, audit tracking, data access documentation and contract linking. Calendar integration for due supplier audits.',
+    id: 'suppliers', get label() { return t('nav_suppliers') }, icon: 'ph-truck',
+    get desc() { return t('modmeta_suppliers') },
     norms: ['ISO 27001 A.5.21', 'ISO 27001 A.5.22', 'NIS2 Art. 21', 'GDPR Art. 28'],
   },
   {
-    id: 'audits', label: 'Audit Management', icon: 'ph-clipboard-text',
-    desc: 'Audits with checklists, findings assignment and an annual audit programme. Calendar integration for planned, due and follow-up dates.',
+    id: 'audits', get label() { return t('nav_audits') }, icon: 'ph-clipboard-text',
+    get desc() { return t('modmeta_audits') },
     norms: ['ISO 27001 Cl. 9.2', 'ISO 19011'],
   },
 ]
 
 const SOA_FW_META = [
-  { id: 'ISO27001', label: 'ISO 27001:2022',          color: '#4f8cff', desc: 'Information Security Management (93 Controls, Annex A)', norms: ['ISO 27001'] },
-  { id: 'BSI',      label: 'BSI IT-Grundschutz',      color: '#f0b429', desc: 'German IT-Grundschutz Compendium (16 building blocks)', norms: ['BSI'] },
-  { id: 'NIS2',     label: 'EU NIS2',                 color: '#34d399', desc: 'Network and Information Security Directive 2 (29 requirements)', norms: ['NIS2'] },
-  { id: 'EUCS',     label: 'EU Cloud (EUCS)',          color: '#a78bfa', desc: 'EU Cybersecurity Certification Scheme for Cloud Services', norms: ['EUCS'] },
-  { id: 'EUAI',     label: 'EU AI Act',               color: '#fb923c', desc: 'Requirements for AI systems under the EU AI Act', norms: ['EU AI Act'] },
-  { id: 'ISO9000',  label: 'ISO 9000:2015',           color: '#2dd4bf', desc: 'Foundations and vocabulary of quality management systems', norms: ['ISO 9000'] },
-  { id: 'ISO9001',  label: 'ISO 9001:2015',           color: '#f472b6', desc: 'QMS requirements (79 controls)', norms: ['ISO 9001'] },
-  { id: 'CRA',      label: 'EU Cyber Resilience Act', color: '#e11d48', desc: 'Cybersecurity requirements for products with digital elements', norms: ['CRA'] },
+  { id: 'ISO27001', label: 'ISO 27001:2022',          color: '#4f8cff', get desc() { return t('fwdesc_ISO27001') }, norms: ['ISO 27001'] },
+  { id: 'BSI',      label: 'BSI IT-Grundschutz',      color: '#f0b429', get desc() { return t('fwdesc_BSI') }, norms: ['BSI'] },
+  { id: 'NIS2',     label: 'EU NIS2',                 color: '#34d399', get desc() { return t('fwdesc_NIS2') }, norms: ['NIS2'] },
+  { id: 'EUCS',     label: 'EU Cloud (EUCS)',          color: '#a78bfa', get desc() { return t('fwdesc_EUCS') }, norms: ['EUCS'] },
+  { id: 'EUAI',     label: 'EU AI Act',               color: '#fb923c', get desc() { return t('fwdesc_EUAI') }, norms: ['EU AI Act'] },
+  { id: 'ISO9000',  label: 'ISO 9000:2015',           color: '#2dd4bf', get desc() { return t('fwdesc_ISO9000') }, norms: ['ISO 9000'] },
+  { id: 'ISO9001',  label: 'ISO 9001:2015',           color: '#f472b6', get desc() { return t('fwdesc_ISO9001') }, norms: ['ISO 9001'] },
+  { id: 'CRA',      label: 'EU Cyber Resilience Act', color: '#e11d48', get desc() { return t('fwdesc_CRA') }, norms: ['CRA'] },
 ]
 
 async function renderAdminModulesTab() {
@@ -6460,7 +6460,7 @@ async function renderSettingsPanel() {
         <input class="input" id="gdpoDsarExt" value="${gs.dsarExtendedDays||90}" type="number" min="1" max="180" style="width:100px">
         <label class="org-label">${t('gdpr_72hActive')}</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px">
-          <input type="checkbox" id="gdpo72h" ${gs.timer72hEnabled!==false?'checked':''}> Enabled
+          <input type="checkbox" id="gdpo72h" ${gs.timer72hEnabled!==false?'checked':''}> ${t('ui_enabled')}
         </label>
         <label class="org-label">${t('set_dpAuthority')}</label>
         <input class="input" id="gdpoDSA" value="${escHtml(gs.supervisoryAuthority||'')}" placeholder="${escHtml(t('ph_authorityEg'))}">
@@ -6510,7 +6510,7 @@ async function renderSettingsPanel() {
         </select>
         <label class="org-label">${t('set_kritisRelevant')}</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px">
-          <input type="checkbox" id="icsKritis" ${is.otKritisRelevant?'checked':''}> Yes, critical infrastructure operator
+          <input type="checkbox" id="icsKritis" ${is.otKritisRelevant?'checked':''}> ${t('ics_kritisLabel')}
         </label>
         <label class="org-label">${t('set_networkSegmentation')}</label>
         <select class="select" id="icsSegmentation">
@@ -6731,15 +6731,15 @@ async function loadTmplManagement() {
         <td><span class="status-badge ${statusCls[t.status]||''}">${t.status}</span></td>
         <td style="color:var(--text-subtle)">v${t.version}</td>
         <td style="white-space:nowrap;text-align:right">
-          <button class="btn btn-secondary btn-xs" title="${escHtml(t('edit'))}" onclick="tmplMgmtEdit('${escHtml(t.type)}','${t.id}')">
+          <button class="btn btn-secondary btn-xs" title="${escHtml(window.t('edit'))}" onclick="tmplMgmtEdit('${escHtml(t.type)}','${t.id}')">
             <i class="ph ph-pencil"></i>
           </button>
           ${isDraft ? `
-            <button class="btn btn-secondary btn-xs" style="margin-left:4px" title="${escHtml(t('ui_moveToTrash'))}" onclick="tmplMgmtSoftDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-secondary btn-xs" style="margin-left:4px" title="${escHtml(window.t('ui_moveToTrash'))}" onclick="tmplMgmtSoftDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
               <i class="ph ph-trash"></i>
             </button>
             ${isAdmin ? `
-            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="${escHtml(t('ui_deletePermanently'))}" onclick="tmplMgmtPermDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="${escHtml(window.t('ui_deletePermanently'))}" onclick="tmplMgmtPermDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
               <i class="ph ph-trash-simple"></i>
             </button>` : ''}
           ` : ''}
@@ -6778,12 +6778,12 @@ async function loadTmplManagement() {
         const trashRows = deletedTmpls.map(t => `<tr>
           <td style="color:var(--text-subtle);font-size:.8rem"><i class="ph ${TYPE_ICONS[t.type]||'ph-file'}"></i> ${escHtml(t.type)}</td>
           <td>${escHtml(t.title)}</td>
-          <td><span class="status-badge status-archived">deleted</span></td>
+          <td><span class="status-badge status-archived">${window.t('ui_deletedBadge')}</span></td>
           <td style="white-space:nowrap;text-align:right">
-            <button class="btn btn-secondary btn-xs" title="${escHtml(t('restore'))}" onclick="tmplMgmtRestore('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-secondary btn-xs" title="${escHtml(window.t('restore'))}" onclick="tmplMgmtRestore('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
               <i class="ph ph-arrow-counter-clockwise"></i>
             </button>
-            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="${escHtml(t('ui_deletePermanently'))}" onclick="tmplMgmtPermDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="${escHtml(window.t('ui_deletePermanently'))}" onclick="tmplMgmtPermDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
               <i class="ph ph-trash-simple"></i>
             </button>
           </td>
@@ -6817,21 +6817,21 @@ async function tmplMgmtEdit(type, id) {
 async function tmplMgmtSoftDelete(type, id, title) {
   if (!confirm(t('tmpl_trashConfirm', { title }))) return
   const res = await fetch(`/template/${encodeURIComponent(type)}/${encodeURIComponent(id)}`, { method: 'DELETE', headers: apiHeaders('contentowner') })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   loadTmplManagement()
 }
 
 async function tmplMgmtPermDelete(type, id, title) {
   if (!confirm(t('tmpl_permanentDeleteConfirm', { title }))) return
   const res = await fetch(`/template/${encodeURIComponent(type)}/${encodeURIComponent(id)}/permanent`, { method: 'DELETE', headers: apiHeaders('admin') })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   loadTmplManagement()
 }
 
 async function tmplMgmtRestore(type, id, title) {
   if (!confirm(t('tmpl_restoreConfirm', { title }))) return
   const res = await fetch(`/template/${encodeURIComponent(type)}/${encodeURIComponent(id)}/restore`, { method: 'POST', headers: apiHeaders('admin') })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   loadTmplManagement()
 }
 
@@ -6855,7 +6855,7 @@ async function saveMyPassword() {
     msg.style.color = 'var(--success,#4ade80)'
     dom('pwOld').value = ''; dom('pwNew').value = ''; dom('pwConfirm').value = ''
   } else {
-    msg.textContent = data.error || 'Error saving.'
+    msg.textContent = data.error || t('err_saveFailed')
     msg.style.color = 'var(--danger-text)'
   }
   setTimeout(() => { if (msg) msg.style.display = 'none' }, 4000)
@@ -6929,7 +6929,7 @@ async function verify2FA() {
     _show2FAHint(false)   // Topbar-Chip ausblenden
     setTimeout(() => _renderTwofaSettingsBlock(), 1500)
   } else {
-    if (msg) { msg.textContent = data.error || 'Invalid code.'; msg.style.color = 'var(--danger-text)' }
+    if (msg) { msg.textContent = data.error || t('twofa_invalidCode'); msg.style.color = 'var(--danger-text)' }
   }
 }
 
@@ -6942,7 +6942,7 @@ async function disable2FA() {
     _show2FAHint(true)   // Topbar-Chip wieder anzeigen
     _renderTwofaSettingsBlock()
   } else {
-    if (msg) { msg.style.display = ''; msg.textContent = data.error || 'Error.'; msg.style.color = 'var(--danger-text)' }
+    if (msg) { msg.style.display = ''; msg.textContent = data.error || t('err_generic'); msg.style.color = 'var(--danger-text)' }
   }
 }
 
@@ -7061,7 +7061,7 @@ function loadTemplate(t) {
   dom('contentEditor').value = t.content
   dom('selType').textContent = t.type
   updateStatusBadge(t.status)
-  dom('ownerInfo').textContent = t.owner ? `Owner: ${t.owner}` : ''
+  dom('ownerInfo').textContent = t.owner ? `${window.t('col_owner')}: ${t.owner}` : ''
   // nextReviewDate
   const reviewInput = dom('inputNextReview')
   if (reviewInput) {
@@ -7404,16 +7404,16 @@ function renderAttachmentsBar(t) {
   const canEdit = rank >= ROLE_RANK.editor
 
   bar.style.display = 'flex'
-  bar.innerHTML = `<span class="tmpl-att-label"><i class="ph ph-paperclip"></i> ${t('ui_attachments')}</span>` +
+  bar.innerHTML = `<span class="tmpl-att-label"><i class="ph ph-paperclip"></i> ${window.t('ui_attachments')}</span>` +
     atts.map(a => {
       const sizeKB = Math.round((a.size || 0) / 1024)
       return `<span class="tmpl-att-chip">
         <a href="/template/${t.type}/${t.id}/attachments/${a.id}/file" target="_blank" title="${a.originalName}">${a.originalName}</a>
         <span class="tmpl-att-size">(${sizeKB} KB)</span>
-        ${canEdit ? `<button class="tmpl-att-del" title="${escHtml(t('delete'))}" onclick="deleteAttachment('${t.type}','${t.id}','${a.id}')"><i class="ph ph-x"></i></button>` : ''}
+        ${canEdit ? `<button class="tmpl-att-del" title="${escHtml(window.t('delete'))}" onclick="deleteAttachment('${t.type}','${t.id}','${a.id}')"><i class="ph ph-x"></i></button>` : ''}
       </span>`
     }).join('') +
-    (canEdit ? `<button class="btn btn-secondary btn-sm tmpl-att-upload-btn" onclick="triggerAttachUpload()"><i class="ph ph-upload-simple"></i> ${t('ui_attach')}</button>
+    (canEdit ? `<button class="btn btn-secondary btn-sm tmpl-att-upload-btn" onclick="triggerAttachUpload()"><i class="ph ph-upload-simple"></i> ${window.t('ui_attach')}</button>
       <input type="file" id="attachFileInput" style="display:none" accept=".pdf,.docx,.doc,.xlsx,.pptx,.png,.jpg" onchange="uploadAttachment(this)" />` : '')
 }
 
@@ -7440,7 +7440,7 @@ async function uploadAttachment(input) {
     renderAttachmentsBar(t)
   } else {
     const err = await res.json().catch(() => ({}))
-    alert('Upload failed: ' + (err.error || res.status))
+    alert(t('file_uploadFailed') + ': ' + (err.error || res.status))
   }
 }
 
@@ -7471,7 +7471,7 @@ function renderDocAttachPanel(containerId, apiBase, collection, itemId, attachme
       <div class="doc-attach-header">
         <span><i class="ph ph-paperclip"></i> ${t('ui_docsAttachments')}</span>
         ${canEdit ? `<label class="btn btn-secondary btn-sm" style="cursor:pointer">
-          <i class="ph ph-upload-simple"></i> Upload
+          <i class="ph ph-upload-simple"></i> ${t('ui_upload')}
           <input type="file" style="display:none" accept=".pdf,.docx,.doc,.xlsx,.pptx"
             onchange="uploadDocAttachment(this,'${apiBase}','${collection}','${itemId}','${containerId}')">
         </label>` : ''}
@@ -7511,7 +7511,7 @@ async function uploadDocAttachment(input, apiBase, collection, itemId, container
   const res = await fetch(`${apiBase}/${collection}/${itemId}/upload`, { method: 'POST', headers: hdr, body: fd })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    alert('Upload failed: ' + (err.error || res.status))
+    alert(t('file_uploadFailed') + ': ' + (err.error || res.status))
     return
   }
   // Item neu laden und Panel aktualisieren
@@ -7550,7 +7550,7 @@ function renderTmplControlsBar(t) {
     return
   }
   bar.style.display = 'flex'
-  bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-link"></i> ${t('findings_linkedControls')}</span>` +
+  bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-link"></i> ${window.t('findings_linkedControls')}</span>` +
     linked.map(cid => `<span class="tmpl-bar-pill">${cid}</span>`).join('') +
     `<button class="tmpl-bar-edit btn btn-secondary btn-sm" onclick="openControlPicker()"><i class="ph ph-pencil"></i></button>`
 }
@@ -7565,7 +7565,7 @@ function renderTmplEntityBar(t) {
     return
   }
   bar.style.display = 'flex'
-  bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-buildings"></i> ${t('tmpl_appliesTo')}</span>` +
+  bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-buildings"></i> ${window.t('tmpl_appliesTo')}</span>` +
     ents.map(eid => `<span class="tmpl-bar-pill">${eid}</span>`).join('')
 }
 
@@ -7787,7 +7787,7 @@ function _updateEntityPickerCount() {
   const el = document.getElementById('entityPickerCount')
   if (el) {
     const n = _entityPickerSelected.size
-    el.textContent = n === 0 ? 'All entities' : `${n} selected`
+    el.textContent = n === 0 ? t('ui_allEntities') : t('ui_nSelected', { n })
   }
 }
 
@@ -7831,10 +7831,10 @@ function updateReviewHint(dateStr) {
   if (!hint) return
   if (!dateStr) { hint.textContent = ''; hint.className = 'tmpl-review-hint'; return }
   const diff = Math.ceil((new Date(dateStr) - new Date()) / 86400000)
-  if (diff < 0)        { hint.textContent = `Overdue (${Math.abs(diff)} days)`;  hint.className = 'tmpl-review-hint overdue' }
+  if (diff < 0)        { hint.textContent = t('ui_overdueDays', { n: Math.abs(diff) });  hint.className = 'tmpl-review-hint overdue' }
   else if (diff === 0) { hint.textContent = t('ui_dueToday');                           hint.className = 'tmpl-review-hint due-today' }
-  else if (diff <= 30) { hint.textContent = `In ${diff} days`;                    hint.className = 'tmpl-review-hint due-soon' }
-  else                 { hint.textContent = `In ${diff} days`;                    hint.className = 'tmpl-review-hint' }
+  else if (diff <= 30) { hint.textContent = t('ui_inDays', { n: diff });                    hint.className = 'tmpl-review-hint due-soon' }
+  else                 { hint.textContent = t('ui_inDays', { n: diff });                    hint.className = 'tmpl-review-hint' }
 }
 
 function saveCurrent(){
@@ -7854,7 +7854,7 @@ function saveCurrent(){
     }).then(async res => {
       const data = await res.json().catch(() => ({}))
       if (res.status === 409) { alert(t('tmpl_lockedHint')); return }
-      if (!res.ok) { alert(data.error || 'Error saving'); return }
+      if (!res.ok) { alert(data.error || t('err_saveFailed')); return }
       currentTemplate = data
       updateReviewHint(data.nextReviewDate)
       alert(t('tmpl_savedNoVersion'))
@@ -7869,7 +7869,7 @@ function saveCurrent(){
       currentTemplate = t
       // reopen list
       selectType(currentType)
-      alert('Dokument erstellt (Version '+t.version+')')
+      alert(window.t('tmpl_created', { v: t.version }))
     })
   }
 }
@@ -7956,7 +7956,7 @@ async function openMoveDialog() {
   function render() {
     const currentLabel = selectedParentId
       ? (() => { let t = null; function find(ns) { for (const n of ns) { if (n.id === selectedParentId) { t=n; return } find(n.children||[]) } }; find(treeData); return t?.title || selectedParentId })()
-      : 'Root-Ebene'
+      : t('tmpl_rootShort')
     overlay.innerHTML = `
       <div class="move-dialog">
         <h3><i class="ph ph-arrows-out-cardinal"></i> ${t('tmpl_movePageTitle')}</h3>
@@ -8535,7 +8535,7 @@ async function submitGuidanceUpload() {
     headers: { 'X-User-Name': getCurrentUser(), 'X-User-Role': getCurrentRole() },
     body: fd
   })
-  if (!res.ok) { const e = await res.json(); alert('Upload error: ' + e.error); return }
+  if (!res.ok) { const e = await res.json(); alert(t('file_uploadError') + ': ' + e.error); return }
   const created = await res.json()
   closeGuidanceUpload()
   _guidanceCat   = cat
@@ -8552,8 +8552,8 @@ const CAL_EVENT_CFG = {
   risk_review:     { get label() { return t('cal_riskReview') },     cls:'cal-chip-review',    icon:'ph-arrows-clockwise' },
   treatment_due:   { get label() { return t('cal_measureDue') },     cls:'cal-chip-treatment', icon:'ph-list-checks' },
   template_review: { get label() { return t('cal_templateReview') }, cls:'cal-chip-template',  icon:'ph-files' },
-  template_due:         { label:'Document Due',            cls:'cal-chip-template',  icon:'ph-clock' },
-  finding_action_due:   { label:'Finding Action Due',      cls:'cal-chip-risk',       icon:'ph-magnifying-glass' },
+  template_due:         { get label() { return t('cal_templateDue') },            cls:'cal-chip-template',  icon:'ph-clock' },
+  finding_action_due:   { get label() { return t('cal_findingActionDue') },      cls:'cal-chip-risk',       icon:'ph-magnifying-glass' },
   audit_planned:        { get label() { return t('cal_auditPlanned') },  cls:'cal-chip-audit', icon:'ph-clipboard-text' },
   audit_due:            { get label() { return t('cal_auditDue') },      cls:'cal-chip-audit', icon:'ph-clipboard-text' },
   audit_followup:       { get label() { return t('cal_auditFollowup') }, cls:'cal-chip-audit', icon:'ph-arrow-u-down-left' },
@@ -8683,7 +8683,7 @@ function _renderCalUpcoming() {
     ${overdue.length ? `
       <div class="cal-agenda-section">
         <div class="cal-agenda-title cal-agenda-overdue-title">
-          <i class="ph ph-warning-circle"></i> Overdue (${overdue.length})
+          <i class="ph ph-warning-circle"></i> ${t('cal_overdue')} (${overdue.length})
         </div>
         ${overdue.slice(-10).reverse().map(eventRow).join('')}
       </div>` : ''}
@@ -8788,15 +8788,15 @@ const RISK_LEVEL_CFG = {
 /* CVSS v3.1 Severity Bands — FIRST.org (freely usable, attribution recommended)
  * https://www.first.org/cvss/specification-document */
 const CVSS_BANDS = [
-  { min: 9.0, max: 10.0, label: 'Critical', cls: 'cvss-critical', color: '#dc2626',
+  { min: 9.0, max: 10.0, get label() { return t('riskl_critical') }, cls: 'cvss-critical', color: '#dc2626',
     descKey: 'cvss_descCritical' },
-  { min: 7.0, max:  8.9, label: 'High',     cls: 'cvss-high',     color: '#ea580c',
+  { min: 7.0, max:  8.9, get label() { return t('riskl_high') }, cls: 'cvss-high',     color: '#ea580c',
     descKey: 'cvss_descHigh' },
-  { min: 4.0, max:  6.9, label: 'Medium',   cls: 'cvss-medium',   color: '#ca8a04',
+  { min: 4.0, max:  6.9, get label() { return t('riskl_medium') }, cls: 'cvss-medium',   color: '#ca8a04',
     descKey: 'cvss_descMedium' },
-  { min: 0.1, max:  3.9, label: 'Low',      cls: 'cvss-low',      color: '#16a34a',
+  { min: 0.1, max:  3.9, get label() { return t('riskl_low') }, cls: 'cvss-low',      color: '#16a34a',
     descKey: 'cvss_descLow' },
-  { min: 0.0, max:  0.0, label: 'None',     cls: 'cvss-none',     color: '#6b7280',
+  { min: 0.0, max:  0.0, get label() { return t('assets_lvlNone') }, cls: 'cvss-none',     color: '#6b7280',
     descKey: 'cvss_descNone' },
 ]
 function riskCatLabel(cat) { return cat ? t(cat.labelKey) : '' }
@@ -9873,7 +9873,7 @@ async function submitRiskForm() {
 async function deleteRisk(id) {
   if (!confirm(t('risk_deleteConfirm'))) return
   const res = await fetch(`/risks/${id}`, { method: 'DELETE', headers: apiHeaders('admin') })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchRiskTab(_riskTab)
 }
 
@@ -9953,7 +9953,7 @@ async function submitTreatmentModal(riskId, tpId) {
   const url    = tpId ? `/risks/${riskId}/treatments/${tpId}` : `/risks/${riskId}/treatments`
   const method = tpId ? 'PUT' : 'POST'
   const res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(body) })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   document.getElementById('treatmentModal')?.remove()
   await openRiskDetail(riskId)
 }
@@ -9961,7 +9961,7 @@ async function submitTreatmentModal(riskId, tpId) {
 async function deleteTreatment(riskId, tpId) {
   if (!confirm(t('risk_deleteMeasureConfirm'))) return
   const res = await fetch(`/risks/${riskId}/treatments/${tpId}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   await openRiskDetail(riskId)
 }
 
@@ -9988,11 +9988,11 @@ const GDPR_LEGAL_BASES = [
 ]
 let GDPR_DATA_CATS = ['name','email','phone','address','health','biometric','financial','location','other']
 let GDPR_SUBJECT_TYPES = [
-  { id:'customers', label:'Customers' },
-  { id:'employees', label:'Employees' },
-  { id:'contractors', label:'Contractors' },
-  { id:'website_visitors', label:'Website Visitors' },
-  { id:'minors', label:'Minors' },
+  { id:'customers', get label() { return t('gdpr_catCustomers') } },
+  { id:'employees', get label() { return t('gdpr_catEmployees') } },
+  { id:'contractors', get label() { return t('gdpr_catContractors') } },
+  { id:'website_visitors', get label() { return t('gdpr_catVisitors') } },
+  { id:'minors', get label() { return t('gdpr_catMinors') } },
 ]
 const GDPR_TRANSFER_MECHS = [
   { id:'', label:'—' },
@@ -10179,10 +10179,10 @@ async function renderGdprOverview(el) {
 
   const tomPct = s.toms.total > 0 ? Math.round((s.toms.implemented / s.toms.total) * 100) : 0
   const alerts = []
-  if (s.incidents.missed72h > 0) alerts.push(`<div class="gdpr-alert gdpr-alert-error"><i class="ph ph-warning"></i> <strong>${s.incidents.missed72h}</strong> data breach(es): 72-hour reporting deadline exceeded!</div>`)
-  if (s.dsar.overdue > 0)        alerts.push(`<div class="gdpr-alert gdpr-alert-error"><i class="ph ph-clock"></i> <strong>${s.dsar.overdue}</strong> data subject request(s) overdue!</div>`)
-  if (s.vvt.noLegal > 0)         alerts.push(`<div class="gdpr-alert gdpr-alert-warn"><i class="ph ph-warning-circle"></i> <strong>${s.vvt.noLegal}</strong> RoPA entries without legal basis.</div>`)
-  if (!s.dsbSet)                  alerts.push(`<div class="gdpr-alert gdpr-alert-info"><i class="ph ph-info"></i> No Data Protection Officer (DPO) configured.</div>`)
+  if (s.incidents.missed72h > 0) alerts.push(`<div class="gdpr-alert gdpr-alert-error"><i class="ph ph-warning"></i> ${t('gdpr_alertBreach72', { n: '<strong>' + s.incidents.missed72h + '</strong>' })}</div>`)
+  if (s.dsar.overdue > 0)        alerts.push(`<div class="gdpr-alert gdpr-alert-error"><i class="ph ph-clock"></i> ${t('gdpr_alertDsarOverdue', { n: '<strong>' + s.dsar.overdue + '</strong>' })}</div>`)
+  if (s.vvt.noLegal > 0)         alerts.push(`<div class="gdpr-alert gdpr-alert-warn"><i class="ph ph-warning-circle"></i> ${t('gdpr_alertNoLegal', { n: '<strong>' + s.vvt.noLegal + '</strong>' })}</div>`)
+  if (!s.dsbSet)                  alerts.push(`<div class="gdpr-alert gdpr-alert-info"><i class="ph ph-info"></i> ${t('gdpr_alertNoDpo')}</div>`)
 
   el.innerHTML = `
     ${alerts.length ? `<div class="gdpr-alerts">${alerts.join('')}</div>` : ''}
@@ -10358,7 +10358,7 @@ async function saveVvt(id) {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchGdprTab('vvt')
 }
 
@@ -10425,7 +10425,7 @@ async function openAvForm(id = null) {
     <div class="training-form-page">
       <div class="training-form-header">
         <button class="btn btn-secondary btn-sm" onclick="switchGdprTab('av')"><i class="ph ph-arrow-left"></i> ${t('ui_back')}</button>
-        <h2>${id ? 'Edit DPA Contract' : 'New DPA Contract'}</h2>
+        <h2>${id ? t('gdpr_avEdit') : t('gdpr_avNew')}</h2>
       </div>
       <div class="training-form-body">
         <div class="form-group"><label class="form-label">${t('ui_nameRequired')}</label>
@@ -10496,7 +10496,7 @@ async function saveAv(id) {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   const saved = await res.json()
 
   // Upload file if provided
@@ -10558,10 +10558,10 @@ async function openDsfaForm(id = null) {
   const stOpts = GDPR_DSFA_STATUSES.map(s => `<option value="${s.id}" ${d.status === s.id ? 'selected':''}>${s.label}</option>`).join('')
   const rrOpts = GDPR_RISK_LEVELS.map(l => `<option value="${l.id}" ${d.residualRisk === l.id ? 'selected':''}>${l.label}</option>`).join('')
   const decOpts = [
-    { id:'', label:'— No decision yet —' },
-    { id:'proceed', label:'Proceed' },
-    { id:'modify', label:'Modify' },
-    { id:'reject', label:'Reject' }
+    { id:'', get label() { return t('gdpr_decNone') } },
+    { id:'proceed', get label() { return t('gdpr_decProceed') } },
+    { id:'modify', get label() { return t('gdpr_decModify') } },
+    { id:'reject', get label() { return t('gdpr_decReject') } }
   ].map(o => `<option value="${o.id}" ${d.decision === o.id ? 'selected':''}>${o.label}</option>`).join('')
   const entityChecks = _gdprEntities.map(e =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
@@ -10574,7 +10574,7 @@ async function openDsfaForm(id = null) {
     <div class="training-form-page">
       <div class="training-form-header">
         <button class="btn btn-secondary btn-sm" onclick="switchGdprTab('dsfa')"><i class="ph ph-arrow-left"></i> ${t('ui_back')}</button>
-        <h2>${id ? 'Edit DPIA' : 'New DPIA'}</h2>
+        <h2>${id ? t('gdpr_dsfaEdit') : t('gdpr_dsfaNew')}</h2>
       </div>
       <div class="training-form-body">
         <div class="form-group"><label class="form-label">${t('ui_nameRequired')}</label>
@@ -10692,7 +10692,7 @@ async function saveDsfa(id) {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchGdprTab('dsfa')
 }
 
@@ -10731,7 +10731,7 @@ async function renderGdprIncidents(el) {
             <td style="font-size:.78rem">${i.discoveredAt ? new Date(i.discoveredAt).toLocaleDateString('en-GB') : '—'}</td>
             <td>${i.saNotificationRequired && !i.saNotifiedAt ? gdprTimerHtml(i.discoveredAt) : '—'}</td>
             <td><span class="gdpr-risk gdpr-risk-${i.riskLevel}">${GDPR_RISK_LEVELS.find(l=>l.id===i.riskLevel)?.label || i.riskLevel}</span></td>
-            <td>${i.saNotifiedAt ? `<i class="ph ph-check-circle" style="color:#4ade80"></i> ${new Date(i.saNotifiedAt).toLocaleDateString('en-GB')}` : (i.saNotificationRequired ? '<i class="ph ph-x-circle" style="color:#f87171"></i> Pending' : '—')}</td>
+            <td>${i.saNotifiedAt ? `<i class="ph ph-check-circle" style="color:#4ade80"></i> ${new Date(i.saNotifiedAt).toLocaleDateString('en-GB')}` : (i.saNotificationRequired ? '<i class="ph ph-x-circle" style="color:#f87171"></i> ' + t('gdpr_pending') : '—')}</td>
             <td><span class="gdpr-status gdpr-st-${i.status}">${st?.label || i.status}</span></td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
               ${gdprCanAudit() ? `<button class="btn btn-secondary btn-sm" onclick="openIncidentForm('${i.id}')"><i class="ph ph-pencil"></i></button>` : ''}
@@ -10768,7 +10768,7 @@ async function openIncidentForm(id = null) {
     <div class="training-form-page">
       <div class="training-form-header">
         <button class="btn btn-secondary btn-sm" onclick="switchGdprTab('incidents')"><i class="ph ph-arrow-left"></i> ${t('ui_back')}</button>
-        <h2>${id ? 'Edit Data Breach' : 'Record New Data Breach'}</h2>
+        <h2>${id ? t('gdpr_incEdit') : t('gdpr_incNew')}</h2>
       </div>
       <div class="training-form-body">
         <div class="form-group"><label class="form-label">${t('ui_nameRequired')}</label>
@@ -10845,7 +10845,7 @@ async function saveIncident(id) {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchGdprTab('incidents')
 }
 
@@ -10908,7 +10908,7 @@ async function openDsarForm(id = null) {
     <div class="training-form-page">
       <div class="training-form-header">
         <button class="btn btn-secondary btn-sm" onclick="switchGdprTab('dsar')"><i class="ph ph-arrow-left"></i> ${t('ui_back')}</button>
-        <h2>${id ? 'Edit DSAR' : 'New Data Subject Request'}</h2>
+        <h2>${id ? t('gdpr_dsarEdit') : t('gdpr_dsarNew')}</h2>
       </div>
       <div class="training-form-body">
         <div class="form-group"><label class="form-label">${t('gdpr_requestType')}</label>
@@ -10961,7 +10961,7 @@ async function saveDsar(id) {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchGdprTab('dsar')
 }
 
@@ -11029,7 +11029,7 @@ async function openTomForm(id = null) {
     <div class="training-form-page">
       <div class="training-form-header">
         <button class="btn btn-secondary btn-sm" onclick="switchGdprTab('toms')"><i class="ph ph-arrow-left"></i> ${t('ui_back')}</button>
-        <h2>${id ? 'Edit TOM' : 'New TOM'}</h2>
+        <h2>${id ? t('gdpr_tomEdit') : t('gdpr_tomNew')}</h2>
       </div>
       <div class="training-form-body">
         <div class="form-group"><label class="form-label">${t('ui_nameRequired')}</label>
@@ -11089,7 +11089,7 @@ async function saveTom(id) {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchGdprTab('toms')
 }
 
@@ -11115,16 +11115,16 @@ async function renderGdprDeletion(el) {
 
     ${due.length > 0 ? `
     <div class="gdpr-alert gdpr-alert-error" style="margin-bottom:1rem">
-      <i class="ph ph-warning"></i> <strong>${due.length}</strong> RoPA entries with expired retention period must be deleted.
+      <i class="ph ph-warning"></i> ${t('gdpr_alertRopaExpired', { n: '<strong>' + due.length + '</strong>' })}
     </div>
-    <h4 style="color:var(--color-danger)">Deletion Due (${due.length})</h4>
+    <h4 style="color:var(--color-danger)">${t('gdpr_deletionDueTitle', { n: due.length })}</h4>
     <table class="gdpr-table">
       <thead><tr><th>${t('gdpr_ropaTitle')}</th><th>${t('gdpr_dueSince')}</th><th>${t('gdpr_periodMonths')}</th>${canOwn ? `<th>${t('ui_action')}</th>` : ''}</tr></thead>
       <tbody>${due.map(v => `
         <tr>
           <td>${escHtml(v.title)}</td>
           <td style="color:var(--color-danger)">${fmtDate(v.deletionDue)}</td>
-          <td>${v.retentionMonths} months</td>
+          <td>${t('gdpr_nMonths', { n: v.retentionMonths })}</td>
           ${canOwn ? `<td><button class="btn btn-sm btn-danger" onclick="confirmDeletion('${v.id}','${escHtml(v.title).replace(/'/g,"\\'")}')"><i class="ph ph-check"></i> ${t('gdpr_confirmDeletion')}</button></td>` : ''}
         </tr>`).join('')}
       </tbody>
@@ -11138,12 +11138,12 @@ async function renderGdprDeletion(el) {
         <tr>
           <td>${escHtml(v.title)}</td>
           <td style="color:var(--color-warning)">${fmtDate(v.deletionDue)}</td>
-          <td>${v.retentionMonths} months</td>
+          <td>${t('gdpr_nMonths', { n: v.retentionMonths })}</td>
         </tr>`).join('')}
       </tbody>
     </table>` : ''}
 
-    <h4 style="margin-top:1.5rem">Log of Confirmed Deletions (${log.length})</h4>
+    <h4 style="margin-top:1.5rem">${t('gdpr_deletionLogHeading', { n: log.length })}</h4>
     ${log.length === 0 ? `<p class="gdpr-empty">${t('gdpr_noDeletionsYet')}</p>` : `
     <table class="gdpr-table">
       <thead><tr><th>${t('gdpr_ropaTitle')}</th><th>${t('gdpr_confirmedOn')}</th><th>${t('gdpr_confirmedBy')}</th><th>${t('ui_method')}</th><th>${t('ui_note')}</th></tr></thead>
@@ -11161,16 +11161,16 @@ async function renderGdprDeletion(el) {
 }
 
 async function confirmDeletion(vvtId, vvtTitle) {
-  const method   = prompt('Deletion method (e.g. "Database cleanup", "Paper shredding"):', 'manual') || 'manual'
-  const evidence = prompt('Evidence / Reference (optional):') || ''
-  const note     = prompt('Note (optional):') || ''
-  if (!confirm(`Confirm deletion of "${vvtTitle}"?`)) return
+  const method   = prompt(t('gdpr_promptMethod'), 'manual') || 'manual'
+  const evidence = prompt(t('gdpr_promptEvidence')) || ''
+  const note     = prompt(t('gdpr_promptNote')) || ''
+  if (!confirm(t('gdpr_confirmDeletionOf', { title: vvtTitle }))) return
   const res = await fetch('/gdpr/deletion-log', {
     method: 'POST',
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ vvtId, vvtTitle, method, evidence, note })
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchGdprTab('deletion')
 }
 
@@ -11208,7 +11208,7 @@ async function renderGdprDsb(el) {
 
       <div class="form-group">
         <label class="form-label">${t('gdpr_appointmentCert')}</label>
-        ${d.filePath ? `<div style="margin-bottom:8px"><a href="/gdpr/dsb/file" target="_blank" class="btn btn-secondary btn-sm"><i class="ph ph-file-pdf"></i> ${escHtml(d.filename || 'Open document')}</a></div>` : ''}
+        ${d.filePath ? `<div style="margin-bottom:8px"><a href="/gdpr/dsb/file" target="_blank" class="btn btn-secondary btn-sm"><i class="ph ph-file-pdf"></i> ${escHtml(d.filename || t('ui_openDocument'))}</a></div>` : ''}
         <input type="file" id="dsbFile" accept=".pdf,.docx,.doc">
       </div>
 
@@ -11235,7 +11235,7 @@ async function saveDsb() {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
 
   // Upload file if provided
   const fileInput = document.getElementById('dsbFile')
@@ -11251,10 +11251,10 @@ async function saveDsb() {
 // ── Shared delete helper ──────────────────────────────────────────
 
 async function deleteGdprItem(resource, id) {
-  const labels = { vvt:'RoPA entry', av:'DPA contract', dsfa:'DPIA', incidents:'data breach', dsar:'DSAR request', toms:'TOM' }
-  if (!confirm(`Delete ${labels[resource] || resource}?`)) return
+  const labels = { vvt: t('gdpr_itemRopa'), av: t('gdpr_itemAv'), dsfa: t('gdpr_itemDsfa'), incidents: t('gdpr_itemBreach'), dsar: t('gdpr_itemDsar'), toms: t('gdpr_itemTom') }
+  if (!confirm(t('gdpr_deleteItemConfirm', { what: labels[resource] || resource }))) return
   const res = await fetch(`/gdpr/${resource}/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchGdprTab(_gdprTab)
 }
 
@@ -11590,14 +11590,14 @@ async function saveTraining(id) {
   const url    = id ? `/training/${id}` : '/training'
   const method = id ? 'PUT' : 'POST'
   const res = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchTrainingTab('plan')
 }
 
 async function deleteTraining(id) {
   if (!confirm(t('training_deleteConfirm'))) return
   const res = await fetch(`/training/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchTrainingTab(_trainingTab)
 }
 
@@ -11805,9 +11805,9 @@ async function openLegalForm(type, id) {
   if (!el) return
   document.querySelectorAll('#legalContainer .gdpr-tab').forEach(b => b.classList.remove('active'))
 
-  const TITLES = { contract: isEdit ? 'Edit Contract'       : 'New Contract',
-                   nda:      isEdit ? 'Edit NDA'            : 'New NDA',
-                   policy:   isEdit ? 'Edit Policy'         : 'New Privacy Policy' }
+  const TITLES = { contract: isEdit ? t('legal_contractEdit') : t('legal_contractNew'),
+                   nda:      isEdit ? t('legal_ndaEdit')      : t('legal_ndaNew'),
+                   policy:   isEdit ? t('legal_policyEdit')   : t('legal_policyNew') }
   const ICONS  = { contract:'ph-file-text', nda:'ph-handshake', policy:'ph-lock-key-open' }
 
   const attachSection = isEdit ? `
@@ -11820,7 +11820,7 @@ async function openLegalForm(type, id) {
           <input type="file" id="legalAttachFile" class="form-input" style="flex:1;min-width:200px"
             accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.png,.jpg,.jpeg,.txt,.zip">
           <button class="btn btn-secondary btn-sm" onclick="uploadLegalAttachment('${LEGAL_ENDPOINT[type]}','${id}')">
-            <i class="ph ph-upload-simple"></i> Upload
+            <i class="ph ph-upload-simple"></i> ${t('ui_upload')}
           </button>
         </div>
       </div>
@@ -11965,7 +11965,7 @@ async function openLegalForm(type, id) {
     <div class="training-form-page">
       <div class="training-form-header">
         <button class="btn btn-secondary btn-sm" onclick="switchLegalTab('${LEGAL_BACK_TAB[type]}')">
-          <i class="ph ph-arrow-left"></i> Back to Overview
+          <i class="ph ph-arrow-left"></i> ${t('ui_backToOverview')}
         </button>
         <h3 class="training-form-title">
           <i class="ph ${ICONS[type]}"></i> ${TITLES[type]}
@@ -11975,7 +11975,7 @@ async function openLegalForm(type, id) {
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchLegalTab('${LEGAL_BACK_TAB[type]}')">${t('ui_cancel')}</button>
         <button class="btn btn-primary" onclick="saveLegalItem('${type}','${id||''}')">
-          <i class="ph ph-floppy-disk"></i> Save
+          <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
         </button>
       </div>
     </div>
@@ -12006,7 +12006,7 @@ async function uploadLegalAttachment(resource, itemId) {
   const res = await fetch(`/legal/${resource}/${itemId}/attachments`, {
     method: 'POST', headers: apiHeaders(), body: fd
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Upload failed'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('file_uploadFailed')); return }
   const meta = await res.json()
   // Reload item to get updated attachments
   const itemRes = await fetch(`/legal/${resource}/${itemId}`, { headers: apiHeaders() })
@@ -12023,7 +12023,7 @@ async function deleteLegalAttachment(resource, itemId, attId) {
   const res = await fetch(`/legal/${resource}/${itemId}/attachments/${attId}`, {
     method: 'DELETE', headers: apiHeaders()
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   const itemRes = await fetch(`/legal/${resource}/${itemId}`, { headers: apiHeaders() })
   if (itemRes.ok) {
     const item = await itemRes.json()
@@ -12092,7 +12092,7 @@ async function saveLegalItem(type, id) {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   // Nach dem Speichern eines neuen Eintrags direkt in den Edit-Modus wechseln (für Anhänge)
   if (!id) {
     const created = await res.json()
@@ -12105,7 +12105,7 @@ async function saveLegalItem(type, id) {
 async function deleteLegalItem(resource, id) {
   if (!confirm(t('ui_deleteQ'))) return
   const res = await fetch(`/legal/${resource}/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   switchLegalTab(_legalTab)
 }
 
@@ -12479,7 +12479,7 @@ async function renderAssetsByClass(el) {
     <div class="asset-category-section">
       <div class="asset-category-header">
         <span class="asset-badge" style="color:${g.color};border-color:${g.color}">${g.label}</span>
-        <span style="color:var(--text-subtle);font-size:.82rem">${g.items.length} Asset(s)</span>
+        <span style="color:var(--text-subtle);font-size:.82rem">${t('assets_nItems', { n: g.items.length })}</span>
       </div>
       ${g.items.length === 0
         ? `<p style="color:var(--text-subtle);font-size:.82rem;padding:4px 0">${t('assets_none')}</p>`
@@ -12950,14 +12950,14 @@ async function saveAsset(id) {
   const url    = id ? `/assets/${id}` : '/assets'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error saving'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('err_saveFailed')); return }
   switchAssetsTab('list')
 }
 
 async function deleteAsset(id) {
   if (!confirm(t('assets_deleteConfirm'))) return
   const res = await fetch(`/assets/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   switchAssetsTab(_assetsTab)
 }
 
@@ -13531,7 +13531,7 @@ async function saveNis2Item(id) {
   })
   if (!res.ok) {
     const e = await res.json().catch(() => ({}))
-    alert(e.error || 'Error saving')
+    alert(e.error || t('err_saveFailed'))
     return
   }
   switchNis2Tab('governance')
@@ -13718,7 +13718,7 @@ async function openNis2IncidentForm(id) {
     <div class="training-form-page">
       <div class="training-form-header">
         <button class="btn btn-secondary btn-sm" onclick="switchNis2Tab('deadlines')">
-          <i class="ph ph-arrow-left"></i> Back
+          <i class="ph ph-arrow-left"></i> ${t('common_back')}
         </button>
         <h3 class="training-form-title">
           <i class="ph ph-timer"></i> ${escHtml(incident.refNumber || incident.id)}
@@ -13752,7 +13752,7 @@ async function startNis2Tracking(id) {
   })
   if (!res.ok) {
     const e = await res.json().catch(() => ({}))
-    alert(e.error || 'Error')
+    alert(e.error || t('error'))
     return
   }
   openNis2IncidentForm(id)
@@ -13778,7 +13778,7 @@ async function submitNis2Phase(id, phase) {
   })
   if (!res.ok) {
     const e = await res.json().catch(() => ({}))
-    alert(e.error || 'Error')
+    alert(e.error || t('error'))
     return
   }
   openNis2IncidentForm(id)
@@ -13820,7 +13820,7 @@ async function renderGovernance() {
 
   container.innerHTML = `
     <div class="training-header">
-      <h2 class="training-title"><i class="ph ph-chalkboard-teacher"></i> Governance &amp; Management Review</h2>
+      <h2 class="training-title"><i class="ph ph-chalkboard-teacher"></i> ${t('gov_title')}</h2>
       <div class="training-tab-bar">
         ${tabs.map(t => `<button class="training-tab${t.id===_govTab?' active':''}" data-tab="${t.id}">
           <i class="ph ${t.icon}"></i> ${t.label}
@@ -13873,12 +13873,12 @@ async function renderGovReviews(el) {
   const isAdmin = rank >= ROLE_RANK.admin
 
   const res = await fetch('/governance/reviews', { headers: apiHeaders() })
-  if (!res.ok) throw new Error('Error loading reviews')
+  if (!res.ok) throw new Error(t('gov_loadReviewsFailed'))
   const reviews = await res.json()
 
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <span style="color:var(--text-subtle);font-size:.85rem">${reviews.length} Management Reviews</span>
+      <span style="color:var(--text-subtle);font-size:.85rem">${t('gov_nReviews', { n: reviews.length })}</span>
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openGovReviewForm()"><i class="ph ph-plus"></i> ${t('gov_newReview')}</button>` : ''}
     </div>
     ${reviews.length === 0 ? '<p class="dash-empty">' + t('gov_noReviews') + '</p>' : `
@@ -13909,7 +13909,7 @@ async function renderGovActions(el) {
   const isAdmin = rank >= ROLE_RANK.admin
 
   const res = await fetch('/governance/actions', { headers: apiHeaders() })
-  if (!res.ok) throw new Error('Error loading actions')
+  if (!res.ok) throw new Error(t('gov_loadActionsFailed'))
   let actions = await res.json()
 
   const today = new Date().toISOString().slice(0,10)
@@ -13992,12 +13992,12 @@ async function renderGovMeetings(el) {
   const isAdmin = rank >= ROLE_RANK.admin
 
   const res = await fetch('/governance/meetings', { headers: apiHeaders() })
-  if (!res.ok) throw new Error('Error loading meetings')
+  if (!res.ok) throw new Error(t('gov_loadMeetingsFailed'))
   const meetings = await res.json()
 
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <span style="color:var(--text-subtle);font-size:.85rem">${meetings.length} Meeting minutes</span>
+      <span style="color:var(--text-subtle);font-size:.85rem">${t('gov_nMeetings', { n: meetings.length })}</span>
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openGovMeetingForm()"><i class="ph ph-plus"></i> ${t('gov_newMeeting')}</button>` : ''}
     </div>
     ${meetings.length === 0 ? '<p class="dash-empty">' + t('gov_noMeetings') + '</p>' : `
@@ -14149,14 +14149,14 @@ async function saveGovReview(id) {
   const url    = id ? `/governance/reviews/${id}` : '/governance/reviews'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error saving'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('err_saveFailed')); return }
   switchGovTab('reviews')
 }
 
 async function deleteGovReview(id) {
   if (!confirm(t('gov_deleteReviewConfirm'))) return
   const res = await fetch(`/governance/reviews/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   switchGovTab('reviews')
 }
 
@@ -14270,14 +14270,14 @@ async function saveGovAction(id) {
   const url    = id ? `/governance/actions/${id}` : '/governance/actions'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error saving'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('err_saveFailed')); return }
   switchGovTab('actions')
 }
 
 async function deleteGovAction(id) {
   if (!confirm(t('gov_deleteActionConfirm'))) return
   const res = await fetch(`/governance/actions/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   switchGovTab('actions')
 }
 
@@ -14394,14 +14394,14 @@ async function saveGovMeeting(id) {
   const url    = id ? `/governance/meetings/${id}` : '/governance/meetings'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error saving'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('err_saveFailed')); return }
   switchGovTab('meetings')
 }
 
 async function deleteGovMeeting(id) {
   if (!confirm(t('gov_deleteMeetingConfirm'))) return
   const res = await fetch(`/governance/meetings/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   switchGovTab('meetings')
 }
 
@@ -14424,7 +14424,7 @@ function bcmStatusBadge(v) {
   return `<span class="bcm-badge ${v}">${BCM_STATUS_LABELS[v] || v}</span>`
 }
 function bcmResultBadge(v) {
-  return `<span class="bcm-badge ${v||'not_tested'}">${BCM_RESULT_LABELS[v] || v || 'Not Tested'}</span>`
+  return `<span class="bcm-badge ${v||'not_tested'}">${BCM_RESULT_LABELS[v] || v || t('bcml_resNotTested')}</span>`
 }
 
 async function renderBcm() {
@@ -14448,7 +14448,7 @@ async function renderBcm() {
 
   container.innerHTML = `
     <div class="training-header">
-      <h2 class="training-title"><i class="ph ph-heartbeat"></i> Business Continuity Management</h2>
+      <h2 class="training-title"><i class="ph ph-heartbeat"></i> ${t('bcm_pageTitle')}</h2>
       <p class="training-subtitle" style="color:var(--text-subtle);font-size:.85rem;margin:4px 0 0">
         BIA Register · Continuity Plans (BCP/DRP/ITP) · Exercises & Tests | ISO 22301
       </p>
@@ -14702,14 +14702,14 @@ async function saveBia(id) {
   const url    = id ? `/bcm/bia/${id}` : '/bcm/bia'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error saving'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('err_saveFailed')); return }
   switchBcmTab('bia')
 }
 
 async function deleteBia(id) {
   if (!confirm(t('bcm_deleteBiaConfirm'))) return
   const res = await fetch(`/bcm/bia/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   switchBcmTab('bia')
 }
 
@@ -14927,14 +14927,14 @@ async function savePlan(id) {
   const url    = id ? `/bcm/plans/${id}` : '/bcm/plans'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error saving'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('err_saveFailed')); return }
   switchBcmTab('plans')
 }
 
 async function deletePlan(id) {
   if (!confirm(t('bcm_deletePlanConfirm'))) return
   const res = await fetch(`/bcm/plans/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   switchBcmTab('plans')
 }
 
@@ -15103,14 +15103,14 @@ async function saveExercise(id) {
   const url    = id ? `/bcm/exercises/${id}` : '/bcm/exercises'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error saving'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('err_saveFailed')); return }
   switchBcmTab('exercises')
 }
 
 async function deleteExercise(id) {
   if (!confirm(t('bcm_deleteExerciseConfirm'))) return
   const res = await fetch(`/bcm/exercises/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   switchBcmTab('exercises')
 }
 
@@ -15208,7 +15208,7 @@ async function renderSuppliers() {
 
   const tabs = [
     { id: 'list',      get label() { return t('suppliers_tabList') }, icon: 'ph-list-bullets' },
-    { id: 'critical',  label: 'Critical',           icon: 'ph-warning-octagon' },
+    { id: 'critical',  get label() { return t('dash_critSuppliers') }, icon: 'ph-warning-octagon' },
     { id: 'dataaccess',get label() { return t('suppliers_tabData') }, icon: 'ph-database' },
   ]
 
@@ -15236,10 +15236,10 @@ async function renderSuppliers() {
       const kpiBar = document.getElementById('suppliersKpiBar')
       if (kpiBar) {
         kpiBar.innerHTML = [
-          { label: 'Total',            value: s.total,          color: 'var(--text-primary)' },
-          { label: 'Critical',         value: s.critical,       color: 'var(--color-R400,#de350b)' },
-          { label: 'Overdue Audits',   value: s.overdueAudits,  color: s.overdueAudits > 0 ? 'var(--color-R400,#f87171)' : 'var(--success-text)' },
-          { label: 'With Data Access', value: s.withDataAccess, color: 'var(--warning-text,#f0b429)' },
+          { label: t('suppliers_total'), value: s.total,          color: 'var(--text-primary)' },
+          { label: t('dash_critSuppliers'), value: s.critical,       color: 'var(--color-R400,#de350b)' },
+          { label: t('dash_auditsOverdue'), value: s.overdueAudits,  color: s.overdueAudits > 0 ? 'var(--color-R400,#f87171)' : 'var(--success-text)' },
+          { label: t('dash_withDataAccess'), value: s.withDataAccess, color: 'var(--warning-text,#f0b429)' },
         ].map(k => `
           <div class="dash-card kpi" style="flex:1;min-width:120px;padding:12px 16px;text-align:center">
             <div style="font-size:1.5rem;font-weight:700;color:${k.color}">${k.value}</div>
@@ -15591,14 +15591,14 @@ async function saveSupplier(id) {
   const url    = id ? `/suppliers/${id}` : '/suppliers'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || 'Error saving'); return }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || t('err_saveFailed')); return }
   renderSuppliers()
 }
 
 async function deleteSupplier(id) {
   if (!confirm(t('suppliers_trashConfirm'))) return
   const res = await fetch(`/suppliers/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || t('error')); return }
   renderSuppliers()
 }
 
@@ -15764,7 +15764,7 @@ async function createAssessment(supplierId) {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || t('error')); return }
   const a    = await res.json()
   const link = `${location.origin}/supplier-assessment/${a.token}`
   const el   = dom('suppliersTabContent')
@@ -15801,7 +15801,7 @@ function copyAssessmentLink(btn) {
     const old = btn.innerHTML
     btn.innerHTML = `<i class="ph ph-check"></i> ${t('sup_copied')}`
     setTimeout(() => { btn.innerHTML = old }, 2000)
-  }).catch(() => { prompt('Copy link:', link) })
+  }).catch(() => { prompt(t('ui_copyLink'), link) })
 }
 
 async function openAssessmentDetail(id) {
@@ -15882,14 +15882,14 @@ async function submitAssessmentReview(id, supplierId) {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || t('error')); return }
   openSupplierAssessments(supplierId)
 }
 
 async function deleteAssessment(id, supplierId) {
   if (!confirm(t('assess_deleteConfirm'))) return
   const res = await fetch(`/assessments/${id}`, { method: 'DELETE', headers: apiHeaders() })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || 'Error'); return }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || t('error')); return }
   openSupplierAssessments(supplierId)
 }
 
