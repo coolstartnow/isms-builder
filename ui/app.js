@@ -12226,16 +12226,43 @@ function _assetProtFields(item) {
   }).join('')
 }
 
-/** Schalter, der die Schutzziel-Vorgabe des Typs für dieses Asset aufhebt. */
+/** Schalter, der die Schutzziel-Vorgabe des Typs für dieses Asset aufhebt.
+ *  Wird immer gerendert und nur ein-/ausgeblendet, damit er auch nach einem
+ *  Typwechsel im Formular vorhanden ist (#91). */
 function _assetProtOverrideToggle(item) {
   const typeProt = ASSET_TYPES.find(at => at.id === item?.type)?.protection || null
-  if (!typeProt) return ''      // ohne Typvorgabe gibt es nichts zu übersteuern
   const on = !!item?.protectionOverride
-  return `<label class="asset-prot-override">
+  return `<label class="asset-prot-override" id="asProtOverrideRow"${typeProt ? '' : ' style="display:none"'}>
     <input type="checkbox" id="asProtOverride"${on ? ' checked' : ''} onchange="_toggleAssetProtOverride(this.checked)">
     <span>${escHtml(t('at_override'))}</span>
     <small>${escHtml(t('at_overrideHint'))}</small>
   </label>`
+}
+
+/** Schutzziel-Vorgabe des im Formular gewählten Typs (oder null). */
+function _selectedAssetTypeProt() {
+  const id = dom('asType')?.value
+  return ASSET_TYPES.find(at => at.id === id)?.protection || null
+}
+
+/** Typwechsel im Formular: Vorgabewerte des Typs sofort anzeigen (#91). */
+function _onAssetTypeChange() {
+  const tp  = _selectedAssetTypeProt()
+  const row = dom('asProtOverrideRow')
+  const box = dom('asProtOverride')
+  if (row) row.style.display = tp ? '' : 'none'
+  if (!tp) {
+    if (box) box.checked = false
+    _toggleAssetProtOverride(true)        // keine Typvorgabe: Felder frei bearbeitbar
+    return
+  }
+  if (box && box.checked) return          // Übersteuerung aktiv: Eigenwerte nicht anfassen
+  ASSET_PROT_GOALS.forEach(g => {
+    const el = dom(`asProt_${g.key}`)
+    if (el && tp[g.key] !== undefined && tp[g.key] !== null) el.value = String(tp[g.key])
+  })
+  _toggleAssetProtOverride(false)
+  _syncAssetConfidentiality('level')
 }
 
 /** Sperrt bzw. entsperrt die vier Stufenfelder ohne Neuladen des Formulars. */
@@ -12391,7 +12418,7 @@ async function openAssetForm(id) {
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_type')}</label>
-              <select id="asType" class="select">${typeOptions}</select>
+              <select id="asType" class="select" onchange="_onAssetTypeChange()">${typeOptions}</select>
             </div>
           </div>
           <div class="form-group">
@@ -12526,6 +12553,7 @@ async function openAssetForm(id) {
   `
   initLinkPickers('as')
   _renderAssetDepTags()
+  if (!item) _onAssetTypeChange()
 }
 
 async function saveAsset(id) {
@@ -12562,8 +12590,9 @@ async function saveAsset(id) {
   // Bezug zum Typ ginge unbemerkt verloren. Deshalb: nur senden, wenn der
   // Nutzer die Werte auch bearbeiten durfte.
   const overrideEl = dom('asProtOverride')
-  payload.protectionOverride = overrideEl ? overrideEl.checked : false
-  const felderGesperrt = !!overrideEl && !overrideEl.checked
+  const typHatVorgabe = !!_selectedAssetTypeProt()
+  payload.protectionOverride = typHatVorgabe && !!overrideEl?.checked
+  const felderGesperrt = typHatVorgabe && !payload.protectionOverride
   if (!felderGesperrt) {
     payload.protection = {
       c:    dom('asProt_c')?.value    || null,
