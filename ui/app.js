@@ -8657,6 +8657,8 @@ function cvssBarHtml(score) {
 let _riskTab = 'register'
 let _riskFilterCat = ''
 let _riskFilterStatus = ''
+let _riskFilterLevel = ''   // '' | low | medium | high | critical (clientseitig, #93)
+let _riskSort = ''          // '' | desc | asc — nach Score, also nach Stufe (#93)
 const _tpCache = {}   // id → treatment plan object (avoids fragile JSON-in-onclick)
 
 function canManageRisks() {
@@ -8715,8 +8717,14 @@ async function renderRiskRegister(el) {
   if (_riskFilterCat)    params.set('category', _riskFilterCat)
   if (_riskFilterStatus) params.set('status',   _riskFilterStatus)
   const res = await fetch('/risks?' + params, { headers: apiHeaders() })
-  const risks = res.ok ? await res.json() : []
+  const loaded = res.ok ? await res.json() : []
+  // Stufe: Filter und Sortierung laufen im Browser auf der geladenen Liste (#93)
+  const risks = loaded.filter(r => !_riskFilterLevel || r.riskLevel === _riskFilterLevel)
+  if (_riskSort) risks.sort((a, b) => _riskSort === 'asc' ? a.score - b.score : b.score - a.score)
+  const sortIcon = _riskSort === 'asc' ? 'ph-caret-up' : _riskSort === 'desc' ? 'ph-caret-down' : 'ph-caret-up-down'
 
+  const lvOpts = [{ id:'', label:t('filter_allLevels') }, ...Object.keys(RISK_LEVEL_CFG).reverse().map(id => ({ id, label: RISK_LEVEL_CFG[id].label }))].map(l =>
+    `<option value="${l.id}" ${_riskFilterLevel === l.id ? 'selected':''}>${l.label}</option>`).join('')
   const catOpts = [{ id:'', label:t('filter_allCats') }, ...RISK_CATS].map(c =>
     `<option value="${c.id}" ${_riskFilterCat === c.id ? 'selected':''}>${c.label || riskCatLabel(c)}</option>`).join('')
   const stOpts = [{ id:'', label:t('filter_allStatuses') }, ...RISK_STATUSES].map(s =>
@@ -8726,12 +8734,13 @@ async function renderRiskRegister(el) {
     <div class="risk-filter-bar">
       <select class="select risk-filter-sel" onchange="_riskFilterCat=this.value;switchRiskTab('register')">${catOpts}</select>
       <select class="select risk-filter-sel" onchange="_riskFilterStatus=this.value;switchRiskTab('register')">${stOpts}</select>
+      <select class="select risk-filter-sel" onchange="_riskFilterLevel=this.value;switchRiskTab('register')">${lvOpts}</select>
       <span class="risk-filter-count">${risks.length} ${t('risk_countLabel')}</span>
     </div>
     ${risks.length === 0 ? `<p class="risk-empty">${t('risk_noRisksFound')}</p>` : `
     <table class="risk-table">
       <thead><tr>
-        <th>${t('risk_levelCol')}</th><th>${t('col_title')}</th><th>${t('col_category')}</th>
+        <th class="risk-th-sort" title="${escHtml(t('risk_sortByLevel'))}" onclick="_riskSort=({'':'desc',desc:'asc',asc:''})[_riskSort];switchRiskTab('register')">${t('risk_levelCol')} <i class="ph ${sortIcon}"></i></th><th>${t('col_title')}</th><th>${t('col_category')}</th>
         <th>${t('risk_wsScoreCol')}</th><th>${t('risk_treatmentCol')}</th><th>${t('col_status')}</th><th>${t('ui_owner')}</th><th style="width:70px;"></th>
       </tr></thead>
       <tbody>

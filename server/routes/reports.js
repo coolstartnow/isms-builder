@@ -30,9 +30,9 @@ router.get('/reports/findings', requireAuth, authorize('reader'), (req, res) => 
   const { status, severity, auditor } = req.query
   res.json(reports.findingsReport({ status, severity, auditor }))
 })
-router.get('/reports/risks', requireAuth, authorize('reader'), (req, res) => {
+router.get('/reports/risks', requireAuth, authorize('reader'), async (req, res) => {
   const { entity, category, status } = req.query
-  res.json(reports.risksReport({ entityId: entity || null, category: category || undefined, status: status || undefined }))
+  res.json(await reports.risksReport({ entityId: entity || null, category: category || undefined, status: status || undefined }))
 })
 router.get('/reports/export/csv', requireAuth, authorize('reader'), async (req, res) => {
   const { type, entity, framework, from, to } = req.query

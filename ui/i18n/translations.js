@@ -631,6 +631,7 @@
     // ── Shared filter / table ────────────────────────────────────────────────
     filter_allStatuses:  { de: 'Alle Status',               en: 'All Statuses',               fr: 'Tous les statuts',          nl: 'Alle statussen' , hu: 'Minden státusz' },
     filter_allCats:      { de: 'Alle Kategorien',           en: 'All Categories',             fr: 'Toutes les catégories',     nl: 'Alle categorieën' , hu: 'Minden kategória' },
+    filter_allLevels:    { de: 'Alle Stufen',               en: 'All Levels',                 fr: 'Tous les niveaux',          nl: 'Alle niveaus' , hu: 'Minden szint' },
     filter_allEntities:  { de: 'Alle Gesellschaften',       en: 'All Entities',               fr: 'Toutes les entités',        nl: 'Alle entiteiten' , hu: 'Minden szervezeti egység' },
     col_responsible:     { de: 'Verantwortlich',            en: 'Responsible',                fr: 'Responsable',               nl: 'Verantwoordelijke' , hu: 'Felelős' },
     col_dueDate:         { de: 'Fälligkeit',                en: 'Due Date',                   fr: 'Échéance',                  nl: 'Vervaldatum' , hu: 'Határidő' },
@@ -1805,6 +1806,7 @@
     risk_countLabel:         { de: 'Risiken', en: 'Risks', fr: 'Risques', nl: 'Risico’s' , hu: 'Kockázatok' },
     risk_noRisksFound:       { de: 'Keine Risiken gefunden.', en: 'No risks found.', fr: 'Aucun risque trouvé.', nl: 'Geen risico’s gevonden.' , hu: 'Nem található kockázat.' },
     risk_levelCol:           { de: 'Stufe', en: 'Level', fr: 'Niveau', nl: 'Niveau' , hu: 'Szint' },
+    risk_sortByLevel:        { de: 'Nach Stufe sortieren', en: 'Sort by level', fr: 'Trier par niveau', nl: 'Sorteren op niveau' , hu: 'Rendezés szint szerint' },
     risk_wsScoreCol:         { de: 'W × S = Score', en: 'W × S = Score', fr: 'P × I = Score', nl: 'W × I = Score' , hu: 'V × H = Pontszám' },
     risk_treatmentCol:       { de: 'Behandlung', en: 'Treatment', fr: 'Traitement', nl: 'Behandeling' , hu: 'Kezelési mód' },
     risk_noEvents:           { de: 'Keine Termine erfasst.', en: 'No events recorded.', fr: 'Aucun événement enregistré.', nl: 'Geen gebeurtenissen geregistreerd.' , hu: 'Nincs rögzített esemény.' },

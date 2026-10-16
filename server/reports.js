@@ -204,15 +204,16 @@ function findingsReport({ status, severity, auditor } = {}) {
 }
 
 // 8) Risk Register: alle freigegebenen Risiken (+ Scan-Quellen mit CVSS)
-function risksReport({ entityId, category, status } = {}) {
+async function risksReport({ entityId, category, status } = {}) {
   const riskStore = require('./db/riskStore')
-  const all = riskStore.getAll({ category, status, entity: entityId || undefined })
+  // await: beim Knex-Backend (SQLite/Postgres) liefert getAll ein Promise
+  const all = (await riskStore.getAll({ category, status, entity: entityId || undefined }))
     .filter(r => !r.needsReview) // nur freigegebene Risiken
   const byLevel    = { critical: 0, high: 0, medium: 0, low: 0, info: 0 }
   const byStatus   = {}
   const bySource   = { manual: 0, scan: 0 }
   for (const r of all) {
-    const lv = (r.level || 'info').toLowerCase()
+    const lv = (r.riskLevel || 'info').toLowerCase()
     if (byLevel[lv] !== undefined) byLevel[lv]++
     byStatus[r.status || 'draft'] = (byStatus[r.status || 'draft'] || 0) + 1
     if (r.source === 'greenbone-scan') bySource.scan++
@@ -224,7 +225,7 @@ function risksReport({ entityId, category, status } = {}) {
     byLevel, byStatus, bySource,
     risks: all.map(r => ({
       id: r.id, title: r.title, category: r.category || '',
-      level: r.level || '', status: r.status || '', owner: r.owner || '',
+      level: r.riskLevel || '', status: r.status || '', owner: r.owner || '',
       probability: r.probability, impact: r.impact, score: r.score,
       cvssScore: r.cvssScore ?? null,
       cveIds: r.cveIds || [],
@@ -321,7 +322,7 @@ async function exportCsv(type, { entityId, framework, from, to } = {}) {
       )
     }
     case 'risks': {
-      const data = risksReport({ entityId, category: undefined, status: undefined })
+      const data = await risksReport({ entityId, category: undefined, status: undefined })
       return csvExport(
         ['ID', 'Titel', 'Kategorie', 'Schweregrad', 'Status', 'Owner', 'Wahrscheinlichkeit', 'Impact', 'Score', 'CVSS', 'CVEs', 'Quelle', 'Genehmigt von', 'Erstellt'],
         (data.risks || []).map(r => [

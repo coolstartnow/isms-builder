@@ -106,3 +106,41 @@ describe('Risikomanagement CRUD', () => {
     riskId = null
   })
 })
+
+// #93 – Stufe in Report und CSV, Sortierung/Filter nach Stufe im UI
+describe('Risiko-Stufe (#93)', () => {
+  let levelRiskId
+
+  afterAll(async () => {
+    if (levelRiskId) await authedDelete(app, adminCookie, `/risks/${levelRiskId}`)
+  })
+
+  test('Report liefert die berechnete Stufe, CSV-Spalte Schweregrad ist gefüllt', async () => {
+    const created = await authedPost(app, auditorCookie, '/risks', {
+      title: 'Stufen-Test', category: 'technical', probability: 4, impact: 4,
+    })
+    expect(created.status).toBe(201)
+    levelRiskId = created.body.id
+    expect(created.body.riskLevel).toBe('critical')
+
+    const rep = await authedGet(app, readerCookie, '/reports/risks')
+    expect(rep.status).toBe(200)
+    expect(rep.body.byLevel.critical).toBeGreaterThanOrEqual(1)
+    const row = rep.body.risks.find(r => r.id === levelRiskId)
+    expect(row.level).toBe('critical')
+
+    const csv = await authedGet(app, readerCookie, '/reports/export/csv?type=risks')
+    expect(csv.status).toBe(200)
+    const line = csv.text.split('\n').find(l => l.includes('Stufen-Test'))
+    expect(line).toMatch(/critical/)
+  })
+
+  test('UI: Spalte „Stufe“ ist sortierbar, Filter nach Stufe vorhanden', () => {
+    const fs = require('fs'), path = require('path')
+    const app = fs.readFileSync(path.join(__dirname, '..', 'ui', 'app.js'), 'utf8')
+    expect(app).toMatch(/let _riskFilterLevel/)
+    expect(app).toMatch(/let _riskSort/)
+    expect(app).toMatch(/class="risk-th-sort"[^>]*onclick="_riskSort=/)
+    expect(app).toMatch(/_riskFilterLevel=this\.value/)
+  })
+})
