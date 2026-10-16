@@ -359,6 +359,14 @@ const ARCH_SEED = [
     minRole:       null,
   },
   {
+    seedId:        'seed_module_audits',
+    title:         { de: 'Modul: Audit-Management',                                 en: 'Module: Audit Management',                                       fr: 'Module: Gestion des audits',                             nl: 'Module: Auditbeheer',                                     hu: 'Modul: Auditkezelés' },
+    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-audits.md'),          en: path.join(PROJECT_ROOT, 'docs/module-audits.en.md'),          fr: path.join(PROJECT_ROOT, 'docs/module-audits.fr.md'),          nl: path.join(PROJECT_ROOT, 'docs/module-audits.nl.md'),          hu: path.join(PROJECT_ROOT, 'docs/module-audits.hu.md') },
+    refreshContent: true,
+    category:      'systemhandbuch',
+    minRole:       null,
+  },
+  {
     seedId:        'seed_changelog',
     title:         'ISMS Builder – Changelog',
     srcFile:       path.join(PROJECT_ROOT, 'CHANGELOG.md'),

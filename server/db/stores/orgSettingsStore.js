@@ -33,7 +33,7 @@ const DEFAULTS = {
   modules: {
     soa: true, guidance: true, goals: true, risk: true, legal: true,
     incident: true, gdpr: true, training: true, reports: true, calendar: true,
-    assets: true, governance: true, bcm: true, suppliers: true,
+    assets: true, governance: true, bcm: true, suppliers: true, audits: true,
   },
   soaFrameworks: {
     ISO27001: true, BSI: true, NIS2: true, EUCS: true, EUAI: true,
@@ -62,7 +62,7 @@ const DEFAULTS = {
   languageConfig: {
     available: ['de', 'en', 'fr', 'nl', 'hu'], default: 'en',
   },
-  navOrder: ['dashboard','soa','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','bcm','suppliers','policy-acks','reports','calendar','settings','admin'],
+  navOrder: ['dashboard','soa','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','audits','bcm','suppliers','policy-acks','reports','calendar','settings','admin'],
   emailNotifications: {
     enabled: false, adminEmail: '', risks: true, dsar: true,
     gdprIncidents: true, deletionLog: true, bcm: true, contracts: true,

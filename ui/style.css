@@ -1055,6 +1055,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0; }
   border-bottom: 1px solid var(--border);
 }
 .risk-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+.au-badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:.72rem; font-weight:600; border:1px solid currentColor; white-space:nowrap; }
+.au-item-editor { padding:10px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm,6px); }
+.cal-chip-audit { background: color-mix(in srgb,#60a5fa 20%,transparent); color:#60a5fa; }
 .rl-list { display: flex; flex-direction: column; gap: 6px; }
 .rl-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .rl-title { flex: 1; font-weight: 500; }

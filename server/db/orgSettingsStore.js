@@ -68,6 +68,7 @@ const DEFAULTS = {
     governance:  true,   // Governance & Management-Review (ISO 27001 Kap. 9.3)
     bcm:         true,   // Business Continuity Management (ISO 22301)
     suppliers:   true,   // Lieferkettenmanagement (ISO 27001 A.5.21–5.22, NIS2)
+    audits:      true,   // Audit-Management (ISO 27001 Kap. 9.2): Audits, Prüfpunkte, Auditprogramm
   },
 
   // SoA Framework-Selektion (admin-gesteuert)
@@ -140,7 +141,7 @@ const DEFAULTS = {
   },
 
   // Navigations-Reihenfolge (array der Section-IDs; fehlende landen am Ende)
-  navOrder: ['dashboard','soa','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','bcm','suppliers','policy-acks','reports','calendar','settings','admin'],
+  navOrder: ['dashboard','soa','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','audits','bcm','suppliers','policy-acks','reports','calendar','settings','admin'],
 
   // E-Mail-Benachrichtigungen (Digest, täglich)
   emailNotifications: {

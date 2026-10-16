@@ -143,6 +143,14 @@ async function reindexAll() {
     await indexMany(findings, 'Finding', f => `#reports?findingId=${f.id}`)
   } catch {}
 
+  try {
+    const auditMgmt = require('../db/auditMgmtStore')
+    const audits = (await auditMgmt.getAll()).map(a => ({
+      ...a, description: [a.scope, a.standard, a.conclusion, ...(a.checklist || []).map(i => i.question)].filter(Boolean).join(' '),
+    }))
+    await indexMany(audits, 'Audit', a => `#audits?auditId=${a.id}`)
+  } catch {}
+
   _save()
   return results
 }

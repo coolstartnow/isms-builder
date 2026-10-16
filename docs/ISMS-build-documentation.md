@@ -2658,6 +2658,30 @@ Der `/auth/language-config`-Endpunkt ist bewusst **öffentlich** (kein Login), d
 
 ---
 
+## 48a. Audit-Management (V 1.60)
+
+Audits, Prüfpunkte und Auditprogramm (Jahresplan) — ISO 27001 Kap. 9.2. Menüpunkt **Audits** (ab `contentowner`, Funktionen CISO/Revision/QMB), Modul-Schalter `modules.audits`. Anwenderdoku: `docs/module-audits*.md` (fünf Sprachen, Guidance-Seed `seed_module_audits`).
+
+**Speicherung:** `server/db/auditMgmtStore.js` (Name wegen `auditStore.js` = Audit-Log). Die Geschäftslogik steht einmal; ein kleiner Persistenz-Adapter schreibt je Objekt ein Dokument — in `data/audits.json` und `data/audit-programs.json` (`STORAGE_BACKEND=json`) bzw. in die Tabellen `audits` und `audit_programs` (`id`, `data`, `created_by`, `created_at`, `updated_at`, `deleted_at`, wie `findings`). Schreibzugriffe laufen nacheinander (Lock), damit parallele Requests keine Änderung überschreiben. Soft-Delete mit 30-Tage-Autopurge (`server/index.js`) und Papierkorb (`server/routes/trash.js`, Module `audit`/`audit_program`).
+
+**Modell:** Audit `{ ref AUD-JJJJ-NNNN, title, type internal|external|supplier|certification, status planned|in_progress|completed|cancelled, standard, scope, entityIds[], supplierId, leadAuditor, team[], plannedStart/End, actualStart/End, followUpDate, conclusion, programId, checklist[] }`; Prüfpunkt `{ id, controlId, question, result open|conform|nonconform|not_applicable, evidence, notes, findingId }`; Programm `{ ref AP-JJJJ-NNNN, title, year, objectives, scope, status draft|approved, approvedBy, approvedAt }`. Datumsfelder sind `JJJJ-MM-TT` oder `null`.
+
+**Endpunkte** (`server/routes/audits.js`; lesen ab `reader`, schreiben ab Rang 3 `auditor`/`contentowner`, endgültig löschen/wiederherstellen `admin`):
+```
+GET  /audits[?status=&type=&year=&programId=]   GET /audits/summary   GET /audits/:id   (inkl. findings[])
+POST /audits   PUT /audits/:id   DELETE /audits/:id   DELETE /audits/:id/permanent   POST /audits/:id/restore
+POST /audits/:id/checklist   PUT|DELETE /audits/:id/checklist/:itemId
+POST /audits/:id/checklist/:itemId/finding        – Finding aus Prüfpunkt erzeugen (409, wenn schon vorhanden)
+GET  /audit-programs[?year=&status=]   GET /audit-programs/:id   (inkl. audits[])
+POST /audit-programs   PUT /audit-programs/:id   (409, wenn freigegeben)
+POST /audit-programs/:id/approve | /reopen   DELETE /audit-programs/:id[/permanent]   POST /audit-programs/:id/restore
+```
+**Findings:** neue Felder `auditId`, `sourceItemId`; `GET /findings?auditId=`; `PUT /findings/:id` mit `auditId` (leer = lösen).
+
+**Weitere Anbindung:** Kalender (`audit_planned`, `audit_due`, `audit_followup`, `server/routes/calendar.js`), Dashboard (`/audits/summary`), Volltextsuche (`embeddingStore.js`, `lexicalSearch.js`, Deep-Link `#audits?auditId=<id>`), Admin-Export/-Import/-Reset (`server/routes/admin.js`; `findings.json` fehlte im Export und ist jetzt enthalten). Tests: `tests/audits.test.js`, `tests/auditUi.test.js`, Store-Test in `tests/dbStoresIntegration.test.js`.
+
+---
+
 ## 48. Audit-Feststellungen / Findings-Modul (V 1.32.0)
 
 ### Zweck

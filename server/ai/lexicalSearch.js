@@ -92,6 +92,15 @@ async function search(query, topK = 8) {
     results.push(...collect(findings, 'Finding', f => `#reports?findingId=${f.id}`, terms))
   } catch {}
 
+  try {
+    // Audits (Audit-Management): Deep-Link mit auditId öffnet das konkrete Audit
+    const auditMgmt = require('../db/auditMgmtStore')
+    const audits = (await auditMgmt.getAll()).map(a => ({
+      ...a, description: [a.scope, a.standard, a.conclusion, ...(a.checklist || []).map(i => i.question)].filter(Boolean).join(' '),
+    }))
+    results.push(...collect(audits, 'Audit', a => `#audits?auditId=${a.id}`, terms))
+  } catch {}
+
   return results
     .sort((a, b) => b.s - a.s)
     .slice(0, topK)

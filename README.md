@@ -131,6 +131,7 @@ and that is not a reason to avoid the project, only a reason to plan realistical
 | **Governance** | Management reviews, action tracking | ISO 27001 §9.3 |
 | **Reports** | Compliance matrix (Control × Entity), gap report, review cycles, CSV export | |
 | **Audit Findings** | Finding register (IST→SOLL→Risk→Recommendation), action plans, severity/status tracking, FIND-YYYY-NNNN ref | ISO 27001 §9.2 |
+| **Audit Management** | Audits with checklists, findings created from non-conformities, annual audit programme (quarterly plan, approval), calendar and dashboard integration, CSV/PDF export | ISO 27001 §9.2, ISO 19011 |
 | **Traceability** | Every record links to SoA controls + policy documents — bidirectional | |
 | **Semantic Search** | Local AI search via Ollama (nomic-embed-text) with keyword fallback | |
 | **Multi-Entity** | Corporate structure tree, per-entity applicability for controls and policies | |

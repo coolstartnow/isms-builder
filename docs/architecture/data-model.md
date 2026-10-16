@@ -146,6 +146,45 @@ nicht gespeichert (V 1.60). Bei SQLite/PostgreSQL liegen sie im JSON-Blob der Sp
 
 ---
 
+## Audits (`data/audits.json`, Tabelle `audits`)
+
+```json
+{
+  "id": "aud_1760000000000_ab12",
+  "ref": "AUD-2026-0001",
+  "title": "Internes Audit Zugriffskontrolle",
+  "type": "internal",
+  "status": "in_progress",
+  "standard": "ISO 27001:2022",
+  "scope": "Annex A.5.15–5.18",
+  "entityIds": ["entity-1"],
+  "supplierId": null,
+  "leadAuditor": "Alice",
+  "team": ["Bob"],
+  "plannedStart": "2026-11-02", "plannedEnd": "2026-11-06",
+  "actualStart": "2026-11-02", "actualEnd": null,
+  "followUpDate": "2027-02-01",
+  "conclusion": "",
+  "programId": "ap_1760000000000_cd34",
+  "checklist": [
+    { "id": "item_…", "controlId": "ISO-5.15", "question": "Ist die Zugriffssteuerung dokumentiert?",
+      "result": "nonconform", "evidence": "", "notes": "Rollenkonzept fehlt", "findingId": "finding_…" }
+  ],
+  "createdBy": "alice", "createdAt": "…", "updatedAt": "…", "deletedAt": null
+}
+```
+`result`: `open` | `conform` | `nonconform` | `not_applicable`. Findings verweisen mit `auditId` (und `sourceItemId` = Prüfpunkt) auf das Audit.
+
+## Audit Programmes (`data/audit-programs.json`, Tabelle `audit_programs`)
+
+```json
+{ "id": "ap_…", "ref": "AP-2026-0001", "title": "Auditprogramm 2027", "year": 2027,
+  "objectives": "…", "scope": "…", "status": "approved", "approvedBy": "carol", "approvedAt": "2026-12-01T…" }
+```
+Audits gehören über `programId` zu einem Programm; die Quartalsansicht ergibt sich aus `plannedStart`. Ein freigegebenes Programm ist gesperrt (`PUT` → 409).
+
+---
+
 ## Assets (`data/assets.json`)
 
 ```json

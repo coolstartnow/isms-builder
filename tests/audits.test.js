@@ -213,3 +213,17 @@ describe('Auditprogramme', () => {
     expect((await authedDelete(app, adminCookie, `/audit-programs/${pid}/permanent`)).status).toBe(200)
   })
 })
+
+describe('Suche', () => {
+  test('Audit ist per Keyword auffindbar und verlinkt auf das konkrete Audit', async () => {
+    const created = await authedPost(app, auditorCookie, '/audits', {
+      title: 'Quartalsaudit', scope: 'Xylophonzebra-Prüfung der Zugriffsrechte',
+      checklist: [],
+    })
+    const res = await authedGet(app, readerCookie, '/api/ai/search?q=Xylophonzebra')
+    expect(res.status).toBe(200)
+    const hit = res.body.results.find(r => r.type === 'Audit')
+    expect(hit).toBeTruthy()
+    expect(hit.url).toBe(`#audits?auditId=${created.body.id}`)
+  })
+})

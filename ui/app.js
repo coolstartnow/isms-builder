@@ -12,7 +12,7 @@ const ROLE_RANK = { reader:1, revision:1, editor:2, dept_head:2, qmb:2, contento
 let MODULE_CONFIG = {
   soa:true, guidance:true, goals:true, risk:true, legal:true,
   incident:true, gdpr:true, training:true, reports:true, calendar:true, assets:true,
-  governance:true, bcm:true, suppliers:true,
+  governance:true, bcm:true, suppliers:true, audits:true,
 }
 let SOA_FW_CONFIG = {
   ISO27001:true, BSI:true, NIS2:true, EUCS:true, EUAI:true,
@@ -43,6 +43,7 @@ const SECTION_META = [
   { id:'suppliers',  labelKey:'nav_suppliers',  label:'Supply Chain',       icon:'ph-truck',               minRole:'contentowner', functions:['ciso','revision'] },
   { id:'bcm',        labelKey:'nav_bcm',        label:'Business Continuity',icon:'ph-heartbeat',           minRole:'contentowner', functions:['ciso','revision'] },
   { id:'governance', labelKey:'nav_governance', label:'Governance',         icon:'ph-chalkboard-teacher',  minRole:'contentowner', functions:['ciso','dso','revision','qmb'] },
+  { id:'audits',     labelKey:'nav_audits',     label:'Audits',             icon:'ph-clipboard-text',      minRole:'contentowner', functions:['ciso','revision','qmb'] },
   { id:'nis2',       labelKey:'nav_nis2',       label:'NIS2',               icon:'ph-shield-star',         minRole:'contentowner', functions:['ciso','revision'] },
   { id:'policy-acks', labelKey:'nav_policyAcks', label:'Policy Acknowledgements', icon:'ph-check-circle', minRole:'contentowner', functions:['ciso','revision','qmb'] },
   { id:'reports',    labelKey:'nav_reports',    label:'Reports',            icon:'ph-chart-line',          minRole:'contentowner', functions:['ciso','dso','revision','qmb'] },
@@ -349,6 +350,7 @@ function _searchNavigate(url) {
   dom('searchDropdown').style.display = 'none'
   dom('topbarSearch').value = ''
   const [section, queryStr] = url.replace('#', '').split('?')
+  if (section === 'audits' && queryStr) _auPendingId = new URLSearchParams(queryStr).get('auditId')
   loadSection(section)
   if (section === 'reports' && queryStr) {
     const findingId = new URLSearchParams(queryStr).get('findingId')
@@ -1088,7 +1090,7 @@ function loadSection(sectionId){
 }
 
 function removeAllDynamicPanels() {
-  ['dashboardContainer','soaContainer','guidanceContainer','riskContainer','calendarContainer','adminPanelContainer','settingsPanelContainer','reportsContainer','gdprContainer','trainingContainer','incidentContainer','legalContainer','goalsContainer','assetsContainer','governanceContainer','nis2Container','bcmContainer','suppliersContainer','policyAcksContainer'].forEach(id => {
+  ['dashboardContainer','soaContainer','guidanceContainer','riskContainer','calendarContainer','adminPanelContainer','settingsPanelContainer','reportsContainer','gdprContainer','trainingContainer','incidentContainer','legalContainer','goalsContainer','assetsContainer','governanceContainer','nis2Container','bcmContainer','suppliersContainer','policyAcksContainer','auditsContainer'].forEach(id => {
     dom(id)?.remove()
   })
 }
@@ -2038,6 +2040,10 @@ async function openFindingForm(id = null) {
     const r = await fetch(`/findings/${id}`, { headers: apiHeaders() })
     if (r.ok) f = await r.json()
   }
+  const auditOptions = MODULE_CONFIG.audits ? await (async () => {
+    const r = await fetch('/audits', { headers: apiHeaders() })
+    return r.ok ? await r.json() : []
+  })() : []
 
   content.innerHTML = `
     <div class="training-form-page">
@@ -2074,6 +2080,13 @@ async function openFindingForm(id = null) {
               </select>
             </div>
           </div>
+          ${auditOptions.length || f?.auditId ? `<div class="form-group">
+            <label class="form-label">${t('audit_assignedAudit')}</label>
+            <select id="fndAudit" class="select"><option value="">${escHtml(t('audit_noAudit'))}</option>
+              ${auditOptions.map(a => `<option value="${escHtml(a.id)}"${f?.auditId === a.id ? ' selected' : ''}>${escHtml(a.ref)} · ${escHtml(a.title)}</option>`).join('')}
+              ${f?.auditId && !auditOptions.some(a => a.id === f.auditId) ? `<option value="${escHtml(f.auditId)}" selected>${escHtml(f.auditId)}</option>` : ''}
+            </select>
+          </div>` : ''}
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('findings_auditedArea')}</label>
@@ -2153,6 +2166,7 @@ async function saveFinding(id) {
     requirement:     dom('fndRequirement')?.value.trim(),
     impact:          dom('fndImpact')?.value.trim(),
     recommendation:  dom('fndRecommendation')?.value.trim(),
+    ...(dom('fndAudit') ? { auditId: dom('fndAudit').value } : {}),
   }
   const r = await fetch(id ? `/findings/${id}` : '/findings', {
     method: id ? 'PUT' : 'POST',
@@ -2295,6 +2309,11 @@ function renderSectionContent(sectionId){
     editorCard.style.display = 'none'
     listPanel.style.display = 'none'
     renderPolicyAcks()
+    return
+  } else if (sectionId === 'audits') {
+    editorCard.style.display = 'none'
+    listPanel.style.display = 'none'
+    renderAudits()
     return
   } else {
     dom('inputTitle').value = `Section: ${sectionId}`
@@ -3084,9 +3103,9 @@ async function renderDashboard() {
 
   container.innerHTML = '<div class="dashboard-loading">Loading Dashboard…</div>'
 
-  let data, soaSummary, riskSummary, gdprDash, trainSummary, legalSummary, calEvents, goalsSummary, assetSummary, govSummary, bcmSummary, supplierSummary, findingsSummary, reviewPending, ackSummary, nis2Summary, nis2Deadlines
+  let data, soaSummary, riskSummary, gdprDash, trainSummary, legalSummary, calEvents, goalsSummary, assetSummary, govSummary, bcmSummary, supplierSummary, findingsSummary, auditSummary, reviewPending, ackSummary, nis2Summary, nis2Deadlines
   try {
-    const [dashRes, soaRes, riskRes, gdprRes, trainRes, legalRes, calRes, goalsRes, assetRes, govRes, bcmRes, supplierRes, findRes, reviewRes, ackRes, nis2Res, nis2DlRes] = await Promise.all([
+    const [dashRes, soaRes, riskRes, gdprRes, trainRes, legalRes, calRes, goalsRes, assetRes, govRes, bcmRes, supplierRes, findRes, reviewRes, ackRes, nis2Res, nis2DlRes, auditRes] = await Promise.all([
       fetch('/dashboard',                                                                       { headers: apiHeaders('reader') }),
       MODULE_CONFIG.soa        ? fetch('/soa/summary',          { headers: apiHeaders('reader') }) : Promise.resolve(null),
       MODULE_CONFIG.risk       ? fetch('/risks/summary',        { headers: apiHeaders('reader') }) : Promise.resolve(null),
@@ -3104,6 +3123,7 @@ async function renderDashboard() {
       fetch('/distributions/summary',                           { headers: apiHeaders('reader') }),
       fetch('/nis2/governance/summary',                         { headers: apiHeaders('reader') }),
       fetch('/nis2/incidents/deadlines',                        { headers: apiHeaders('reader') }),
+      MODULE_CONFIG.audits     ? fetch('/audits/summary',       { headers: apiHeaders('reader') }) : Promise.resolve(null),
     ])
     if (!dashRes.ok) throw new Error('API error')
     data             = await dashRes.json()
@@ -3119,6 +3139,7 @@ async function renderDashboard() {
     bcmSummary       = bcmRes?.ok      ? await bcmRes.json()       : null
     supplierSummary  = supplierRes?.ok ? await supplierRes.json()  : null
     findingsSummary  = findRes?.ok     ? await findRes.json()      : null
+    auditSummary     = auditRes?.ok    ? await auditRes.json()     : null
     reviewPending    = reviewRes?.ok   ? await reviewRes.json()    : []
     ackSummary       = ackRes?.ok      ? await ackRes.json()       : null
     nis2Summary      = nis2Res?.ok     ? await nis2Res.json()      : null
@@ -3387,6 +3408,27 @@ async function renderDashboard() {
       <div class="dash-card kpi dash-link" data-nav="suppliers">
         <div class="kpi-value" style="color:var(--warning-text)">${supplierSummary.withDataAccess || 0}</div>
         <div class="kpi-label">${t('dash_withDataAccess')}</div>
+      </div>
+    </div>` : ''}
+
+    ${MODULE_CONFIG.audits && auditSummary ? `
+    <div class="dash-section-title" style="margin:16px 0 8px"><i class="ph ph-clipboard-text"></i> ${t('audit_kpiTitle')}</div>
+    <div class="dashboard-grid" style="margin-bottom:0">
+      <div class="dash-card kpi dash-link" data-nav="audits">
+        <div class="kpi-value">${auditSummary.total || 0}</div>
+        <div class="kpi-label">${t('audit_kpiTotal')}</div>
+      </div>
+      <div class="dash-card kpi dash-link" data-nav="audits">
+        <div class="kpi-value" style="color:${(auditSummary.overdue||0)>0?'#f87171':'var(--success-text)'}">${auditSummary.overdue || 0}</div>
+        <div class="kpi-label">${t('audit_kpiOverdue')}</div>
+      </div>
+      <div class="dash-card kpi dash-link" data-nav="audits">
+        <div class="kpi-value" style="color:#60a5fa">${auditSummary.upcoming || 0}</div>
+        <div class="kpi-label">${t('audit_kpiUpcoming')}</div>
+      </div>
+      <div class="dash-card kpi dash-link" data-nav="audits">
+        <div class="kpi-value" style="color:${(auditSummary.nonconform||0)>0?'#f0b429':'var(--success-text)'}">${auditSummary.nonconform || 0}</div>
+        <div class="kpi-label">${t('audit_kpiNonconform')}</div>
       </div>
     </div>` : ''}
 
@@ -4361,7 +4403,7 @@ async function saveSplashSettings() {
 
 // ── Nav-Reihenfolge Hilfsfunktion ─────────────────────────────────────────────
 
-const _NAV_ORDER_DEFAULT = ['dashboard','soa','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','bcm','suppliers','policy-acks','reports','calendar','settings','admin']
+const _NAV_ORDER_DEFAULT = ['dashboard','soa','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','audits','bcm','suppliers','policy-acks','reports','calendar','settings','admin']
 
 // Eine gespeicherte Reihenfolge kennt neue Module noch nicht. Die Navigation selbst
 // hängt Unbekanntes ans Ende (s. buildNav) — die Sortierliste im Admin muss dasselbe
@@ -5285,6 +5327,8 @@ async function restoreTrashItem(module, id, meta) {
   else if (module === 'gdpr_toms') url = `/gdpr/toms/${id}/restore`
   else if (module === 'public_incident') url = `/public/incident/${id}/restore`
   else if (module === 'finding') url = `/findings/${id}/restore`
+  else if (module === 'audit') url = `/audits/${id}/restore`
+  else if (module === 'audit_program') url = `/audit-programs/${id}/restore`
   else { alert(t('trash_unknownModule')); return }
 
   const res = await fetch(url, { method: 'POST', headers: apiHeaders('admin') })
@@ -5311,6 +5355,8 @@ async function permanentDeleteTrashItem(module, id, meta) {
   else if (module === 'gdpr_toms') url = `/gdpr/toms/${id}/permanent`
   else if (module === 'public_incident') url = `/public/incident/${id}/permanent`
   else if (module === 'finding') url = `/findings/${id}/permanent`
+  else if (module === 'audit') url = `/audits/${id}/permanent`
+  else if (module === 'audit_program') url = `/audit-programs/${id}/permanent`
   else { alert(t('trash_unknownModule')); return }
 
   const res = await fetch(url, { method: 'DELETE', headers: apiHeaders('admin') })
@@ -5390,6 +5436,11 @@ const MODULE_META = [
     id: 'suppliers', label: 'Supply Chain Management', icon: 'ph-truck',
     desc: 'Supplier register with risk assessment, audit tracking, data access documentation and contract linking. Calendar integration for due supplier audits.',
     norms: ['ISO 27001 A.5.21', 'ISO 27001 A.5.22', 'NIS2 Art. 21', 'GDPR Art. 28'],
+  },
+  {
+    id: 'audits', label: 'Audit Management', icon: 'ph-clipboard-text',
+    desc: 'Audits with checklists, findings assignment and an annual audit programme. Calendar integration for planned, due and follow-up dates.',
+    norms: ['ISO 27001 Cl. 9.2', 'ISO 19011'],
   },
 ]
 
@@ -8503,6 +8554,9 @@ const CAL_EVENT_CFG = {
   template_review: { get label() { return t('cal_templateReview') }, cls:'cal-chip-template',  icon:'ph-files' },
   template_due:         { label:'Document Due',            cls:'cal-chip-template',  icon:'ph-clock' },
   finding_action_due:   { label:'Finding Action Due',      cls:'cal-chip-risk',       icon:'ph-magnifying-glass' },
+  audit_planned:        { get label() { return t('cal_auditPlanned') },  cls:'cal-chip-audit', icon:'ph-clipboard-text' },
+  audit_due:            { get label() { return t('cal_auditDue') },      cls:'cal-chip-audit', icon:'ph-clipboard-text' },
+  audit_followup:       { get label() { return t('cal_auditFollowup') }, cls:'cal-chip-audit', icon:'ph-arrow-u-down-left' },
 }
 
 let _calYear  = new Date().getFullYear()
@@ -16248,6 +16302,617 @@ async function savePolicyAckMode() {
   if (res.ok) { renderPolicyAcks() } else { alert(t('err_saveFailed')) }
 }
 
+// ════════════════════════════════════════════════════════════
+// AUDIT-MANAGEMENT — Audits, Prüfpunkte, Auditprogramm (Jahresplan)
+// Serverseitig: server/db/auditMgmtStore.js, server/routes/audits.js
+// ════════════════════════════════════════════════════════════
+
+const AU_TYPES = {
+  internal:      { get label() { return t('audit_typeInternal') } },
+  external:      { get label() { return t('audit_typeExternal') } },
+  supplier:      { get label() { return t('audit_typeSupplier') } },
+  certification: { get label() { return t('audit_typeCertification') } },
+}
+const AU_STATUSES = {
+  planned:     { get label() { return t('audit_statusPlanned') },    color: '#60a5fa' },
+  in_progress: { get label() { return t('audit_statusInProgress') }, color: '#f0b429' },
+  completed:   { get label() { return t('audit_statusCompleted') },  color: '#4ade80' },
+  cancelled:   { get label() { return t('audit_statusCancelled') },  color: '#94a3b8' },
+}
+const AU_RESULTS = {
+  open:           { get label() { return t('audit_resultOpen') },        color: '#94a3b8' },
+  conform:        { get label() { return t('audit_resultConform') },     color: '#4ade80' },
+  nonconform:     { get label() { return t('audit_resultNonconform') },  color: '#f87171' },
+  not_applicable: { get label() { return t('audit_resultNa') },          color: '#60a5fa' },
+}
+
+let _auTab       = 'audits'
+let _auFilter    = { status: '', type: '', year: '' }
+let _auList      = []        // zuletzt angezeigte (gefilterte) Auditliste für CSV/PDF
+let _auEditItem  = null      // ID des Prüfpunkts, der gerade inline bearbeitet wird
+let _auPendingId = null      // Deeplink aus der Suche: Audit nach dem Rendern öffnen
+
+function auCanWrite() { return (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.contentowner }
+function auIsAdmin()  { return (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.admin }
+
+function auBadge(label, color) {
+  return `<span class="au-badge" style="color:${color};border-color:${color}">${escHtml(label)}</span>`
+}
+const auStatusBadge = s => auBadge(AU_STATUSES[s]?.label || s, AU_STATUSES[s]?.color || '#94a3b8')
+const auResultBadge = r => auBadge(AU_RESULTS[r]?.label || r, AU_RESULTS[r]?.color || '#94a3b8')
+
+function auPeriod(a) {
+  const from = a.plannedStart || ''
+  const to   = a.plannedEnd   || ''
+  return from || to ? `${escHtml(from || '…')} – ${escHtml(to || '…')}` : '—'
+}
+
+async function auFetchJson(url, fallback) {
+  const res = await fetch(url, { headers: apiHeaders() })
+  if (!res.ok) return fallback
+  const data = await res.json()
+  return data ?? fallback
+}
+
+async function auSend(method, url, body) {
+  const res = await fetch(url, { method, headers: apiHeaders(), body: body ? JSON.stringify(body) : undefined })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) { alert(data.error || t('err_saveFailed')); return null }
+  return data
+}
+
+// ── Seite ────────────────────────────────────────────────────────────────────
+async function renderAudits() {
+  document.getElementById('auditsContainer')?.remove()
+  const container = document.createElement('div')
+  container.id = 'auditsContainer'
+  container.className = 'training-container'
+  document.querySelector('.editor').appendChild(container)
+
+  const tabs = [
+    { id: 'audits',  label: t('audit_tabAudits'),  icon: 'ph-clipboard-text' },
+    { id: 'program', label: t('audit_tabProgram'), icon: 'ph-calendar-check' },
+  ]
+  container.innerHTML = `
+    <div class="training-header">
+      <h2 class="training-title"><i class="ph ph-clipboard-text"></i> ${t('audit_title')}</h2>
+      <p class="training-subtitle" style="color:var(--text-subtle);font-size:.85rem;margin:4px 0 0">${t('audit_subtitle')}</p>
+    </div>
+    <div id="auKpiBar" style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px"></div>
+    <div class="training-tab-bar">
+      ${tabs.map(x => `<button class="training-tab${x.id === _auTab ? ' active' : ''}" data-tab="${x.id}"><i class="ph ${x.icon}"></i> ${escHtml(x.label)}</button>`).join('')}
+    </div>
+    <div id="auditsTabContent" class="training-tab-content"></div>`
+
+  const s = await auFetchJson('/audits/summary', null)
+  const kpi = dom('auKpiBar')
+  if (s && kpi) {
+    kpi.innerHTML = [
+      { label: t('audit_kpiTotal'),      value: s.total,      color: 'var(--text-primary)' },
+      { label: t('audit_kpiOverdue'),    value: s.overdue,    color: s.overdue > 0 ? '#f87171' : 'var(--success-text)' },
+      { label: t('audit_kpiUpcoming'),   value: s.upcoming,   color: '#60a5fa' },
+      { label: t('audit_kpiNonconform'), value: s.nonconform, color: s.nonconform > 0 ? '#f0b429' : 'var(--success-text)' },
+    ].map(k => `<div class="dash-card kpi" style="flex:1;min-width:120px;padding:12px 16px;text-align:center">
+      <div style="font-size:1.5rem;font-weight:700;color:${k.color}">${k.value}</div>
+      <div style="font-size:.75rem;color:var(--text-subtle)">${escHtml(k.label)}</div></div>`).join('')
+  }
+
+  container.querySelectorAll('.training-tab').forEach(btn => btn.addEventListener('click', () => {
+    container.querySelectorAll('.training-tab').forEach(b => b.classList.toggle('active', b === btn))
+    switchAuditsTab(btn.dataset.tab)
+  }))
+
+  if (_auPendingId) { const id = _auPendingId; _auPendingId = null; openAuditDetail(id) }
+  else switchAuditsTab(_auTab)
+}
+
+function switchAuditsTab(tab) {
+  _auTab = tab
+  _auEditItem = null
+  const el = dom('auditsTabContent')
+  if (!el) return
+  document.querySelectorAll('#auditsContainer .training-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
+  if (tab === 'program') return renderAuditPrograms(el)
+  return renderAuditList(el)
+}
+
+// ── Auditliste ───────────────────────────────────────────────────────────────
+async function renderAuditList(el) {
+  el.innerHTML = `<p class="report-loading">${t('ui_loading')}</p>`
+  const params = new URLSearchParams()
+  for (const [k, v] of Object.entries(_auFilter)) if (v) params.set(k, v)
+  const list = await auFetchJson('/audits?' + params, [])
+  _auList = list
+
+  const years = [...new Set(list.map(a => (a.plannedStart || a.plannedEnd || a.createdAt || '').slice(0, 4)).filter(Boolean))]
+  if (_auFilter.year && !years.includes(_auFilter.year)) years.push(_auFilter.year)
+  years.sort().reverse()
+  const today = new Date().toISOString().slice(0, 10)
+  const opt = (v, l, cur) => `<option value="${escHtml(v)}"${cur === v ? ' selected' : ''}>${escHtml(l)}</option>`
+
+  el.innerHTML = `
+    <div class="bcm-filter-bar">
+      ${auCanWrite() ? `<button class="btn btn-primary btn-sm" onclick="openAuditForm()"><i class="ph ph-plus"></i> ${t('audit_new')}</button>` : ''}
+      <select class="select" style="max-width:170px" onchange="_auFilter.status=this.value;renderAuditList(dom('auditsTabContent'))">
+        ${opt('', t('filter_allStatuses'), _auFilter.status)}${Object.entries(AU_STATUSES).map(([v, s]) => opt(v, s.label, _auFilter.status)).join('')}
+      </select>
+      <select class="select" style="max-width:170px" onchange="_auFilter.type=this.value;renderAuditList(dom('auditsTabContent'))">
+        ${opt('', t('audit_allTypes'), _auFilter.type)}${Object.entries(AU_TYPES).map(([v, s]) => opt(v, s.label, _auFilter.type)).join('')}
+      </select>
+      <select class="select" style="max-width:130px" onchange="_auFilter.year=this.value;renderAuditList(dom('auditsTabContent'))">
+        ${opt('', t('audit_allYears'), _auFilter.year)}${years.map(y => opt(y, y, _auFilter.year)).join('')}
+      </select>
+      <span style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="exportAuditsCsv()"><i class="ph ph-file-csv"></i> CSV</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportAuditsPdf()"><i class="ph ph-file-pdf"></i> PDF</button>
+      </span>
+    </div>
+    <table class="bcm-table">
+      <thead><tr>
+        <th>${t('audit_ref')}</th><th>${t('col_title')}</th><th>${t('audit_type')}</th><th>${t('audit_period')}</th>
+        <th>${t('audit_leadAuditor')}</th><th>${t('col_status')}</th><th>${t('audit_checklist')}</th><th style="width:90px"></th>
+      </tr></thead>
+      <tbody>${list.length ? list.map(a => {
+        const items = a.checklist || []
+        const nc = items.filter(i => i.result === 'nonconform').length
+        const overdue = (a.status === 'planned' || a.status === 'in_progress') && a.plannedEnd && a.plannedEnd < today
+        return `<tr class="risk-row${overdue ? ' overdue' : ''}" onclick="openAuditDetail('${a.id}')">
+          <td style="font-family:monospace;white-space:nowrap">${escHtml(a.ref)}</td>
+          <td><strong>${escHtml(a.title)}</strong>${a.standard ? `<br><small style="color:var(--text-subtle)">${escHtml(a.standard)}</small>` : ''}</td>
+          <td>${escHtml(AU_TYPES[a.type]?.label || a.type)}</td>
+          <td style="white-space:nowrap" class="${overdue ? 'bcm-overdue' : ''}">${auPeriod(a)}${overdue ? ' <i class="ph ph-warning-circle"></i>' : ''}</td>
+          <td>${escHtml(a.leadAuditor || '—')}</td>
+          <td>${auStatusBadge(a.status)}</td>
+          <td>${items.length}${nc ? ` <span style="color:#f87171">(${nc} ✗)</span>` : ''}</td>
+          <td onclick="event.stopPropagation()" style="white-space:nowrap">
+            ${auCanWrite() ? `<button class="btn btn-secondary btn-xs" onclick="openAuditForm('${a.id}')"><i class="ph ph-pencil"></i></button>
+            <button class="btn btn-danger btn-xs" onclick="deleteAudit('${a.id}')"><i class="ph ph-trash"></i></button>` : ''}
+          </td></tr>`
+      }).join('') : `<tr><td colspan="8" class="dash-empty">${t('audit_empty')}</td></tr>`}</tbody>
+    </table>`
+}
+
+// ── Audit-Detail mit Prüfpunkten ─────────────────────────────────────────────
+async function openAuditDetail(id) {
+  const el = dom('auditsTabContent')
+  if (!el) return
+  const a = await auFetchJson(`/audits/${id}`, null)
+  if (!a) { alert(t('err_load')); return }
+  const soa = await auFetchJson('/soa', [])
+  const canWrite = auCanWrite()
+  const items = a.checklist || []
+  const sevLabel = s => (typeof FINDING_SEVERITY_LABELS !== 'undefined' && FINDING_SEVERITY_LABELS[s]) || s
+
+  el.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" onclick="switchAuditsTab('${_auTab}')"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
+        <h3 class="training-form-title" style="flex:1"><i class="ph ph-clipboard-text"></i> ${escHtml(a.ref)} · ${escHtml(a.title)} ${auStatusBadge(a.status)}</h3>
+        <button class="btn btn-secondary btn-sm" onclick="printAuditReport('${a.id}')"><i class="ph ph-file-pdf"></i> ${t('audit_report')}</button>
+        ${canWrite ? `<button class="btn btn-secondary btn-sm" onclick="openAuditForm('${a.id}')"><i class="ph ph-pencil"></i> ${t('edit')}</button>` : ''}
+      </div>
+      <div class="training-form-body">
+        <div class="training-form-section">
+          <div class="risk-detail-grid">
+            <div class="risk-detail-section">
+              <div class="risk-detail-row"><label>${t('audit_type')}</label><span>${escHtml(AU_TYPES[a.type]?.label || a.type)}</span></div>
+              <div class="risk-detail-row"><label>${t('audit_standard')}</label><span>${escHtml(a.standard || '—')}</span></div>
+              <div class="risk-detail-row"><label>${t('audit_scope')}</label><span>${escHtml(a.scope || '—')}</span></div>
+              <div class="risk-detail-row"><label>${t('audit_leadAuditor')}</label><span>${escHtml(a.leadAuditor || '—')}</span></div>
+              <div class="risk-detail-row"><label>${t('audit_team')}</label><span>${escHtml((a.team || []).join(', ') || '—')}</span></div>
+            </div>
+            <div class="risk-detail-section">
+              <div class="risk-detail-row"><label>${t('audit_plannedStart')}</label><span>${escHtml(a.plannedStart || '—')}</span></div>
+              <div class="risk-detail-row"><label>${t('audit_plannedEnd')}</label><span>${escHtml(a.plannedEnd || '—')}</span></div>
+              <div class="risk-detail-row"><label>${t('audit_actualStart')}</label><span>${escHtml(a.actualStart || '—')}</span></div>
+              <div class="risk-detail-row"><label>${t('audit_actualEnd')}</label><span>${escHtml(a.actualEnd || '—')}</span></div>
+              <div class="risk-detail-row"><label>${t('audit_followUp')}</label><span>${escHtml(a.followUpDate || '—')}</span></div>
+            </div>
+          </div>
+          ${a.conclusion ? `<h4 style="margin:14px 0 4px">${t('audit_conclusion')}</h4><p style="white-space:pre-wrap;font-size:.88rem">${escHtml(a.conclusion)}</p>` : ''}
+        </div>
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-list-checks"></i> ${t('audit_checklist')} (${items.length})</h4>
+          <datalist id="auCtrlList">${soa.map(c => `<option value="${escHtml(c.id)}">${escHtml(c.title || c.name || '')}</option>`).join('')}</datalist>
+          <table class="bcm-table">
+            <thead><tr><th>${t('audit_control')}</th><th>${t('audit_question')}</th><th>${t('audit_result')}</th><th>${t('audit_findings')}</th><th style="width:90px"></th></tr></thead>
+            <tbody>${items.length ? items.map(i => auItemRows(a, i, canWrite)).join('')
+              : `<tr><td colspan="5" class="dash-empty">${t('audit_noItems')}</td></tr>`}</tbody>
+          </table>
+          ${canWrite ? `<details class="link-picker-details" style="margin-top:10px"${_auEditItem === 'new' ? ' open' : ''}>
+            <summary><i class="ph ph-plus"></i> ${t('audit_addItem')}</summary>
+            ${auItemEditor(a.id, null)}
+          </details>` : ''}
+        </div>
+
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-magnifying-glass"></i> ${t('audit_findings')} (${(a.findings || []).length})</h4>
+          ${(a.findings || []).length ? `<table class="bcm-table"><thead><tr><th>Ref</th><th>${t('col_title')}</th><th>${t('findings_severity')}</th><th>${t('col_status')}</th></tr></thead>
+            <tbody>${a.findings.map(f => `<tr>
+              <td style="font-family:monospace">${escHtml(f.ref)}</td><td>${escHtml(f.title)}</td>
+              <td>${escHtml(sevLabel(f.severity))}</td><td>${escHtml(f.status)}</td></tr>`).join('')}</tbody></table>`
+            : `<p class="asset-prot-hint">${t('audit_noFindings')}</p>`}
+        </div>
+      </div>
+    </div>`
+}
+
+/** Zeile(n) eines Prüfpunkts; im Bearbeitungsmodus mit Eingabefeldern darunter. */
+function auItemRows(a, i, canWrite) {
+  const editing = _auEditItem === i.id
+  const resultCell = canWrite
+    ? `<select class="select" style="min-width:140px" onchange="auSetResult('${a.id}','${i.id}',this.value)">
+        ${Object.entries(AU_RESULTS).map(([v, r]) => `<option value="${v}"${i.result === v ? ' selected' : ''}>${escHtml(r.label)}</option>`).join('')}</select>`
+    : auResultBadge(i.result)
+  const finding = (a.findings || []).find(f => f.id === i.findingId)
+  const findingCell = i.findingId
+    ? `<span style="font-family:monospace">${escHtml(finding?.ref || i.findingId)}</span>`
+    : (canWrite && i.result === 'nonconform'
+        ? `<button class="btn btn-secondary btn-xs" onclick="auCreateFinding('${a.id}','${i.id}')"><i class="ph ph-magnifying-glass"></i> ${t('audit_createFinding')}</button>` : '—')
+  return `<tr>
+      <td style="white-space:nowrap">${escHtml(i.controlId || '—')}</td>
+      <td>${escHtml(i.question)}${i.evidence || i.notes ? `<br><small style="color:var(--text-subtle)">${escHtml([i.evidence, i.notes].filter(Boolean).join(' · '))}</small>` : ''}</td>
+      <td>${resultCell}</td>
+      <td>${findingCell}</td>
+      <td style="white-space:nowrap">${canWrite ? `<button class="btn btn-secondary btn-xs" onclick="_auEditItem=${editing ? 'null' : `'${i.id}'`};openAuditDetail('${a.id}')"><i class="ph ph-pencil"></i></button>
+        <button class="btn btn-danger btn-xs" onclick="auDeleteItem('${a.id}','${i.id}')"><i class="ph ph-trash"></i></button>` : ''}</td>
+    </tr>${editing ? `<tr><td colspan="5">${auItemEditor(a.id, i)}</td></tr>` : ''}`
+}
+
+/** Eingabefelder für einen Prüfpunkt (neu: item = null). */
+function auItemEditor(auditId, item) {
+  const k = item ? item.id : 'new'
+  return `<div class="au-item-editor">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${t('audit_control')}</label>
+        <input id="auiCtrl_${k}" class="form-input" list="auCtrlList" value="${escHtml(item?.controlId || '')}" placeholder="ISO-5.1"></div>
+      <div class="form-group" style="flex:3"><label class="form-label">${t('audit_question')}</label>
+        <input id="auiQ_${k}" class="form-input" value="${escHtml(item?.question || '')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${t('audit_evidence')}</label>
+        <textarea id="auiEv_${k}" class="form-textarea" rows="2">${escHtml(item?.evidence || '')}</textarea></div>
+      <div class="form-group"><label class="form-label">${t('audit_notes')}</label>
+        <textarea id="auiNo_${k}" class="form-textarea" rows="2">${escHtml(item?.notes || '')}</textarea></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="auSaveItem('${auditId}',${item ? `'${item.id}'` : 'null'})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
+    ${item ? `<button class="btn btn-secondary btn-sm" onclick="_auEditItem=null;openAuditDetail('${auditId}')">${t('ui_cancel')}</button>` : ''}
+  </div>`
+}
+
+async function auSaveItem(auditId, itemId) {
+  const k = itemId || 'new'
+  const question = dom(`auiQ_${k}`)?.value.trim()
+  if (!question) return alert(t('audit_titleRequired'))
+  const body = {
+    controlId: dom(`auiCtrl_${k}`)?.value.trim() || '', question,
+    evidence: dom(`auiEv_${k}`)?.value || '', notes: dom(`auiNo_${k}`)?.value || '',
+  }
+  const ok = itemId ? await auSend('PUT', `/audits/${auditId}/checklist/${itemId}`, body)
+                    : await auSend('POST', `/audits/${auditId}/checklist`, body)
+  if (!ok) return
+  _auEditItem = null
+  openAuditDetail(auditId)
+}
+
+async function auSetResult(auditId, itemId, result) {
+  if (await auSend('PUT', `/audits/${auditId}/checklist/${itemId}`, { result })) openAuditDetail(auditId)
+}
+
+async function auDeleteItem(auditId, itemId) {
+  if (!confirm(t('audit_confirmDeleteItem'))) return
+  if (await auSend('DELETE', `/audits/${auditId}/checklist/${itemId}`)) openAuditDetail(auditId)
+}
+
+async function auCreateFinding(auditId, itemId) {
+  if (await auSend('POST', `/audits/${auditId}/checklist/${itemId}/finding`, {})) openAuditDetail(auditId)
+}
+
+// ── Audit anlegen/bearbeiten ─────────────────────────────────────────────────
+async function openAuditForm(id = null, preset = {}) {
+  const el = dom('auditsTabContent')
+  if (!el) return
+  const a = id ? await auFetchJson(`/audits/${id}`, null) : null
+  const [entities, suppliers, programs] = await Promise.all([
+    auFetchJson('/entities', []), auFetchJson('/suppliers', []), auFetchJson('/audit-programs', []),
+  ])
+  const v = k => a?.[k] ?? preset[k] ?? ''
+  const opt = (val, label, cur) => `<option value="${escHtml(val)}"${cur === val ? ' selected' : ''}>${escHtml(label)}</option>`
+  const entList = Array.isArray(entities) ? entities : []
+  const supList = Array.isArray(suppliers) ? suppliers : []
+
+  el.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" onclick="${id ? `openAuditDetail('${id}')` : `switchAuditsTab('${_auTab}')`}"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
+        <h3 class="training-form-title"><i class="ph ph-clipboard-text"></i> ${id ? t('audit_edit') : t('audit_new')}</h3>
+      </div>
+      <div class="training-form-body">
+        <div class="training-form-section">
+          <div class="form-group"><label class="form-label">${t('col_title')} <span class="form-required">*</span></label>
+            <input id="auTitle" class="form-input" value="${escHtml(v('title'))}"></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">${t('audit_type')}</label>
+              <select id="auType" class="select">${Object.entries(AU_TYPES).map(([k, x]) => opt(k, x.label, v('type') || 'internal')).join('')}</select></div>
+            <div class="form-group"><label class="form-label">${t('col_status')}</label>
+              <select id="auStatus" class="select">${Object.entries(AU_STATUSES).map(([k, x]) => opt(k, x.label, v('status') || 'planned')).join('')}</select></div>
+            <div class="form-group"><label class="form-label">${t('audit_tabProgram')}</label>
+              <select id="auProgram" class="select"><option value="">${escHtml(t('audit_noProgram'))}</option>
+                ${(Array.isArray(programs) ? programs : []).map(p => opt(p.id, `${p.ref} · ${p.title} (${p.year})`, v('programId'))).join('')}</select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">${t('audit_standard')}</label>
+              <input id="auStandard" class="form-input" value="${escHtml(v('standard'))}" placeholder="ISO 27001:2022"></div>
+            <div class="form-group"><label class="form-label">${t('audit_supplier')}</label>
+              <select id="auSupplier" class="select"><option value="">${escHtml(t('audit_noSupplier'))}</option>
+                ${supList.map(s => opt(s.id, s.name || s.id, v('supplierId'))).join('')}</select></div>
+          </div>
+          <div class="form-group"><label class="form-label">${t('audit_scope')}</label>
+            <textarea id="auScope" class="form-textarea" rows="2">${escHtml(v('scope'))}</textarea></div>
+          ${renderRefPicker('au', 'ent', t('audit_entities'), entList.map(e => ({ id: e.id, label: e.name || e.id })), a?.entityIds || [])}
+        </div>
+        <div class="training-form-section">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">${t('audit_leadAuditor')}</label>
+              <input id="auLead" class="form-input" value="${escHtml(v('leadAuditor'))}"></div>
+            <div class="form-group" style="flex:2"><label class="form-label">${t('audit_team')}</label>
+              <input id="auTeam" class="form-input" value="${escHtml((a?.team || []).join(', '))}"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">${t('audit_plannedStart')}</label><input id="auPStart" type="date" class="form-input" value="${escHtml(v('plannedStart'))}"></div>
+            <div class="form-group"><label class="form-label">${t('audit_plannedEnd')}</label><input id="auPEnd" type="date" class="form-input" value="${escHtml(v('plannedEnd'))}"></div>
+            <div class="form-group"><label class="form-label">${t('audit_actualStart')}</label><input id="auAStart" type="date" class="form-input" value="${escHtml(v('actualStart'))}"></div>
+            <div class="form-group"><label class="form-label">${t('audit_actualEnd')}</label><input id="auAEnd" type="date" class="form-input" value="${escHtml(v('actualEnd'))}"></div>
+            <div class="form-group"><label class="form-label">${t('audit_followUp')}</label><input id="auFollow" type="date" class="form-input" value="${escHtml(v('followUpDate'))}"></div>
+          </div>
+          <div class="form-group"><label class="form-label">${t('audit_conclusion')}</label>
+            <textarea id="auConclusion" class="form-textarea" rows="4">${escHtml(v('conclusion'))}</textarea></div>
+        </div>
+      </div>
+      <div class="training-form-footer">
+        <button class="btn btn-secondary" onclick="${id ? `openAuditDetail('${id}')` : `switchAuditsTab('${_auTab}')`}">${t('ui_cancel')}</button>
+        <button class="btn btn-primary" onclick="saveAudit('${id || ''}')"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
+      </div>
+    </div>`
+}
+
+async function saveAudit(id) {
+  const title = dom('auTitle')?.value.trim()
+  if (!title) return alert(t('audit_titleRequired'))
+  const val = k => dom(k)?.value || ''
+  const body = {
+    title, type: val('auType'), status: val('auStatus'), programId: val('auProgram') || null,
+    standard: val('auStandard'), supplierId: val('auSupplier') || null, scope: val('auScope'),
+    entityIds: getLinkedValues('au', 'ent'),
+    leadAuditor: val('auLead'), team: val('auTeam').split(',').map(x => x.trim()).filter(Boolean),
+    plannedStart: val('auPStart') || null, plannedEnd: val('auPEnd') || null,
+    actualStart: val('auAStart') || null, actualEnd: val('auAEnd') || null,
+    followUpDate: val('auFollow') || null, conclusion: val('auConclusion'),
+  }
+  const saved = id ? await auSend('PUT', `/audits/${id}`, body) : await auSend('POST', '/audits', body)
+  if (saved) openAuditDetail(saved.id)
+}
+
+async function deleteAudit(id) {
+  if (!confirm(t('audit_confirmDelete'))) return
+  if (await auSend('DELETE', `/audits/${id}`)) renderAudits()
+}
+
+// ── Auditprogramm (Jahresplan) ───────────────────────────────────────────────
+async function renderAuditPrograms(el) {
+  el.innerHTML = `<p class="report-loading">${t('ui_loading')}</p>`
+  const [programs, audits] = await Promise.all([auFetchJson('/audit-programs', []), auFetchJson('/audits', [])])
+  const countBy = Object.fromEntries(programs.map(p => [p.id, audits.filter(a => a.programId === p.id).length]))
+  el.innerHTML = `
+    <div class="bcm-filter-bar">
+      ${auCanWrite() ? `<button class="btn btn-primary btn-sm" onclick="openAuditProgramForm()"><i class="ph ph-plus"></i> ${t('audit_programNew')}</button>` : ''}
+    </div>
+    <table class="bcm-table">
+      <thead><tr><th>${t('audit_ref')}</th><th>${t('audit_year')}</th><th>${t('col_title')}</th><th>${t('col_status')}</th><th>${t('audit_tabAudits')}</th><th style="width:90px"></th></tr></thead>
+      <tbody>${programs.length ? programs.map(p => `<tr class="risk-row" onclick="openAuditProgram('${p.id}')">
+        <td style="font-family:monospace">${escHtml(p.ref)}</td><td>${p.year}</td><td><strong>${escHtml(p.title)}</strong></td>
+        <td>${auBadge(p.status === 'approved' ? t('audit_programApproved') : t('audit_programDraft'), p.status === 'approved' ? '#4ade80' : '#f0b429')}</td>
+        <td>${countBy[p.id] || 0}</td>
+        <td onclick="event.stopPropagation()">${auCanWrite() ? `<button class="btn btn-danger btn-xs" onclick="deleteAuditProgram('${p.id}')"><i class="ph ph-trash"></i></button>` : ''}</td>
+      </tr>`).join('') : `<tr><td colspan="6" class="dash-empty">${t('audit_noPrograms')}</td></tr>`}</tbody>
+    </table>`
+}
+
+/** Audits eines Programms nach Quartal des geplanten Beginns (ohne Datum: eigene Gruppe). */
+function auQuarters(audits) {
+  const groups = [[], [], [], [], []]            // Q1–Q4, ohne Termin
+  for (const a of audits) {
+    const m = /^\d{4}-(\d{2})/.exec(a.plannedStart || a.plannedEnd || '')
+    groups[m ? Math.min(3, Math.floor((parseInt(m[1], 10) - 1) / 3)) : 4].push(a)
+  }
+  return groups.map((list, i) => ({
+    label: i < 4 ? `${t('audit_quarter')} ${i + 1}` : t('audit_unscheduled'),
+    list: list.sort((x, y) => String(x.plannedStart || '').localeCompare(String(y.plannedStart || ''))),
+  })).filter(g => g.list.length)
+}
+
+async function openAuditProgram(id) {
+  const el = dom('auditsTabContent')
+  if (!el) return
+  const p = await auFetchJson(`/audit-programs/${id}`, null)
+  if (!p) { alert(t('err_load')); return }
+  const approved = p.status === 'approved'
+  const w = auCanWrite()
+  el.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" onclick="switchAuditsTab('program')"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
+        <h3 class="training-form-title" style="flex:1"><i class="ph ph-calendar-check"></i> ${escHtml(p.ref)} · ${escHtml(p.title)} (${p.year})
+          ${auBadge(approved ? t('audit_programApproved') : t('audit_programDraft'), approved ? '#4ade80' : '#f0b429')}</h3>
+        <button class="btn btn-secondary btn-sm" onclick="exportAuditProgramCsv('${p.id}')"><i class="ph ph-file-csv"></i> CSV</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportAuditProgramPdf('${p.id}')"><i class="ph ph-file-pdf"></i> PDF</button>
+        ${w && !approved ? `<button class="btn btn-secondary btn-sm" onclick="openAuditProgramForm('${p.id}')"><i class="ph ph-pencil"></i> ${t('edit')}</button>
+          <button class="btn btn-primary btn-sm" onclick="approveAuditProgram('${p.id}')"><i class="ph ph-check-circle"></i> ${t('audit_approve')}</button>` : ''}
+        ${w && approved ? `<button class="btn btn-secondary btn-sm" onclick="reopenAuditProgram('${p.id}')"><i class="ph ph-arrow-counter-clockwise"></i> ${t('audit_reopen')}</button>` : ''}
+      </div>
+      <div class="training-form-body">
+        ${approved ? `<div class="tmpl-lock-hint">${t('audit_programLocked')} — ${t('tmpl_approvedBy')} ${escHtml(p.approvedBy || '')}, ${escHtml((p.approvedAt || '').slice(0, 10))}</div>` : ''}
+        <div class="training-form-section">
+          <h4 style="margin:0 0 4px">${t('audit_objectives')}</h4><p style="white-space:pre-wrap;font-size:.88rem">${escHtml(p.objectives || '—')}</p>
+          <h4 style="margin:10px 0 4px">${t('audit_scope')}</h4><p style="white-space:pre-wrap;font-size:.88rem">${escHtml(p.scope || '—')}</p>
+        </div>
+        <div class="training-form-section">
+          <h4 class="training-form-section-title" style="display:flex;align-items:center;gap:8px"><i class="ph ph-calendar-dots"></i> ${t('audit_tabAudits')} (${p.audits.length})
+            ${w ? `<button class="btn btn-secondary btn-xs" style="margin-left:auto" onclick="openAuditForm(null,{programId:'${p.id}',plannedStart:'${p.year}-01-01'})"><i class="ph ph-plus"></i> ${t('audit_addToProgram')}</button>` : ''}</h4>
+          ${p.audits.length ? auQuarters(p.audits).map(g => `<h5 style="margin:12px 0 4px">${escHtml(g.label)}</h5>
+            <table class="bcm-table"><tbody>${g.list.map(a => `<tr class="risk-row" onclick="openAuditDetail('${a.id}')">
+              <td style="font-family:monospace;width:130px">${escHtml(a.ref)}</td><td><strong>${escHtml(a.title)}</strong></td>
+              <td>${escHtml(AU_TYPES[a.type]?.label || a.type)}</td><td style="white-space:nowrap">${auPeriod(a)}</td><td>${auStatusBadge(a.status)}</td></tr>`).join('')}</tbody></table>`).join('')
+            : `<p class="asset-prot-hint">${t('audit_empty')}</p>`}
+        </div>
+      </div>
+    </div>`
+}
+
+async function openAuditProgramForm(id = null) {
+  const el = dom('auditsTabContent')
+  if (!el) return
+  const p = id ? await auFetchJson(`/audit-programs/${id}`, null) : null
+  el.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" onclick="${id ? `openAuditProgram('${id}')` : `switchAuditsTab('program')`}"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
+        <h3 class="training-form-title"><i class="ph ph-calendar-check"></i> ${id ? t('audit_programEdit') : t('audit_programNew')}</h3>
+      </div>
+      <div class="training-form-body"><div class="training-form-section">
+        <div class="form-row">
+          <div class="form-group" style="flex:3"><label class="form-label">${t('col_title')} <span class="form-required">*</span></label>
+            <input id="apTitle" class="form-input" value="${escHtml(p?.title || '')}"></div>
+          <div class="form-group"><label class="form-label">${t('audit_year')}</label>
+            <input id="apYear" type="number" min="2000" max="2100" class="form-input" value="${p?.year || new Date().getFullYear()}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">${t('audit_objectives')}</label><textarea id="apObjectives" class="form-textarea" rows="4">${escHtml(p?.objectives || '')}</textarea></div>
+        <div class="form-group"><label class="form-label">${t('audit_scope')}</label><textarea id="apScope" class="form-textarea" rows="4">${escHtml(p?.scope || '')}</textarea></div>
+      </div></div>
+      <div class="training-form-footer">
+        <button class="btn btn-secondary" onclick="${id ? `openAuditProgram('${id}')` : `switchAuditsTab('program')`}">${t('ui_cancel')}</button>
+        <button class="btn btn-primary" onclick="saveAuditProgram('${id || ''}')"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
+      </div>
+    </div>`
+}
+
+async function saveAuditProgram(id) {
+  const title = dom('apTitle')?.value.trim()
+  if (!title) return alert(t('audit_titleRequired'))
+  const body = { title, year: dom('apYear')?.value, objectives: dom('apObjectives')?.value || '', scope: dom('apScope')?.value || '' }
+  const saved = id ? await auSend('PUT', `/audit-programs/${id}`, body) : await auSend('POST', '/audit-programs', body)
+  if (saved) openAuditProgram(saved.id)
+}
+
+async function deleteAuditProgram(id) {
+  if (!confirm(t('audit_confirmDeleteProgram'))) return
+  if (await auSend('DELETE', `/audit-programs/${id}`)) renderAuditPrograms(dom('auditsTabContent'))
+}
+async function approveAuditProgram(id) { if (await auSend('POST', `/audit-programs/${id}/approve`, {})) openAuditProgram(id) }
+async function reopenAuditProgram(id)  { if (await auSend('POST', `/audit-programs/${id}/reopen`, {})) openAuditProgram(id) }
+
+// ── Export: CSV und PDF (Druckfenster) ───────────────────────────────────────
+function auDownloadCsv(name, head, rows) {
+  const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const csv = [head, ...rows].map(r => r.map(esc).join(',')).join('\r\n')
+  const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+  const a = document.createElement('a')
+  a.href = url; a.download = `${name}-${new Date().toISOString().slice(0, 10)}.csv`; a.click()
+  URL.revokeObjectURL(url)
+}
+
+function auPrint(title, bodyHtml) {
+  const win = window.open('', '_blank')
+  if (!win) return alert(t('err_popupBlocked'))
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escHtml(title)}</title>
+    <style>
+      body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 28px; }
+      h1 { font-size: 16px; margin: 0 0 4px; } h2 { font-size: 13px; margin: 18px 0 6px; }
+      .sub { font-size: 11px; color: #666; margin-bottom: 14px; }
+      table { border-collapse: collapse; width: 100%; margin-bottom: 8px; }
+      th, td { border: 1px solid #ccc; padding: 4px 8px; font-size: 11px; text-align: left; vertical-align: top; }
+      th { background: #f0f0f0; } .kv td:first-child { width: 28%; font-weight: bold; background: #fafafa; }
+      @media print { body { margin: 0; } }
+    </style></head><body>${bodyHtml}
+    <div class="sub">ISMS Builder · ${new Date().toLocaleString()}</div>
+    <script>window.onload = () => window.print()<\/script></body></html>`)
+  win.document.close()
+}
+
+function auRowsOf(list) {
+  return list.map(a => {
+    const items = a.checklist || []
+    return {
+      ref: a.ref, title: a.title, type: AU_TYPES[a.type]?.label || a.type, status: AU_STATUSES[a.status]?.label || a.status,
+      standard: a.standard || '', lead: a.leadAuditor || '', start: a.plannedStart || '', end: a.plannedEnd || '',
+      follow: a.followUpDate || '', items: items.length, nc: items.filter(i => i.result === 'nonconform').length,
+    }
+  })
+}
+
+function exportAuditsCsv() {
+  auDownloadCsv('audits',
+    [t('audit_ref'), t('col_title'), t('audit_type'), t('col_status'), t('audit_standard'), t('audit_leadAuditor'),
+     t('audit_plannedStart'), t('audit_plannedEnd'), t('audit_followUp'), t('audit_checklist'), t('audit_kpiNonconform')],
+    auRowsOf(_auList).map(r => [r.ref, r.title, r.type, r.status, r.standard, r.lead, r.start, r.end, r.follow, r.items, r.nc]))
+}
+
+function exportAuditsPdf() {
+  const rows = auRowsOf(_auList)
+  auPrint(t('audit_title'), `<h1>${escHtml(t('audit_title'))}</h1><div class="sub">${rows.length} ${escHtml(t('audit_tabAudits'))}</div>
+    <table><thead><tr><th>${t('audit_ref')}</th><th>${t('col_title')}</th><th>${t('audit_type')}</th><th>${t('audit_period')}</th>
+      <th>${t('audit_leadAuditor')}</th><th>${t('col_status')}</th><th>${t('audit_kpiNonconform')}</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td>${escHtml(r.ref)}</td><td>${escHtml(r.title)}</td><td>${escHtml(r.type)}</td>
+      <td>${escHtml(r.start)} – ${escHtml(r.end)}</td><td>${escHtml(r.lead)}</td><td>${escHtml(r.status)}</td><td>${r.nc}</td></tr>`).join('')}</tbody></table>`)
+}
+
+/** Auditbericht: Stammdaten, Prüfpunkte, zugeordnete Findings, Fazit. */
+async function printAuditReport(id) {
+  const a = await auFetchJson(`/audits/${id}`, null)
+  if (!a) return alert(t('err_load'))
+  const kv = (k, v) => `<tr><td>${escHtml(k)}</td><td>${escHtml(v || '—')}</td></tr>`
+  auPrint(`${a.ref} ${a.title}`, `
+    <h1>${escHtml(a.ref)} · ${escHtml(a.title)}</h1><div class="sub">${escHtml(AU_STATUSES[a.status]?.label || a.status)}</div>
+    <table class="kv"><tbody>
+      ${kv(t('audit_type'), AU_TYPES[a.type]?.label)}${kv(t('audit_standard'), a.standard)}${kv(t('audit_scope'), a.scope)}
+      ${kv(t('audit_leadAuditor'), a.leadAuditor)}${kv(t('audit_team'), (a.team || []).join(', '))}
+      ${kv(t('audit_plannedStart'), a.plannedStart)}${kv(t('audit_plannedEnd'), a.plannedEnd)}
+      ${kv(t('audit_actualStart'), a.actualStart)}${kv(t('audit_actualEnd'), a.actualEnd)}${kv(t('audit_followUp'), a.followUpDate)}
+    </tbody></table>
+    <h2>${escHtml(t('audit_checklist'))} (${(a.checklist || []).length})</h2>
+    <table><thead><tr><th>${t('audit_control')}</th><th>${t('audit_question')}</th><th>${t('audit_result')}</th><th>${t('audit_evidence')} / ${t('audit_notes')}</th></tr></thead>
+      <tbody>${(a.checklist || []).map(i => `<tr><td>${escHtml(i.controlId || '')}</td><td>${escHtml(i.question)}</td>
+        <td>${escHtml(AU_RESULTS[i.result]?.label || i.result)}</td><td>${escHtml([i.evidence, i.notes].filter(Boolean).join(' · '))}</td></tr>`).join('')}</tbody></table>
+    <h2>${escHtml(t('audit_findings'))} (${(a.findings || []).length})</h2>
+    <table><thead><tr><th>Ref</th><th>${t('col_title')}</th><th>${t('findings_severity')}</th><th>${t('col_status')}</th></tr></thead>
+      <tbody>${(a.findings || []).map(f => `<tr><td>${escHtml(f.ref)}</td><td>${escHtml(f.title)}</td><td>${escHtml(f.severity)}</td><td>${escHtml(f.status)}</td></tr>`).join('')}</tbody></table>
+    ${a.conclusion ? `<h2>${escHtml(t('audit_conclusion'))}</h2><p style="white-space:pre-wrap">${escHtml(a.conclusion)}</p>` : ''}`)
+}
+
+async function exportAuditProgramCsv(id) {
+  const p = await auFetchJson(`/audit-programs/${id}`, null)
+  if (!p) return alert(t('err_load'))
+  auDownloadCsv(`audit-programme-${p.year}`,
+    [t('audit_quarter'), t('audit_ref'), t('col_title'), t('audit_type'), t('audit_plannedStart'), t('audit_plannedEnd'), t('audit_leadAuditor'), t('col_status')],
+    auQuarters(p.audits).flatMap(g => g.list.map(a => [g.label, a.ref, a.title, AU_TYPES[a.type]?.label || a.type,
+      a.plannedStart || '', a.plannedEnd || '', a.leadAuditor || '', AU_STATUSES[a.status]?.label || a.status])))
+}
+
+async function exportAuditProgramPdf(id) {
+  const p = await auFetchJson(`/audit-programs/${id}`, null)
+  if (!p) return alert(t('err_load'))
+  auPrint(`${p.ref} ${p.title}`, `<h1>${escHtml(p.ref)} · ${escHtml(p.title)} (${p.year})</h1>
+    <div class="sub">${escHtml(p.status === 'approved' ? `${t('audit_programApproved')}: ${p.approvedBy || ''}, ${(p.approvedAt || '').slice(0, 10)}` : t('audit_programDraft'))}</div>
+    <h2>${escHtml(t('audit_objectives'))}</h2><p style="white-space:pre-wrap">${escHtml(p.objectives || '—')}</p>
+    <h2>${escHtml(t('audit_scope'))}</h2><p style="white-space:pre-wrap">${escHtml(p.scope || '—')}</p>
+    ${auQuarters(p.audits).map(g => `<h2>${escHtml(g.label)}</h2><table><thead><tr><th>${t('audit_ref')}</th><th>${t('col_title')}</th>
+      <th>${t('audit_type')}</th><th>${t('audit_period')}</th><th>${t('audit_leadAuditor')}</th><th>${t('col_status')}</th></tr></thead>
+      <tbody>${g.list.map(a => `<tr><td>${escHtml(a.ref)}</td><td>${escHtml(a.title)}</td><td>${escHtml(AU_TYPES[a.type]?.label || a.type)}</td>
+        <td>${escHtml(a.plannedStart || '')} – ${escHtml(a.plannedEnd || '')}</td><td>${escHtml(a.leadAuditor || '')}</td>
+        <td>${escHtml(AU_STATUSES[a.status]?.label || a.status)}</td></tr>`).join('')}</tbody></table>`).join('')}`)
+}
+
 // Init app after DOM load – nur auf der SPA-Hauptseite (index.html)
 window.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.app-body')) init()
@@ -16265,7 +16930,7 @@ window.addEventListener('pageshow', (e) => {
     'dashboardContainer','soaContainer','guidanceContainer','riskContainer',
     'calendarContainer','adminPanelContainer','settingsPanelContainer','reportsContainer',
     'gdprContainer','trainingContainer','incidentContainer','legalContainer',
-    'goalsContainer','assetsContainer','governanceContainer','bcmContainer','suppliersContainer','policyAcksContainer'
+    'goalsContainer','assetsContainer','governanceContainer','bcmContainer','suppliersContainer','policyAcksContainer','auditsContainer'
   ]
   const alreadyRendered = containerIds.some(id => !!document.getElementById(id))
   if (!alreadyRendered) loadSection(currentSection)

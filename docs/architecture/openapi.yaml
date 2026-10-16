@@ -746,6 +746,181 @@ paths:
         '200':
           description: Array of historical versions
 
+  /audits:
+    get:
+      tags: [audits]
+      summary: List audits
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: status,    in: query, schema: { type: string, enum: [planned, in_progress, completed, cancelled] } }
+        - { name: type,      in: query, schema: { type: string, enum: [internal, external, supplier, certification] } }
+        - { name: year,      in: query, schema: { type: integer }, description: Year of the planned start }
+        - { name: programId, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Array of audits (with checklist)
+    post:
+      tags: [audits]
+      summary: Create an audit (auditor / contentowner)
+      security:
+        - cookieAuth: []
+      responses:
+        '201':
+          description: Created (reference AUD-YYYY-NNNN)
+
+  /audits/summary:
+    get:
+      tags: [audits]
+      summary: "Counts: total, byStatus, overdue, upcoming (30 days), nonconform"
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Summary object
+
+  /audits/{id}:
+    get:
+      tags: [audits]
+      summary: Get an audit including its assigned findings
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Audit with findings[]
+        '404':
+          description: Not found
+    put:
+      tags: [audits]
+      summary: Update an audit
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Updated audit
+    delete:
+      tags: [audits]
+      summary: Move an audit to the trash (restore and permanent delete via /audits/{id}/restore and /permanent, admin)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Deleted
+
+  /audits/{id}/checklist:
+    post:
+      tags: [audits]
+      summary: Add a checklist item (controlId, question, result, evidence, notes)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '201':
+          description: Created item
+
+  /audits/{id}/checklist/{itemId}:
+    put:
+      tags: [audits]
+      summary: Update a checklist item (result enum open, conform, nonconform, not_applicable)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id,     in: path, required: true, schema: { type: string } }
+        - { name: itemId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Updated item
+    delete:
+      tags: [audits]
+      summary: Delete a checklist item
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id,     in: path, required: true, schema: { type: string } }
+        - { name: itemId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Deleted
+
+  /audits/{id}/checklist/{itemId}/finding:
+    post:
+      tags: [audits]
+      summary: Create a pre-filled finding from a checklist item (once per item)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id,     in: path, required: true, schema: { type: string } }
+        - { name: itemId, in: path, required: true, schema: { type: string } }
+      responses:
+        '201':
+          description: Created finding (auditId and sourceItemId set)
+        '409':
+          description: A finding already exists for this item
+
+  /audit-programs:
+    get:
+      tags: [audits]
+      summary: List audit programmes (annual plans)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: year,   in: query, schema: { type: integer } }
+        - { name: status, in: query, schema: { type: string, enum: [draft, approved] } }
+      responses:
+        '200':
+          description: Array of programmes
+    post:
+      tags: [audits]
+      summary: Create an audit programme (reference AP-YYYY-NNNN)
+      security:
+        - cookieAuth: []
+      responses:
+        '201':
+          description: Created
+
+  /audit-programs/{id}:
+    get:
+      tags: [audits]
+      summary: Get a programme including its audits
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Programme with audits[]
+    put:
+      tags: [audits]
+      summary: Update a programme (409 once approved)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Updated programme
+        '409':
+          description: Programme is approved
+
+  /audit-programs/{id}/approve:
+    post:
+      tags: [audits]
+      summary: Approve a programme (locks it; /reopen sets it back to draft)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Approved programme
+
   /template/{type}/{id}/versions:
     get:
       tags: [templates]
