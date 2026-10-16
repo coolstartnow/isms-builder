@@ -291,7 +291,8 @@ describe('Email Campaign Mode', () => {
   test('Bestätigung per Token speichern', async () => {
     const acksRes = await request(app).get(`/distributions/${distId}/acks`).set('Cookie', coCookie)
     const token = acksRes.body[0].token
-    const res = await request(app).post(`/ack/${token}`)
+    // Sprache der öffentlichen Seite: ?lang= (das Formular der Bestätigungsseite reicht sie durch)
+    const res = await request(app).post(`/ack/${token}?lang=de`)
       .type('form').send({ recipientName: 'Alice Testuser' })
     expect(res.status).toBe(200)
     expect(res.text).toContain('Vielen Dank')

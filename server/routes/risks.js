@@ -3,6 +3,7 @@
 const express = require('express')
 const router = express.Router()
 const { requireAuth, authorize } = require('../auth')
+const { langOf, translateLabel } = require('../i18n')
 const riskStore = require('../db/riskStore')
 const embeddingStore = require('../ai/embeddingStore')
 
@@ -12,7 +13,8 @@ function authorizeAuditor(req, res, next) {
 }
 
 router.get('/risks/calendar', requireAuth, authorize('reader'), async (req, res) => {
-  res.json(await riskStore.getCalendarEvents())
+  const lang = langOf(req)
+  res.json((await riskStore.getCalendarEvents()).map(e => ({ ...e, label: translateLabel(e.label, lang) })))
 })
 router.get('/risks/summary', requireAuth, authorize('reader'), async (req, res) => {
   res.json(await riskStore.getSummary())

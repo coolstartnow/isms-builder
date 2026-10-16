@@ -109,19 +109,60 @@ const MESSAGES = [
   ['No vulnerabilities found in the report (CVSS > 0)', 'Keine Schwachstellen im Report gefunden (CVSS > 0)', "Aucune vulnérabilité trouvée dans le rapport (CVSS > 0)", 'Geen kwetsbaarheden gevonden in het rapport (CVSS > 0)', 'Nem található sebezhetőség a jelentésben (CVSS > 0)'],
 ]
 
-// ── Index: jeder Text in jeder Sprache → Eintrag ──────────────────────────────
+// Beschriftungen von Kalendereinträgen, die Stores/Routen als "Präfix: Titel" liefern.
+// {t} ist der (nie übersetzte) Titel des Datensatzes.
+const LABELS = [
+  ['Due: {t}', 'Fälligkeit: {t}', 'Échéance : {t}', 'Vervaldatum: {t}', 'Határidő: {t}'],
+  ['Review: {t}', 'Review: {t}', 'Révision : {t}', 'Beoordeling: {t}', 'Felülvizsgálat: {t}'],
+  ['Action: {t}', 'Maßnahme: {t}', 'Mesure : {t}', 'Maatregel: {t}', 'Intézkedés: {t}'],
+  ['Goal due: {t}', 'Ziel fällig: {t}', 'Objectif à échéance : {t}', 'Doel verschuldigd: {t}', 'Cél esedékes: {t}'],
+  ['Goal review: {t}', 'Ziel-Review: {t}', "Revue de l'objectif : {t}", 'Doelbeoordeling: {t}', 'Cél felülvizsgálata: {t}'],
+  ['In review: {t}', 'Prüfung: {t}', 'En révision : {t}', 'In beoordeling: {t}', 'Felülvizsgálatban: {t}'],
+  ['Review due: {t}', 'Review fällig: {t}', 'Révision à échéance : {t}', 'Beoordeling verschuldigd: {t}', 'Felülvizsgálat esedékes: {t}'],
+  ['Contract notice period: {t}', 'Vertrag Kündigungsfrist: {t}', 'Délai de préavis du contrat : {t}', 'Opzegtermijn contract: {t}', 'Szerződés felmondási határideje: {t}'],
+  ['Deletion deadline: {t}', 'Löschfrist: {t}', 'Délai de suppression : {t}', 'Verwijdertermijn: {t}', 'Törlési határidő: {t}'],
+  ['Deletion deadline OVERDUE: {t}', 'Löschfrist ÜBERFÄLLIG: {t}', 'Délai de suppression DÉPASSÉ : {t}', 'Verwijdertermijn ACHTERSTALLIG: {t}', 'Törlési határidő LEJÁRT: {t}'],
+  ['Next review: {t}', 'Nächstes Review: {t}', 'Prochaine révision : {t}', 'Volgende beoordeling: {t}', 'Következő felülvizsgálat: {t}'],
+  ['Next meeting: {t}', 'Nächste Sitzung: {t}', 'Prochaine réunion : {t}', 'Volgende vergadering: {t}', 'Következő ülés: {t}'],
+  ['BCM exercise: {t}', 'BCM-Übung: {t}', 'Exercice BCM : {t}', 'BCM-oefening: {t}', 'BCM-gyakorlat: {t}'],
+  ['Plan test due: {t}', 'Plan-Test fällig: {t}', 'Test de plan à échéance : {t}', 'Plantest verschuldigd: {t}', 'Terv-teszt esedékes: {t}'],
+  ['Supplier audit: {t}', 'Lieferanten-Audit: {t}', 'Audit fournisseur : {t}', 'Leveranciersaudit: {t}', 'Szállítói audit: {t}'],
+  ['Finding action: {t}', 'Finding-Maßnahme: {t}', 'Action de constat : {t}', 'Bevindingactie: {t}', 'Megállapítás intézkedése: {t}'],
+  ['Management review', 'Management Review', 'Revue de direction', 'Directiebeoordeling', 'Vezetőségi átvizsgálás'],
+  ['Committee meeting', 'Ausschusssitzung', 'Réunion du comité', 'Commissievergadering', 'Bizottsági ülés'],
+]
+
+// ── Translator: jeder Text in jeder Sprache → Eintrag ─────────────────────────
 const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const exact = new Map()          // Text → Eintrag (ohne Platzhalter)
-const patterns = []              // Platzhalter-Texte als Regex
-for (const entry of MESSAGES) {
-  const hasParams = /\{\w+\}/.test(entry[0])
-  for (const text of entry) {
-    if (!hasParams) { if (!exact.has(text)) exact.set(text, entry); continue }
-    const names = []
-    const re = new RegExp('^' + esc(text).replace(/\\\{(\w+)\\\}/g, (_, n) => { names.push(n); return '([\\s\\S]+?)' }) + '$')
-    patterns.push({ re, names, entry })
+function makeTranslator(entries) {
+  const exact = new Map()          // Text → Eintrag (ohne Platzhalter)
+  const patterns = []              // Platzhalter-Texte als Regex
+  for (const entry of entries) {
+    const hasParams = /\{\w+\}/.test(entry[0])
+    for (const text of entry) {
+      if (!hasParams) { if (!exact.has(text)) exact.set(text, entry); continue }
+      const names = []
+      const re = new RegExp('^' + esc(text).replace(/\\\{(\w+)\\\}/g, (_, n) => { names.push(n); return '([\\s\\S]+?)' }) + '$')
+      patterns.push({ re, names, entry })
+    }
+  }
+  return function translate(text, lang) {
+    if (typeof text !== 'string' || !text) return text
+    const li = IDX[lang] ?? 0
+    const hit = exact.get(text)
+    if (hit) return hit[li]
+    for (const { re, names, entry } of patterns) {
+      const m = re.exec(text)
+      if (!m) continue
+      let out = entry[li]
+      names.forEach((n, i) => { out = out.split('{' + n + '}').join(m[i + 1]) })
+      return out
+    }
+    return text
   }
 }
+const _translateError = makeTranslator(MESSAGES)
+const _translateLabel = makeTranslator(LABELS)
 
 /** Erste unterstützte Sprache aus dem Wert eines X-Lang-/Accept-Language-Headers. */
 function pickLang(value) {
@@ -129,35 +170,75 @@ function pickLang(value) {
   return SUPPORTED.includes(l) ? l : null
 }
 
-/** Sprache des Aufrufers: X-Lang → Organisations-Standard → Englisch. */
+/**
+ * Sprache des Aufrufers: X-Lang → Organisations-Standard → Englisch.
+ * Die Middleware (installMiddleware) legt die Sprache einmal pro Request als `req.lang` ab, weil der
+ * Organisations-Standard je nach STORAGE_BACKEND asynchron aus der Datenbank kommt.
+ */
 function langOf(req) {
-  const fromHeader = pickLang(req.headers && req.headers['x-lang'])
-  if (fromHeader) return fromHeader
+  if (req.lang) return req.lang
+  return pickLang(req.headers && req.headers['x-lang']) || 'en'
+}
+
+/** Standardsprache der Organisation, asynchron (auch bei SQLite/PostgreSQL/MariaDB korrekt). */
+async function orgLang() {
   try {
-    const cfg = require('./db/orgSettingsStore').get()
+    const cfg = await require('./db/orgSettingsStore').get()
     return pickLang(cfg && cfg.languageConfig && cfg.languageConfig.default) || 'en'
   } catch { return 'en' }
 }
 
 /** Übersetzt einen bekannten Meldungstext; unbekannte Texte bleiben unverändert. */
-function translateError(text, lang) {
-  if (typeof text !== 'string' || !text) return text
-  const li = IDX[lang] ?? 0
-  const hit = exact.get(text)
-  if (hit) return hit[li]
-  for (const { re, names, entry } of patterns) {
-    const m = re.exec(text)
-    if (!m) continue
-    let out = entry[li]
-    names.forEach((n, i) => { out = out.split('{' + n + '}').join(m[i + 1]) })
-    return out
+function translateError(text, lang) { return _translateError(text, lang) }
+
+/** Übersetzt die Beschriftung eines Kalendereintrags ("Präfix: Titel"); Titel bleibt unverändert. */
+function translateLabel(text, lang) { return _translateLabel(text, lang) }
+
+// ── Texte aus dem Wörterbuch der Oberfläche (Mails, Berichte, öffentliche Seiten) ──
+// Server-Texte liegen mit im Wörterbuch ui/i18n/translations.js (Schlüssel srv_…), damit es eine
+// einzige Quelle für alle Sprachen gibt und die Vollständigkeitstests sie mit abdecken.
+const fs = require('fs')
+const path = require('path')
+let _dict = null
+function dictionary() {
+  if (!_dict) {
+    const win = {}
+    // eslint-disable-next-line no-new-func
+    new Function('window', fs.readFileSync(path.join(__dirname, '..', 'ui', 'i18n', 'translations.js'), 'utf8'))(win)
+    _dict = win.TRANSLATIONS || {}
   }
-  return text
+  return _dict
 }
+
+/** Text zu einem Schlüssel in der Sprache `lang` (Fallback Englisch, dann der Schlüssel selbst). */
+function tr(lang, key, params) {
+  const e = dictionary()[key]
+  let out = (e && (e[lang] || e.en)) || key
+  if (params) for (const [k, v] of Object.entries(params)) out = out.split('{' + k + '}').join(String(v))
+  return out
+}
+
+const LOCALES = { de: 'de-DE', en: 'en-GB', fr: 'fr-FR', nl: 'nl-NL', hu: 'hu-HU' }
+/** Datumsformat passend zur Sprache. */
+function fmtDate(value, lang) {
+  if (!value) return '–'
+  return new Date(value).toLocaleDateString(LOCALES[lang] || LOCALES.en)
+}
+function fmtDateTime(value, lang) {
+  if (!value) return '–'
+  return new Date(value).toLocaleString(LOCALES[lang] || LOCALES.en)
+}
+
+/** Sprache für Seiten ohne Login/Header: ?lang= → vorgegebene Sprache (z. B. des Dokuments) → Organisations-Standard. */
+function pageLang(req, preferred) {
+  return pickLang(req.query && req.query.lang) || pickLang(preferred) || langOf(req)
+}
+
 
 /** Middleware: übersetzt `error` in jeder JSON-Antwort in die Sprache des Aufrufers. */
 function installMiddleware(app) {
-  app.use((req, res, next) => {
+  app.use(async (req, res, next) => {
+    req.lang = pickLang(req.headers && req.headers['x-lang']) || await orgLang()
     const send = res.json.bind(res)
     res.json = body => {
       if (body && typeof body === 'object' && !Array.isArray(body) && typeof body.error === 'string') {
@@ -169,4 +250,4 @@ function installMiddleware(app) {
   })
 }
 
-module.exports = { SUPPORTED, MESSAGES, langOf, translateError, installMiddleware }
+module.exports = { SUPPORTED, MESSAGES, LABELS, langOf, pickLang, pageLang, orgLang, translateError, translateLabel, tr, fmtDate, fmtDateTime, installMiddleware }

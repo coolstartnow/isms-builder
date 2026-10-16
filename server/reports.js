@@ -2,6 +2,7 @@
 // Reports module – aggregierte Compliance-Berichte
 // Fünf Report-Typen: compliance, framework, gap, templates, audit
 const soaStore   = require('./db/soaStore')
+const i18n = require('./i18n')
 const storage    = require('./storage')
 const entityStore = require('./db/entityStore')
 
@@ -257,24 +258,26 @@ async function complianceMatrixReport(framework) {
   return { entities, controls: matrix, framework: framework || 'all' }
 }
 
-// CSV-Export-Wrapper für alle Report-Typen
-async function exportCsv(type, { entityId, framework, from, to } = {}) {
+// CSV-Export-Wrapper für alle Report-Typen (Spaltenköpfe in der Sprache des Aufrufers)
+async function exportCsv(type, { entityId, framework, from, to, lang } = {}) {
+  lang = i18n.pickLang(lang) || await i18n.orgLang()
+  const H = key => i18n.tr(lang, 'srv_csv_' + key)
   switch (type) {
     case 'compliance': {
       const data = await complianceReport(entityId)
       const rows = []
       for (const row of data) {
         for (const [fw, v] of Object.entries(row.byFramework || {})) {
-          rows.push([row.entity?.name || 'Alle', fw, v.applicable, v.implemented,
+          rows.push([row.entity?.name || H('allEntities'), fw, v.applicable, v.implemented,
             v.applicable > 0 ? Math.round(v.implemented / v.applicable * 100) + '%' : '0%'])
         }
       }
-      return csvExport(['Gesellschaft', 'Framework', 'Applicable', 'Implementiert', 'Rate'], rows)
+      return csvExport([H('entity'), 'Framework', H('applicable'), H('implemented'), H('rate')], rows)
     }
     case 'framework': {
       const data = frameworkReport(framework)
       return csvExport(
-        ['Framework', 'Label', 'Controls gesamt', 'Applicable', 'Nicht applicable', 'Implementiert', 'Rate'],
+        ['Framework', H('label'), H('controlsTotal'), H('applicable'), H('notApplicable'), H('implemented'), H('rate')],
         data.map(f => [f.framework, f.label, f.total, f.applicable, f.notApplicable,
           (f.byStatus?.implemented || 0) + (f.byStatus?.optimized || 0), f.implementationRate + '%'])
       )
@@ -282,14 +285,14 @@ async function exportCsv(type, { entityId, framework, from, to } = {}) {
     case 'gap': {
       const data = await gapReport(entityId)
       return csvExport(
-        ['Control-ID', 'Framework', 'Titel', 'Status', 'Owner'],
+        [H('controlId'), 'Framework', i18n.tr(lang, 'col_title'), i18n.tr(lang, 'col_status'), i18n.tr(lang, 'col_owner')],
         (data.gaps || []).map(g => [g.id, g.framework, g.title, g.status || '', g.owner || ''])
       )
     }
     case 'templates': {
       const data = await templatesReport(entityId)
       return csvExport(
-        ['Typ', 'Titel', 'Status', 'Version', 'Verknüpfte Controls', 'Aktualisiert'],
+        [i18n.tr(lang, 'col_type'), i18n.tr(lang, 'col_title'), i18n.tr(lang, 'col_status'), i18n.tr(lang, 'col_version'), H('linkedControls'), H('updated')],
         (data.templates || []).map(t => [t.type, t.title, t.status, t.version,
           t.linkedControls.length, t.updatedAt])
       )
@@ -297,10 +300,10 @@ async function exportCsv(type, { entityId, framework, from, to } = {}) {
     case 'reviews': {
       const data = await reviewsReport(30)
       const all = [
-        ...data.overdue.map(t => ['überfällig', ...Object.values(t)]),
-        ...data.upcoming.map(t => ['bald fällig', ...Object.values(t)]),
+        ...data.overdue.map(t => [H('overdue'), ...Object.values(t)]),
+        ...data.upcoming.map(t => [H('dueSoon'), ...Object.values(t)]),
       ]
-      return csvExport(['Fälligkeit', 'ID', 'Typ', 'Titel', 'Status', 'Owner', 'Nächstes Review', 'Tage'], all)
+      return csvExport([H('due'), 'ID', i18n.tr(lang, 'col_type'), i18n.tr(lang, 'col_title'), i18n.tr(lang, 'col_status'), i18n.tr(lang, 'col_owner'), H('nextReview'), H('days')], all)
     }
     case 'matrix': {
       const data = await complianceMatrixReport(framework)
@@ -309,12 +312,12 @@ async function exportCsv(type, { entityId, framework, from, to } = {}) {
         const cells = data.entities.map(e => ctrl[e.id] || 'n/a')
         return [ctrl.id, ctrl.framework, ctrl.title, ...cells]
       })
-      return csvExport(['Control-ID', 'Framework', 'Titel', ...entityCols], rows)
+      return csvExport([H('controlId'), 'Framework', i18n.tr(lang, 'col_title'), ...entityCols], rows)
     }
     case 'findings': {
       const data = await findingsReport()
       return csvExport(
-        ['Ref', 'Titel', 'Schweregrad', 'Status', 'Auditor', 'Prüfbereich', 'Von', 'Bis', 'IST-Zustand', 'SOLL-Zustand', 'Risiko', 'Empfehlung', 'Offene Maßnahmen', 'Erstellt'],
+        ['Ref', i18n.tr(lang, 'col_title'), H('severity'), i18n.tr(lang, 'col_status'), 'Auditor', H('auditedArea'), H('from'), H('to'), H('observation'), H('requirement'), H('impactText'), H('recommendation'), H('openActions'), H('created')],
         data.findings.map(f => [
           f.ref, f.title, f.severity, f.status, f.auditor || '', f.auditedArea || '',
           f.auditPeriodFrom || '', f.auditPeriodTo || '',
@@ -327,7 +330,7 @@ async function exportCsv(type, { entityId, framework, from, to } = {}) {
     case 'risks': {
       const data = await risksReport({ entityId, category: undefined, status: undefined })
       return csvExport(
-        ['ID', 'Titel', 'Kategorie', 'Schweregrad', 'Status', 'Owner', 'Wahrscheinlichkeit', 'Impact', 'Score', 'Inhärenter Score', 'Zielscore', 'CVSS', 'CVEs', 'Quelle', 'Genehmigt von', 'Erstellt'],
+        ['ID', i18n.tr(lang, 'col_title'), i18n.tr(lang, 'col_category'), H('severity'), i18n.tr(lang, 'col_status'), i18n.tr(lang, 'col_owner'), H('probability'), H('impact'), 'Score', H('inherentScore'), H('targetScore'), 'CVSS', 'CVEs', H('source'), i18n.tr(lang, 'tmpl_approvedBy'), H('created')],
         (data.risks || []).map(r => [
           r.id, r.title, r.category, r.level, r.status, r.owner,
           r.probability ?? '', r.impact ?? '', r.score ?? '', r.inherentScore ?? '', r.targetScore ?? '',

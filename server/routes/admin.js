@@ -5,6 +5,7 @@ const router = express.Router()
 const fs = require('fs')
 const path = require('path')
 const { requireAuth, authorize, ROLE_RANK } = require('../auth')
+const { langOf } = require('../i18n')
 const orgSettingsStore = require('../db/orgSettingsStore')
 const auditStore       = require('../db/auditStore')
 const customListsStore = require('../db/customListsStore')
@@ -304,7 +305,7 @@ router.post('/admin/email/test', requireAuth, authorize('admin'), async (req, re
   const { to } = req.body
   if (!to) return res.status(400).json({ error: 'Empfängeradresse fehlt' })
   try {
-    await mailer.sendTestMail(to)
+    await mailer.sendTestMail(to, langOf(req))
     await auditStore.append({ user: req.user, action: 'settings', resource: 'org', detail: `Test-Mail an ${to} gesendet` })
     res.json({ ok: true })
   } catch (e) {
@@ -313,8 +314,8 @@ router.post('/admin/email/test', requireAuth, authorize('admin'), async (req, re
 })
 
 // ── E-Mail SMTP-Status ──
-router.get('/admin/email/status', requireAuth, authorize('admin'), (req, res) => {
-  const cfg = mailer.getSmtpConfig()
+router.get('/admin/email/status', requireAuth, authorize('admin'), async (req, res) => {
+  const cfg = await mailer.getSmtpConfig()
   res.json({
     configured: Boolean(cfg),
     source:     process.env.SMTP_HOST ? 'env' : (cfg ? 'ui' : 'none'),

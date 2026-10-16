@@ -11,13 +11,14 @@
  */
 
 const nodemailer = require('nodemailer')
+const i18n = require('./i18n')
 
 /**
  * Liest die aktuelle SMTP-Konfiguration.
  * Umgebungsvariablen haben immer Vorrang vor UI-Einstellungen.
  * @returns {{ host, port, secure, user, pass, from } | null}
  */
-function getSmtpConfig() {
+async function getSmtpConfig() {
   // Stufe 1: Umgebungsvariablen
   if (process.env.SMTP_HOST) {
     return {
@@ -33,7 +34,7 @@ function getSmtpConfig() {
   // Stufe 2: org-settings (Admin-UI, wird dynamisch geladen)
   try {
     const orgSettings = require('./db/orgSettingsStore')
-    const s = orgSettings.get().smtpSettings || {}
+    const s = (await orgSettings.get()).smtpSettings || {}
     if (s.host) {
       return {
         host:   s.host,
@@ -70,7 +71,7 @@ function createTransport(cfg) {
  * @returns {Promise<boolean>} true = gesendet, false = übersprungen
  */
 async function sendMail(to, subject, html) {
-  const cfg = getSmtpConfig()
+  const cfg = await getSmtpConfig()
   if (!cfg || !to) return false
 
   try {
@@ -88,24 +89,25 @@ async function sendMail(to, subject, html) {
  * Sendet eine Test-Mail an die angegebene Adresse.
  * Gibt bei Erfolg true zurück, bei Fehler wirft sie.
  */
-async function sendTestMail(to) {
-  const cfg = getSmtpConfig()
+async function sendTestMail(to, lang) {
+  lang = i18n.pickLang(lang) || await i18n.orgLang()
+  const cfg = await getSmtpConfig()
   if (!cfg) throw new Error('SMTP nicht konfiguriert')
 
   const transport = createTransport(cfg)
   await transport.sendMail({
     from:    cfg.from,
     to,
-    subject: '[ISMS Builder] Test-E-Mail',
-    html:    `<p>Diese Test-Mail bestätigt, dass die SMTP-Konfiguration korrekt ist.</p>
-              <p style="color:#666;font-size:12px">Gesendet von ISMS Builder – ${new Date().toLocaleString('de-DE')}</p>`,
+    subject: i18n.tr(lang, 'srv_smtp_subject'),
+    html:    `<p>${i18n.tr(lang, 'srv_smtp_body')}</p>
+              <p style="color:#666;font-size:12px">${i18n.tr(lang, 'srv_smtp_sent', { date: i18n.fmtDateTime(new Date(), lang) })}</p>`,
   })
   return true
 }
 
 /** Gibt true zurück wenn SMTP konfiguriert ist (env oder org-settings) */
-function isConfigured() {
-  return Boolean(getSmtpConfig())
+async function isConfigured() {
+  return Boolean(await getSmtpConfig())
 }
 
 module.exports = { sendMail, sendTestMail, isConfigured, getSmtpConfig }

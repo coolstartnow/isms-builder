@@ -22,6 +22,7 @@
 const PDFDocument = require('pdfkit')
 const { marked } = require('../ui/vendor/marked.min.js')
 const { versionTable } = require('./db/templateVersioning')
+const i18n = require('./i18n')
 
 const PAGE_MARGIN = 56
 const FONT_BODY = 'Helvetica'
@@ -218,14 +219,15 @@ function renderToken(doc, token) {
  * @returns {Promise<Buffer>}
  */
 /** Versionstabelle im Dokumentkopf (#97): Version | Freigegeben von | Freigegeben am | Änderungen. */
-function renderVersionTable(pdf, rows) {
+function renderVersionTable(pdf, rows, lang = 'de') {
+  const T = key => i18n.tr(lang, key)
   if (!rows.length) return
   const x0 = PAGE_MARGIN
   const cols = [
-    { label: 'Version',          w: 50 },
-    { label: 'Freigegeben von',  w: 110 },
-    { label: 'Freigegeben am',   w: 90 },
-    { label: 'Änderungen',       w: pdf.page.width - 2 * PAGE_MARGIN - 250 },
+    { label: T('tmpl_version'),     w: 50 },
+    { label: T('tmpl_approvedBy'),  w: 110 },
+    { label: T('tmpl_approvedOn'),  w: 90 },
+    { label: T('tmpl_changes'),     w: pdf.page.width - 2 * PAGE_MARGIN - 250 },
   ]
   const drawRow = (cells, bold) => {
     const font = bold ? FONT_BOLD : FONT_BODY
@@ -249,7 +251,9 @@ function renderVersionTable(pdf, rows) {
   pdf.moveDown(0.8)
 }
 
-function renderTemplateToPdf(doc) {
+async function renderTemplateToPdf(doc) {
+  const lang = i18n.pickLang(doc.language) || await i18n.orgLang()
+  const T = key => i18n.tr(lang, key)
   return new Promise((resolve, reject) => {
     const pdf = new PDFDocument({ size: 'A4', margin: PAGE_MARGIN, bufferPages: true })
     const chunks = []
@@ -260,11 +264,11 @@ function renderTemplateToPdf(doc) {
     try {
       pdf.font(FONT_BOLD).fontSize(18).fillColor(COLOR_TEXT).text(doc.title || '')
       const metaParts = [
-        doc.type ? `Typ: ${doc.type}` : null,
-        doc.status ? `Status: ${doc.status}` : null,
-        doc.version ? `Version: ${doc.version}` : null,
-        doc.owner ? `Owner: ${doc.owner}` : null,
-        doc.nextReviewDate ? `Review: ${String(doc.nextReviewDate).slice(0, 10)}` : null,
+        doc.type ? `${T('col_type')}: ${doc.type}` : null,
+        doc.status ? `${T('col_status')}: ${doc.status}` : null,
+        doc.version ? `${T('tmpl_version')}: ${doc.version}` : null,
+        doc.owner ? `${T('col_owner')}: ${doc.owner}` : null,
+        doc.nextReviewDate ? `${T('legal_nextReview')}: ${String(doc.nextReviewDate).slice(0, 10)}` : null,
       ].filter(Boolean)
       if (metaParts.length) {
         pdf.moveDown(0.2)
@@ -273,7 +277,7 @@ function renderTemplateToPdf(doc) {
       pdf.moveDown(0.3)
       pdf.strokeColor(COLOR_RULE).moveTo(PAGE_MARGIN, pdf.y).lineTo(pdf.page.width - PAGE_MARGIN, pdf.y).stroke()
       pdf.moveDown(0.6)
-      renderVersionTable(pdf, doc.versions || versionTable(doc))
+      renderVersionTable(pdf, doc.versions || versionTable(doc), lang)
 
       const tokens = marked.lexer(String(doc.content || ''))
       for (const token of tokens) renderToken(pdf, token)
@@ -293,7 +297,7 @@ function renderTemplateToPdf(doc) {
         pdf.page.margins.bottom = 0
         pdf.font(FONT_BODY).fontSize(8).fillColor(COLOR_MUTED)
         pdf.text(
-          `ISMS Builder · ${doc.title || ''} · ${new Date().toLocaleDateString('de-DE')} · ${i + 1}/${range.count}`,
+          `ISMS Builder · ${doc.title || ''} · ${i18n.fmtDate(new Date(), lang)} · ${i + 1}/${range.count}`,
           PAGE_MARGIN, pdf.page.height - PAGE_MARGIN + 18,
           { width: pdf.page.width - PAGE_MARGIN * 2, align: 'center' }
         )

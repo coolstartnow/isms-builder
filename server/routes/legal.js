@@ -6,6 +6,7 @@ const fs = require('fs')
 const path = require('path')
 const multer = require('multer')
 const { requireAuth, authorize } = require('../auth')
+const { langOf, tr } = require('../i18n')
 const legalStore = require('../db/legalStore')
 
 const LEGAL_FILES_DIR = legalStore.FILES_DIR
@@ -81,11 +82,12 @@ function toCsv(rows) {
 // Verträge
 router.get('/legal/contracts/export/csv', requireAuth, authorize('reader'), async (req, res) => {
   const list = await legalStore.contracts.getAll(req.query)
-  const header = ['ID','Titel','Typ','Vertragspartner','Status','Laufzeitbeginn','Laufzeitende','Automatische Verlängerung','Kündigungsfrist (Tage)','Wert','Währung','Owner','Notizen','Erstellt am']
+  const H = k => tr(langOf(req), 'srv_csv_' + k); const C = k => tr(langOf(req), k)
+  const header = ['ID', C('col_title'), C('col_type'), C('col_counterparty'), C('col_status'), H('startDate'), C('col_endDate'), H('autoRenew'), H('noticeDays'), H('value'), H('currency'), C('col_owner'), H('notes'), H('createdOn')]
   const rows = list.map(c => [
     c.id, c.title, c.contractType, c.counterparty, c.status,
     c.startDate || '', c.endDate || '',
-    c.autoRenew ? 'Ja' : 'Nein', c.noticePeriodDays || '',
+    c.autoRenew ? H('yes') : H('no'), c.noticePeriodDays || '',
     c.value || '', c.currency || 'EUR', c.owner || '',
     c.notes || '', c.createdAt ? c.createdAt.slice(0, 10) : ''
   ])
@@ -133,7 +135,8 @@ router.post('/legal/contracts/:id/restore', requireAuth, authorize('admin'), asy
 // NDAs
 router.get('/legal/ndas/export/csv', requireAuth, authorize('reader'), async (req, res) => {
   const list = await legalStore.ndas.getAll(req.query)
-  const header = ['ID','Titel','Typ','Vertragspartner','Status','Unterzeichnet am','Läuft ab','Umfang','Owner','Notizen','Erstellt am']
+  const H = k => tr(langOf(req), 'srv_csv_' + k); const C = k => tr(langOf(req), k)
+  const header = ['ID', C('col_title'), C('col_type'), C('col_counterparty'), C('col_status'), C('col_signed'), C('col_expires'), H('scope'), C('col_owner'), H('notes'), H('createdOn')]
   const rows = list.map(n => [
     n.id, n.title, n.ndaType, n.counterparty, n.status,
     n.signingDate || '', n.expiryDate || '',
@@ -181,7 +184,8 @@ router.post('/legal/ndas/:id/restore', requireAuth, authorize('admin'), async (r
 // Privacy Policies
 router.get('/legal/policies/export/csv', requireAuth, authorize('reader'), async (req, res) => {
   const list = await legalStore.privacyPolicies.getAll(req.query)
-  const header = ['ID','Titel','Typ','Status','Version','Veröffentlicht am','Nächstes Review','URL','Owner','Notizen','Erstellt am']
+  const H = k => tr(langOf(req), 'srv_csv_' + k); const C = k => tr(langOf(req), k)
+  const header = ['ID', C('col_title'), C('col_type'), C('col_status'), C('col_version'), C('col_published'), C('legal_nextReview'), 'URL', C('col_owner'), H('notes'), H('createdOn')]
   const rows = list.map(p => [
     p.id, p.title, p.policyType, p.status, p.version || 1,
     p.publishedAt || '', p.nextReviewDate || '',

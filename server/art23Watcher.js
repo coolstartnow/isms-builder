@@ -22,12 +22,13 @@ const { sendMail, isConfigured } = require('./mailer')
 const art23        = require('./db/art23')
 const orgSettings  = require('./db/orgSettingsStore')
 const rbacStore    = require('./rbacStore')
+const i18n = require('./i18n')
 
 const INTERVAL_MS = 15 * 60 * 1000
 const FIRST_RUN_DELAY_MS = 90_000   // nach dem Start kurz warten, wie beim Notifier
 
-function recipients() {
-  const settings = orgSettings.get()
+async function recipients() {
+  const settings = await orgSettings.get()
   try {
     const emails = rbacStore.getUsersByFunction('ciso').map(u => u.email).filter(Boolean)
     if (emails.length) return [...new Set(emails)]
@@ -38,37 +39,39 @@ function recipients() {
   return fallback ? [fallback] : []
 }
 
-function buildMail(incident, phases, orgName) {
+function buildMail(incident, phases, orgName, lang = 'en') {
+  const T    = (key, params) => i18n.tr(lang, key, params)
   const ref  = incident.refNumber || incident.id
-  const worst = phases.some(p => p.state === 'overdue') ? 'ÜBERSCHRITTEN' : 'läuft ab'
+  const worst = phases.some(p => p.state === 'overdue') ? T('srv_a23_stateOver') : T('srv_a23_stateSoon')
+  const PHASE_KEYS = { earlyWarning: 'srv_a23_phaseEarly', notification: 'srv_a23_phaseNotification', finalReport: 'srv_a23_phaseFinal' }
 
   const rows = phases.map(p => {
-    const when = p.deadline ? new Date(p.deadline).toLocaleString('de-DE') : '—'
+    const when = p.deadline ? i18n.fmtDateTime(p.deadline, lang) : '—'
     const left = p.minutesLeft === null ? ''
       : p.minutesLeft < 0
-        ? ` (seit ${Math.abs(Math.round(p.minutesLeft / 60))} h überschritten)`
-        : ` (noch ${Math.round(p.minutesLeft / 60)} h)`
+        ? ` ${T('srv_a23_over', { h: Math.abs(Math.round(p.minutesLeft / 60)) })}`
+        : ` ${T('srv_a23_left', { h: Math.round(p.minutesLeft / 60) })}`
     return `<tr>
-      <td style="padding:6px 10px;border-bottom:1px solid #ddd">${p.label}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #ddd">${PHASE_KEYS[p.phase] ? T(PHASE_KEYS[p.phase]) : p.label}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #ddd">${when}${left}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #ddd">${p.state === 'overdue' ? 'überschritten' : 'bald fällig'}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #ddd">${p.state === 'overdue' ? T('srv_a23_exceeded') : T('srv_a23_dueSoon')}</td>
     </tr>`
   }).join('')
 
   const html = `
-    <p><strong>NIS2 Art. 23 — Meldefrist ${worst}</strong></p>
-    <p>Vorfall <strong>${ref}</strong>${incident.entityName ? ` (${incident.entityName})` : ''}</p>
+    <p><strong>${T('srv_a23_title', { state: worst })}</strong></p>
+    <p>${T('srv_a23_incident', { ref })}${incident.entityName ? ` (${incident.entityName})` : ''}</p>
     <table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
       <thead><tr>
-        <th align="left" style="padding:6px 10px;border-bottom:2px solid #999">Phase</th>
-        <th align="left" style="padding:6px 10px;border-bottom:2px solid #999">Frist</th>
-        <th align="left" style="padding:6px 10px;border-bottom:2px solid #999">Status</th>
+        <th align="left" style="padding:6px 10px;border-bottom:2px solid #999">${T('srv_a23_colPhase')}</th>
+        <th align="left" style="padding:6px 10px;border-bottom:2px solid #999">${T('srv_a23_colDeadline')}</th>
+        <th align="left" style="padding:6px 10px;border-bottom:2px solid #999">${T('col_status')}</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <p style="color:#666;font-size:12px">Automatische Meldung aus ${orgName}.</p>`
+    <p style="color:#666;font-size:12px">${T('srv_a23_auto', { org: orgName })}</p>`
 
-  return { subject: `[NIS2 Art. 23] Meldefrist ${worst} — Vorfall ${ref}`, html }
+  return { subject: T('srv_a23_subject', { state: worst, ref }), html }
 }
 
 /**
@@ -82,12 +85,13 @@ async function runCheck({ now = new Date(), send = sendMail } = {}) {
   const pending = art23.pendingAlerts(all, now)
   if (!pending.length) return 0
 
-  const to      = recipients()
-  const orgName = orgSettings.get().orgName || 'ISMS Builder'
+  const to      = await recipients()
+  const orgName = (await orgSettings.get()).orgName || 'ISMS Builder'
+  const lang    = await i18n.orgLang()
   let notified  = 0
 
   for (const { incident, phases } of pending) {
-    const { subject, html } = buildMail(incident, phases, orgName)
+    const { subject, html } = buildMail(incident, phases, orgName, lang)
 
     let delivered = false
     for (const address of to) {
@@ -114,8 +118,8 @@ async function runCheck({ now = new Date(), send = sendMail } = {}) {
   return notified
 }
 
-function start() {
-  if (!isConfigured()) {
+async function start() {
+  if (!(await isConfigured())) {
     console.log('[art23] SMTP nicht konfiguriert — Fristenwarnungen deaktiviert')
     return
   }

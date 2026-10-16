@@ -191,7 +191,7 @@ describe('Inherent- und Zielbewertung (#94)', () => {
     const row = rep.body.risks.find(r => r.id === rid)
     expect([row.inherentScore, row.targetScore]).toEqual([25, 1])
     const csv = await authedGet(app, readerCookie, '/reports/export/csv?type=risks')
-    expect(csv.text.split('\n')[0]).toMatch(/Inhärenter Score,Zielscore/)
+    expect(csv.text.split('\n')[0]).toMatch(/Inherent score,Target score/)   // Standardsprache der Organisation: Englisch
   })
 
   test('UI: Formular, Detail und Exporte kennen die Bewertungen', () => {

@@ -15,6 +15,7 @@
  */
 
 const { sendMail, isConfigured } = require('./mailer')
+const i18n          = require('./i18n')
 const orgSettings   = require('./db/orgSettingsStore')
 const rbacStore     = require('./rbacStore')
 const riskStore     = require('./db/riskStore')
@@ -41,9 +42,12 @@ function daysSince(dateStr) {
   return Math.floor((Date.now() - new Date(dateStr)) / 86400000)
 }
 
+// Sprache der Mails: Standardsprache der Organisation. `L` wird pro Lauf gesetzt (collectDigests).
+let L = 'en'
+const T = (key, params) => i18n.tr(L, key, params)
+
 function fmt(dateStr) {
-  if (!dateStr) return '–'
-  return new Date(dateStr).toLocaleDateString('de-DE')
+  return i18n.fmtDate(dateStr, L)
 }
 
 // ── HTML-Template ────────────────────────────────────────────────────────────
@@ -61,19 +65,19 @@ function buildDigest(orgName, sections) {
     </table>`).join('')
 
   return `<!DOCTYPE html>
-<html lang="de">
+<html lang="${L}">
 <head><meta charset="utf-8"></head>
 <body style="font-family:Arial,sans-serif;color:#333;max-width:700px;margin:0 auto;padding:24px">
   <div style="background:#0052cc;padding:16px 24px;border-radius:6px 6px 0 0">
-    <h2 style="color:#fff;margin:0">ISMS Builder – Tagesübersicht</h2>
+    <h2 style="color:#fff;margin:0">${T('srv_dg_title')}</h2>
     <p style="color:#bfdbfe;margin:4px 0 0">${orgName}</p>
   </div>
   <div style="background:#f9fafb;padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px">
     ${sectionHtml}
     <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb">
     <p style="font-size:12px;color:#9ca3af">
-      Diese Nachricht wurde automatisch vom ISMS Builder generiert.<br>
-      Bitte nicht auf diese E-Mail antworten.
+      ${T('srv_dg_footer1')}<br>
+      ${T('srv_dg_footer2')}
     </p>
   </div>
 </body>
@@ -81,58 +85,48 @@ function buildDigest(orgName, sections) {
 }
 
 // ── Einzelne Prüfungen ───────────────────────────────────────────────────────
+// Die Stores sind je nach STORAGE_BACKEND synchron (JSON) oder asynchron (SQLite/PostgreSQL/MariaDB);
+// deshalb überall `await`. Ohne das lieferte jede Prüfung auf SQL-Backends still nichts.
 
-function checkRisks(cfg) {
+async function checkRisks(cfg) {
   if (!cfg.risks) return null
   try {
-    const all = riskStore.getAll().filter(r => !r.deletedAt)
+    const all = (await riskStore.getAll()).filter(r => !r.deletedAt)
     const critical = all.filter(r => r.status !== 'closed' && r.score >= 15)
     const high     = all.filter(r => r.status !== 'closed' && r.score >= 10 && r.score < 15)
     if (!critical.length && !high.length) return null
 
+    const detail = (r, level) => T('srv_dg_riskDetail', { score: r.score, level, category: r.category || '–' })
     const items = [
-      ...critical.slice(0, 10).map(r => ({
-        label: `⛔ ${r.title}`,
-        detail: `Score ${r.score} | Kritisch | ${r.category || '–'}`
-      })),
-      ...high.slice(0, 10).map(r => ({
-        label: `⚠️ ${r.title}`,
-        detail: `Score ${r.score} | Hoch | ${r.category || '–'}`
-      })),
+      ...critical.slice(0, 10).map(r => ({ label: `⛔ ${r.title}`, detail: detail(r, T('srv_dg_levelCritical')) })),
+      ...high.slice(0, 10).map(r => ({ label: `⚠️ ${r.title}`, detail: detail(r, T('srv_dg_levelHigh')) })),
     ]
-    return {
-      heading: `Risikomanagement – ${critical.length} kritisch / ${high.length} hoch`,
-      items
-    }
+    return { heading: T('srv_dg_risksHeading', { critical: critical.length, high: high.length }), items }
   } catch { return null }
 }
 
-function checkDsar(cfg, gdpoSettings) {
+async function checkDsar(cfg, gdpoSettings) {
   if (!cfg.dsar) return null
   try {
     const deadline = gdpoSettings.dsarDeadlineDays || 30
-    const all = gdprStore.dsar.getAll({}).filter(r => !r.deletedAt && r.status !== 'closed' && r.status !== 'completed')
-    const urgent = all.filter(r => {
-      const created = r.createdAt
-      const dueInDays = deadline - daysSince(created)
-      return dueInDays <= 3
-    })
+    const all = (await gdprStore.dsar.getAll({})).filter(r => !r.deletedAt && r.status !== 'closed' && r.status !== 'completed')
+    const urgent = all.filter(r => (deadline - daysSince(r.createdAt)) <= 3)
     if (!urgent.length) return null
 
     return {
-      heading: `DSAR – ${urgent.length} Anfrage(n) mit Fristablauf in ≤ 3 Tagen`,
+      heading: T('srv_dg_dsarHeading', { n: urgent.length }),
       items: urgent.slice(0, 10).map(r => ({
         label: r.title || r.subject || r.id,
-        detail: `Eingegangen: ${fmt(r.createdAt)} | Status: ${r.status}`
+        detail: T('srv_dg_dsarDetail', { date: fmt(r.createdAt), status: r.status })
       }))
     }
   } catch { return null }
 }
 
-function checkGdprIncidents(cfg) {
+async function checkGdprIncidents(cfg) {
   if (!cfg.gdprIncidents) return null
   try {
-    const all = gdprStore.incidents.getAll({}).filter(r => !r.deletedAt)
+    const all = (await gdprStore.incidents.getAll({})).filter(r => !r.deletedAt)
     const overdue = all.filter(r => {
       const isOpen = r.status !== 'closed' && r.status !== 'notified'
       return isOpen && daysSince(r.createdAt) >= 2
@@ -140,117 +134,111 @@ function checkGdprIncidents(cfg) {
     if (!overdue.length) return null
 
     return {
-      heading: `GDPR-Vorfälle – ${overdue.length} Vorfall/Vorfälle > 48h ohne Meldung`,
+      heading: T('srv_dg_incHeading', { n: overdue.length }),
       items: overdue.slice(0, 10).map(r => ({
         label: r.title || r.id,
-        detail: `Seit ${daysSince(r.createdAt)} Tagen offen | Status: ${r.status || '–'}`
+        detail: T('srv_dg_incDetail', { days: daysSince(r.createdAt), status: r.status || '–' })
       }))
     }
   } catch { return null }
 }
 
-function checkBcm(cfg) {
+async function checkBcm(cfg) {
   if (!cfg.bcm) return null
   try {
-    const plans = bcmStore.getPlans().filter(r => r.nextTest)
+    const plans = (await bcmStore.getPlans()).filter(r => r.nextTest)
     const due   = plans.filter(r => daysFromNow(r.nextTest) <= 14 && daysFromNow(r.nextTest) >= 0)
     if (!due.length) return null
 
     return {
-      heading: `BCM – ${due.length} Plan-Test(s) in ≤ 14 Tagen fällig`,
+      heading: T('srv_dg_bcmHeading', { n: due.length }),
       items: due.slice(0, 10).map(r => ({
         label: r.title,
-        detail: `Nächster Test: ${fmt(r.nextTest)} (in ${daysFromNow(r.nextTest)} Tagen) | Status: ${r.status || '–'}`
+        detail: T('srv_dg_bcmDetail', { date: fmt(r.nextTest), days: daysFromNow(r.nextTest), status: r.status || '–' })
       }))
     }
   } catch { return null }
 }
 
-function checkContracts(cfg) {
+async function checkContracts(cfg) {
   if (!cfg.contracts) return null
   try {
-    const all = legalStore.contracts.getAll({}).filter(r => !r.deletedAt && r.endDate)
+    const all = (await legalStore.contracts.getAll({})).filter(r => !r.deletedAt && r.endDate)
     const expiring = all.filter(r => daysFromNow(r.endDate) <= 30 && daysFromNow(r.endDate) >= 0)
     if (!expiring.length) return null
 
     return {
-      heading: `Verträge – ${expiring.length} Vertrag/Verträge läuft/laufen in ≤ 30 Tagen ab`,
+      heading: T('srv_dg_contractHeading', { n: expiring.length }),
       items: expiring.slice(0, 10).map(r => ({
         label: r.title,
-        detail: `Ablauf: ${fmt(r.endDate)} (in ${daysFromNow(r.endDate)} Tagen) | ${r.counterparty || '–'}`
+        detail: T('srv_dg_contractDetail', { date: fmt(r.endDate), days: daysFromNow(r.endDate), party: r.counterparty || '–' })
       }))
     }
   } catch { return null }
 }
 
-function checkTemplateReviews(cfg) {
+async function checkTemplateReviews(cfg) {
   if (!cfg.templateReview) return null
   try {
     const s = getStorage()
-    const all = (s.getTemplates?.({}) || []).filter(r => !r.deletedAt && r.nextReviewDate)
+    const all = ((await s.getTemplates?.({})) || []).filter(r => !r.deletedAt && r.nextReviewDate)
     const due = all.filter(r => daysFromNow(r.nextReviewDate) <= 14 && daysFromNow(r.nextReviewDate) >= 0)
     if (!due.length) return null
 
     return {
-      heading: `Templates – ${due.length} Dokument(e) zur Überprüfung in ≤ 14 Tagen fällig`,
+      heading: T('srv_dg_docHeading', { n: due.length }),
       items: due.slice(0, 10).map(r => ({
         label: r.title,
-        detail: `Überprüfung bis: ${fmt(r.nextReviewDate)} (in ${daysFromNow(r.nextReviewDate)} Tagen) | Status: ${r.status}`
+        detail: T('srv_dg_docDetail', { date: fmt(r.nextReviewDate), days: daysFromNow(r.nextReviewDate), status: r.status })
       }))
     }
   } catch { return null }
 }
 
-function checkSupplierAudits(cfg) {
+async function checkSupplierAudits(cfg) {
   if (!cfg.supplierAudits) return null
   try {
     const supplierStore = require('./db/supplierStore')
     const today   = new Date().toISOString().slice(0, 10)
-    const upcoming = supplierStore.getUpcomingAudits(14)
-    const overdue  = supplierStore.getAll().filter(s =>
+    const upcoming = await supplierStore.getUpcomingAudits(14)
+    const overdue  = (await supplierStore.getAll()).filter(s =>
       !s.deletedAt && s.nextAuditDate && s.nextAuditDate < today
     )
     if (!upcoming.length && !overdue.length) return null
     const items = [
       ...overdue.slice(0, 5).map(s => ({
         label:  `⛔ ${s.name}`,
-        detail: `Audit überfällig seit ${fmt(s.nextAuditDate)} | ${s.criticality}`,
+        detail: T('srv_dg_supOverdue', { date: fmt(s.nextAuditDate), crit: s.criticality }),
       })),
       ...upcoming.slice(0, 5).map(s => ({
         label:  `⚠️ ${s.name}`,
-        detail: `Audit fällig: ${fmt(s.nextAuditDate)} (${daysFromNow(s.nextAuditDate)} Tage) | ${s.criticality}`,
+        detail: T('srv_dg_supDue', { date: fmt(s.nextAuditDate), days: daysFromNow(s.nextAuditDate), crit: s.criticality }),
       })),
     ]
-    return {
-      heading: `Lieferanten – ${overdue.length} überfällig / ${upcoming.length} in ≤ 14 Tagen fällig`,
-      items,
-    }
+    return { heading: T('srv_dg_supHeading', { overdue: overdue.length, upcoming: upcoming.length }), items }
   } catch { return null }
 }
 
-function checkDeletionLog(cfg) {
+async function checkDeletionLog(cfg) {
   if (!cfg.deletionLog) return null
   try {
-    const overdue  = gdprStore.deletionLog.getDue()          // Frist bereits abgelaufen
-    const upcoming = gdprStore.deletionLog.getUpcoming(90)   // fällig innerhalb 90 Tage
+    const overdue  = await gdprStore.deletionLog.getDue()          // Frist bereits abgelaufen
+    const upcoming = await gdprStore.deletionLog.getUpcoming(90)   // fällig innerhalb 90 Tage
 
     if (!overdue.length && !upcoming.length) return null
 
     const items = [
       ...overdue.slice(0, 10).map(v => ({
         label:  `⛔ ${v.title || v.id}`,
-        detail: `Löschfrist abgelaufen seit ${fmt(v.deletionDue)} | Aufbewahrung: ${v.retentionMonths} Monate`,
+        detail: T('srv_dg_delOverdue', { date: fmt(v.deletionDue), months: v.retentionMonths }),
       })),
       ...upcoming.slice(0, 10).map(v => ({
         label:  `⚠️ ${v.title || v.id}`,
-        detail: `Löschfrist: ${fmt(v.deletionDue)} (in ${daysFromNow(v.deletionDue)} Tagen) | Aufbewahrung: ${v.retentionMonths} Monate`,
+        detail: T('srv_dg_delDue', { date: fmt(v.deletionDue), days: daysFromNow(v.deletionDue), months: v.retentionMonths }),
       })),
     ]
 
-    return {
-      heading: `Art. 17 DSGVO Löschprotokoll – ${overdue.length} überfällig / ${upcoming.length} in ≤ 90 Tagen fällig`,
-      items,
-    }
+    return { heading: T('srv_dg_delHeading', { overdue: overdue.length, upcoming: upcoming.length }), items }
   } catch { return null }
 }
 
@@ -271,13 +259,16 @@ function getRecipients(fn, fallbackEmail) {
 
 // ── Hauptfunktion ─────────────────────────────────────────────────────────────
 
-async function runDailyChecks() {
-  if (!isConfigured()) return
-
-  const settings = orgSettings.get()
+/**
+ * Stellt die zu versendenden Digest-Mails zusammen, ohne zu senden (testbar ohne SMTP).
+ * @returns {Promise<Array<{to: string, subject: string, html: string}>>}
+ */
+async function collectDigests({ lang } = {}) {
+  const settings = await orgSettings.get()
   const cfg      = settings.emailNotifications || {}
+  if (!cfg.enabled) return []
 
-  if (!cfg.enabled) return
+  L = lang || await i18n.orgLang()
 
   const orgName      = settings.orgName || 'ISMS Builder'
   const gdpoSettings = settings.gdpoSettings || {}
@@ -290,48 +281,45 @@ async function runDailyChecks() {
   // Admin-E-Mail immer als letzten Fallback für alle Digest-Typen hinzufügen
   if (cfg.adminEmail && !adminRecipients.includes(cfg.adminEmail)) adminRecipients.push(cfg.adminEmail)
 
-  const today = new Date().toLocaleDateString('de-DE')
+  const today = i18n.fmtDate(new Date(), L)
+  const mails = []
 
   // ── CISO-Digest (Risiken + BCM + Lieferanten) ────────────────────────────
-  const cisoSections = [checkRisks(cfg), checkBcm(cfg), checkSupplierAudits(cfg)].filter(Boolean)
+  const cisoSections = (await Promise.all([checkRisks(cfg), checkBcm(cfg), checkSupplierAudits(cfg)])).filter(Boolean)
   if (cisoSections.length) {
-    // Deduplizierte Gesamtliste: CISO + DSO falls Person beide Funktionen hat
-    const allCisoRecips = [...new Set([...cisoRecipients])]
-    for (const to of allCisoRecips) {
-      await sendMail(to, `[ISMS] Tagesübersicht CISO – ${today}`, buildDigest(orgName, cisoSections))
-    }
+    const html = buildDigest(orgName, cisoSections)
+    for (const to of new Set(cisoRecipients)) mails.push({ to, subject: T('srv_dg_subjCiso', { date: today }), html })
   }
 
   // ── DSB/GDPO-Digest (DSAR + GDPR-Vorfälle + Löschprotokoll) ─────────────
-  const dsoSections = [checkDsar(cfg, gdpoSettings), checkGdprIncidents(cfg), checkDeletionLog(cfg)].filter(Boolean)
+  const dsoSections = (await Promise.all([checkDsar(cfg, gdpoSettings), checkGdprIncidents(cfg), checkDeletionLog(cfg)])).filter(Boolean)
   if (dsoSections.length) {
-    // DSO-Empfänger ohne Duplikate (eine Person kann CISO+DSO sein → bekommt beide Digests)
-    for (const to of dsoRecipients) {
-      await sendMail(to, `[ISMS] Tagesübersicht DSB/GDPO – ${today}`, buildDigest(orgName, dsoSections))
-    }
-    // Fallback auf CISO-Empfänger wenn keine DSO-Funktion vergeben
-    if (!dsoRecipients.length) {
-      for (const to of cisoRecipients) {
-        await sendMail(to, `[ISMS] Tagesübersicht DSB/GDPO – ${today}`, buildDigest(orgName, dsoSections))
-      }
-    }
+    const html = buildDigest(orgName, dsoSections)
+    // Fallback auf CISO-Empfänger, wenn keine DSO-Funktion vergeben ist
+    const to = dsoRecipients.length ? dsoRecipients : cisoRecipients
+    for (const addr of to) mails.push({ to: addr, subject: T('srv_dg_subjDso', { date: today }), html })
   }
 
   // ── Admin-Digest (Verträge + Template-Reviews) ────────────────────────────
-  const adminSections = [checkContracts(cfg), checkTemplateReviews(cfg)].filter(Boolean)
+  const adminSections = (await Promise.all([checkContracts(cfg), checkTemplateReviews(cfg)])).filter(Boolean)
   if (adminSections.length) {
-    for (const to of adminRecipients) {
-      await sendMail(to, `[ISMS] Tagesübersicht Admin – ${today}`, buildDigest(orgName, adminSections))
-    }
+    const html = buildDigest(orgName, adminSections)
+    for (const to of adminRecipients) mails.push({ to, subject: T('srv_dg_subjAdmin', { date: today }), html })
   }
+  return mails
+}
+
+async function runDailyChecks() {
+  if (!(await isConfigured())) return
+  for (const m of await collectDigests()) await sendMail(m.to, m.subject, m.html)
 }
 
 // ── Scheduler ─────────────────────────────────────────────────────────────────
 
 const INTERVAL_MS = 24 * 60 * 60 * 1000   // 24 Stunden
 
-function start() {
-  if (!isConfigured()) {
+async function start() {
+  if (!(await isConfigured())) {
     console.log('[notifier] SMTP nicht konfiguriert — E-Mail-Benachrichtigungen deaktiviert')
     return
   }
@@ -347,4 +335,4 @@ function start() {
   }, 60_000)
 }
 
-module.exports = { start, runDailyChecks }
+module.exports = { start, runDailyChecks, collectDigests }

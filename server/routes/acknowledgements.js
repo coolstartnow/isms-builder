@@ -8,6 +8,7 @@ const ackStore    = require('../db/ackStore')
 const orgSettings = require('../db/orgSettingsStore')
 const mailer      = require('../mailer')
 const storage     = require('../storage')
+const { tr, fmtDate, fmtDateTime, orgLang, langOf } = require('../i18n')
 
 const PORT = process.env.PORT || 3000
 
@@ -37,25 +38,26 @@ function buildTokenUrl(req, token) {
 }
 
 async function sendCampaignMails(dist, req) {
+  const lang = await orgLang()    // Empfänger haben kein Konto: Standardsprache der Organisation
   const acks = await ackStore.getAcksForDistribution(dist.id)
   let sent = 0
   for (const ack of acks) {
     if (ack.acknowledgedAt) continue  // already confirmed — skip
     const url     = buildTokenUrl(req, ack.token)
-    const subject = `[ISMS] Bitte bestätigen: ${dist.templateTitle}`
+    const subject = tr(lang, 'srv_ackmail_subject', { title: dist.templateTitle })
     const html    = `
-      <p>Guten Tag,</p>
-      <p>Sie werden gebeten, folgende Richtlinie zur Kenntnis zu nehmen und zu bestätigen:</p>
+      <p>${tr(lang, 'srv_ackmail_hello')}</p>
+      <p>${tr(lang, 'srv_ackmail_ask')}</p>
       <p><strong>${dist.templateTitle}</strong></p>
-      ${dist.dueDate ? `<p>Frist: <strong>${new Date(dist.dueDate).toLocaleDateString('de-DE')}</strong></p>` : ''}
+      ${dist.dueDate ? `<p>${tr(lang, 'srv_ackmail_due')} <strong>${fmtDate(dist.dueDate, lang)}</strong></p>` : ''}
       <p><a href="${url}" style="background:#0052cc;color:#fff;padding:10px 20px;border-radius:4px;text-decoration:none;display:inline-block;">
-        Richtlinie lesen &amp; bestätigen
+        ${tr(lang, 'srv_ackmail_button')}
       </a></p>
       <p style="color:#666;font-size:12px">
-        Falls der Button nicht funktioniert, kopieren Sie diesen Link:<br>${url}
+        ${tr(lang, 'srv_ackmail_fallback')}<br>${url}
       </p>
       <hr>
-      <p style="color:#888;font-size:11px">Diese E-Mail wurde automatisch vom ISMS Builder generiert.</p>
+      <p style="color:#888;font-size:11px">${tr(lang, 'srv_ackmail_auto')}</p>
     `
     const ok = await mailer.sendMail(ack.recipientEmail, subject, html)
     if (ok) sent++
@@ -233,12 +235,13 @@ router.get('/distributions/:id/export/csv', requireAuth, authorize('contentowner
   if (!dist) return res.status(404).json({ error: 'Nicht gefunden' })
   const acks = await ackStore.getAcksForDistribution(req.params.id)
 
-  const header = 'E-Mail;Name;Bestätigt am;Methode\n'
+  const lang   = langOf(req)
+  const header = [tr(lang, 'admin_email'), tr(lang, 'col_name'), tr(lang, 'srv_ackcsv_confirmedOn'), tr(lang, 'srv_ackcsv_method')].join(';') + '\n'
   const rows = acks.map(a =>
     [
       a.recipientEmail || '',
       a.recipientName  || '',
-      a.acknowledgedAt ? new Date(a.acknowledgedAt).toLocaleString('de-DE') : 'Ausstehend',
+      a.acknowledgedAt ? fmtDateTime(a.acknowledgedAt, lang) : tr(lang, 'gdpr_pending'),
       a.method         || '',
     ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')
   ).join('\n')

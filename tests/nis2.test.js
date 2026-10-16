@@ -360,12 +360,25 @@ describe('Art.-23-Fristenwächter', () => {
   test('E-Mail nennt Vorfall, Phase und Fristzustand', () => {
     const incident = { refNumber: 'INC-0007', entityName: 'Werk 2' }
     const phases = [{ label: 'Frühwarnung (24 h)', deadline: '2026-07-15T08:00:00.000Z', state: 'overdue', minutesLeft: -120 }]
-    const mail = watcher.buildMail(incident, phases, 'Testkonzern')
+    const mail = watcher.buildMail(incident, phases, 'Testkonzern', 'de')
 
     expect(mail.subject).toContain('INC-0007')
     expect(mail.subject).toContain('ÜBERSCHRITTEN')
     expect(mail.html).toContain('Frühwarnung (24 h)')
     expect(mail.html).toContain('überschritten')
+  })
+
+  test.each([
+    ['en', 'EXCEEDED', 'exceeded'],
+    ['fr', 'DÉPASSÉE', 'dépassé'],
+    ['nl', 'OVERSCHREDEN', 'overschreden'],
+    ['hu', 'TÚLLÉPVE', 'túllépve'],
+  ])('E-Mail in der Sprache %s', (lang, stateWord, rowWord) => {
+    const phases = [{ phase: 'earlyWarning', label: 'x', deadline: '2026-07-15T08:00:00.000Z', state: 'overdue', minutesLeft: -120 }]
+    const mail = watcher.buildMail({ refNumber: 'INC-0007' }, phases, 'Testkonzern', lang)
+    expect(mail.subject).toContain(stateWord)
+    expect(mail.html).toContain(rowWord)
+    expect(mail.html).not.toContain('Frühwarnung')
   })
 
   test('ohne fällige Fristen wird nichts verschickt', async () => {

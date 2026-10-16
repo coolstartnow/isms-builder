@@ -173,4 +173,31 @@ describe(`DB-Backend-Routen [${BACKEND}] — #70 Regression`, () => {
     expect(fs.existsSync(path.join(dataDir, 'sub'))).toBe(false)
     expect(fs.existsSync(path.join(dataDir, 'ok-name.json'))).toBe(true)
   })
+  test('Mail-Einstellungen aus der Oberfläche und Digest-Inhalt funktionieren auf dem SQL-Backend', async () => {
+    // Früher synchron gelesen (orgSettings.get() ist hier ein Promise): UI-konfiguriertes SMTP wurde nie
+    // erkannt, und jede Digest-Prüfung lieferte stillschweigend nichts.
+    const mailer   = require('../server/mailer')
+    const notifier = require('../server/notifier')
+    await authedPut(app, adminCookie, '/admin/org-settings', {
+      smtpSettings: { host: 'smtp.example.org', port: 587, user: '', pass: '', from: 'x@example.org' },
+      emailNotifications: { enabled: true, adminEmail: 'admin@example.org', risks: true },
+      cisoSettings: { escalationEmail: 'ciso@example.org' },
+      languageConfig: { default: 'de', available: ['de', 'en', 'fr', 'nl', 'hu'] },
+    })
+    expect(await mailer.isConfigured()).toBe(true)
+    const status = await authedGet(app, adminCookie, '/admin/email/status')
+    expect(status.body.configured).toBe(true)
+
+    await authedPost(app, adminCookie, '/risks', { title: 'SQL-Digest-Risiko', probability: 5, impact: 5 })
+    const mails = await notifier.collectDigests()           // Sprache: Standard der Organisation → Deutsch
+    const ciso = mails.find(m => m.to === 'ciso@example.org')
+    expect(ciso).toBeTruthy()
+    expect(ciso.html).toContain('SQL-Digest-Risiko')
+    expect(ciso.subject).toContain('Tagesübersicht')
+  })
+
+  test('Fehlermeldungen folgen der Standardsprache der Organisation, wenn kein X-Lang gesendet wird', async () => {
+    const res = await authedGet(app, adminCookie, '/audits/gibt-es-nicht')
+    expect(res.body.error).toBe('Nicht gefunden')          // Standard der Organisation oben auf Deutsch gesetzt
+  })
 })

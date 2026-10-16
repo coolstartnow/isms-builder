@@ -3,6 +3,7 @@
 const express = require('express')
 const router = express.Router()
 const { requireAuth, authorize } = require('../auth')
+const { langOf, translateLabel } = require('../i18n')
 const storage = require('../storage')
 
 router.get('/calendar', requireAuth, authorize('reader'), async (req, res) => {
@@ -181,6 +182,12 @@ router.get('/calendar', requireAuth, authorize('reader'), async (req, res) => {
     }
   } catch {}
 
+  // Beschriftungen ("Präfix: Titel") in die Sprache des Aufrufers übersetzen; Titel bleiben unverändert
+  const lang = langOf(req)
+  for (const e of events) {
+    if (e.label) e.label = translateLabel(e.label, lang)
+    if (e.title) e.title = translateLabel(e.title, lang)
+  }
   events.sort((a, b) => new Date(a.date) - new Date(b.date))
   res.json(events)
 })

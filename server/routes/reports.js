@@ -36,7 +36,7 @@ router.get('/reports/risks', requireAuth, authorize('reader'), async (req, res) 
 })
 router.get('/reports/export/csv', requireAuth, authorize('reader'), async (req, res) => {
   const { type, entity, framework, from, to } = req.query
-  const csv = await reports.exportCsv(type, { entityId: entity, framework, from, to })
+  const csv = await reports.exportCsv(type, { entityId: entity, framework, from, to, lang: require('../i18n').langOf(req) })
   res.setHeader('Content-Type', 'text/csv; charset=utf-8')
   res.setHeader('Content-Disposition', `attachment; filename="report-${type}-${new Date().toISOString().slice(0,10)}.csv"`)
   res.send('\uFEFF' + csv)

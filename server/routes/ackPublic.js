@@ -5,6 +5,7 @@ const express  = require('express')
 const router   = express.Router()
 const ackStore = require('../db/ackStore')
 const storage  = require('../storage')
+const { tr, pageLang, fmtDate, fmtDateTime } = require('../i18n')
 
 // ── GET /ack/:token — Bestätigungsseite anzeigen ──────────────────────────────
 router.get('/ack/:token', async (req, res) => {
@@ -12,54 +13,58 @@ router.get('/ack/:token', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store')
   const ack  = await ackStore.getAckByToken(req.params.token)
   if (!ack) {
-    return res.status(404).send(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+    const l = pageLang(req)
+    return res.status(404).send(`<!DOCTYPE html><html lang="${l}"><head><meta charset="UTF-8">
       <title>ISMS Builder</title></head><body style="font-family:sans-serif;max-width:600px;margin:60px auto;padding:20px">
-      <h2>Link ungültig</h2>
-      <p>Dieser Bestätigungslink ist nicht gültig oder wurde bereits verwendet.</p>
+      <h2>${tr(l, 'srv_ackpub_invalidTitle')}</h2>
+      <p>${tr(l, 'srv_ackpub_invalidText')}</p>
       </body></html>`)
   }
 
   const dist = await ackStore.getDistribution(ack.distributionId)
-  if (!dist) return res.status(404).send('Verteilrunde nicht gefunden')
+  if (!dist) return res.status(404).send(tr(pageLang(req), 'srv_ackpub_noDist'))
 
   // Policy-Inhalt laden
   let policyContent = ''
   let policyTitle   = dist.templateTitle
+  let policyLang    = null
   try {
     const all   = await storage.getTemplates({}) || []
     const tmpl  = all.find(t => t.id === dist.templateId)
     if (tmpl) {
       policyTitle   = tmpl.title   || dist.templateTitle
       policyContent = tmpl.content || ''
+      policyLang    = tmpl.language
     }
   } catch {}
+  // Sprache der Seite: ?lang= → Sprache der Richtlinie → Standardsprache der Organisation
+  const L = pageLang(req, policyLang)
 
   const alreadyConfirmed = Boolean(ack.acknowledgedAt)
   const dueDateHtml = dist.dueDate
-    ? `<p class="due">Bitte bestätigen bis: <strong>${new Date(dist.dueDate).toLocaleDateString('de-DE')}</strong></p>`
+    ? `<p class="due">${tr(L, 'srv_ackpub_dueBy')} <strong>${fmtDate(dist.dueDate, L)}</strong></p>`
     : ''
 
   const confirmedHtml = alreadyConfirmed ? `
     <div class="confirmed-banner">
-      <span>&#10003;</span> Sie haben diese Richtlinie bereits am
-      ${new Date(ack.acknowledgedAt).toLocaleString('de-DE')} bestätigt.
+      <span>&#10003;</span> ${tr(L, 'srv_ackpub_alreadyDone', { date: fmtDateTime(ack.acknowledgedAt, L) })}
     </div>` : ''
 
   const formHtml = alreadyConfirmed ? '' : `
-    <form method="POST" action="/ack/${req.params.token}" class="ack-form">
-      <label for="recipientName">Ihr Name (optional):</label>
-      <input type="text" id="recipientName" name="recipientName" placeholder="Vor- und Nachname" />
+    <form method="POST" action="/ack/${req.params.token}?lang=${L}" class="ack-form">
+      <label for="recipientName">${tr(L, 'srv_ackpub_nameLabel')}</label>
+      <input type="text" id="recipientName" name="recipientName" placeholder="${tr(L, 'srv_ackpub_namePh')}" />
       <button type="submit" class="btn-confirm">
-        &#10003;&nbsp; Ich habe diese Richtlinie gelesen und verstanden
+        &#10003;&nbsp; ${tr(L, 'srv_ackpub_confirmBtn')}
       </button>
     </form>`
 
   res.send(`<!DOCTYPE html>
-<html lang="de">
+<html lang="${L}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Richtlinie bestätigen – ISMS Builder</title>
+  <title>${tr(L, 'srv_ackpub_title')}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -118,7 +123,7 @@ router.get('/ack/:token', async (req, res) => {
 
     ${formHtml}
 
-    <div class="footer">ISMS Builder &mdash; automatisch generierter Bestätigungslink</div>
+    <div class="footer">${tr(L, 'srv_ackpub_footer')}</div>
   </div>
 
   <script src="/ui/vendor/marked.min.js"></script>
@@ -134,7 +139,7 @@ router.get('/ack/:token', async (req, res) => {
     (function () {
       var raw = ${JSON.stringify(policyContent || '')};
       var box = document.getElementById('policyContent');
-      if (!raw) { box.innerHTML = '<em>Kein Inhalt verfügbar.</em>'; return; }
+      if (!raw) { box.innerHTML = '<em>' + ${JSON.stringify(tr(L, 'srv_ackpub_noContent'))} + '</em>'; return; }
       if (typeof marked === 'undefined') {
         var pre = document.createElement('pre');
         pre.style.whiteSpace = 'pre-wrap';
@@ -163,19 +168,21 @@ router.post('/ack/:token', express.urlencoded({ extended: false }), async (req, 
 
   const ack = await ackStore.confirmByToken(req.params.token, { recipientName: name, ipAddress: ip })
   if (!ack) {
-    return res.status(404).send(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+    const l = pageLang(req)
+    return res.status(404).send(`<!DOCTYPE html><html lang="${l}"><head><meta charset="UTF-8">
       <title>ISMS Builder</title></head><body style="font-family:sans-serif;max-width:600px;margin:60px auto;padding:20px">
-      <h2>Link ungültig</h2><p>Dieser Link ist nicht mehr gültig.</p></body></html>`)
+      <h2>${tr(l, 'srv_ackpub_invalidTitle')}</h2><p>${tr(l, 'srv_ackpub_invalidShort')}</p></body></html>`)
   }
 
   const dist = await ackStore.getDistribution(ack.distributionId) || {}
+  const L = pageLang(req)          // ?lang= wurde vom Formular der Bestätigungsseite durchgereicht
 
   res.send(`<!DOCTYPE html>
-<html lang="de">
+<html lang="${L}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bestätigung erfolgreich – ISMS Builder</title>
+  <title>${tr(L, 'srv_ackpub_thanksTitle')}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
            background: #f4f5f7; color: #172b4d; margin: 0; padding: 20px; }
@@ -190,10 +197,10 @@ router.post('/ack/:token', express.urlencoded({ extended: false }), async (req, 
 <body>
   <div class="card">
     <div class="check">&#10003;</div>
-    <h1>Vielen Dank!</h1>
-    <p>Sie haben die Richtlinie <strong>${escapeHtml(dist.templateTitle || '')}</strong> erfolgreich bestätigt.</p>
-    <p>Ihre Bestätigung wurde am <strong>${new Date(ack.acknowledgedAt).toLocaleString('de-DE')}</strong> gespeichert.</p>
-    <div class="footer">ISMS Builder &mdash; diese Seite kann geschlossen werden.</div>
+    <h1>${tr(L, 'srv_ackpub_thanks')}</h1>
+    <p>${tr(L, 'srv_ackpub_thanksText', { title: escapeHtml(dist.templateTitle || '') })}</p>
+    <p>${tr(L, 'srv_ackpub_savedAt', { date: fmtDateTime(ack.acknowledgedAt, L) })}</p>
+    <div class="footer">${tr(L, 'srv_ackpub_closeNote')}</div>
   </div>
 </body>
 </html>`)
