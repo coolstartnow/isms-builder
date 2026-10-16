@@ -678,7 +678,7 @@ async function init() {
         <button class="sidebar-nav-item sidebar-tree-parent" data-type="${t}">
           <i class="ph ${icon}"></i><span>${t}</span>
         </button>
-        <button class="sidebar-tree-toggle" data-type="${t}" title="Ausklappen">
+        <button class="sidebar-tree-toggle" data-type="${t}" title="${escHtml(t('ui_expand'))}">
           <i class="ph ph-caret-right"></i>
         </button>
       </div>
@@ -819,7 +819,7 @@ function renderTemplateTree(nodes, ul, isAdmin, depth) {
       if (idx > 0) {
         const upBtn = document.createElement('button')
         upBtn.className = 'tmpl-tree-action'
-        upBtn.title = 'Nach oben'
+        upBtn.title = t('moveUp')
         upBtn.innerHTML = '<i class="ph ph-arrow-up"></i>'
         upBtn.addEventListener('click', e => { e.stopPropagation(); _reorderMove(nodes, idx, -1) })
         row.appendChild(upBtn)
@@ -827,7 +827,7 @@ function renderTemplateTree(nodes, ul, isAdmin, depth) {
       if (idx < nodes.length - 1) {
         const downBtn = document.createElement('button')
         downBtn.className = 'tmpl-tree-action'
-        downBtn.title = 'Nach unten'
+        downBtn.title = t('moveDown')
         downBtn.innerHTML = '<i class="ph ph-arrow-down"></i>'
         downBtn.addEventListener('click', e => { e.stopPropagation(); _reorderMove(nodes, idx, +1) })
         row.appendChild(downBtn)
@@ -837,7 +837,7 @@ function renderTemplateTree(nodes, ul, isAdmin, depth) {
     if (isAdmin) {
       const delBtn = document.createElement('button')
       delBtn.className = 'tmpl-tree-delete'
-      delBtn.title = 'Delete'
+      delBtn.title = t('delete')
       delBtn.innerHTML = '<i class="ph ph-trash"></i>'
       delBtn.addEventListener('click', e => { e.stopPropagation(); deleteTemplate(t) })
       row.appendChild(delBtn)
@@ -965,7 +965,7 @@ async function deleteTemplate(t) {
     if (currentTemplate?.id === t.id) { currentTemplate = null; clearEditor() }
     selectType(t.type)
   } else {
-    alert('Delete failed.')
+    alert(t('trash_deleteFailed'))
   }
 }
 
@@ -974,7 +974,7 @@ function refreshSidebarTree(type, treeData) {
   if (!ul || ul.style.display === 'none') return
   ul.innerHTML = ''
   if (!treeData || treeData.length === 0) {
-    ul.innerHTML = '<li class="sidebar-tree-empty">No documents</li>'
+    ul.innerHTML = '<li class="sidebar-tree-empty">' + t('guidance_noDocuments') + '</li>'
     return
   }
   function appendSidebarNodes(nodes, parentEl, depth) {
@@ -1013,14 +1013,14 @@ async function toggleTypeTree(type) {
 
   ul.style.display = 'block'
   if (icon) icon.className = 'ph ph-caret-down'
-  ul.innerHTML = '<li class="sidebar-tree-empty">Loading…</li>'
+  ul.innerHTML = '<li class="sidebar-tree-empty">' + t('loading') + '</li>'
 
   try {
     const res = await fetch(`/templates/tree?type=${encodeURIComponent(type)}&language=de`, { headers: apiHeaders('reader') })
     const treeData = await res.json()
     refreshSidebarTree(type, treeData)
   } catch {
-    ul.innerHTML = '<li class="sidebar-tree-empty">Error</li>'
+    ul.innerHTML = '<li class="sidebar-tree-empty">' + t('error') + '</li>'
   }
 }
 
@@ -1453,7 +1453,7 @@ function renderReportResult(type, data, el) {
         <div class="report-kpi"><span class="report-kpi-val">${data.bySource?.manual||0}</span><span class="report-kpi-label">${t('reports_manual')}</span></div>
       </div>
       <table class="report-table">
-        <thead><tr><th>${t('col_title')}</th><th>${t('col_category')}</th><th>${t('findings_severity')}</th><th>${t('col_status')}</th><th>CVSS</th><th>CVEs</th><th>${t('ui_score')}</th><th>${t('col_owner')}</th><th>${t('reports_source')}</th></tr></thead>
+        <thead><tr><th>${t('col_title')}</th><th>${t('col_category')}</th><th>${t('findings_severity')}</th><th>${t('col_status')}</th><th>CVSS</th><th>${t('risk_cvesCol')}</th><th>${t('ui_score')}</th><th>${t('col_owner')}</th><th>${t('reports_source')}</th></tr></thead>
         <tbody>${(data.risks||[]).map(r => {
           const cvssVal  = r.cvssScore != null ? r.cvssScore.toFixed(1) : null
           const cvssData = cvssVal ? cvssInfo(r.cvssScore) : null
@@ -1477,14 +1477,14 @@ function renderReportResult(type, data, el) {
 }
 
 async function exportReportCsv() {
-  if (!_activeReportType) return alert('Please select a report first.')
+  if (!_activeReportType) return alert(t('rep_selectFirst'))
   const entity = dom('reportEntitySel')?.value || ''
   const fw     = dom('reportFwSel')?.value || ''
   const params = new URLSearchParams({ type: _activeReportType })
   if (entity) params.set('entity', entity)
   if (fw)     params.set('framework', fw)
   const res = await fetch('/reports/export/csv?' + params.toString(), { headers: apiHeaders('reader') })
-  if (!res.ok) { alert('CSV export failed'); return }
+  if (!res.ok) { alert(t('rep_csvFailed')); return }
   const blob = await res.blob()
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -1495,7 +1495,7 @@ async function exportReportCsv() {
 }
 
 function exportReportJson() {
-  if (!_lastReportData) return alert('Please generate a report first.')
+  if (!_lastReportData) return alert(t('rep_generateFirst'))
   const blob = new Blob([JSON.stringify(_lastReportData, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -1507,7 +1507,7 @@ function exportReportJson() {
 
 function exportReportPdf() {
   const resultEl = dom('reportResult')
-  if (!resultEl || !_lastReportData) return alert('Please generate a report first.')
+  if (!resultEl || !_lastReportData) return alert(t('rep_generateFirst'))
   const title = `ISMS Report — ${(_activeReportType||'').replace(/_/g,' ')} — ${new Date().toLocaleDateString('en-GB')}`
   const win = window.open('', '_blank')
   if (!win) return alert(t('err_popupBlocked'))
@@ -2090,7 +2090,7 @@ async function openFindingForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('findings_auditedArea')}</label>
-              <input id="fndArea" class="form-input" value="${escHtml(f?.auditedArea||'')}" placeholder="z.B. IT-Operations / ISO A.8">
+              <input id="fndArea" class="form-input" value="${escHtml(f?.auditedArea||'')}" placeholder="${escHtml(t('findings_areaPh'))}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('findings_auditor')}</label>
@@ -2496,10 +2496,10 @@ async function openIncidentDetail(id) {
 async function deleteIncident(id, refNumber) {
   if (!confirm(`Delete incident ${refNumber}?\nThis action cannot be undone.`)) return
   const res = await fetch(`/public/incident/${id}`, { method: 'DELETE', headers: apiHeaders('admin') })
-  if (!res.ok) { alert('Delete failed'); return }
+  if (!res.ok) { alert(t('trash_deleteFailed')); return }
   _incidentDetail = null
   const panel = document.getElementById('incDetailPanel')
-  if (panel) panel.innerHTML = '<div class="incident-detail-empty"><i class="ph ph-siren" style="font-size:40px;color:var(--text-disabled)"></i><p>Incident deleted.</p></div>'
+  if (panel) panel.innerHTML = '<div class="incident-detail-empty"><i class="ph ph-siren" style="font-size:40px;color:var(--text-disabled)"></i><p>' + t('inc_deleted') + '</p></div>'
   await loadIncidents()
 }
 
@@ -2514,7 +2514,7 @@ async function saveIncidentDecision(id) {
     headers: apiHeaders(),
     body: JSON.stringify({ status, assignedTo, reportable, cisoNotes })
   })
-  if (!res.ok) { alert('Error saving'); return }
+  if (!res.ok) { alert(t('err_saveFailed')); return }
   await loadIncidents()
   await openIncidentDetail(id)
 }
@@ -2575,7 +2575,7 @@ async function renderSoa() {
   container.id = 'soaContainer'
   container.className = 'soa-container'
   document.querySelector('.editor').appendChild(container)
-  container.innerHTML = '<div class="soa-loading">Loading SoA…</div>'
+  container.innerHTML = '<div class="soa-loading">' + t('soa_loadingList') + '</div>'
 
   try {
     const fwRes = await fetch('/soa/frameworks', { headers: apiHeaders('reader') })
@@ -2589,7 +2589,7 @@ async function renderSoa() {
     if (!ctrlRes.ok) throw new Error()
     soaData = await ctrlRes.json()
   } catch {
-    container.innerHTML = '<div class="soa-error">SoA konnte nicht geladen werden.</div>'
+    container.innerHTML = '<div class="soa-error">' + t('soa_loadFailed') + '</div>'
     return
   }
 
@@ -2599,7 +2599,7 @@ async function renderSoa() {
 async function switchFramework(fw, container) {
   soaActiveFramework = fw
   soaFilters = { theme: '', status: '', applicable: '' }
-  container.querySelector('.soa-table-wrap').innerHTML = '<div class="soa-loading">Loading…</div>'
+  container.querySelector('.soa-table-wrap').innerHTML = '<div class="soa-loading">' + t('loading') + '</div>'
   try {
     const res = await fetch(`/soa?framework=${fw}`, { headers: apiHeaders('reader') })
     soaData = await res.json()
@@ -2829,7 +2829,7 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
         const tmpl = allTemplates.find(t => t.id === tid)
         const label = tmpl ? `${tmpl.title} (${tmpl.type})` : tid
         return canEdit
-          ? `<span class="soa-tmpl-tag">${label}<button class="soa-tmpl-remove" data-tid="${tid}" title="Remove">&times;</button></span>`
+          ? `<span class="soa-tmpl-tag">${label}<button class="soa-tmpl-remove" data-tid="${tid}" title="${escHtml(t('remove'))}">&times;</button></span>`
           : `<span class="soa-tmpl-tag">${label}</span>`
       }).join('')
     : `<span class="soa-detail-none">${t('soa_noTemplatesLinked')}</span>`
@@ -2914,7 +2914,7 @@ async function saveSoaLinkedTemplates(id, linkedTemplates, detailEl, tableContai
       linkedTemplates
     })
   })
-  if (!res.ok) { alert('Error saving document link'); return }
+  if (!res.ok) { alert(t('tmpl_linkSaveFailed')); return }
 
   const updated = await res.json()
   const idx = soaData.findIndex(c => c.id === id)
@@ -3035,7 +3035,7 @@ function openCustomControlModal(id) {
 
 async function submitCustomControlModal(id) {
   const title = document.getElementById('ccTitle')?.value.trim()
-  if (!title) { alert('Title is required'); return }
+  if (!title) { alert(t('findings_titleRequired')); return }
   const body = {
     title,
     theme:         document.getElementById('ccTheme')?.value.trim() || 'Custom',
@@ -3086,9 +3086,9 @@ async function saveSoaRow(id, container) {
     if (idx >= 0) soaData[idx] = updated
     row.classList.toggle('soa-row-na', !updated.applicable)
     const btn = row.querySelector('.soa-save-btn')
-    if (btn) { btn.textContent = '✓ Saved'; setTimeout(() => { btn.textContent = 'Save' }, 1500) }
+    if (btn) { btn.textContent = t('saved'); setTimeout(() => { btn.textContent = t('save') }, 1500) }
   } else {
-    alert('Error saving')
+    alert(t('err_saveFailed'))
   }
 }
 
@@ -3101,7 +3101,7 @@ async function renderDashboard() {
   const editor = document.querySelector('.editor')
   editor.appendChild(container)
 
-  container.innerHTML = '<div class="dashboard-loading">Loading Dashboard…</div>'
+  container.innerHTML = '<div class="dashboard-loading">' + t('dash_loading') + '</div>'
 
   let data, soaSummary, riskSummary, gdprDash, trainSummary, legalSummary, calEvents, goalsSummary, assetSummary, govSummary, bcmSummary, supplierSummary, findingsSummary, auditSummary, reviewPending, ackSummary, nis2Summary, nis2Deadlines
   try {
@@ -3153,7 +3153,7 @@ async function renderDashboard() {
     }
   } catch (e) {
     if (container.isConnected)
-      container.innerHTML = '<div class="dashboard-error">Dashboard konnte nicht geladen werden.</div>'
+      container.innerHTML = '<div class="dashboard-error">' + t('dash_loadFailed') + '</div>'
     return
   }
 
@@ -3213,7 +3213,7 @@ async function renderDashboard() {
       alerts.push({ color: '#f87171', icon: 'ph-magnifying-glass', text: `${findingsSummary.overdueActions} overdue action(s) in findings`, nav: 'reports' })
     if (reviewPending?.length > 0)
       alerts.push({ color: '#f59e0b', icon: 'ph-shield-warning', text: t('dash_scanRisksPending', { count: reviewPending.length }), nav: 'risk' })
-    if (alerts.length === 0) return '<p class="dash-empty" style="color:var(--success-text)"><i class="ph ph-check-circle"></i> No critical issues</p>'
+    if (alerts.length === 0) return '<p class="dash-empty" style="color:var(--success-text)"><i class="ph ph-check-circle"></i> ' + t('dash_noIssues') + '</p>'
     return alerts.map(a => `<div class="dash-alert dash-link" data-nav="${a.nav}" style="border-left:3px solid ${a.color};padding:6px 10px;margin-bottom:6px;background:var(--surface);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px">
       <i class="ph ${a.icon}" style="color:${a.color};font-size:1rem"></i>
       <span style="font-size:.85rem">${a.text}</span>
@@ -3235,7 +3235,7 @@ async function renderDashboard() {
     <!-- KPI Row 1: Templates & Compliance -->
     <div class="dash-section-title" style="margin:16px 0 8px"><i class="ph ph-files"></i> ${t('dash_policies')}</div>
     <div class="dashboard-grid" style="margin-bottom:0">
-      <div class="dash-card kpi dash-link" data-nav="policy" title="Open documents">
+      <div class="dash-card kpi dash-link" data-nav="policy" title="${escHtml(t('dash_openDocs'))}">
         <div class="kpi-value">${data.total}</div>
         <div class="kpi-label">${t('dash_templates')}</div>
       </div>
@@ -3837,7 +3837,7 @@ function _renderListPanel() {
       </div>
       ${meta.protectionGoals ? `<p class="admin-lists-hint">${escHtml(t('at_protHint'))}</p>` : ''}
       <div class="admin-lists-add-row" style="gap:6px">
-        <input class="input" id="adminListNewId"    placeholder="ID (e.g. my_cat)"  style="width:160px">
+        <input class="input" id="adminListNewId"    placeholder="${escHtml(t('admin_idPh'))}"  style="width:160px">
         <input class="input" id="adminListNewLabel" placeholder="${t('admin_labelPlaceholder')}"             style="flex:1"
                onkeydown="if(event.key==='Enter')_adminListAddObject()">
         ${meta.extraSelect ? `
@@ -4899,7 +4899,7 @@ async function renderAdminMaintenanceTab() {
       </div>
 
       <div class="maintenance-section" style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px">
-        <h4 class="org-section-title"><i class="ph ph-shield-warning"></i> Greenbone Scan-Import</h4>
+        <h4 class="org-section-title"><i class="ph ph-shield-warning"></i> ${t('scan_greenboneTitle')}</h4>
         <p class="settings-desc">
           ${t('scanImport_descPrefix')}
           ${t('scanImport_descSuffix')}
@@ -5052,7 +5052,7 @@ async function runCleanup() {
       ? `${data.removed.length} file(s) removed: ${data.removed.join(', ')}`
       : 'No orphaned files found.'
   } else {
-    msg.style.display = ''; msg.style.color = 'var(--danger-text)'; msg.textContent = 'Error during cleanup.'
+    msg.style.display = ''; msg.style.color = 'var(--danger-text)'; msg.textContent = t('admin_cleanupError')
   }
 }
 
@@ -5069,11 +5069,11 @@ async function _loadStorageBackendInfo() {
     const icon     = isJson ? 'ph-warning' : 'ph-check-circle'
     const label    = isJson ? 'JSON (Demo/Development)' : 'SQLite (Production)'
     box.innerHTML  = `<i class="ph ${icon}" style="color:${color};margin-right:6px"></i>
-      <strong>Active backend:</strong> <code>${label}</code>
-      ${isJson ? ' &nbsp;— <span style="color:#f59e0b;font-weight:600">Not suitable for production</span>' : ''}`
+      <strong>${t('admin_activeBackend')}</strong> <code>${label}</code>
+      ${isJson ? ' &nbsp;— <span style="color:#f59e0b;font-weight:600">' + t('admin_notForProd') + '</span>' : ''}`
     if (hint) hint.style.display = restartPending ? '' : 'none'
   } catch {
-    box.textContent = 'Backend info unavailable'
+    box.textContent = t('admin_backendUnavailable')
   }
 }
 
@@ -5086,7 +5086,7 @@ async function refreshAiStatus() {
   const advanced= document.getElementById('aiAdvancedSettings')
   if (!badge) return
 
-  badge.innerHTML = '<span style="color:var(--text-subtle);font-size:13px">Loading status…</span>'
+  badge.innerHTML = '<span style="color:var(--text-subtle);font-size:13px">' + t('twofa_loadingStatus') + '</span>'
 
   try {
     // Einstellungen laden
@@ -5117,7 +5117,7 @@ async function refreshAiStatus() {
 
     badge.innerHTML = enabledBadge + (cfg.aiEnabled !== false ? ollamaBadge + modeBadge + indexBadge : '')
   } catch {
-    badge.innerHTML = '<span style="color:var(--text-subtle);font-size:13px">Status unavailable</span>'
+    badge.innerHTML = '<span style="color:var(--text-subtle);font-size:13px">' + t('admin_statusUnavailable') + '</span>'
   }
 }
 
@@ -5145,7 +5145,7 @@ async function saveAiSettings() {
     showToast(payload.aiEnabled ? 'AI integration enabled.' : 'AI integration disabled.', payload.aiEnabled ? 'success' : 'info')
     refreshAiStatus()
   } catch {
-    showToast('Error saving AI settings.', 'error')
+    showToast(t('admin_aiSaveFailed'), 'error')
   }
 }
 
@@ -5169,7 +5169,7 @@ async function triggerReindex() {
   } catch {
     msg.style.display = ''
     msg.style.color = 'var(--danger-text,#f87171)'
-    msg.textContent = 'Connection error during re-index.'
+    msg.textContent = t('admin_reindexError')
   }
   btn.disabled = false
   btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> Rebuild index'
@@ -5177,7 +5177,7 @@ async function triggerReindex() {
 
 async function triggerDemoReset() {
   const confirm1 = prompt('WARNING: This operation deletes ALL module data irreversibly!\nType RESET to confirm:')
-  if (confirm1 !== 'RESET') { showToast('Demo reset cancelled.', 'info'); return }
+  if (confirm1 !== 'RESET') { showToast(t('admin_demoResetCancelled'), 'info'); return }
   const btn = document.getElementById('btnDemoReset')
   const msg = document.getElementById('demoResetResult')
   btn.disabled = true
@@ -5206,7 +5206,7 @@ async function triggerDemoReset() {
       msg.style.display = ''
       msg.style.color = 'var(--warning, #f59e0b)'
       msg.innerHTML = `
-        <strong>✓ Demo reset completed.</strong><br>
+        <strong>${t('admin_demoResetDone')}</strong><br>
         ${envSwitched ? '⚙️ <code>STORAGE_BACKEND=sqlite</code> was set in <code>.env</code>.' : ''}<br>
         <strong style="color:#e74c3c">⚠️ Server restart required</strong> for SQLite to become active.<br>
         <code style="font-size:11px">npm start</code> &nbsp;or&nbsp; <code style="font-size:11px">docker compose restart</code>
@@ -5240,7 +5240,7 @@ async function triggerDemoImport(input) {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Error')
     msg.style.display = ''; msg.style.color = 'var(--success,#4ade80)'
-    msg.textContent = 'Import successful. Reloading page…'
+    msg.textContent = t('admin_importDone')
     setTimeout(() => location.reload(), 1500)
   } catch (e) {
     msg.style.display = ''; msg.style.color = 'var(--danger-text)'; msg.textContent = 'Error: ' + e.message
@@ -5253,7 +5253,7 @@ async function triggerDemoImport(input) {
 async function renderAdminTrashTab() {
   const container = document.getElementById('adminTabPanelTrash')
   if (!container) return
-  container.innerHTML = '<p class="report-loading">Loading trash…</p>'
+  container.innerHTML = '<p class="report-loading">' + t('trash_loading') + '</p>'
   const res = await fetch('/trash', { headers: apiHeaders('admin') })
   if (!res.ok) {
     container.innerHTML = `<p class="report-error" style="padding:20px">${t('trash_loadError')}</p>`
@@ -5665,7 +5665,7 @@ async function openOrgUnitModal(id) {
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div>
               <label class="form-label">${t('org_headPerson')}</label>
-              <input id="ouHead" class="form-input" value="${escHtml(unit?.head||'')}" placeholder="Name">
+              <input id="ouHead" class="form-input" value="${escHtml(unit?.head||'')}" placeholder="${escHtml(t('col_name'))}">
             </div>
             <div>
               <label class="form-label">${t('admin_email')}</label>
@@ -6023,7 +6023,7 @@ function openEntityModal(entity) {
           <div>
             <label class="form-label">${t('col_name')} *</label>
             <input id="entModalName" class="form-input"
-              value="${escHtml(entity?.name || '')}" placeholder="e.g. Alpha Ltd" />
+              value="${escHtml(entity?.name || '')}" placeholder="${escHtml(t('ph_companyEg'))}" />
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
@@ -6452,18 +6452,18 @@ async function renderSettingsPanel() {
   const gdpoSection = showDso ? `
     <div class="settings-section">
       <h4><i class="ph ph-lock-key"></i> ${t('set_gdprSettings')}</h4>
-      <p class="settings-desc">Configuration for DSAR deadlines, reporting obligations and default texts.</p>
+      <p class="settings-desc">${t('gdpr_cfgIntro')}</p>
       <div class="org-grid" style="max-width:600px">
         <label class="org-label">${t('set_dsarDeadline')}</label>
         <input class="input" id="gdpoDsar" value="${gs.dsarDeadlineDays||30}" type="number" min="1" max="90" style="width:100px">
         <label class="org-label">${t('set_dsarDeadlineExt')}</label>
         <input class="input" id="gdpoDsarExt" value="${gs.dsarExtendedDays||90}" type="number" min="1" max="180" style="width:100px">
-        <label class="org-label">72h reporting obligation active</label>
+        <label class="org-label">${t('gdpr_72hActive')}</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px">
           <input type="checkbox" id="gdpo72h" ${gs.timer72hEnabled!==false?'checked':''}> Enabled
         </label>
         <label class="org-label">${t('set_dpAuthority')}</label>
-        <input class="input" id="gdpoDSA" value="${escHtml(gs.supervisoryAuthority||'')}" placeholder="e.g. ICO, CNIL, BfDI">
+        <input class="input" id="gdpoDSA" value="${escHtml(gs.supervisoryAuthority||'')}" placeholder="${escHtml(t('ph_authorityEg'))}">
         <label class="org-label">${t('set_authorityContact')}</label>
         <input class="input" id="gdpoDSAContact" value="${escHtml(gs.supervisoryContact||'')}">
         <label class="org-label">${t('set_dsarDefaultText')}</label>
@@ -6480,15 +6480,15 @@ async function renderSettingsPanel() {
   const icsSection = rank >= ROLE_RANK.contentowner ? `
     <div class="settings-section">
       <h4><i class="ph ph-factory"></i> ${t('set_icsSettings')}</h4>
-      <p class="settings-desc">Configuration for OT/ICS environments (PLC, SCADA, field devices, building technology) per IEC 62443 / NIS2.</p>
-      ${!is.otResponsible ? `<div class="settings-notice"><i class="ph ph-warning"></i> No OT security responsible assigned — position not yet filled.</div>` : ''}
+      <p class="settings-desc">${t('ics_cfgIntro')}</p>
+      ${!is.otResponsible ? `<div class="settings-notice"><i class="ph ph-warning"></i> ${t('ics_noResponsible')}</div>` : ''}
       <div class="org-grid" style="max-width:600px;margin-top:10px">
         <label class="org-label">${t('set_otResponsible')}</label>
         <input class="input" id="icsResponsible" value="${escHtml(is.otResponsible||'')}" placeholder="${t('set_phNamePending')}">
-        <label class="org-label">E-Mail</label>
+        <label class="org-label">${t('admin_email')}</label>
         <input class="input" id="icsEmail" value="${escHtml(is.otResponsibleEmail||'')}" type="email" placeholder="ot-security@company.com">
         <label class="org-label">${t('set_otScope')}</label>
-        <textarea class="input" id="icsScope" rows="2" style="resize:vertical" placeholder="e.g. Production line 1–3, SCADA plant north, building management">${escHtml(is.otScope||'')}</textarea>
+        <textarea class="input" id="icsScope" rows="2" style="resize:vertical" placeholder="${escHtml(t('ph_otScopeEg'))}">${escHtml(is.otScope||'')}</textarea>
         <label class="org-label">${t('set_appliedStandard')}</label>
         <select class="select" id="icsStandard">
           <option value="iec62443" ${(is.otStandard||'iec62443')==='iec62443'?'selected':''}>IEC 62443</option>
@@ -6499,7 +6499,7 @@ async function renderSettingsPanel() {
         </select>
         <label class="org-label">${t('set_nis2Sector')}</label>
         <select class="select" id="icsNis2Sector">
-          <option value=""           ${!is.otNis2Sector            ?'selected':''}>— not applicable —</option>
+          <option value=""           ${!is.otNis2Sector            ?'selected':''}>${t('ui_notApplicableOpt')}</option>
           <option value="energie"    ${is.otNis2Sector==='energie'   ?'selected':''}>${t('set_sectorEnergy')}</option>
           <option value="wasser"     ${is.otNis2Sector==='wasser'    ?'selected':''}>${t('set_sectorWater')}</option>
           <option value="transport"  ${is.otNis2Sector==='transport' ?'selected':''}>${t('set_sectorTransport')}</option>
@@ -6521,7 +6521,7 @@ async function renderSettingsPanel() {
         <label class="org-label">${t('set_patchCycle')}</label>
         <input class="input" id="icsPatchCycle" value="${is.otPatchCycleWeeks||12}" type="number" min="1" max="52" style="width:100px">
         <label class="org-label">${t('set_maintenanceWindow')}</label>
-        <input class="input" id="icsMaintenanceWindow" value="${escHtml(is.otMaintenanceWindow||'')}" placeholder="e.g. Sat 02:00–06:00">
+        <input class="input" id="icsMaintenanceWindow" value="${escHtml(is.otMaintenanceWindow||'')}" placeholder="${escHtml(t('ph_maintWindowEg'))}">
         <label class="org-label">${t('set_emergencyContact')}</label>
         <input class="input" id="icsEmergencyContact" value="${escHtml(is.otEmergencyContact||'')}" placeholder="${t('set_phShiftContact')}">
       </div>
@@ -6536,15 +6536,15 @@ async function renderSettingsPanel() {
   const revSection = rank >= ROLE_RANK.contentowner ? `
     <div class="settings-section">
       <h4><i class="ph ph-magnifying-glass"></i> ${t('set_internalAudit')}</h4>
-      <p class="settings-desc">Independent audit function of the internal control system (ICS). Internal Audit is free from instructions and reports directly to management or the supervisory board.</p>
-      ${!rs.revResponsible ? `<div class="settings-notice"><i class="ph ph-warning"></i> No audit responsible assigned — position not yet filled.</div>` : ''}
+      <p class="settings-desc">${t('rev_cfgIntro')}</p>
+      ${!rs.revResponsible ? `<div class="settings-notice"><i class="ph ph-warning"></i> ${t('rev_noResponsible')}</div>` : ''}
       <div class="org-grid" style="max-width:600px;margin-top:10px">
         <label class="org-label">${t('set_headInternalAudit')}</label>
         <input class="input" id="revResponsible" value="${escHtml(rs.revResponsible||'')}" placeholder="${t('set_phNamePending')}">
-        <label class="org-label">E-Mail</label>
+        <label class="org-label">${t('admin_email')}</label>
         <input class="input" id="revEmail" value="${escHtml(rs.revResponsibleEmail||'')}" type="email" placeholder="audit@company.com">
         <label class="org-label">${t('set_auditScope')}</label>
-        <textarea class="input" id="revScope" rows="2" style="resize:vertical" placeholder="e.g. All group entities, finance and IT processes">${escHtml(rs.revScope||'')}</textarea>
+        <textarea class="input" id="revScope" rows="2" style="resize:vertical" placeholder="${escHtml(t('ph_auditScopeEg'))}">${escHtml(rs.revScope||'')}</textarea>
         <label class="org-label">${t('set_reportsTo')}</label>
         <select class="select" id="revReportsTo">
           <option value="gf"                ${(rs.revReportsTo||'gf')==='gf'               ?'selected':''}>${t('set_mgmtBoard')}</option>
@@ -6558,7 +6558,7 @@ async function renderSettingsPanel() {
         <label class="org-label">${t('set_nextPlannedAudit')}</label>
         <input class="input" id="revNextAudit" type="date" value="${rs.revNextAuditDate||''}">
         <label class="org-label">${t('set_externalAuditor')}</label>
-        <input class="input" id="revExternal" value="${escHtml(rs.revExternalSupport||'')}" placeholder="e.g. KPMG, PwC, Deloitte">
+        <input class="input" id="revExternal" value="${escHtml(rs.revExternalSupport||'')}" placeholder="${escHtml(t('ph_auditFirmEg'))}">
       </div>
       <div class="settings-actions" style="margin-top:10px">
         <button class="btn btn-primary btn-sm" onclick="saveRevisionSettings()">
@@ -6571,26 +6571,26 @@ async function renderSettingsPanel() {
   const qmSection = rank >= ROLE_RANK.contentowner ? `
     <div class="settings-section">
       <h4><i class="ph ph-medal"></i> ${t('set_qmSettings')}</h4>
-      <p class="settings-desc">The Quality Management Officer (QMO) is formally required under ISO 9001:2015 Cl. 5.3 and is responsible for the Quality Management System (QMS) across the group including certification and surveillance audits.</p>
-      ${!qs.qmResponsible ? `<div class="settings-notice"><i class="ph ph-warning"></i> No QMO assigned — position not yet filled.</div>` : ''}
+      <p class="settings-desc">${t('qm_cfgIntro')}</p>
+      ${!qs.qmResponsible ? `<div class="settings-notice"><i class="ph ph-warning"></i> ${t('qm_noResponsible')}</div>` : ''}
       <div class="org-grid" style="max-width:600px;margin-top:10px">
         <label class="org-label">${t('set_qmoName')}</label>
         <input class="input" id="qmResponsible" value="${escHtml(qs.qmResponsible||'')}" placeholder="${t('set_phNamePending')}">
-        <label class="org-label">E-Mail</label>
+        <label class="org-label">${t('admin_email')}</label>
         <input class="input" id="qmEmail" value="${escHtml(qs.qmResponsibleEmail||'')}" type="email" placeholder="qmo@company.com">
         <label class="org-label">${t('set_qmScope')}</label>
-        <textarea class="input" id="qmScope" rows="2" style="resize:vertical" placeholder="e.g. Development, production and sales at all sites">${escHtml(qs.qmScope||'')}</textarea>
+        <textarea class="input" id="qmScope" rows="2" style="resize:vertical" placeholder="${escHtml(t('ph_qmScopeEg'))}">${escHtml(qs.qmScope||'')}</textarea>
         <label class="org-label">${t('set_standardNorm')}</label>
         <select class="select" id="qmStandard">
           <option value="iso9001"   ${(qs.qmStandard||'iso9001')==='iso9001'  ?'selected':''}>ISO 9001:2015</option>
-          <option value="iso9000"   ${qs.qmStandard==='iso9000'               ?'selected':''}>ISO 9000 (Fundamentals)</option>
-          <option value="iatf16949" ${qs.qmStandard==='iatf16949'             ?'selected':''}>IATF 16949 (Automotive)</option>
-          <option value="iso13485"  ${qs.qmStandard==='iso13485'              ?'selected':''}>ISO 13485 (Medical devices)</option>
-          <option value="as9100"    ${qs.qmStandard==='as9100'                ?'selected':''}>AS9100 (Aerospace)</option>
+          <option value="iso9000"   ${qs.qmStandard==='iso9000'               ?'selected':''}>${t('qm_std9000')}</option>
+          <option value="iatf16949" ${qs.qmStandard==='iatf16949'             ?'selected':''}>${t('qm_stdIatf')}</option>
+          <option value="iso13485"  ${qs.qmStandard==='iso13485'              ?'selected':''}>${t('qm_std13485')}</option>
+          <option value="as9100"    ${qs.qmStandard==='as9100'                ?'selected':''}>${t('qm_stdAs9100')}</option>
           <option value="other"     ${qs.qmStandard==='other'                 ?'selected':''}>${t('ui_other')}</option>
         </select>
         <label class="org-label">${t('set_certBody')}</label>
-        <input class="input" id="qmCertBody" value="${escHtml(qs.qmCertBody||'')}" placeholder="e.g. TÜV SÜD, DQS, Bureau Veritas, DNV">
+        <input class="input" id="qmCertBody" value="${escHtml(qs.qmCertBody||'')}" placeholder="${escHtml(t('ph_certBodyEg'))}">
         <label class="org-label">${t('set_certValidUntil')}</label>
         <input class="input" id="qmCertValid" type="date" value="${qs.qmCertValidUntil||''}">
         <label class="org-label">${t('set_lastSurveillance')}</label>
@@ -6611,7 +6611,7 @@ async function renderSettingsPanel() {
   panel.innerHTML = `
     <div class="admin-fullpage">
       <div class="admin-fullpage-header">
-        <h2><i class="ph ph-gear-six"></i> Settings</h2>
+        <h2><i class="ph ph-gear-six"></i> ${t('nav_settings')}</h2>
       </div>
       <div class="settings-panel">
 
@@ -6731,15 +6731,15 @@ async function loadTmplManagement() {
         <td><span class="status-badge ${statusCls[t.status]||''}">${t.status}</span></td>
         <td style="color:var(--text-subtle)">v${t.version}</td>
         <td style="white-space:nowrap;text-align:right">
-          <button class="btn btn-secondary btn-xs" title="Edit" onclick="tmplMgmtEdit('${escHtml(t.type)}','${t.id}')">
+          <button class="btn btn-secondary btn-xs" title="${escHtml(t('edit'))}" onclick="tmplMgmtEdit('${escHtml(t.type)}','${t.id}')">
             <i class="ph ph-pencil"></i>
           </button>
           ${isDraft ? `
-            <button class="btn btn-secondary btn-xs" style="margin-left:4px" title="Move to trash" onclick="tmplMgmtSoftDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-secondary btn-xs" style="margin-left:4px" title="${escHtml(t('ui_moveToTrash'))}" onclick="tmplMgmtSoftDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
               <i class="ph ph-trash"></i>
             </button>
             ${isAdmin ? `
-            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="Permanently delete" onclick="tmplMgmtPermDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="${escHtml(t('ui_deletePermanently'))}" onclick="tmplMgmtPermDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
               <i class="ph ph-trash-simple"></i>
             </button>` : ''}
           ` : ''}
@@ -6780,10 +6780,10 @@ async function loadTmplManagement() {
           <td>${escHtml(t.title)}</td>
           <td><span class="status-badge status-archived">deleted</span></td>
           <td style="white-space:nowrap;text-align:right">
-            <button class="btn btn-secondary btn-xs" title="Restore" onclick="tmplMgmtRestore('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-secondary btn-xs" title="${escHtml(t('restore'))}" onclick="tmplMgmtRestore('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
               <i class="ph ph-arrow-counter-clockwise"></i>
             </button>
-            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="Permanently delete" onclick="tmplMgmtPermDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="${escHtml(t('ui_deletePermanently'))}" onclick="tmplMgmtPermDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
               <i class="ph ph-trash-simple"></i>
             </button>
           </td>
@@ -6842,16 +6842,16 @@ async function saveMyPassword() {
   const msg = dom('pwSaveMsg')
   if (!msg) return
   msg.style.display = ''
-  if (!old || !nw) { msg.textContent = 'Please fill in all fields.'; msg.style.color = 'var(--danger-text)'; return }
-  if (nw.length < 6) { msg.textContent = 'New password must be at least 6 characters.'; msg.style.color = 'var(--danger-text)'; return }
-  if (nw !== cnf)   { msg.textContent = 'New passwords do not match.'; msg.style.color = 'var(--danger-text)'; return }
+  if (!old || !nw) { msg.textContent = t('pw_fillAll'); msg.style.color = 'var(--danger-text)'; return }
+  if (nw.length < 6) { msg.textContent = t('pw_tooShort'); msg.style.color = 'var(--danger-text)'; return }
+  if (nw !== cnf)   { msg.textContent = t('pw_mismatch'); msg.style.color = 'var(--danger-text)'; return }
   const res = await fetch('/me/password', {
     method: 'PUT', headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ currentPassword: old, newPassword: nw }),
   })
   const data = await res.json()
   if (res.ok) {
-    msg.textContent = 'Password changed successfully.'
+    msg.textContent = t('pw_changed')
     msg.style.color = 'var(--success,#4ade80)'
     dom('pwOld').value = ''; dom('pwNew').value = ''; dom('pwConfirm').value = ''
   } else {
@@ -6892,7 +6892,7 @@ async function _renderTwofaSettingsBlock() {
         setupArea.innerHTML = `
           <div class="personal-2fa-qr">
             <p style="font-size:.82rem;color:var(--text-subtle);margin:0">${t('twofa_scan')}</p>
-            <img src="${qrDataUrl}" alt="2FA QR Code" width="180" height="180">
+            <img src="${qrDataUrl}" alt="${escHtml(t('twofa_qrAlt'))}" width="180" height="180">
             <details style="font-size:.78rem;color:var(--text-subtle)">
               <summary style="cursor:pointer">${t('twofa_manualKey')}</summary>
               <code style="font-family:monospace;word-break:break-all">${escHtml(secret||'')}</code>
@@ -6906,7 +6906,7 @@ async function _renderTwofaSettingsBlock() {
             <p id="twofaMsg" style="font-size:13px;margin-top:4px;display:none"></p>
           </div>`
       } else {
-        setupArea.innerHTML = '<p style="color:var(--danger-text);font-size:.82rem">2FA module not available.</p>'
+        setupArea.innerHTML = '<p style="color:var(--danger-text);font-size:.82rem">' + t('twofa_moduleMissing') + '</p>'
       }
     } catch {
       setupArea.innerHTML = `<p style="color:var(--danger-text);font-size:.82rem">${t('twofa_setupError')}</p>`
@@ -6925,7 +6925,7 @@ async function verify2FA() {
   })
   const data = await res.json()
   if (res.ok) {
-    if (msg) { msg.textContent = '2FA successfully enabled!'; msg.style.color = 'var(--success,#4ade80)' }
+    if (msg) { msg.textContent = t('twofa_enabled'); msg.style.color = 'var(--success,#4ade80)' }
     _show2FAHint(false)   // Topbar-Chip ausblenden
     setTimeout(() => _renderTwofaSettingsBlock(), 1500)
   } else {
@@ -6934,7 +6934,7 @@ async function verify2FA() {
 }
 
 async function disable2FA() {
-  if (!confirm('Really disable 2FA? Your account will only be protected by password.')) return
+  if (!confirm(t('twofa_disableConfirm'))) return
   const msg = dom('twofaMsg')
   const res = await fetch('/2fa', { method: 'DELETE', headers: apiHeaders() })
   const data = await res.json()
@@ -6959,8 +6959,8 @@ async function saveCisoSettings() {
   })
   const msg = document.getElementById('cisoSaveMsg')
   msg.style.display = ''
-  if (res.ok) { msg.textContent = 'Gespeichert.'; msg.style.color = 'var(--success,#4ade80)' }
-  else { msg.textContent = 'Error saving.'; msg.style.color = 'var(--danger-text)' }
+  if (res.ok) { msg.textContent = t('msg_saved'); msg.style.color = 'var(--success,#4ade80)' }
+  else { msg.textContent = t('err_saveFailed'); msg.style.color = 'var(--danger-text)' }
   setTimeout(() => { msg.style.display = 'none' }, 3000)
 }
 
@@ -6978,8 +6978,8 @@ async function saveGdpoSettings() {
   })
   const msg = document.getElementById('gdpoSaveMsg')
   msg.style.display = ''
-  if (res.ok) { msg.textContent = 'Gespeichert.'; msg.style.color = 'var(--success,#4ade80)' }
-  else { msg.textContent = 'Error saving.'; msg.style.color = 'var(--danger-text)' }
+  if (res.ok) { msg.textContent = t('msg_saved'); msg.style.color = 'var(--success,#4ade80)' }
+  else { msg.textContent = t('err_saveFailed'); msg.style.color = 'var(--danger-text)' }
   setTimeout(() => { msg.style.display = 'none' }, 3000)
 }
 
@@ -6999,8 +6999,8 @@ async function saveRevisionSettings() {
   })
   const msg = document.getElementById('revSaveMsg')
   msg.style.display = ''
-  if (res.ok) { msg.textContent = 'Gespeichert.'; msg.style.color = 'var(--success,#4ade80)'; renderSettingsPanel() }
-  else { msg.textContent = 'Error saving.'; msg.style.color = 'var(--danger-text)' }
+  if (res.ok) { msg.textContent = t('msg_saved'); msg.style.color = 'var(--success,#4ade80)'; renderSettingsPanel() }
+  else { msg.textContent = t('err_saveFailed'); msg.style.color = 'var(--danger-text)' }
   setTimeout(() => { msg.style.display = 'none' }, 3000)
 }
 
@@ -7021,8 +7021,8 @@ async function saveQmSettings() {
   })
   const msg = document.getElementById('qmSaveMsg')
   msg.style.display = ''
-  if (res.ok) { msg.textContent = 'Gespeichert.'; msg.style.color = 'var(--success,#4ade80)'; renderSettingsPanel() }
-  else { msg.textContent = 'Error saving.'; msg.style.color = 'var(--danger-text)' }
+  if (res.ok) { msg.textContent = t('msg_saved'); msg.style.color = 'var(--success,#4ade80)'; renderSettingsPanel() }
+  else { msg.textContent = t('err_saveFailed'); msg.style.color = 'var(--danger-text)' }
   setTimeout(() => { msg.style.display = 'none' }, 3000)
 }
 
@@ -7044,8 +7044,8 @@ async function saveIcsSettings() {
   })
   const msg = document.getElementById('icsSaveMsg')
   msg.style.display = ''
-  if (res.ok) { msg.textContent = 'Gespeichert.'; msg.style.color = 'var(--success,#4ade80)'; renderSettingsPanel() }
-  else { msg.textContent = 'Error saving.'; msg.style.color = 'var(--danger-text)' }
+  if (res.ok) { msg.textContent = t('msg_saved'); msg.style.color = 'var(--success,#4ade80)'; renderSettingsPanel() }
+  else { msg.textContent = t('err_saveFailed'); msg.style.color = 'var(--danger-text)' }
   setTimeout(() => { msg.style.display = 'none' }, 3000)
 }
 
@@ -7404,16 +7404,16 @@ function renderAttachmentsBar(t) {
   const canEdit = rank >= ROLE_RANK.editor
 
   bar.style.display = 'flex'
-  bar.innerHTML = `<span class="tmpl-att-label"><i class="ph ph-paperclip"></i> Attachments:</span>` +
+  bar.innerHTML = `<span class="tmpl-att-label"><i class="ph ph-paperclip"></i> ${t('ui_attachments')}</span>` +
     atts.map(a => {
       const sizeKB = Math.round((a.size || 0) / 1024)
       return `<span class="tmpl-att-chip">
         <a href="/template/${t.type}/${t.id}/attachments/${a.id}/file" target="_blank" title="${a.originalName}">${a.originalName}</a>
         <span class="tmpl-att-size">(${sizeKB} KB)</span>
-        ${canEdit ? `<button class="tmpl-att-del" title="Delete" onclick="deleteAttachment('${t.type}','${t.id}','${a.id}')"><i class="ph ph-x"></i></button>` : ''}
+        ${canEdit ? `<button class="tmpl-att-del" title="${escHtml(t('delete'))}" onclick="deleteAttachment('${t.type}','${t.id}','${a.id}')"><i class="ph ph-x"></i></button>` : ''}
       </span>`
     }).join('') +
-    (canEdit ? `<button class="btn btn-secondary btn-sm tmpl-att-upload-btn" onclick="triggerAttachUpload()"><i class="ph ph-upload-simple"></i> Attach</button>
+    (canEdit ? `<button class="btn btn-secondary btn-sm tmpl-att-upload-btn" onclick="triggerAttachUpload()"><i class="ph ph-upload-simple"></i> ${t('ui_attach')}</button>
       <input type="file" id="attachFileInput" style="display:none" accept=".pdf,.docx,.doc,.xlsx,.pptx,.png,.jpg" onchange="uploadAttachment(this)" />` : '')
 }
 
@@ -7445,7 +7445,7 @@ async function uploadAttachment(input) {
 }
 
 async function deleteAttachment(type, id, attId) {
-  if (!confirm('Delete attachment?')) return
+  if (!confirm(t('file_deleteConfirm'))) return
   const res = await fetch(`/template/${type}/${id}/attachments/${attId}`, {
     method: 'DELETE',
     headers: apiHeaders('editor')
@@ -7469,7 +7469,7 @@ function renderDocAttachPanel(containerId, apiBase, collection, itemId, attachme
   el.innerHTML = `
     <div class="doc-attach-panel">
       <div class="doc-attach-header">
-        <span><i class="ph ph-paperclip"></i> Documents & Attachments</span>
+        <span><i class="ph ph-paperclip"></i> ${t('ui_docsAttachments')}</span>
         ${canEdit ? `<label class="btn btn-secondary btn-sm" style="cursor:pointer">
           <i class="ph ph-upload-simple"></i> Upload
           <input type="file" style="display:none" accept=".pdf,.docx,.doc,.xlsx,.pptx"
@@ -7477,7 +7477,7 @@ function renderDocAttachPanel(containerId, apiBase, collection, itemId, attachme
         </label>` : ''}
       </div>
       ${atts.length === 0
-        ? `<p class="doc-attach-empty">No documents uploaded yet.</p>`
+        ? `<p class="doc-attach-empty">${t('file_noDocs')}</p>`
         : atts.map(a => {
             const ext = (a.filename || '').split('.').pop().toLowerCase()
             const icon = ext2icon[ext] || 'ph-file'
@@ -7490,7 +7490,7 @@ function renderDocAttachPanel(containerId, apiBase, collection, itemId, attachme
                    class="doc-attach-name">${escHtml(a.filename)}</a>
                 <span class="doc-attach-meta">${kb} KB · ${escHtml(a.uploadedBy || '')} · ${date}</span>
               </div>
-              ${canEdit ? `<button class="btn-icon-sm" title="Delete"
+              ${canEdit ? `<button class="btn-icon-sm" title="${escHtml(t('delete'))}"
                 onclick="deleteDocAttachment('${apiBase}','${collection}','${itemId}','${a.id}','${containerId}')">
                 <i class="ph ph-trash"></i></button>` : ''}
             </div>`
@@ -7519,12 +7519,12 @@ async function uploadDocAttachment(input, apiBase, collection, itemId, container
 }
 
 async function deleteDocAttachment(apiBase, collection, itemId, fileId, containerId) {
-  if (!confirm('Delete attachment?')) return
+  if (!confirm(t('file_deleteConfirm'))) return
   const res = await fetch(`${apiBase}/${collection}/${itemId}/files/${fileId}`, {
     method: 'DELETE', headers: apiHeaders('editor')
   })
   if (res.ok) _refreshDocAttachPanel(apiBase, collection, itemId, containerId)
-  else alert('Delete failed')
+  else alert(t('trash_deleteFailed'))
 }
 
 async function _refreshDocAttachPanel(apiBase, collection, itemId, containerId) {
@@ -7550,7 +7550,7 @@ function renderTmplControlsBar(t) {
     return
   }
   bar.style.display = 'flex'
-  bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-link"></i> Linked Controls:</span>` +
+  bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-link"></i> ${t('findings_linkedControls')}</span>` +
     linked.map(cid => `<span class="tmpl-bar-pill">${cid}</span>`).join('') +
     `<button class="tmpl-bar-edit btn btn-secondary btn-sm" onclick="openControlPicker()"><i class="ph ph-pencil"></i></button>`
 }
@@ -7565,12 +7565,12 @@ function renderTmplEntityBar(t) {
     return
   }
   bar.style.display = 'flex'
-  bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-buildings"></i> Applies to:</span>` +
+  bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-buildings"></i> ${t('tmpl_appliesTo')}</span>` +
     ents.map(eid => `<span class="tmpl-bar-pill">${eid}</span>`).join('')
 }
 
 async function openControlPicker() {
-  if (!currentTemplate) return alert('Please select a document first.')
+  if (!currentTemplate) return alert(t('tmpl_selectFirst'))
   const modal = dom('controlPickerModal')
   if (!modal) return
 
@@ -7586,7 +7586,7 @@ async function openControlPicker() {
   // Framework-Tabs
   const fwSet = [...new Set(_pickerAllControls.map(c => c.framework))]
   const fwTabsEl = dom('controlPickerFwTabs')
-  fwTabsEl.innerHTML = `<button class="picker-fw-tab${_pickerSelectedFw === null ? ' active' : ''}" onclick="setPickerFw(null)">All</button>` +
+  fwTabsEl.innerHTML = `<button class="picker-fw-tab${_pickerSelectedFw === null ? ' active' : ''}" onclick="setPickerFw(null)">${t('findings_tabList')}</button>` +
     fwSet.map(fw => `<button class="picker-fw-tab" onclick="setPickerFw('${fw}')">${fw}</button>`).join('')
 
   renderPickerList()
@@ -7621,7 +7621,7 @@ function renderPickerList() {
   const list = dom('controlPickerList')
   if (!list) return
   if (controls.length === 0) {
-    list.innerHTML = '<p class="picker-empty">No controls found.</p>'
+    list.innerHTML = '<p class="picker-empty">' + t('soa_noControls') + '</p>'
     return
   }
   list.innerHTML = controls.map(c => {
@@ -7659,7 +7659,7 @@ async function saveControlPicker() {
     headers: apiHeaders('editor'),
     body: JSON.stringify({ linkedControls })
   })
-  if (!res.ok) { alert('Error saving.'); return }
+  if (!res.ok) { alert(t('err_saveFailed')); return }
   const updated = await res.json()
   currentTemplate = updated
   renderTmplControlsBar(updated)
@@ -7679,7 +7679,7 @@ async function _ensureEntityCache() {
 }
 
 async function openEntityPickerForTemplate() {
-  if (!currentTemplate) return alert('Please select a document first.')
+  if (!currentTemplate) return alert(t('tmpl_selectFirst'))
   await _ensureEntityCache()
   _entityPickerSelected = new Set(currentTemplate.applicableEntities || [])
   _entityPickerCallback = async (selected) => {
@@ -7689,7 +7689,7 @@ async function openEntityPickerForTemplate() {
       headers: apiHeaders('editor'),
       body: JSON.stringify({ applicableEntities })
     })
-    if (!res.ok) { alert('Error saving.'); return }
+    if (!res.ok) { alert(t('err_saveFailed')); return }
     const updated = await res.json()
     currentTemplate = updated
     renderTmplEntityBar(updated)
@@ -7715,7 +7715,7 @@ async function openEntityPickerForSoa(controlId, control, detailEl, tableContain
         applicableEntities
       })
     })
-    if (!res.ok) { alert('Error saving.'); return }
+    if (!res.ok) { alert(t('err_saveFailed')); return }
     const updated = await res.json()
     const idx = soaData.findIndex(c => c.id === controlId)
     if (idx >= 0) soaData[idx] = updated
@@ -7743,17 +7743,17 @@ function _renderEntityPickerModal() {
     overlay.innerHTML = `
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title"><i class="ph ph-buildings"></i> Applicable Entities</h3>
+          <h3 class="modal-title"><i class="ph ph-buildings"></i> ${t('ui_applicableEntities')}</h3>
           <button class="modal-close" onclick="closeEntityPicker()"><i class="ph ph-x"></i></button>
         </div>
         <div class="modal-body">
-          <p class="modal-hint">Leave empty = applies to all entities.</p>
+          <p class="modal-hint">${t('ui_emptyAllEntities')}</p>
           <div id="entityPickerList" class="picker-list"></div>
         </div>
         <div class="modal-footer">
           <span id="entityPickerCount" class="picker-count"></span>
-          <button class="btn btn-secondary" onclick="closeEntityPicker()">Cancel</button>
-          <button class="btn btn-primary" onclick="saveEntityPicker()"><i class="ph ph-floppy-disk"></i> Save</button>
+          <button class="btn btn-secondary" onclick="closeEntityPicker()">${t('incCancelBtn')}</button>
+          <button class="btn btn-primary" onclick="saveEntityPicker()"><i class="ph ph-floppy-disk"></i> ${t('save')}</button>
         </div>
       </div>`
     document.body.appendChild(overlay)
@@ -7820,7 +7820,7 @@ function loadTemplateHistory(type, id) {
 }
 
 function showHistory(){
-  if (!currentTemplate) return alert('Please select a document first.')
+  if (!currentTemplate) return alert(t('tmpl_selectFirst'))
   // #97: statt eines alert() die Versionshistorie im Dokumentkopf auf-/zuklappen
   const box = dom('tmplVersionBox')
   refreshVersionBox(currentTemplate).then(() => { if (box) box.open = !box.open })
@@ -7832,7 +7832,7 @@ function updateReviewHint(dateStr) {
   if (!dateStr) { hint.textContent = ''; hint.className = 'tmpl-review-hint'; return }
   const diff = Math.ceil((new Date(dateStr) - new Date()) / 86400000)
   if (diff < 0)        { hint.textContent = `Overdue (${Math.abs(diff)} days)`;  hint.className = 'tmpl-review-hint overdue' }
-  else if (diff === 0) { hint.textContent = 'Due today';                           hint.className = 'tmpl-review-hint due-today' }
+  else if (diff === 0) { hint.textContent = t('ui_dueToday');                           hint.className = 'tmpl-review-hint due-today' }
   else if (diff <= 30) { hint.textContent = `In ${diff} days`;                    hint.className = 'tmpl-review-hint due-soon' }
   else                 { hint.textContent = `In ${diff} days`;                    hint.className = 'tmpl-review-hint' }
 }
@@ -7842,7 +7842,7 @@ function saveCurrent(){
   const content = dom('contentEditor').value
   const nextReviewDate = dom('inputNextReview')?.value || null
   if (!title) {
-    alert('Title is required')
+    alert(t('findings_titleRequired'))
     return
   }
   if (currentTemplate) {
@@ -7959,20 +7959,20 @@ async function openMoveDialog() {
       : 'Root-Ebene'
     overlay.innerHTML = `
       <div class="move-dialog">
-        <h3><i class="ph ph-arrows-out-cardinal"></i> Seite verschieben</h3>
+        <h3><i class="ph ph-arrows-out-cardinal"></i> ${t('tmpl_movePageTitle')}</h3>
         <div style="font-size:0.82rem;color:var(--text-subtle)">
           <strong>${escHtml(currentTemplate.title)}</strong> verschieben nach:
         </div>
         <div class="move-dialog-tree" id="moveTreeContent">
           <div class="move-tree-item${selectedParentId === null ? ' selected' : ''}" data-id="__root__">
             <i class="ph ph-house" style="flex-shrink:0;font-size:.85rem"></i>
-            <span>Root-Ebene (kein Parent)</span>
+            <span>${t('tmpl_rootLevel')}</span>
           </div>
           ${buildTreeItems(treeData)}
         </div>
         <div class="move-dialog-actions">
-          <button class="btn btn-secondary" id="moveDlgCancel">Cancel</button>
-          <button class="btn btn-primary" id="moveDlgOk"><i class="ph ph-check"></i> Move</button>
+          <button class="btn btn-secondary" id="moveDlgCancel">${t('incCancelBtn')}</button>
+          <button class="btn btn-primary" id="moveDlgOk"><i class="ph ph-check"></i> ${t('tmpl_move')}</button>
         </div>
       </div>`
 
@@ -8005,7 +8005,7 @@ function createFromModal(){
   const titleVal = document.getElementById('newTitle').value.trim()
   const parentIdEl = document.getElementById('newParentId')
   const parentId = parentIdEl ? (parentIdEl.value || null) : null
-  if (!titleVal) { alert('Title is required'); return }
+  if (!titleVal) { alert(t('findings_titleRequired')); return }
   fetch('/template', {
     method: 'POST',
     headers: apiHeaders('contentowner'),
@@ -8309,9 +8309,9 @@ function renderGuidanceSearchResults(results, query) {
 }
 
 async function deleteGuidanceDoc(id) {
-  if (!confirm('Delete document?')) return
+  if (!confirm(t('tmpl_deleteConfirm'))) return
   const res = await fetch(`/guidance/${id}`, { method: 'DELETE', headers: apiHeaders('admin') })
-  if (!res.ok) { alert('Error deleting'); return }
+  if (!res.ok) { alert(t('err_deleting')); return }
   if (_guidanceDocId === id) { _guidanceDocId = null }
   await loadGuidanceDocs()
 }
@@ -8420,7 +8420,7 @@ async function saveGuidanceEditor(existingId) {
   const title   = dom('gEditTitle')?.value.trim()
   const cat     = dom('gEditCat')?.value
   const content = dom('gEditContent')?.value || ''
-  if (!title) { alert('Title is required'); return }
+  if (!title) { alert(t('findings_titleRequired')); return }
 
   const linkedControls = getLinkedValues('ge', 'ctrl')
   if (existingId) {
@@ -8429,7 +8429,7 @@ async function saveGuidanceEditor(existingId) {
       headers: apiHeaders('contentowner'),
       body: JSON.stringify({ title, category: cat, content, linkedControls })
     })
-    if (!res.ok) { alert('Error saving'); return }
+    if (!res.ok) { alert(t('err_saveFailed')); return }
     const updated = await res.json()
     closeGuidanceEditor()
     _guidanceCat = cat
@@ -8442,7 +8442,7 @@ async function saveGuidanceEditor(existingId) {
       headers: apiHeaders('contentowner'),
       body: JSON.stringify({ category: cat, title, type, content, linkedControls })
     })
-    if (!res.ok) { alert('Error creating'); return }
+    if (!res.ok) { alert(t('ack_createFailed')); return }
     const created = await res.json()
     closeGuidanceEditor()
     _guidanceCat = cat
@@ -8522,8 +8522,8 @@ async function submitGuidanceUpload() {
   const title = dom('gUploadTitle')?.value.trim()
   const cat   = dom('gUploadCat')?.value
   const file  = dom('gUploadFile')?.files[0]
-  if (!title) { alert('Title is required'); return }
-  if (!file)  { alert('Please select a file'); return }
+  if (!title) { alert(t('findings_titleRequired')); return }
+  if (!file)  { alert(t('file_selectRequired')); return }
 
   const fd = new FormData()
   fd.append('file', file)
@@ -8573,7 +8573,7 @@ async function renderCalendar() {
   container.innerHTML = `
     <div class="cal-fullpage">
       <div class="cal-page-header">
-        <h2><i class="ph ph-calendar-dots"></i> Kalender & Wiedervorlage</h2>
+        <h2><i class="ph ph-calendar-dots"></i> ${t('cal_title')}</h2>
       </div>
       <div class="cal-layout">
         <div class="cal-main" id="calMain"></div>
@@ -8646,7 +8646,7 @@ function _renderCalMonth() {
       <button class="btn btn-secondary btn-sm" onclick="calNav(-1)"><i class="ph ph-caret-left"></i></button>
       <span class="cal-month-label">${monthName}</span>
       <button class="btn btn-secondary btn-sm" onclick="calNav(1)"><i class="ph ph-caret-right"></i></button>
-      <button class="btn btn-secondary btn-sm" onclick="calNavToday()" style="margin-left:8px;">Heute</button>
+      <button class="btn btn-secondary btn-sm" onclick="calNavToday()" style="margin-left:8px;">${t('cal_today')}</button>
     </div>
     <div class="cal-grid-header">
       ${DOW.map(d => `<div class="cal-dow">${d}</div>`).join('')}
@@ -8688,8 +8688,8 @@ function _renderCalUpcoming() {
         ${overdue.slice(-10).reverse().map(eventRow).join('')}
       </div>` : ''}
     <div class="cal-agenda-section">
-      <div class="cal-agenda-title"><i class="ph ph-clock"></i> Upcoming Events</div>
-      ${upcoming.length ? upcoming.map(eventRow).join('') : '<p class="cal-agenda-empty">No upcoming events.</p>'}
+      <div class="cal-agenda-title"><i class="ph ph-clock"></i> ${t('cal_upcoming')}</div>
+      ${upcoming.length ? upcoming.map(eventRow).join('') : '<p class="cal-agenda-empty">' + t('cal_noUpcoming') + '</p>'}
     </div>`
 }
 
@@ -8727,7 +8727,7 @@ function _renderCalDayDetail(dateStr) {
           <div class="cal-detail-card ${overdue ? 'cal-detail-overdue' : ''}">
             <div class="cal-detail-header">
               <span class="cal-chip ${cfg.cls}"><i class="ph ${cfg.icon||'ph-dot'}"></i> ${cfg.label||ev.type}</span>
-              ${overdue ? '<span class="cal-overdue-badge">Overdue</span>' : ''}
+              ${overdue ? '<span class="cal-overdue-badge">' + t('dash_overdue') + '</span>' : ''}
             </div>
             <div class="cal-detail-label">${escHtml(ev.label)}</div>
             ${ev.riskId ? `<button class="btn btn-secondary btn-sm" style="margin-top:6px;"
@@ -9163,10 +9163,10 @@ async function renderRiskTreatments(el) {
             <td class="${overdue ? 'risk-overdue' : ''}">${tp.dueDate ? new Date(tp.dueDate).toLocaleDateString('en-GB') : '—'}</td>
             <td><span class="risk-tp-status risk-tp-${tp.status}">${statusLabel[tp.status] || tp.status}</span></td>
             ${canManageRisks() ? `<td>
-              <button class="btn btn-secondary btn-sm" title="Edit" onclick="openTreatmentModal('${tp.riskId}','${tp.id}')">
+              <button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openTreatmentModal('${tp.riskId}','${tp.id}')">
                 <i class="ph ph-pencil"></i>
               </button>
-              <button class="btn btn-sm" style="color:var(--danger-text)" title="Delete" onclick="deleteTreatment('${tp.riskId}','${tp.id}')">
+              <button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteTreatment('${tp.riskId}','${tp.id}')">
                 <i class="ph ph-trash"></i>
               </button>
             </td>` : ''}
@@ -9380,7 +9380,7 @@ async function openRiskDetail(id) {
         return `<div class="cvss-detail-card" style="margin-bottom:16px">
           <div class="cvss-detail-header">
             <i class="ph ph-magnifying-glass"></i>
-            <span class="cvss-detail-source">Greenbone Scan-Import</span>
+            <span class="cvss-detail-source">${t('scan_greenboneTitle')}</span>
             ${r.cvssScore != null ? `
               <span class="cvss-badge ${ci?.cls}"
                 style="font-size:.95rem;padding:3px 12px">
@@ -9391,7 +9391,7 @@ async function openRiskDetail(id) {
           </div>
           ${ci ? `<p class="cvss-detail-desc">${cvssDesc(ci)}</p>` : ''}
           ${r.cveIds?.length ? `<div class="cvss-cve-row">
-            <span class="cvss-cve-label">CVEs:</span>
+            <span class="cvss-cve-label">${t('risk_cvesCol')}</span>
             ${r.cveIds.map(c => `<span class="cvss-cve-chip">${escHtml(c)}</span>`).join('')}
           </div>` : ''}
           <p class="cvss-detail-source-note">${t('cvss_sourceNote')} — <a href="https://www.first.org/cvss/" target="_blank" rel="noopener" style="color:var(--accent)">FIRST.org</a></p>
@@ -9871,7 +9871,7 @@ async function submitRiskForm() {
 }
 
 async function deleteRisk(id) {
-  if (!confirm('Delete risk?')) return
+  if (!confirm(t('risk_deleteConfirm'))) return
   const res = await fetch(`/risks/${id}`, { method: 'DELETE', headers: apiHeaders('admin') })
   if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
   switchRiskTab(_riskTab)
@@ -9941,7 +9941,7 @@ async function openTreatmentModal(riskId, tpOrId) {
 
 async function submitTreatmentModal(riskId, tpId) {
   const title = dom('tpTitle')?.value.trim()
-  if (!title) { alert('Title is required'); return }
+  if (!title) { alert(t('findings_titleRequired')); return }
   const body = {
     title,
     description:  dom('tpDesc')?.value    || '',
@@ -9959,7 +9959,7 @@ async function submitTreatmentModal(riskId, tpId) {
 }
 
 async function deleteTreatment(riskId, tpId) {
-  if (!confirm('Delete treatment?')) return
+  if (!confirm(t('risk_deleteMeasureConfirm'))) return
   const res = await fetch(`/risks/${riskId}/treatments/${tpId}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
   await openRiskDetail(riskId)
@@ -10103,7 +10103,7 @@ async function renderGDPR() {
   container.innerHTML = `
     <div class="gdpr-fullpage">
       <div class="gdpr-header">
-        <h2><i class="ph ph-lock-key"></i> GDPR &amp; Privacy</h2>
+        <h2><i class="ph ph-lock-key"></i> ${t('gdpr_title')}</h2>
         <div class="gdpr-header-actions">
           <select id="gdprEntitySelect" class="select" style="font-size:.82rem" onchange="_gdprEntityFilter=this.value;switchGdprTab(_gdprTab)">
             <option value="">${t('filter_allEntities')}</option>
@@ -10194,7 +10194,7 @@ async function renderGdprOverview(el) {
       <div class="gdpr-kpi-card ${s.dsar.open > 0 ? 'kpi-warn' : 'kpi-ok'}"><div class="kpi-value">${s.dsar.open}</div><div class="kpi-label">${t('gdpr_openDsars')}</div></div>
       <div class="gdpr-kpi-card ${s.dsar.overdue > 0 ? 'kpi-danger' : ''}"><div class="kpi-value">${s.dsar.overdue}</div><div class="kpi-label">${t('gdpr_overdueDsars')}</div></div>
       <div class="gdpr-kpi-card ${s.incidents.open > 0 ? 'kpi-warn' : ''}"><div class="kpi-value">${s.incidents.open}</div><div class="kpi-label">${t('gdpr_openBreaches')}</div></div>
-      <div class="gdpr-kpi-card ${s.incidents.missed72h > 0 ? 'kpi-danger' : ''}"><div class="kpi-value">${s.incidents.missed72h}</div><div class="kpi-label">72h Deadline Missed</div></div>
+      <div class="gdpr-kpi-card ${s.incidents.missed72h > 0 ? 'kpi-danger' : ''}"><div class="kpi-value">${s.incidents.missed72h}</div><div class="kpi-label">${t('gdpr_72hMissed')}</div></div>
       <div class="gdpr-kpi-card ${tomPct >= 80 ? 'kpi-ok' : tomPct >= 50 ? 'kpi-warn' : 'kpi-danger'}"><div class="kpi-value">${tomPct}%</div><div class="kpi-label">${t('gdpr_tomsImplemented')}</div></div>
       <div class="gdpr-kpi-card ${s.dsbSet ? 'kpi-ok' : 'kpi-warn'}"><div class="kpi-value">${s.dsbSet ? '✓' : '—'}</div><div class="kpi-label">${t('gdpr_dpoAppointed')}</div></div>
     </div>`
@@ -10224,12 +10224,12 @@ async function renderGdprVvt(el) {
             <td><strong>${escHtml(v.title)}</strong></td>
             <td style="font-size:.78rem">${escHtml(lb?.label || v.legalBasis)}</td>
             <td style="font-size:.78rem">${escHtml(cats || '—')}</td>
-            <td>${v.isHighRisk ? '<span class="gdpr-highrisk-badge"><i class="ph ph-warning"></i> High Risk</span>' : '<span style="color:var(--text-subtle);font-size:.78rem">—</span>'}</td>
+            <td>${v.isHighRisk ? '<span class="gdpr-highrisk-badge"><i class="ph ph-warning"></i> ' + t('gdpr_highRisk') + '</span>' : '<span style="color:var(--text-subtle);font-size:.78rem">—</span>'}</td>
             <td><span class="gdpr-status gdpr-st-${v.status}">${GDPR_VVT_STATUSES.find(s=>s.id===v.status)?.label || v.status}</span></td>
             <td style="font-size:.78rem">${escHtml(v.owner || '—')}</td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
-              ${gdprCanEdit() ? `<button class="btn btn-secondary btn-sm" title="Edit" onclick="openVvtForm('${v.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="Delete" onclick="deleteGdprItem('vvt','${v.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${gdprCanEdit() ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openVvtForm('${v.id}')"><i class="ph ph-pencil"></i></button>` : ''}
+              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteGdprItem('vvt','${v.id}')"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
         }).join('')}
@@ -10274,19 +10274,19 @@ async function openVvtForm(id = null) {
       </div>
       <div class="training-form-body">
         <div class="form-group"><label class="form-label">${t('ui_nameRequired')}</label>
-          <input id="vvtTitle" class="form-input" value="${escHtml(v.title||'')}" placeholder="e.g. Customer Management CRM"></div>
+          <input id="vvtTitle" class="form-input" value="${escHtml(v.title||'')}" placeholder="${escHtml(t('ph_vvtNameEg'))}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_purposeProcessing')}</label>
           <textarea id="vvtPurpose" class="form-input" rows="2">${escHtml(v.purpose||'')}</textarea></div>
         <div class="form-group"><label class="form-label">${t('gdpr_legalBasis')}</label>
           <select id="vvtLegal" class="select">${lbOpts}</select></div>
         <div class="form-group"><label class="form-label">${t('gdpr_legalBasisNote')}</label>
-          <input id="vvtLegalNote" class="form-input" value="${escHtml(v.legalBasisNote||'')}" placeholder="e.g. Art. 6(1)(b) GDPR"></div>
+          <input id="vvtLegalNote" class="form-input" value="${escHtml(v.legalBasisNote||'')}" placeholder="${escHtml(t('ph_legalBasisEg'))}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_dataCategories')}</label>
           <div>${catChecks}</div></div>
         <div class="form-group"><label class="form-label">${t('gdpr_dataSubjects')}</label>
           <div>${subChecks}</div></div>
         <div class="form-group"><label class="form-label">${t('gdpr_recipientsCsv')}</label>
-          <input id="vvtRecipients" class="form-input" value="${escHtml((v.recipients||[]).join(', '))}" placeholder="e.g. Tax advisor, HR department"></div>
+          <input id="vvtRecipients" class="form-input" value="${escHtml((v.recipients||[]).join(', '))}" placeholder="${escHtml(t('ph_recipientsEg'))}"></div>
         <div class="form-group">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="checkbox" id="vvtIntlTransfer" ${v.internationalTransfer?'checked':''}> ${t('gdpr_intlTransfer')}
@@ -10294,7 +10294,7 @@ async function openVvtForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_transferMechanism')}</label>
           <select id="vvtTransferMech" class="select">${tmOpts}</select></div>
         <div class="form-group"><label class="form-label">${t('gdpr_retentionPeriodText')}</label>
-          <input id="vvtRetention" class="form-input" value="${escHtml(v.retentionPeriod||'')}" placeholder="e.g. 7 years (§ 257 HGB)"></div>
+          <input id="vvtRetention" class="form-input" value="${escHtml(v.retentionPeriod||'')}" placeholder="${escHtml(t('ph_retentionLawEg'))}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_retentionPeriodMonths')}</label>
           <input id="vvtRetentionMonths" type="number" class="form-input" value="${v.retentionMonths||''}" placeholder="e.g. 84"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_deletionProcedure')}</label>
@@ -10326,7 +10326,7 @@ async function openVvtForm(id = null) {
 
 async function saveVvt(id) {
   const title  = document.getElementById('vvtTitle')?.value?.trim()
-  if (!title) { alert('Name is required'); return }
+  if (!title) { alert(t('common_nameRequired')); return }
   const dataCategories  = [...document.querySelectorAll('#gdprTabContent input[type=checkbox][value]')]
     .filter(cb => cb.checked && GDPR_DATA_CATS.includes(cb.value)).map(cb => cb.value)
   const dataSubjectTypes = [...document.querySelectorAll('#gdprTabContent input[type=checkbox][value]')]
@@ -10389,9 +10389,9 @@ async function renderGdprAv(el) {
             <td><span style="font-size:.78rem">${cl}/8</span> ${cl === 8 ? '<i class="ph ph-check-circle" style="color:#4ade80"></i>' : ''}</td>
             <td style="font-size:.78rem">${a.effectiveUntil || '—'}</td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
-              ${a.filePath ? `<a href="/gdpr/av/${a.id}/file" target="_blank" class="btn btn-secondary btn-sm" title="Open document"><i class="ph ph-file-pdf"></i></a>` : ''}
-              ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" title="Edit" onclick="openAvForm('${a.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="Delete" onclick="deleteGdprItem('av','${a.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${a.filePath ? `<a href="/gdpr/av/${a.id}/file" target="_blank" class="btn btn-secondary btn-sm" title="${escHtml(t('ui_openDocument'))}"><i class="ph ph-file-pdf"></i></a>` : ''}
+              ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openAvForm('${a.id}')"><i class="ph ph-pencil"></i></button>` : ''}
+              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteGdprItem('av','${a.id}')"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
         }).join('')}
@@ -10468,7 +10468,7 @@ async function openAvForm(id = null) {
 async function saveAv(id) {
   const title = document.getElementById('avTitle')?.value?.trim()
   const processorName = document.getElementById('avProcessorName')?.value?.trim()
-  if (!title || !processorName) { alert('Name and processor name are required'); return }
+  if (!title || !processorName) { alert(t('gdpr_nameProcRequired')); return }
 
   const art28Checklist = {}
   GDPR_ART28_ITEMS.forEach(item => {
@@ -10627,10 +10627,10 @@ async function openDsfaForm(id = null) {
 
 function dsfaRiskRow(rk = {}, idx) {
   return `<div class="dsfa-risk-row" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:8px;padding:8px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)">
-    <input class="form-input" placeholder="Risk description" style="font-size:.8rem" value="${escHtml(rk.description||'')}">
-    <input type="number" class="form-input" placeholder="Likelihood 1-5" min="1" max="5" style="font-size:.8rem" value="${rk.likelihood||1}" title="Likelihood (1-5)">
-    <input type="number" class="form-input" placeholder="Impact 1-5" min="1" max="5" style="font-size:.8rem" value="${rk.impact||1}" title="Impact (1-5)">
-    <span style="font-size:.78rem;color:var(--text-subtle)">Score: <strong>${(rk.likelihood||1)*(rk.impact||1)}</strong></span>
+    <input class="form-input" placeholder="${escHtml(t('gdpr_riskDescPh'))}" style="font-size:.8rem" value="${escHtml(rk.description||'')}">
+    <input type="number" class="form-input" placeholder="${escHtml(t('gdpr_likelihoodPh'))}" min="1" max="5" style="font-size:.8rem" value="${rk.likelihood||1}" title="${escHtml(t('gdpr_likelihoodTitle'))}">
+    <input type="number" class="form-input" placeholder="${escHtml(t('gdpr_impactPh'))}" min="1" max="5" style="font-size:.8rem" value="${rk.impact||1}" title="${escHtml(t('gdpr_impactTitle'))}">
+    <span style="font-size:.78rem;color:var(--text-subtle)">${t('ui_score')} <strong>${(rk.likelihood||1)*(rk.impact||1)}</strong></span>
     <button class="btn btn-sm" style="color:var(--danger-text)" onclick="this.closest('.dsfa-risk-row').remove()"><i class="ph ph-trash"></i></button>
   </div>`
 }
@@ -10655,7 +10655,7 @@ function addDsfaRisk() {
 
 async function saveDsfa(id) {
   const title = document.getElementById('dsfaTitle')?.value?.trim()
-  if (!title) { alert('Name is required'); return }
+  if (!title) { alert(t('common_nameRequired')); return }
 
   const risks = [...document.querySelectorAll('.dsfa-risk-row')].map(row => {
     const inputs = row.querySelectorAll('input')
@@ -10719,7 +10719,7 @@ async function renderGdprIncidents(el) {
     ${list.length === 0 ? `<p class="gdpr-empty">${t('gdpr_noBreachesFound')}</p>` : `
     <table class="gdpr-table">
       <thead><tr>
-        <th>${t('col_title')}</th><th>${t('col_type')}</th><th>${t('gdpr_discovered')}</th><th>72h Timer</th><th>${t('ui_risk')}</th><th>${t('gdpr_saNotified')}</th><th>${t('col_status')}</th><th style="width:80px"></th>
+        <th>${t('col_title')}</th><th>${t('col_type')}</th><th>${t('gdpr_discovered')}</th><th>${t('gdpr_72hTimer')}</th><th>${t('ui_risk')}</th><th>${t('gdpr_saNotified')}</th><th>${t('col_status')}</th><th style="width:80px"></th>
       </tr></thead>
       <tbody>
         ${list.map(i => {
@@ -10788,7 +10788,7 @@ async function openIncidentForm(id = null) {
             <input type="checkbox" id="incSaRequired" ${inc.saNotificationRequired?'checked':''}> ${t('gdpr_saNotifyRequired72h')}
           </label></div>
         <div class="form-group"><label class="form-label">${t('gdpr_saRefNumber')}</label>
-          <input id="incSaRef" class="form-input" value="${escHtml(inc.saReference||'')}" placeholder="if notified"></div>
+          <input id="incSaRef" class="form-input" value="${escHtml(inc.saReference||'')}" placeholder="${escHtml(t('gdpr_ifNotifiedPh'))}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_saNotifiedOn')}</label>
           <input id="incSaNotified" type="datetime-local" class="form-input" value="${inc.saNotifiedAt ? inc.saNotifiedAt.slice(0,16) : ''}"></div>
         <div class="form-group">
@@ -10816,7 +10816,7 @@ async function openIncidentForm(id = null) {
 
 async function saveIncident(id) {
   const title = document.getElementById('incTitle')?.value?.trim()
-  if (!title) { alert('Name is required'); return }
+  if (!title) { alert(t('common_nameRequired')); return }
   const dataCategories    = [...document.querySelectorAll('.inc-cat-cb')].filter(cb => cb.checked).map(cb => cb.value)
   const applicableEntities= [...document.querySelectorAll('.inc-entity-cb')].filter(cb => cb.checked).map(cb => cb.value)
   const saNotifiedVal     = document.getElementById('incSaNotified')?.value
@@ -11047,9 +11047,9 @@ async function openTomForm(id = null) {
         <div class="form-group"><label class="form-label">${t('ui_riskLevel')}</label>
           <select id="tomRisk" class="select">${rlOpts}</select></div>
         <div class="form-group"><label class="form-label">${t('gdpr_evidenceProof')}</label>
-          <input id="tomEvidence" class="form-input" value="${escHtml(tom.evidenceNote||'')}" placeholder="e.g. Audit report, screenshot"></div>
+          <input id="tomEvidence" class="form-input" value="${escHtml(tom.evidenceNote||'')}" placeholder="${escHtml(t('ph_evidenceEg'))}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_retentionRule')}</label>
-          <input id="tomRetention" class="form-input" value="${escHtml(tom.retentionRule||'')}" placeholder="e.g. Logs 3 years"></div>
+          <input id="tomRetention" class="form-input" value="${escHtml(tom.retentionRule||'')}" placeholder="${escHtml(t('ph_retentionEg'))}"></div>
         <div class="form-group"><label class="form-label">${t('ui_reviewDate')}</label>
           <input id="tomReview" type="date" class="form-input" value="${tom.reviewDate||''}"></div>
         ${_gdprEntities.length ? `<div class="form-group"><label class="form-label">${t('ui_applicableEntities')}</label>
@@ -11067,7 +11067,7 @@ async function openTomForm(id = null) {
 
 async function saveTom(id) {
   const title = document.getElementById('tomTitle')?.value?.trim()
-  if (!title) { alert('Name is required'); return }
+  if (!title) { alert(t('common_nameRequired')); return }
   const applicableEntities = [...document.querySelectorAll('.tom-entity-cb')].filter(cb => cb.checked).map(cb => cb.value)
   const payload = {
     title,
@@ -11128,7 +11128,7 @@ async function renderGdprDeletion(el) {
           ${canOwn ? `<td><button class="btn btn-sm btn-danger" onclick="confirmDeletion('${v.id}','${escHtml(v.title).replace(/'/g,"\\'")}')"><i class="ph ph-check"></i> ${t('gdpr_confirmDeletion')}</button></td>` : ''}
         </tr>`).join('')}
       </tbody>
-    </table>` : `<p class="gdpr-empty" style="color:var(--color-success)"><i class="ph ph-check-circle"></i> No deletion deadlines due.</p>`}
+    </table>` : `<p class="gdpr-empty" style="color:var(--color-success)"><i class="ph ph-check-circle"></i> ${t('gdpr_noDeletionDue')}</p>`}
 
     ${upcoming.length > 0 ? `
     <h4 style="color:var(--color-warning);margin-top:1.5rem">Due Soon – next 90 days (${upcoming.length})</h4>
@@ -11586,7 +11586,7 @@ async function saveTraining(id) {
     linkedControls: getLinkedValues('tm', 'ctrl'),
     linkedPolicies: getLinkedValues('tm', 'pol'),
   }
-  if (!payload.title) { alert('Title is required'); return }
+  if (!payload.title) { alert(t('findings_titleRequired')); return }
   const url    = id ? `/training/${id}` : '/training'
   const method = id ? 'PUT' : 'POST'
   const res = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -11595,7 +11595,7 @@ async function saveTraining(id) {
 }
 
 async function deleteTraining(id) {
-  if (!confirm('Delete training?')) return
+  if (!confirm(t('training_deleteConfirm'))) return
   const res = await fetch(`/training/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
   switchTrainingTab(_trainingTab)
@@ -11624,20 +11624,20 @@ async function renderLegal(startTab) {
   // Skeleton sofort rendern — kein await davor, damit Chrome keinen leeren Container zeigt
   container.innerHTML = `
     <div class="gdpr-header">
-      <h2><i class="ph ph-scales"></i> Legal &amp; Privacy</h2>
+      <h2><i class="ph ph-scales"></i> ${t('nav_legal')}</h2>
       <div class="gdpr-header-actions" id="legalKPIs">
-        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">—</span><span class="report-kpi-label">Active Contracts</span></span>
-        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">—</span><span class="report-kpi-label">Expiring</span></span>
-        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">—</span><span class="report-kpi-label">Active NDAs</span></span>
-        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">—</span><span class="report-kpi-label">Live Policies</span></span>
+        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">—</span><span class="report-kpi-label">${t('dash_contracts')}</span></span>
+        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">—</span><span class="report-kpi-label">${t('legal_expiring')}</span></span>
+        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">—</span><span class="report-kpi-label">${t('legal_activeNdas')}</span></span>
+        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">—</span><span class="report-kpi-label">${t('legal_livePolicies')}</span></span>
       </div>
     </div>
     <div class="gdpr-tab-bar">
       <button class="gdpr-tab${_legalTab==='contracts' ?' active':''}" onclick="switchLegalTab('contracts')"><i class="ph ph-file-text"></i> ${t('legal_contractsTab')}</button>
       <button class="gdpr-tab${_legalTab==='ndas'      ?' active':''}" onclick="switchLegalTab('ndas')"><i class="ph ph-handshake"></i> NDAs</button>
-      <button class="gdpr-tab${_legalTab==='policies'  ?' active':''}" onclick="switchLegalTab('policies')"><i class="ph ph-lock-key-open"></i> Privacy Policies</button>
+      <button class="gdpr-tab${_legalTab==='policies'  ?' active':''}" onclick="switchLegalTab('policies')"><i class="ph ph-lock-key-open"></i> ${t('legal_privacyPolicies')}</button>
     </div>
-    <div class="gdpr-content" id="legalTabContent"><p style="padding:16px"><i class="ph ph-spinner"></i> Loading…</p></div>
+    <div class="gdpr-content" id="legalTabContent"><p style="padding:16px"><i class="ph ph-spinner"></i> ${t('loading')}</p></div>
   `
 
   // Tab-Inhalt und Summary parallel laden
@@ -11652,10 +11652,10 @@ async function renderLegal(startTab) {
       if (!container.isConnected) return
       const kpis = dom('legalKPIs')
       if (kpis) kpis.innerHTML = `
-        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">${summary.contracts.active}</span><span class="report-kpi-label">Active Contracts</span></span>
-        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val ${summary.contracts.expiring > 0 ? 'yellow' : ''}">${summary.contracts.expiring}</span><span class="report-kpi-label">Expiring</span></span>
-        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">${summary.ndas.signed}</span><span class="report-kpi-label">Active NDAs</span></span>
-        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">${summary.policies.published}</span><span class="report-kpi-label">Live Policies</span></span>
+        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">${summary.contracts.active}</span><span class="report-kpi-label">${t('dash_contracts')}</span></span>
+        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val ${summary.contracts.expiring > 0 ? 'yellow' : ''}">${summary.contracts.expiring}</span><span class="report-kpi-label">${t('legal_expiring')}</span></span>
+        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">${summary.ndas.signed}</span><span class="report-kpi-label">${t('legal_activeNdas')}</span></span>
+        <span class="report-kpi" style="padding:0 .5rem"><span class="report-kpi-val">${summary.policies.published}</span><span class="report-kpi-label">${t('legal_livePolicies')}</span></span>
       `
     }
   } catch {}
@@ -11676,7 +11676,7 @@ async function switchLegalTab(tab) {
   })
   const content = dom('legalTabContent')
   if (!content) return
-  content.innerHTML = '<p style="padding:16px"><i class="ph ph-spinner"></i> Loading…</p>'
+  content.innerHTML = '<p style="padding:16px"><i class="ph ph-spinner"></i> ' + t('loading') + '</p>'
   try {
     if (tab === 'contracts') await renderLegalContracts(content)
     if (tab === 'ndas')      await renderLegalNdas(content)
@@ -11700,7 +11700,7 @@ async function renderLegalContracts(el) {
     </div>
     ${list.length === 0 ? `<p class="gdpr-empty">${t('legal_noContracts')}</p>` : `
     <table class="gdpr-table">
-      <thead><tr><th>Title</th><th>Type</th><th>Counterparty</th><th>Status</th><th>End Date</th><th>Owner</th><th><i class="ph ph-paperclip"></i></th><th>Actions</th></tr></thead>
+      <thead><tr><th>${t('col_title')}</th><th>${t('col_type')}</th><th>${t('col_counterparty')}</th><th>${t('col_status')}</th><th>${t('col_endDate')}</th><th>${t('soa_owner')}</th><th><i class="ph ph-paperclip"></i></th><th>${t('admin_actions')}</th></tr></thead>
       <tbody>${list.map(c => `
         <tr>
           <td><strong>${escHtml(c.title)}</strong></td>
@@ -11734,7 +11734,7 @@ async function renderLegalNdas(el) {
     </div>
     ${list.length === 0 ? `<p class="gdpr-empty">${t('legal_noNdas')}</p>` : `
     <table class="gdpr-table">
-      <thead><tr><th>Title</th><th>Type</th><th>Counterparty</th><th>Status</th><th>Signed</th><th>Expires</th><th><i class="ph ph-paperclip"></i></th><th>Actions</th></tr></thead>
+      <thead><tr><th>${t('col_title')}</th><th>${t('col_type')}</th><th>${t('col_counterparty')}</th><th>${t('col_status')}</th><th>${t('col_signed')}</th><th>${t('col_expires')}</th><th><i class="ph ph-paperclip"></i></th><th>${t('admin_actions')}</th></tr></thead>
       <tbody>${list.map(n => `
         <tr>
           <td><strong>${escHtml(n.title)}</strong></td>
@@ -11768,7 +11768,7 @@ async function renderLegalPolicies(el) {
     </div>
     ${list.length === 0 ? `<p class="gdpr-empty">${t('legal_noPolicies')}</p>` : `
     <table class="gdpr-table">
-      <thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Version</th><th>Published</th><th>Next Review</th><th><i class="ph ph-paperclip"></i></th><th>Actions</th></tr></thead>
+      <thead><tr><th>${t('col_title')}</th><th>${t('col_type')}</th><th>${t('col_status')}</th><th>${t('col_version')}</th><th>${t('col_published')}</th><th>${t('legal_nextReview')}</th><th><i class="ph ph-paperclip"></i></th><th>${t('admin_actions')}</th></tr></thead>
       <tbody>${list.map(p => `
         <tr>
           <td><strong>${escHtml(p.title)}</strong>${p.url ? ` <a href="${escHtml(p.url)}" target="_blank" style="font-size:.8rem"><i class="ph ph-link"></i></a>` : ''}</td>
@@ -11815,7 +11815,7 @@ async function openLegalForm(type, id) {
       <h4 class="legal-form-section-title"><i class="ph ph-paperclip"></i> ${t('ui_attachments')}</h4>
       <div id="legalAttachList">${_renderLegalAttachList(item?.attachments||[], LEGAL_ENDPOINT[type], id)}</div>
       <div class="legal-attach-upload">
-        <label class="form-label">Upload document (PDF, DOCX, XLSX, PPTX, PNG, JPG, TXT, ZIP – max. 20 MB)</label>
+        <label class="form-label">${t('legal_uploadHint')}</label>
         <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
           <input type="file" id="legalAttachFile" class="form-input" style="flex:1;min-width:200px"
             accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.png,.jpg,.jpeg,.txt,.zip">
@@ -11824,7 +11824,7 @@ async function openLegalForm(type, id) {
           </button>
         </div>
       </div>
-    </div>` : `<p class="gdpr-empty" style="font-size:.83rem"><i class="ph ph-info"></i> Attachments can be uploaded after saving.</p>`
+    </div>` : `<p class="gdpr-empty" style="font-size:.83rem"><i class="ph ph-info"></i> ${t('legal_uploadAfterSave')}</p>`
 
   let formBody = ''
   if (type === 'contract') {
@@ -11858,7 +11858,7 @@ async function openLegalForm(type, id) {
           <div class="form-group"><label class="form-label">${t('legal_start')}</label><input id="lc_start" type="date" class="form-input" value="${item?.startDate||''}" style="color-scheme:dark"></div>
           <div class="form-group"><label class="form-label">${t('legal_end')}</label><input id="lc_end" type="date" class="form-input" value="${item?.endDate||''}" style="color-scheme:dark"></div>
           <div class="form-group"><label class="form-label">${t('legal_noticePeriod')}</label><input id="lc_notice" type="number" class="form-input" value="${item?.noticePeriodDays||''}" placeholder="e.g. 30"></div>
-          <div class="form-group"><label class="form-label">${t('legal_contractValue')}</label><input id="lc_value" class="form-input" value="${escHtml(item?.value||'')}" placeholder="e.g. 12,000 EUR/year"></div>
+          <div class="form-group"><label class="form-label">${t('legal_contractValue')}</label><input id="lc_value" class="form-input" value="${escHtml(item?.value||'')}" placeholder="${escHtml(t('ph_costEg'))}"></div>
         </div>
         <div class="form-row">
           <div class="form-group" style="flex:2">
@@ -11941,7 +11941,7 @@ async function openLegalForm(type, id) {
         <div class="form-row">
           <div class="form-group" style="flex:2">
             <label class="form-label">${t('legal_publicUrl')}</label>
-            <input id="lp_url" class="form-input" value="${escHtml(item?.url||'')}" placeholder="https://…">
+            <input id="lp_url" class="form-input" value="${escHtml(item?.url||'')}" placeholder="${escHtml(t('ui_urlPh'))}">
           </div>
           <div class="form-group"><label class="form-label">${t('legal_publishedOn')}</label>
             <input id="lp_pub" type="date" class="form-input" value="${item?.publishedAt||''}" style="color-scheme:dark"></div>
@@ -11986,7 +11986,7 @@ async function openLegalForm(type, id) {
 
 function _renderLegalAttachList(attachments, resource, itemId) {
   if (!attachments || attachments.length === 0) {
-    return '<p class="gdpr-empty" style="margin:.5rem 0">No attachments yet.</p>'
+    return '<p class="gdpr-empty" style="margin:.5rem 0">' + t('ui_noAttachments') + '</p>'
   }
   const fmtSize = b => b > 1048576 ? (b/1048576).toFixed(1)+' MB' : (b/1024).toFixed(0)+' KB'
   return `<div class="legal-attach-list">${attachments.map(a => `
@@ -12000,7 +12000,7 @@ function _renderLegalAttachList(attachments, resource, itemId) {
 
 async function uploadLegalAttachment(resource, itemId) {
   const fileInput = dom('legalAttachFile')
-  if (!fileInput?.files?.length) { alert('Please select a file.'); return }
+  if (!fileInput?.files?.length) { alert(t('file_selectRequired')); return }
   const fd = new FormData()
   fd.append('file', fileInput.files[0])
   const res = await fetch(`/legal/${resource}/${itemId}/attachments`, {
@@ -12019,7 +12019,7 @@ async function uploadLegalAttachment(resource, itemId) {
 }
 
 async function deleteLegalAttachment(resource, itemId, attId) {
-  if (!confirm('Delete attachment?')) return
+  if (!confirm(t('file_deleteConfirm'))) return
   const res = await fetch(`/legal/${resource}/${itemId}/attachments/${attId}`, {
     method: 'DELETE', headers: apiHeaders()
   })
@@ -12037,7 +12037,7 @@ async function saveLegalItem(type, id) {
 
   if (type === 'contract') {
     const title = dom('lc_title')?.value?.trim()
-    if (!title) { alert('Title is required'); return }
+    if (!title) { alert(t('findings_titleRequired')); return }
     payload = {
       title, contractType: dom('lc_type')?.value,
       counterparty: dom('lc_party')?.value || '',
@@ -12055,7 +12055,7 @@ async function saveLegalItem(type, id) {
     }
   } else if (type === 'nda') {
     const title = dom('ln_title')?.value?.trim()
-    if (!title) { alert('Title is required'); return }
+    if (!title) { alert(t('findings_titleRequired')); return }
     payload = {
       title, ndaType: dom('ln_type')?.value,
       counterparty: dom('ln_party')?.value || '',
@@ -12070,7 +12070,7 @@ async function saveLegalItem(type, id) {
     }
   } else if (type === 'policy') {
     const title = dom('lp_title')?.value?.trim()
-    if (!title) { alert('Title is required'); return }
+    if (!title) { alert(t('findings_titleRequired')); return }
     payload = {
       title, policyType: dom('lp_type')?.value,
       status: dom('lp_status')?.value,
@@ -12103,7 +12103,7 @@ async function saveLegalItem(type, id) {
 }
 
 async function deleteLegalItem(resource, id) {
-  if (!confirm('Delete?')) return
+  if (!confirm(t('ui_deleteQ'))) return
   const res = await fetch(`/legal/${resource}/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json(); alert(e.error || 'Error'); return }
   switchLegalTab(_legalTab)
@@ -12336,7 +12336,7 @@ function _cacheAssetNames(list) {
 function _renderAssetsTable(list, canEdit, isAdmin, entMap) {
   const el = dom('assetsTableWrap')
   if (!el) return
-  if (!list.length) { el.innerHTML = '<p style="color:var(--text-subtle);padding:16px">No assets found.</p>'; return }
+  if (!list.length) { el.innerHTML = '<p style="color:var(--text-subtle);padding:16px">' + t('assets_none') + '</p>'; return }
   const now = new Date()
   el.innerHTML = `
     <table class="asset-table">
@@ -12346,7 +12346,7 @@ function _renderAssetsTable(list, canEdit, isAdmin, entMap) {
       <tbody>
         ${list.map(a => {
           const eolDays = a.endOfLifeDate ? Math.ceil((new Date(a.endOfLifeDate) - now) / 86400000) : null
-          const eolStr  = a.endOfLifeDate ? (eolDays < 0 ? `<span style="color:#f87171">Expired</span>` : eolDays <= 90 ? `<span style="color:#f0b429">${a.endOfLifeDate}</span>` : a.endOfLifeDate) : '—'
+          const eolStr  = a.endOfLifeDate ? (eolDays < 0 ? `<span style="color:#f87171">${t('ack_statusExpired')}</span>` : eolDays <= 90 ? `<span style="color:#f0b429">${a.endOfLifeDate}</span>` : a.endOfLifeDate) : '—'
           return `<tr>
             <td><strong>${escHtml(a.name)}</strong><br><span style="font-size:.75rem;color:var(--text-subtle)">${escHtml(assetCatLabel(a.category))}</span></td>
             <td style="font-size:.78rem;color:var(--text-subtle)">${escHtml(a.type ? assetTypeLabel(a.type) : '—')}</td>
@@ -12654,7 +12654,7 @@ function _renderAssetDepTags() {
   }
   el.innerHTML = [..._assetFormDeps].map(depId => `<span class="asset-dep-tag">
       ${escHtml(_assetNames[depId] || depId)}
-      <button type="button" title="Remove" onclick="_removeAssetDep('${depId}')">&times;</button>
+      <button type="button" title="${escHtml(t('remove'))}" onclick="_removeAssetDep('${depId}')">&times;</button>
     </span>`).join('')
 }
 
@@ -12946,7 +12946,7 @@ async function saveAsset(id) {
       auth: dom('asProt_auth')?.value || null,
     }
   }
-  if (!payload.name) { alert('Name is required'); return }
+  if (!payload.name) { alert(t('common_nameRequired')); return }
   const url    = id ? `/assets/${id}` : '/assets'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -12955,7 +12955,7 @@ async function saveAsset(id) {
 }
 
 async function deleteAsset(id) {
-  if (!confirm('Delete asset?')) return
+  if (!confirm(t('assets_deleteConfirm'))) return
   const res = await fetch(`/assets/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
   switchAssetsTab(_assetsTab)
@@ -13483,7 +13483,7 @@ async function openNis2ItemForm(id) {
             <div class="form-group">
               <label class="form-label">${escHtml(t('nis2_ownerEmail'))}</label>
               <input id="nis2OwnerEmail" type="email" class="form-input"
-                     value="${escHtml(item.ownerEmail || '')}" placeholder="owner@company.com">
+                     value="${escHtml(item.ownerEmail || '')}" placeholder="${escHtml(t('asset_ownerEmailPh'))}">
             </div>
           </div>
           ${item.completedAt ? `<p style="font-size:.76rem;color:var(--text-subtle)">
@@ -13765,7 +13765,7 @@ async function saveNis2Report(id, phase) {
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ content }),
   })
-  if (!res.ok) { alert('Error'); return }
+  if (!res.ok) { alert(t('error')); return }
   openNis2IncidentForm(id)
 }
 
@@ -13786,7 +13786,7 @@ async function submitNis2Phase(id, phase) {
 
 async function exportNis2Report(id) {
   const res = await fetch(`/nis2/incidents/${id}/export`, { headers: apiHeaders() })
-  if (!res.ok) { alert('Error'); return }
+  if (!res.ok) { alert(t('error')); return }
   const blob = await res.blob()
   const url  = URL.createObjectURL(blob)
   const a    = document.createElement('a')
@@ -13881,10 +13881,10 @@ async function renderGovReviews(el) {
       <span style="color:var(--text-subtle);font-size:.85rem">${reviews.length} Management Reviews</span>
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openGovReviewForm()"><i class="ph ph-plus"></i> ${t('gov_newReview')}</button>` : ''}
     </div>
-    ${reviews.length === 0 ? '<p class="dash-empty">No management reviews found.</p>' : `
+    ${reviews.length === 0 ? '<p class="dash-empty">' + t('gov_noReviews') + '</p>' : `
     <table class="gov-table">
       <thead><tr>
-        <th>Title</th><th>Type</th><th>Date</th><th>Status</th><th>Chair</th><th>Actions</th>
+        <th>${t('col_title')}</th><th>${t('col_type')}</th><th>${t('col_date')}</th><th>${t('col_status')}</th><th>${t('ui_chair')}</th><th>${t('admin_actions')}</th>
       </tr></thead>
       <tbody>
         ${reviews.map(r => `<tr>
@@ -13917,11 +13917,11 @@ async function renderGovActions(el) {
   el.innerHTML = `
     <div class="gov-filter-bar">
       <select id="govActStatusFilter" onchange="filterGovActions()">
-        <option value="">All statuses</option>
+        <option value="">${t('nis2_allStatuses')}</option>
         ${Object.entries(GOV_ACTION_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
       </select>
       <select id="govActPrioFilter" onchange="filterGovActions()">
-        <option value="">All priorities</option>
+        <option value="">${t('nis2_allPriorities')}</option>
         ${Object.entries(GOV_PRIORITY_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
       </select>
       <select id="govActSourceFilter" onchange="filterGovActions()">
@@ -13954,11 +13954,11 @@ function filterGovActions() {
   if (source) list = list.filter(a => a.source === source)
   if (search) list = list.filter(a => (a.title+a.owner+a.description).toLowerCase().includes(search))
 
-  if (!list.length) { el.innerHTML = '<p class="dash-empty">No actions found.</p>'; return }
+  if (!list.length) { el.innerHTML = '<p class="dash-empty">' + t('gov_noActions') + '</p>'; return }
 
   el.innerHTML = `<table class="gov-table">
     <thead><tr>
-      <th>Title</th><th>Source</th><th>Owner</th><th>Due</th><th>Priority</th><th>Status</th><th>Progress</th><th>Actions</th>
+      <th>${t('col_title')}</th><th>${t('reports_source')}</th><th>${t('soa_owner')}</th><th>${t('trn_dueLabel')}</th><th>${t('goals_priority')}</th><th>${t('col_status')}</th><th>${t('gov_progressCol')}</th><th>${t('admin_actions')}</th>
     </tr></thead>
     <tbody>
       ${list.map(a => {
@@ -14000,10 +14000,10 @@ async function renderGovMeetings(el) {
       <span style="color:var(--text-subtle);font-size:.85rem">${meetings.length} Meeting minutes</span>
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openGovMeetingForm()"><i class="ph ph-plus"></i> ${t('gov_newMeeting')}</button>` : ''}
     </div>
-    ${meetings.length === 0 ? '<p class="dash-empty">No meetings found.</p>' : `
+    ${meetings.length === 0 ? '<p class="dash-empty">' + t('gov_noMeetings') + '</p>' : `
     <table class="gov-table">
       <thead><tr>
-        <th>Title</th><th>Committee</th><th>Date</th><th>Chair</th><th>Approved</th><th>Actions</th>
+        <th>${t('col_title')}</th><th>${t('gov_committee')}</th><th>${t('col_date')}</th><th>${t('ui_chair')}</th><th>${t('status_approved')}</th><th>${t('admin_actions')}</th>
       </tr></thead>
       <tbody>
         ${meetings.map(m => `<tr>
@@ -14012,8 +14012,8 @@ async function renderGovMeetings(el) {
           <td>${m.date ? new Date(m.date).toLocaleDateString('en-GB') : '—'}</td>
           <td style="font-size:.82rem">${escHtml(m.chair||'—')}</td>
           <td>${m.approved
-            ? `<span style="color:#4ade80"><i class="ph ph-check-circle"></i> Yes</span>`
-            : `<span style="color:#888"><i class="ph ph-clock"></i> Pending</span>`}</td>
+            ? `<span style="color:#4ade80"><i class="ph ph-check-circle"></i> ${t('yes')}</span>`
+            : `<span style="color:#888"><i class="ph ph-clock"></i> ${t('nis2_statePending')}</span>`}</td>
           <td style="white-space:nowrap">
             <button class="btn btn-secondary btn-sm" onclick="openGovMeetingForm('${m.id}')"><i class="ph ph-pencil"></i></button>
             ${isAdmin ? `<button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteGovMeeting('${m.id}')"><i class="ph ph-trash"></i></button>` : ''}
@@ -14045,7 +14045,7 @@ async function openGovReviewForm(id = null) {
       <div class="training-form-body">
         <div class="gov-section-title">${t('ui_basicData')}</div>
         <label class="form-label">${t('col_title')} *</label>
-        <input id="grTitle" class="input" value="${escHtml(review.title||'')}" placeholder="e.g. Management Review 2025">
+        <input id="grTitle" class="input" value="${escHtml(review.title||'')}" placeholder="${escHtml(t('ph_mgmtReviewEg'))}">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px">
           <div>
             <label class="form-label">${t('col_type')}</label>
@@ -14075,7 +14075,7 @@ async function openGovReviewForm(id = null) {
           </div>
           <div>
             <label class="form-label">${t('ui_chair')}</label>
-            <input id="grChair" class="input" value="${escHtml(review.chair||'')}" placeholder="e.g. Dr. Smith (CEO)">
+            <input id="grChair" class="input" value="${escHtml(review.chair||'')}" placeholder="${escHtml(t('ph_chairEg'))}">
           </div>
         </div>
         <label class="form-label" style="margin-top:8px">${t('ui_participantsCsv')}</label>
@@ -14145,7 +14145,7 @@ async function saveGovReview(id) {
     linkedControls:          getLinkedValues('gr', 'ctrl'),
     linkedPolicies:          getLinkedValues('gr', 'pol'),
   }
-  if (!payload.title) { alert('Title is required'); return }
+  if (!payload.title) { alert(t('findings_titleRequired')); return }
   const url    = id ? `/governance/reviews/${id}` : '/governance/reviews'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -14154,7 +14154,7 @@ async function saveGovReview(id) {
 }
 
 async function deleteGovReview(id) {
-  if (!confirm('Really delete this management review?')) return
+  if (!confirm(t('gov_deleteReviewConfirm'))) return
   const res = await fetch(`/governance/reviews/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
   switchGovTab('reviews')
@@ -14179,7 +14179,7 @@ async function openGovActionForm(id = null) {
       <div class="training-form-body">
         <div class="gov-section-title">${t('ui_basicData')}</div>
         <label class="form-label">${t('col_title')} *</label>
-        <input id="gaTitle" class="input" value="${escHtml(action.title||'')}" placeholder="e.g. Penetration test production network">
+        <input id="gaTitle" class="input" value="${escHtml(action.title||'')}" placeholder="${escHtml(t('ph_actionEg'))}">
         <label class="form-label" style="margin-top:8px">${t('ui_description')}</label>
         <textarea id="gaDesc" class="input" rows="3">${escHtml(action.description||'')}</textarea>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px">
@@ -14203,7 +14203,7 @@ async function openGovActionForm(id = null) {
           </div>
         </div>
         <label class="form-label" style="margin-top:8px">${t('gov_sourceRefPh')}</label>
-        <input id="gaSourceRef" class="input" value="${escHtml(action.sourceRef||'')}" placeholder="e.g. Finding A-2024-007">
+        <input id="gaSourceRef" class="input" value="${escHtml(action.sourceRef||'')}" placeholder="${escHtml(t('ph_sourceEg'))}">
 
         <div class="gov-section-title">${t('gov_responsibility')}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -14213,7 +14213,7 @@ async function openGovActionForm(id = null) {
           </div>
           <div>
             <label class="form-label">${t('ui_email')}</label>
-            <input id="gaOwnerEmail" type="email" class="input" value="${escHtml(action.ownerEmail||'')}" placeholder="name@example.com">
+            <input id="gaOwnerEmail" type="email" class="input" value="${escHtml(action.ownerEmail||'')}" placeholder="${escHtml(t('loginEmailPh'))}">
           </div>
           <div>
             <label class="form-label">${t('ui_dueDate')}</label>
@@ -14266,7 +14266,7 @@ async function saveGovAction(id) {
     linkedControls: getLinkedValues('ga', 'ctrl'),
     linkedPolicies: getLinkedValues('ga', 'pol'),
   }
-  if (!payload.title) { alert('Title is required'); return }
+  if (!payload.title) { alert(t('findings_titleRequired')); return }
   const url    = id ? `/governance/actions/${id}` : '/governance/actions'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -14275,7 +14275,7 @@ async function saveGovAction(id) {
 }
 
 async function deleteGovAction(id) {
-  if (!confirm('Really delete this action?')) return
+  if (!confirm(t('gov_deleteActionConfirm'))) return
   const res = await fetch(`/governance/actions/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
   switchGovTab('actions')
@@ -14300,7 +14300,7 @@ async function openGovMeetingForm(id = null) {
       <div class="training-form-body">
         <div class="gov-section-title">${t('ui_basicData')}</div>
         <label class="form-label">${t('col_title')} *</label>
-        <input id="gmTitle" class="input" value="${escHtml(meeting.title||'')}" placeholder="e.g. ISMS Committee Q1/2025">
+        <input id="gmTitle" class="input" value="${escHtml(meeting.title||'')}" placeholder="${escHtml(t('ph_meetingEg'))}">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px">
           <div>
             <label class="form-label">${t('gov_committee')}</label>
@@ -14318,7 +14318,7 @@ async function openGovMeetingForm(id = null) {
           </div>
         </div>
         <label class="form-label" style="margin-top:8px">${t('ui_location')}</label>
-        <input id="gmLocation" class="input" value="${escHtml(meeting.location||'')}" placeholder="e.g. Conference room 1">
+        <input id="gmLocation" class="input" value="${escHtml(meeting.location||'')}" placeholder="${escHtml(t('ph_roomEg'))}">
 
         <div class="gov-section-title">${t('ui_participants')}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -14390,7 +14390,7 @@ async function saveGovMeeting(id) {
     linkedControls:  getLinkedValues('gm', 'ctrl'),
     linkedPolicies:  getLinkedValues('gm', 'pol'),
   }
-  if (!payload.title) { alert('Title is required'); return }
+  if (!payload.title) { alert(t('findings_titleRequired')); return }
   const url    = id ? `/governance/meetings/${id}` : '/governance/meetings'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -14399,7 +14399,7 @@ async function saveGovMeeting(id) {
 }
 
 async function deleteGovMeeting(id) {
-  if (!confirm('Delete meeting minutes?')) return
+  if (!confirm(t('gov_deleteMeetingConfirm'))) return
   const res = await fetch(`/governance/meetings/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
   switchGovTab('meetings')
@@ -14698,7 +14698,7 @@ async function saveBia(id) {
     linkedControls: getLinkedValues('bia', 'ctrl'),
     linkedPolicies: getLinkedValues('bia', 'pol'),
   }
-  if (!payload.title) { alert('Title is required'); return }
+  if (!payload.title) { alert(t('findings_titleRequired')); return }
   const url    = id ? `/bcm/bia/${id}` : '/bcm/bia'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -14707,7 +14707,7 @@ async function saveBia(id) {
 }
 
 async function deleteBia(id) {
-  if (!confirm('Delete BIA entry?')) return
+  if (!confirm(t('bcm_deleteBiaConfirm'))) return
   const res = await fetch(`/bcm/bia/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
   switchBcmTab('bia')
@@ -14923,7 +14923,7 @@ async function savePlan(id) {
     linkedControls: getLinkedValues('plan', 'ctrl'),
     linkedPolicies: getLinkedValues('plan', 'pol'),
   }
-  if (!payload.title) { alert('Title is required'); return }
+  if (!payload.title) { alert(t('findings_titleRequired')); return }
   const url    = id ? `/bcm/plans/${id}` : '/bcm/plans'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -14932,7 +14932,7 @@ async function savePlan(id) {
 }
 
 async function deletePlan(id) {
-  if (!confirm('Delete continuity plan?')) return
+  if (!confirm(t('bcm_deletePlanConfirm'))) return
   const res = await fetch(`/bcm/plans/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
   switchBcmTab('plans')
@@ -15099,7 +15099,7 @@ async function saveExercise(id) {
     linkedControls: getLinkedValues('ex', 'ctrl'),
     linkedPolicies: getLinkedValues('ex', 'pol'),
   }
-  if (!payload.title) { alert('Title is required'); return }
+  if (!payload.title) { alert(t('findings_titleRequired')); return }
   const url    = id ? `/bcm/exercises/${id}` : '/bcm/exercises'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -15108,7 +15108,7 @@ async function saveExercise(id) {
 }
 
 async function deleteExercise(id) {
-  if (!confirm('Delete exercise?')) return
+  if (!confirm(t('bcm_deleteExerciseConfirm'))) return
   const res = await fetch(`/bcm/exercises/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'Error'); return }
   switchBcmTab('exercises')
@@ -15292,9 +15292,9 @@ async function switchSuppliersTab(tab) {
     return `
       <table class="bcm-table">
         <thead><tr>
-          <th>Name</th><th>Type</th><th>Criticality</th><th>Status</th>
+          <th>${t('col_name')}</th><th>${t('col_type')}</th><th>${t('col_criticality')}</th><th>${t('col_status')}</th>
           <th>${t('supl_triage')}</th>
-          <th>Country</th><th>Next Audit</th><th>Audit Result</th><th>Actions</th>
+          <th>${t('col_country')}</th><th>${t('col_nextAudit')}</th><th>${t('col_auditResult')}</th><th>${t('admin_actions')}</th>
         </tr></thead>
         <tbody>
           ${rows.length ? rows.map(s => {
@@ -15302,22 +15302,22 @@ async function switchSuppliersTab(tab) {
             return `<tr class="${overdue ? 'overdue' : ''}">
               <td>
                 <strong>${escHtml(s.name)}</strong>
-                ${s.dataAccess ? '<br><small style="color:var(--warning-text)"><i class="ph ph-database"></i> Data Access</small>' : ''}
+                ${s.dataAccess ? '<br><small style="color:var(--warning-text)"><i class="ph ph-database"></i> ' + t('col_dataAccess') + '</small>' : ''}
               </td>
               <td>${escHtml(SUP_TYPE_LABELS[s.type] || s.type)}</td>
               <td>${supCritBadge(s.criticality)}</td>
               <td>${supStatusBadge(s.status)}</td>
               <td>${supTriageBadge(s.triageResult)}</td>
               <td>${escHtml(s.country || '—')}</td>
-              <td class="${overdue ? 'bcm-overdue' : ''}">${s.nextAuditDate || '—'}${overdue ? ' <i class="ph ph-warning-circle" title="Overdue!"></i>' : ''}</td>
+              <td class="${overdue ? 'bcm-overdue' : ''}">${s.nextAuditDate || '—'}${overdue ? ' <i class="ph ph-warning-circle" title="' + escHtml(t('bcm_overdue')) + '"></i>' : ''}</td>
               <td>${escHtml(SUP_AUDIT_LABELS[s.auditResult] || s.auditResult || '—')}</td>
               <td style="white-space:nowrap">
-                <button class="btn btn-secondary btn-xs" title="Self-Assessments" onclick="openSupplierAssessments('${s.id}')"><i class="ph ph-clipboard-text"></i></button>
+                <button class="btn btn-secondary btn-xs" title="${escHtml(t('sup_selfAssessments'))}" onclick="openSupplierAssessments('${s.id}')"><i class="ph ph-clipboard-text"></i></button>
                 ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openSupplierForm('${s.id}')"><i class="ph ph-pencil"></i></button>` : ''}
                 ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteSupplier('${s.id}')"><i class="ph ph-trash"></i></button>` : ''}
               </td>
             </tr>`
-          }).join('') : `<tr><td colspan="9" class="dash-empty">No suppliers found</td></tr>`}
+          }).join('') : `<tr><td colspan="9" class="dash-empty">${t('suppliers_none')}</td></tr>`}
         </tbody>
       </table>
     `
@@ -15325,9 +15325,9 @@ async function switchSuppliersTab(tab) {
 
   el.innerHTML = `
     <div class="bcm-filter-bar">
-      ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openSupplierForm()"><i class="ph ph-plus"></i> New Supplier</button>` : ''}
+      ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openSupplierForm()"><i class="ph ph-plus"></i> ${t('sup_newSupplier')}</button>` : ''}
       <select id="supFilterType" class="select" style="max-width:160px">
-        <option value="">All Types</option>
+        <option value="">${t('ui_allTypes')}</option>
         ${Object.entries(SUP_TYPE_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
       </select>
       <select id="supFilterCrit" class="select" style="max-width:160px">
@@ -15587,7 +15587,7 @@ async function saveSupplier(id) {
       assessedBy: getCurrentUser(),
     },
   }
-  if (!payload.name) { alert('Name is required'); return }
+  if (!payload.name) { alert(t('common_nameRequired')); return }
   const url    = id ? `/suppliers/${id}` : '/suppliers'
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -15596,7 +15596,7 @@ async function saveSupplier(id) {
 }
 
 async function deleteSupplier(id) {
-  if (!confirm('Move supplier to trash?')) return
+  if (!confirm(t('suppliers_trashConfirm'))) return
   const res = await fetch(`/suppliers/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || 'Error'); return }
   renderSuppliers()
@@ -15728,7 +15728,7 @@ async function openCreateAssessment(supplierId) {
         <input id="assDueDate" type="date" class="form-input" />
 
         <label class="form-label">${t('sup_noteToSupplier')}</label>
-        <textarea id="assNote" class="form-textarea" rows="2" placeholder="Bitte bis zum Fälligkeitsdatum ausfüllen."></textarea>
+        <textarea id="assNote" class="form-textarea" rows="2" placeholder="${escHtml(t('assess_notePh'))}"></textarea>
 
         <div style="display:flex;gap:10px;margin-top:8px">
           <button class="btn btn-primary" onclick="createAssessment('${supplierId}')">
@@ -15808,7 +15808,7 @@ async function openAssessmentDetail(id) {
   const el = dom('suppliersTabContent')
   if (!el) return
   const res = await fetch(`/assessments/${id}`, { headers: apiHeaders() })
-  if (!res.ok) { alert('Not found'); return }
+  if (!res.ok) { alert(t('ui_notFound')); return }
   const a = await res.json()
   const scoreColor = a.score >= 70 ? 'var(--success-text)' : a.score >= 40 ? 'var(--warning-text)' : 'var(--danger-text)'
 
@@ -15836,7 +15836,7 @@ async function openAssessmentReview(id) {
   const el = dom('suppliersTabContent')
   if (!el) return
   const res = await fetch(`/assessments/${id}`, { headers: apiHeaders() })
-  if (!res.ok) { alert('Not found'); return }
+  if (!res.ok) { alert(t('ui_notFound')); return }
   const a = await res.json()
   const scoreColor = a.score >= 70 ? 'var(--success-text)' : a.score >= 40 ? 'var(--warning-text)' : 'var(--danger-text)'
 
@@ -15887,7 +15887,7 @@ async function submitAssessmentReview(id, supplierId) {
 }
 
 async function deleteAssessment(id, supplierId) {
-  if (!confirm('Delete this assessment permanently?')) return
+  if (!confirm(t('assess_deleteConfirm'))) return
   const res = await fetch(`/assessments/${id}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || 'Error'); return }
   openSupplierAssessments(supplierId)
@@ -15986,7 +15986,7 @@ async function _renderDistributionList(container, mode) {
             <td style="white-space:nowrap">
               <button class="btn btn-secondary btn-sm" onclick="openDistributionDetail('${d.id}')"><i class="ph ph-eye"></i></button>
               ${d.mode === 'email_campaign' ? `<button class="btn btn-secondary btn-sm" title="${t('ack_sendReminder')}" onclick="sendAckReminder('${d.id}')"><i class="ph ph-envelope"></i></button>` : ''}
-              <a href="/distributions/${d.id}/export/csv" class="btn btn-secondary btn-sm" title="CSV-Export"><i class="ph ph-download-simple"></i></a>
+              <a href="/distributions/${d.id}/export/csv" class="btn btn-secondary btn-sm" title="${escHtml(t('ui_csvExport'))}"><i class="ph ph-download-simple"></i></a>
               ${getCurrentRole() === 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteDistribution('${d.id}')"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
@@ -16118,7 +16118,7 @@ async function openDistributionDetail(id) {
   const acksHtml = acks.length === 0
     ? `<p style="color:var(--text-muted);padding:20px 0">${t('ack_noAcknowledgements')}</p>`
     : `<table class="data-table" style="width:100%;margin-top:12px">
-        <thead><tr><th>E-Mail</th><th>${t('col_name')}</th><th>${t('ack_confirmedAt')}</th><th>${t('ack_method')}</th>${getCurrentRole()==='admin'?'<th></th>':''}</tr></thead>
+        <thead><tr><th>${t('admin_email')}</th><th>${t('col_name')}</th><th>${t('ack_confirmedAt')}</th><th>${t('ack_method')}</th>${getCurrentRole()==='admin'?'<th></th>':''}</tr></thead>
         <tbody>${acks.map(a => `<tr>
           <td>${escHtml(a.recipientEmail||'–')}</td>
           <td>${escHtml(a.recipientName||'–')}</td>
@@ -16173,7 +16173,7 @@ async function openDistributionDetail(id) {
       </div>
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
-        <a href="/distributions/${id}/export/csv" class="btn btn-secondary btn-sm"><i class="ph ph-download-simple"></i> CSV-Export</a>
+        <a href="/distributions/${id}/export/csv" class="btn btn-secondary btn-sm"><i class="ph ph-download-simple"></i> ${t('ui_csvExport')}</a>
         ${dist.mode === 'email_campaign' ? `<button class="btn btn-secondary btn-sm" onclick="sendAckReminder('${id}')"><i class="ph ph-envelope"></i> ${t('ack_sendReminder')}</button>` : ''}
         <select id="distStatusSel" class="select" style="max-width:180px;padding:6px 10px;font-size:13px" onchange="updateDistStatus('${id}',this.value)">
           <option value="active"${dist.status==='active'?' selected':''}>${t('ack_statusActive')}</option>
