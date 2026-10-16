@@ -171,6 +171,36 @@ components:
               maximum: 5
             score:
               type: integer
+            inherentProbability:
+              type: integer
+              nullable: true
+              minimum: 1
+              maximum: 5
+              description: Inhärente Wahrscheinlichkeit (vor Maßnahmen), optional
+            inherentImpact:
+              type: integer
+              nullable: true
+              minimum: 1
+              maximum: 5
+            targetProbability:
+              type: integer
+              nullable: true
+              minimum: 1
+              maximum: 5
+              description: Zielwert nach Umsetzung des Behandlungsplans, optional
+            targetImpact:
+              type: integer
+              nullable: true
+              minimum: 1
+              maximum: 5
+            inherentScore:
+              type: integer
+              nullable: true
+              readOnly: true
+            targetScore:
+              type: integer
+              nullable: true
+              readOnly: true
             treatment:
               type: string
               enum: [mitigate, accept, avoid, transfer]

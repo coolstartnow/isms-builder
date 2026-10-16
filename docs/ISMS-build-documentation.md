@@ -509,7 +509,7 @@ Benutzer werden in `data/rbac_users.json` als bcrypt-Hashes gespeichert. Verwalt
 | `matrix` | Compliance-Matrix: Control × Gesellschaft (Ampelfarben) | ✓ | Framework |
 | `audit` | Status-Änderungen an Templates im Zeitraum | — | — |
 | `findings` | Audit Findings — KPI (gesamt, nach Schwere/Status, offene/überfällige Maßnahmen), filterbare Tabelle | ✓ | — |
-| `risks` | Risikoregister — alle freigegebenen Risiken mit CVSS-Score, CVE-ID, Quelle (Scan/manuell), KPI je Schweregrad | ✓ | — |
+| `risks` | Risikoregister — alle freigegebenen Risiken mit CVSS-Score, CVE-ID, Quelle (Scan/manuell), KPI je Schweregrad; Inhärenter Score und Zielscore (V 1.60) | ✓ | — |
 
 **Endpunkte:**
 ```
@@ -524,6 +524,12 @@ GET /reports/findings       – Audit-Feststellungen (V 1.37.5)
 GET /reports/risks          – Risikoregister (V 1.37.5)
 GET /reports/export/csv     – CSV-Export ?type=...&entity=...&framework=...
 ```
+
+**Risikoregister im Modul Risk & Compliance (V 1.60):**
+- **Stufe sortieren und filtern (#93):** Die Spalte „Stufe“ ist klickbar (absteigend → aufsteigend → aus, sortiert nach Score); ein zusätzlicher Filter „Alle Stufen“ grenzt auf kritisch/hoch/mittel/niedrig ein. Beides läuft im Browser auf der geladenen Liste.
+- **Inhärentes und Zielrisiko (#94):** Zusätzlich zum aktuellen Wert (Wahrscheinlichkeit × Auswirkung) können je Risiko optional ein inhärenter Wert (ohne Maßnahmen) und ein Zielwert (nach Umsetzung des Behandlungsplans) erfasst werden, jeweils 1–5. Score und Stufe werden berechnet, nicht gespeichert; leere Felder bleiben leer. Das Formular zeigt eine Live-Vorschau, die Detailansicht zeigt beide Werte, sobald einer gesetzt ist. Die Heatmap bleibt auf dem aktuellen Wert. Feldnamen: `inherentProbability`, `inherentImpact`, `targetProbability`, `targetImpact`; berechnet: `inherentScore`, `inherentLevel`, `targetScore`, `targetLevel`.
+- **Export:** Die Risikoliste hat CSV- und PDF-Buttons (Inherent / Aktuell / Ziel, berücksichtigt den aktiven Filter; PDF über `window.print()`). Das Report-CSV (`/reports/export/csv?type=risks`) hat zwei zusätzliche Spalten „Inhärenter Score“ und „Zielscore“.
+- **Korrektur:** Im Risiko-Report war die Spalte „Schweregrad“ leer und die Stufen-Zähler standen auf 0 (der Report las `level` statt `riskLevel`); mit dem SQLite/Postgres-Backend scheiterte der Report außerdem (Promise nicht abgewartet). Beides behoben.
 
 **PDF-Export (V 1.37.5):** Zusätzlicher PDF-Export-Button in der Reports-Filterleiste — erzeugt eine druckfertige Seite in einem neuen Browser-Tab über `window.print()`, wie beim bestehenden Guidance-Druck. Keine neue Abhängigkeit, kein serverseitiges PDF-Rendering für diesen Weg (im Unterschied zur Nextcloud-Auto-Publish-Funktion, siehe Abschnitt 55, die echte PDF-Bytes auf dem Server erzeugt).
 

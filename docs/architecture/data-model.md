@@ -114,6 +114,10 @@ Soft-delete: records are never physically removed — `deletedAt` marks them as 
   "probability": 3,
   "impact": 5,
   "score": 15,
+  "inherentProbability": 5,
+  "inherentImpact": 5,
+  "targetProbability": 2,
+  "targetImpact": 3,
   "treatment": "mitigate",
   "status": "open",
   "owner": "admin",
@@ -124,6 +128,11 @@ Soft-delete: records are never physically removed — `deletedAt` marks them as 
   ]
 }
 ```
+
+`score` und `riskLevel` (low/medium/high/critical) sind berechnet (Wahrscheinlichkeit × Auswirkung,
+Schwellen ≤4 / ≤9 / ≤14 / darüber). Die vier Felder `inherent*` und `target*` sind optional (1–5 oder
+`null`); `inherentScore`/`inherentLevel` und `targetScore`/`targetLevel` werden daraus berechnet und
+nicht gespeichert (V 1.60). Bei SQLite/PostgreSQL liegen sie im JSON-Blob der Spalte `treatments`.
 
 ---
 

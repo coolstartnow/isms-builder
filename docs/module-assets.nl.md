@@ -81,6 +81,8 @@ Drie regels zijn daarbij van belang:
 - **Afwijken kan** met de schakelaar „Beschermingsdoelen los van het type instellen". Zolang die
   uit staat, zijn de vier velden vergrendeld en tonen ze de waarde van het type.
 
+**Type wijzigen in het formulier:** wanneer u in het assetformulier het type wijzigt, tonen de vier beveiligingsvelden meteen de standaardwaarden van het nieuwe type — zonder opslaan en opnieuw openen. Dit geldt zolang „Beschermingsdoelen los van het type instellen” niet is aangevinkt; staat de schakelaar aan, dan blijven uw eigen waarden ongewijzigd. Heeft het nieuwe type geen standaardwaarden, dan zijn de velden vrij bewerkbaar (de schakelaar is dan verborgen). Bij een nieuwe asset gelden de standaardwaarden van het voorgeselecteerde type direct bij het openen.
+
 **Samenspel met afhankelijkheden:** de overerving volgens het maximumprincipe gaat nog steeds
 voor. Hangt een bedrijfsmiddel met een hoge beschermingsbehoefte af van een ander, dan wordt dat
 andere verhoogd — ook als de waarde daar bewust lager is gezet. Dat is bedoeld: een server waarop

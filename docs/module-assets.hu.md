@@ -80,6 +80,8 @@ Három szabály lényeges:
 - **Eltérés lehetséges:** az eszközűrlapon elérhető a „Védelmi célok önálló beállítása a típustól
   függetlenül" kapcsoló. Amíg ki van kapcsolva, a négy mező zárolt és a típus értékét mutatja.
 
+**Típusváltás az űrlapon:** ha az eszköz űrlapján típust vált, a négy védelmi mező azonnal az új típus alapértékeit mutatja — mentés és újranyitás nélkül. Ez addig érvényes, amíg a „Védelmi célok beállítása a típustól függetlenül” kapcsoló nincs bejelölve; ha be van kapcsolva, a saját értékek változatlanok maradnak. Ha az új típusnak nincs alapértéke, a mezők szabadon szerkeszthetők (a kapcsoló ilyenkor rejtett). Új eszköznél az előre kiválasztott típus alapértékei az űrlap megnyitásakor azonnal érvényesek.
+
 **Fontos kölcsönhatás a függőségekkel:** a maximum elvű öröklés továbbra is a típusalapértelmezés
 felett érvényesül. Ha egy magas védelmi igényű eszköz egy másiktól függ, az utóbbi értéke megemelkedik
 — még ott is, ahol az értéket szándékosan csökkentette egy felülbírálat. Ez szándékos: a kritikus

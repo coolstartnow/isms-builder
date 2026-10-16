@@ -82,6 +82,8 @@ Trois règles importantes :
   type ». Tant qu'il est désactivé, les quatre champs sont verrouillés et affichent la valeur du
   type.
 
+**Changement de type dans le formulaire :** lorsque l'on change le type dans le formulaire d'actif, les quatre champs de protection affichent immédiatement les valeurs par défaut du nouveau type — sans enregistrer ni rouvrir. Cela vaut tant que l'option « Définir les objectifs indépendamment du type » n'est pas cochée ; si elle l'est, les valeurs propres restent inchangées. Si le nouveau type n'a pas de valeurs par défaut, les champs sont librement modifiables (l'option est alors masquée). Pour un nouvel actif, les valeurs du type présélectionné s'appliquent dès l'ouverture du formulaire.
+
 **Interaction avec les dépendances :** l'héritage par le principe du maximum reste prioritaire.
 Si un actif à fort besoin de protection dépend d'un autre, ce dernier est relevé — même lorsque
 sa valeur a été volontairement abaissée. C'est voulu : un serveur hébergeant une application

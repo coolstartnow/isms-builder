@@ -79,6 +79,8 @@ Drei Regeln sind dabei wichtig:
 - **Abweichen ist möglich:** Im Asset-Formular gibt es den Schalter „Schutzziele abweichend vom
   Typ festlegen". Solange er aus ist, sind die vier Felder gesperrt und zeigen den Wert des Typs.
 
+**Typwechsel im Formular:** Wechselt man im Asset-Formular den Typ, zeigen die vier Schutzziel-Felder die Vorgabe des neuen Typs sofort an — ohne Speichern und erneutes Öffnen. Das gilt, solange „Schutzziele abweichend vom Typ festlegen“ nicht angehakt ist; ist der Schalter an, bleiben die eigenen Werte unverändert. Hat der neue Typ keine Vorgabe, sind die Felder frei bearbeitbar (der Schalter ist dann ausgeblendet). Bei einem neuen Asset gilt die Vorgabe des vorausgewählten Typs gleich beim Öffnen.
+
 **Wichtig zum Zusammenspiel mit Abhängigkeiten:** Über der Typvorgabe liegt weiterhin die
 Vererbung nach dem Maximumprinzip. Hängt ein Asset mit hohem Schutzbedarf von einem anderen ab,
 wird dieses angehoben — auch dann, wenn sein Wert per Übersteuerung bewusst niedriger gesetzt

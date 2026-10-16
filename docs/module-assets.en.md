@@ -79,6 +79,8 @@ Three rules matter here:
 - **Deviating is possible:** the asset form has a "Set protection goals independently of the
   type" switch. While it is off, the four fields are locked and show the type's value.
 
+**Changing the type in the form:** When you change the type in the asset form, the four protection fields show the new type's defaults immediately — no need to save and reopen. This applies as long as "Set protection goals independently of the type" is not ticked; if the switch is on, your own values stay untouched. If the new type has no defaults, the fields are freely editable (the switch is hidden). For a new asset, the defaults of the preselected type apply as soon as the form opens.
+
 **Important interaction with dependencies:** inheritance by the maximum principle still sits
 above the type default. If an asset with a high protection requirement depends on another, that
 other asset is raised — even where its value was deliberately lowered by an override. This is
