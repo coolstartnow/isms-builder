@@ -86,4 +86,4 @@ Module: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Beschreib
 - Nur mit dem JSON-Backend; Anhänge werden nicht synchronisiert.
 - Konflikte werden pro Datensatz, nicht pro Feld aufgelöst.
 - Am Hauptsystem endgültig gelöschte Datensätze erreichen das Handy nicht.
-- Die App enthält die Server-Logik des Stands, mit dem sie gebaut wurde. Nach einem Server-Update sollte auch die App neu gebaut werden (`npm run build:www` im Projekt `Confluence_ISMS_android`).
+- Die App enthält die Server-Logik des Stands, mit dem sie gebaut wurde. Nach einem Server-Update sollte auch die App neu gebaut werden (`npm run build:www` im Projekt `isms-builder-mobile`).

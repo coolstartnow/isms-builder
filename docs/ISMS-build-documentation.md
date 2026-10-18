@@ -3471,7 +3471,7 @@ Betroffene, bewusst ausgenommene Pfade: `tests/**` (Demo-Login-Credentials in Te
 
 ## 57. Mobile App (Android) & Sync (V 1.75.0)
 
-Eigenständige Android-App (Projekt `Confluence_ISMS_android`, Capacitor), die offline arbeitet und ihren Datenbestand mit dem Hauptsystem abgleicht. Vollständige Beschreibung für Anwender: `docs/module-mobile-sync.md` (de) bzw. `.en/.fr/.nl/.hu.md`.
+Eigenständige Android-App (Projekt `isms-builder-mobile`, Capacitor), die offline arbeitet und ihren Datenbestand mit dem Hauptsystem abgleicht. Vollständige Beschreibung für Anwender: `docs/module-mobile-sync.md` (de) bzw. `.en/.fr/.nl/.hu.md`.
 
 **Server-Seite (dieses Projekt):**
 
@@ -3485,4 +3485,4 @@ Eigenständige Android-App (Projekt `Confluence_ISMS_android`, Capacitor), die o
 - `scripts/sync-import.js <url> <benutzer> <datei>` spielt eine Änderungsdatei der App (Export „Nur Änderungen“) per `/sync/push` ein; Exitcode `3` bei Konflikten.
 - Tests: `tests/sync.test.js`, `tests/syncImport.test.js`; Schnittstelle in `docs/architecture/openapi.yaml` (Tag `sync`).
 
-**App-Seite (Projekt `Confluence_ISMS_android`):** Die Oberfläche (`ui/`) und die Server-Routen/-Stores (`server/routes`, `server/db`) werden beim Bauen unverändert übernommen (`npm run build:www`: `scripts/sync-ui.sh` + esbuild-Bundle mit virtuellem Dateisystem auf IndexedDB); Änderungen am Server wirken nach einem erneuten Bau auch in der App.
+**App-Seite (Projekt `isms-builder-mobile`):** Die Oberfläche (`ui/`) und die Server-Routen/-Stores (`server/routes`, `server/db`) werden beim Bauen unverändert übernommen (`npm run build:www`: `scripts/sync-ui.sh` + esbuild-Bundle mit virtuellem Dateisystem auf IndexedDB); Änderungen am Server wirken nach einem erneuten Bau auch in der App.

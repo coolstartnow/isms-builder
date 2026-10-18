@@ -86,4 +86,4 @@ Modulok: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Leírás
 - Csak JSON háttértárral; a mellékletek nem szinkronizálódnak.
 - Az ütközések rekordonként, nem mezőnként oldhatók fel.
 - A fő rendszeren véglegesen törölt rekordok nem jutnak el a telefonra.
-- Az alkalmazás annak a verziónak a szerverlogikáját tartalmazza, amellyel készült. Szerverfrissítés után az alkalmazást is újra kell építeni (`npm run build:www` a `Confluence_ISMS_android` projektben).
+- Az alkalmazás annak a verziónak a szerverlogikáját tartalmazza, amellyel készült. Szerverfrissítés után az alkalmazást is újra kell építeni (`npm run build:www` a `isms-builder-mobile` projektben).

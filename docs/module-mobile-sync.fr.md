@@ -86,4 +86,4 @@ Modules : `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Décrit
 - Backend JSON uniquement ; les pièces jointes ne sont pas synchronisées.
 - Les conflits sont résolus par enregistrement, pas par champ.
 - Les enregistrements supprimés définitivement sur le système principal n'atteignent pas le téléphone.
-- L'application contient la logique serveur de la version avec laquelle elle a été construite. Après une mise à jour du serveur, reconstruire aussi l'application (`npm run build:www` dans le projet `Confluence_ISMS_android`).
+- L'application contient la logique serveur de la version avec laquelle elle a été construite. Après une mise à jour du serveur, reconstruire aussi l'application (`npm run build:www` dans le projet `isms-builder-mobile`).

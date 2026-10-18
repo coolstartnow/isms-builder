@@ -86,4 +86,4 @@ Modules: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Beschrev
 - Alleen met de JSON-backend; bijlagen worden niet gesynchroniseerd.
 - Conflicten worden per record opgelost, niet per veld.
 - Op het hoofdsysteem definitief verwijderde records bereiken de telefoon niet.
-- De app bevat de serverlogica van de versie waarmee ze is gebouwd. Bouw de app na een serverupdate ook opnieuw (`npm run build:www` in het project `Confluence_ISMS_android`).
+- De app bevat de serverlogica van de versie waarmee ze is gebouwd. Bouw de app na een serverupdate ook opnieuw (`npm run build:www` in het project `isms-builder-mobile`).
