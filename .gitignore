@@ -3,6 +3,8 @@ _wip/
 
 # Claude Code — local only, not for public repo
 CLAUDE.md
+AGENTS.md
+plan.md
 commit-and-push.sh
 json-editor.js
 json-editor-start.sh
