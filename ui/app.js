@@ -5770,8 +5770,10 @@ function renderAdminUsersTab() {
         </button>
       </div>
       <div id="adminUserTable"></div>
+      <div id="adminSyncAccounts" style="margin-top:32px;padding-top:20px;border-top:1px solid var(--border);"></div>
     </div>`
   adminLoadUsers()
+  renderAdminSyncAccounts()
 }
 
 async function adminLoadUsers() {
@@ -5821,6 +5823,214 @@ async function adminLoadUsers() {
         }).join('')}
       </tbody>
     </table>`
+}
+
+// ── Sync-Konten (mobile App) ──────────────────────────────────────────────
+// Eigenständige Zugänge nur für den Datenabgleich der Android-App, unabhängig von den Benutzern. Ein Konto steht für eine
+// Rolle/Person; jedes Gerät bekommt per QR-Code (Einrichtungscode) einen eigenen Schlüssel, den der Administrator nie sieht.
+const SYNC_MODULES = [
+  { id: 'templates', key: 'sync_modTemplates' }, { id: 'soa', key: 'sync_modSoa' }, { id: 'risks', key: 'sync_modRisks' },
+  { id: 'assets', key: 'sync_modAssets' }, { id: 'findings', key: 'sync_modFindings' }, { id: 'guidance', key: 'sync_modGuidance', readOnly: true },
+]
+let _syncList = []
+let _syncForm = null      // null = nur Liste, 'new' = neues Konto, sonst ID des Kontos in Bearbeitung
+let _syncReveal = null    // { name, token } Geräteschlüssel für ein Skript (einmalig)
+let _syncEnroll = null    // { id, name, serverUrl, code, qr, expiresAt } Einrichtung eines Geräts
+let _syncMsg = ''
+
+function syncLevelLabel(l) { return t(l === 'write' ? 'sync_levelWrite' : l === 'read' ? 'sync_levelRead' : 'sync_levelNone') }
+function syncStatus(a) {
+  if (!a.active) return { cls: 'status-archived', label: t('sync_disabled') }
+  if (a.expiresAt && Date.parse(a.expiresAt) <= Date.now()) return { cls: 'status-review', label: t('sync_expired') }
+  return { cls: 'status-approved', label: t('sync_active') }
+}
+
+async function renderAdminSyncAccounts() {
+  const box = document.getElementById('adminSyncAccounts')
+  if (!box) return
+  let res
+  try { res = await fetch('/admin/sync-accounts', { headers: apiHeaders('admin') }) } catch { res = null }
+  if (!res || !res.ok) { box.innerHTML = `<p class="report-error">${t('err_load')}</p>`; return }
+  _syncList = await res.json()
+  const editing = _syncForm && _syncForm !== 'new' ? _syncList.find(a => a.id === _syncForm) : null
+
+  const reveal = _syncReveal ? `
+    <div class="editor-card" style="border-color:var(--warning-text,#e0a000);margin-bottom:14px;">
+      <strong>${escHtml(t('sync_keyTitle', { name: _syncReveal.name }))}</strong>
+      <p class="settings-desc" style="margin:6px 0 10px;">${escHtml(t('sync_keyOnce'))}</p>
+      <code id="syncKeyValue" style="display:block;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:15px;letter-spacing:.04em;word-break:break-all;user-select:all;">${escHtml(_syncReveal.token)}</code>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" id="syncCopyBtn" onclick="syncCopyKey()"><i class="ph ph-copy"></i> ${t('sync_copy')}</button>
+        <button class="btn btn-primary btn-sm" onclick="syncKeyDone()"><i class="ph ph-check"></i> ${t('sync_keyDone')}</button>
+      </div>
+    </div>` : ''
+
+  const enroll = _syncEnroll ? `
+    <div class="editor-card" style="margin-bottom:14px;">
+      <h4 style="margin:0 0 6px;">${escHtml(t('sync_enrollTitle', { name: _syncEnroll.name }))}</h4>
+      <p class="settings-desc" style="margin:0 0 12px;">${escHtml(t('sync_enrollHint'))}</p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+        <img src="${escHtml(_syncEnroll.qr)}" alt="QR" width="240" height="240" style="background:#fff;border-radius:6px;">
+        <div style="flex:1;min-width:260px;">
+          <label class="form-label">${t('sync_enrollCode')}</label>
+          <code style="display:block;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:20px;letter-spacing:.12em;user-select:all;">${escHtml(_syncEnroll.code)}</code>
+          <p class="settings-desc" style="margin:6px 0 12px;">${escHtml(t('sync_enrollValid', { time: new Date(_syncEnroll.expiresAt).toLocaleTimeString() }))}</p>
+          <label class="form-label">${t('sync_enrollServer')}</label>
+          <input id="syncEnrollUrl" class="form-input" value="${escHtml(_syncEnroll.serverUrl)}" style="max-width:420px;">
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="syncEnroll('${_syncEnroll.id}', true)"><i class="ph ph-arrows-clockwise"></i> ${t('sync_enrollNew')}</button>
+            <button class="btn btn-primary btn-sm" onclick="syncEnrollClose()">${t('sync_close')}</button>
+          </div>
+        </div>
+      </div>
+    </div>` : ''
+
+  const form = _syncForm ? `
+    <div class="editor-card" style="margin-bottom:14px;">
+      <h4 style="margin:0 0 12px;">${t(editing ? 'sync_edit' : 'sync_new')}</h4>
+      <div style="display:grid;grid-template-columns:minmax(200px,1fr) 180px;gap:12px;max-width:640px;">
+        <div><label class="form-label">${t('sync_name')} *</label>
+          <input id="syncName" class="form-input" maxlength="80" placeholder="${escHtml(t('sync_namePh'))}" value="${escHtml(editing ? editing.name : '')}"></div>
+        <div><label class="form-label">${t('sync_expires')}</label>
+          <input id="syncExpires" class="form-input" type="date" value="${editing && editing.expiresAt ? escHtml(editing.expiresAt.slice(0, 10)) : ''}">
+          <small style="color:var(--text-subtle);">${t('sync_expiresHint')}</small></div>
+      </div>
+      <label class="form-label" style="margin-top:14px;">${t('sync_rights')}</label>
+      <div style="display:grid;grid-template-columns:minmax(160px,auto) minmax(200px,260px);gap:8px 14px;align-items:center;max-width:520px;">
+        ${SYNC_MODULES.map(m => {
+          const cur = (editing && editing.permissions[m.id]) || 'none'
+          const levels = m.readOnly ? ['none', 'read'] : ['none', 'read', 'write']
+          return `<span>${t(m.key)}</span>
+            <select class="form-input" data-sync-module="${m.id}">${levels.map(l => `<option value="${l}" ${cur === l ? 'selected' : ''}>${escHtml(syncLevelLabel(l))}</option>`).join('')}</select>`
+        }).join('')}
+      </div>
+      <div id="syncFormMsg" class="report-error" style="margin-top:10px;"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="syncSave()"><i class="ph ph-floppy-disk"></i> ${t(editing ? 'sync_save' : 'sync_create')}</button>
+        <button class="btn btn-secondary btn-sm" onclick="syncCancel()">${t('sync_cancel')}</button>
+      </div>
+    </div>` : ''
+
+  const table = _syncList.length === 0
+    ? `<p style="color:var(--text-subtle);padding:12px 0;">${t('sync_none')}</p>`
+    : `<table class="admin-user-table">
+        <thead><tr>
+          <th>${t('sync_name')}</th><th>${t('sync_rights')}</th><th>${t('sync_devices')}</th><th>${t('sync_expires')}</th><th>${t('sync_status')}</th><th style="width:170px;"></th>
+        </tr></thead>
+        <tbody>${_syncList.map(a => {
+          const st = syncStatus(a)
+          const rights = SYNC_MODULES.filter(m => a.permissions[m.id] && a.permissions[m.id] !== 'none')
+            .map(m => `<span class="badge" style="margin:2px 3px 2px 0;padding:2px 8px;font-size:11px;border:1px solid var(--border);border-radius:10px;display:inline-block;">${escHtml(t(m.key))}: ${escHtml(syncLevelLabel(a.permissions[m.id]))}</span>`).join('')
+          const devices = a.devices.length === 0
+            ? `<span style="color:var(--text-subtle);font-size:12px;">${t('sync_noDevices')}</span>`
+            : a.devices.map(d => `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;">
+                <i class="ph ph-device-mobile"></i><span><strong>${escHtml(d.name)}</strong> · ${escHtml(d.lastUsedAt ? new Date(d.lastUsedAt).toLocaleString() : t('sync_never'))}</span>
+                <button class="btn btn-sm" style="color:var(--danger-text);padding:0 4px;" title="${escHtml(t('sync_removeDevice'))}" onclick="syncRemoveDevice('${a.id}','${d.id}')"><i class="ph ph-x"></i></button></div>`).join('')
+          return `<tr>
+            <td><strong>${escHtml(a.name)}</strong></td>
+            <td style="max-width:300px;">${rights}</td>
+            <td>${devices}</td>
+            <td>${a.expiresAt ? escHtml(new Date(a.expiresAt).toLocaleDateString()) : escHtml(t('sync_unlimited'))}</td>
+            <td><span class="badge ${st.cls}">${escHtml(st.label)}</span></td>
+            <td class="admin-user-actions">
+              <button class="btn btn-primary btn-sm" title="${escHtml(t('sync_deviceAdd'))}" onclick="syncEnroll('${a.id}')"><i class="ph ph-qr-code"></i></button>
+              <button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="syncEdit('${a.id}')"><i class="ph ph-pencil"></i></button>
+              <button class="btn btn-secondary btn-sm" title="${escHtml(t('sync_scriptKey'))}" onclick="syncScriptKey('${a.id}')"><i class="ph ph-key"></i></button>
+              <button class="btn btn-secondary btn-sm" title="${escHtml(t(a.active ? 'sync_disable' : 'sync_enable'))}" onclick="syncToggle('${a.id}')"><i class="ph ph-${a.active ? 'prohibit' : 'check-circle'}"></i></button>
+              <button class="btn btn-sm" style="color:var(--danger-text);" title="${escHtml(t('delete'))}" onclick="syncDelete('${a.id}')"><i class="ph ph-trash"></i></button>
+            </td></tr>`
+        }).join('')}</tbody></table>`
+
+  box.innerHTML = `
+    <div class="admin-users-toolbar">
+      <span class="admin-panel-title"><i class="ph ph-device-mobile"></i> ${t('sync_title')}</span>
+      <button class="btn btn-primary btn-sm" onclick="syncNew()"><i class="ph ph-plus"></i> ${t('sync_new')}</button>
+    </div>
+    <p class="settings-desc">${escHtml(t('sync_intro'))}</p>
+    <p class="settings-desc" style="color:var(--text-subtle);font-size:12px;">${escHtml(t('sync_backendNote'))}</p>
+    ${_syncMsg ? `<p class="report-error">${escHtml(_syncMsg)}</p>` : ''}
+    ${reveal}${enroll}${form}${table}`
+  _syncMsg = ''
+}
+
+function syncNew()     { _syncForm = 'new'; renderAdminSyncAccounts() }
+function syncEdit(id)  { _syncForm = id; renderAdminSyncAccounts() }
+function syncCancel()  { _syncForm = null; renderAdminSyncAccounts() }
+function syncKeyDone() { _syncReveal = null; renderAdminSyncAccounts() }
+function syncEnrollClose() { _syncEnroll = null; renderAdminSyncAccounts() }
+
+async function syncCopyKey() {
+  const el = document.getElementById('syncKeyValue')
+  if (!el) return
+  try { await navigator.clipboard.writeText(el.textContent) }
+  catch { const r = document.createRange(); r.selectNodeContents(el); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy') }
+  const b = document.getElementById('syncCopyBtn')
+  if (b) b.innerHTML = `<i class="ph ph-check"></i> ${t('sync_copied')}`
+}
+
+async function syncSave() {
+  const perms = {}
+  document.querySelectorAll('[data-sync-module]').forEach(sel => { perms[sel.dataset.syncModule] = sel.value })
+  const exp = document.getElementById('syncExpires').value
+  const body = { name: document.getElementById('syncName').value, permissions: perms, expiresAt: exp ? new Date(exp + 'T23:59:59').toISOString() : null }
+  const isNew = _syncForm === 'new'
+  const res = await fetch(isNew ? '/admin/sync-accounts' : `/admin/sync-accounts/${encodeURIComponent(_syncForm)}`, {
+    method: isNew ? 'POST' : 'PUT', headers: apiHeaders('admin'), body: JSON.stringify(body),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) { document.getElementById('syncFormMsg').textContent = data.error || t('err_load'); return }
+  _syncForm = null
+  if (isNew) { await syncEnroll(data.account.id); return }   // direkt mit der Einrichtung des ersten Geräts weitermachen
+  renderAdminSyncAccounts()
+}
+
+// Einrichtungscode + QR-Code für ein neues Gerät (15 Minuten, einmalig)
+async function syncEnroll(id, keepUrl) {
+  const a = _syncList.find(x => x.id === id) || { name: '' }
+  const typed = keepUrl && document.getElementById('syncEnrollUrl') ? document.getElementById('syncEnrollUrl').value.trim() : ''
+  const serverUrl = typed || (_syncEnroll && _syncEnroll.id === id ? _syncEnroll.serverUrl : location.origin)
+  const res = await fetch(`/admin/sync-accounts/${encodeURIComponent(id)}/enrollment`, { method: 'POST', headers: apiHeaders('admin'), body: JSON.stringify({ serverUrl }) })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) { _syncMsg = data.error || t('err_load'); renderAdminSyncAccounts(); return }
+  _syncEnroll = { id, name: a.name || (await (async () => { const l = await (await fetch('/admin/sync-accounts', { headers: apiHeaders('admin') })).json(); return (l.find(x => x.id === id) || {}).name || '' })()), serverUrl, code: data.code, qr: data.qr, expiresAt: data.expiresAt }
+  renderAdminSyncAccounts()
+}
+
+// Geräteschlüssel für ein Skript (z. B. scripts/sync-import.js): einmalig sichtbar
+async function syncScriptKey(id) {
+  const a = _syncList.find(x => x.id === id)
+  if (!a) return
+  const res = await fetch(`/admin/sync-accounts/${encodeURIComponent(id)}/devices`, { method: 'POST', headers: apiHeaders('admin'), body: JSON.stringify({ name: 'Skript' }) })
+  const data = await res.json().catch(() => ({}))
+  if (res.ok) _syncReveal = { name: a.name, token: data.token }
+  else _syncMsg = data.error || t('err_load')
+  renderAdminSyncAccounts()
+}
+
+async function syncRemoveDevice(id, deviceId) {
+  const a = _syncList.find(x => x.id === id), d = a && a.devices.find(x => x.id === deviceId)
+  if (!d || !confirm(t('sync_confirmRemoveDevice', { device: d.name, name: a.name }))) return
+  const res = await fetch(`/admin/sync-accounts/${encodeURIComponent(id)}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE', headers: apiHeaders('admin') })
+  if (!res.ok) _syncMsg = (await res.json().catch(() => ({}))).error || t('err_load')
+  renderAdminSyncAccounts()
+}
+
+async function syncToggle(id) {
+  const a = _syncList.find(x => x.id === id)
+  if (!a) return
+  const res = await fetch(`/admin/sync-accounts/${encodeURIComponent(id)}`, { method: 'PUT', headers: apiHeaders('admin'), body: JSON.stringify({ active: !a.active }) })
+  if (!res.ok) _syncMsg = (await res.json().catch(() => ({}))).error || t('err_load')
+  renderAdminSyncAccounts()
+}
+
+async function syncDelete(id) {
+  const a = _syncList.find(x => x.id === id)
+  if (!a || !confirm(t('sync_confirmDelete', { name: a.name }))) return
+  const res = await fetch(`/admin/sync-accounts/${encodeURIComponent(id)}`, { method: 'DELETE', headers: apiHeaders('admin') })
+  if (!res.ok) _syncMsg = (await res.json().catch(() => ({}))).error || t('err_load')
+  if (_syncForm === id) _syncForm = null
+  if (_syncEnroll && _syncEnroll.id === id) _syncEnroll = null
+  renderAdminSyncAccounts()
 }
 
 function openUserModal(user) {

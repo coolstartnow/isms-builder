@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 'use strict'
 // Spielt eine Änderungsdatei der Android-App ("Nur Änderungen exportieren") am Hauptsystem ein.
-// Nutzt POST /sync/push – also dieselbe Konfliktregel wie der WLAN-Abgleich (nichts wird blind überschrieben).
+// Nutzt POST /sync/push mit einem Sync-Konto – also dieselben Rechte und dieselbe Konfliktregel wie der
+// Abgleich der App (nichts wird blind überschrieben).
 //
-//   node scripts/sync-import.js <server-url> <benutzer> <datei.json>
-//   Passwort: Umgebungsvariable ISMS_SYNC_PASSWORD, sonst Abfrage ohne Echo.
+//   node scripts/sync-import.js <server-url> <datei.json>
+//   Zugangsschlüssel: Umgebungsvariable ISMS_SYNC_KEY, sonst Abfrage ohne Echo.
+//   (Sync-Konto anlegen: Verwaltung → Benutzer → Sync-Konten)
 const fs = require('fs')
 const readline = require('readline')
 
@@ -17,8 +19,8 @@ function ask(prompt) {
 }
 
 async function main() {
-  const [url, user, file] = process.argv.slice(2)
-  if (!url || !user || !file) { console.error('Verwendung: node scripts/sync-import.js <server-url> <benutzer> <datei.json>'); process.exit(2) }
+  const [url, file] = process.argv.slice(2)
+  if (!url || !file) { console.error('Verwendung: node scripts/sync-import.js <server-url> <datei.json>'); process.exit(2) }
   if (!/^https?:\/\//i.test(url)) { console.error('Die Server-Adresse muss mit http:// oder https:// beginnen'); process.exit(2) }
   let payload
   try { payload = JSON.parse(fs.readFileSync(file, 'utf8')) } catch (e) { console.error(`Datei nicht lesbar: ${e.message}`); process.exit(2) }
@@ -27,15 +29,12 @@ async function main() {
     process.exit(2)
   }
   const base = url.replace(/\/+$/, '')
-  const password = process.env.ISMS_SYNC_PASSWORD || await ask('Passwort: ')
+  const key = (process.env.ISMS_SYNC_KEY || await ask('Zugangsschlüssel: ')).trim()
+  if (!key) { console.error('Kein Zugangsschlüssel angegeben'); process.exit(2) }
 
-  const login = await fetch(`${base}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password }) })
-  if (login.status !== 200) { console.error(`Anmeldung fehlgeschlagen (HTTP ${login.status})`); process.exit(1) }
-  const cookie = login.headers.getSetCookie().map(c => c.split(';')[0]).find(c => c.startsWith('sm_session='))
-  if (!cookie) { console.error('Der Server hat keine Sitzung geliefert'); process.exit(1) }
-
-  const res = await fetch(`${base}/sync/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: cookie }, body: JSON.stringify(payload) })
+  const res = await fetch(`${base}/sync/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, body: JSON.stringify(payload) })
   const body = await res.json().catch(() => null)
+  if (res.status === 401) { console.error('Zugangsschlüssel ungültig, gesperrt oder abgelaufen'); process.exit(1) }
   if (res.status !== 200 || !body) { console.error(`Import fehlgeschlagen (HTTP ${res.status}): ${body && body.error ? body.error : 'keine Antwort'}`); process.exit(1) }
 
   let ok = 0, conflicts = 0

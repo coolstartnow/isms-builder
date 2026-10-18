@@ -1,7 +1,7 @@
 # Modul: Mobilalkalmazás (Android) és szinkronizálás
 
-> Az Android-alkalmazás az ISMS Builder önálló, offline is használható változata. Saját adatállományt tart a telefonon,
-> és igény szerint egyezteti a fő rendszerrel — Wi-Fi-n vagy fájlon keresztül.
+> Az Android-alkalmazás az ISMS Builder önálló, offline is használható változata. Saját adatállományt tart a telefonon
+> vagy a tableten, és igény szerint egyezteti a fő rendszerrel — Wi-Fi-n vagy fájlon keresztül.
 
 ---
 
@@ -9,23 +9,45 @@
 
 - **Offline munka:** az alkalmazás tartalmazza a felületet és a szerver logikáját (kockázatértékelés, eszköztípusok, verziókezelés, állapotváltások). Szerverre nincs szükség.
 - **Modulok:** dokumentumok/sablonok, SoA (alkalmazhatósági nyilatkozat), kockázatok, eszközök, auditmegállapítások és útmutatók. Az összes többi modul (pl. GDPR, BCM, szállítók, adminisztráció) nincs az alkalmazásban.
-- **Helyi felhasználó:** az eszközön a saját adatok adminisztrátoraként dolgozik. A fő rendszer jogosultságai csak a szinkronizáláskor érvényesek.
-- **Telefon és tablet:** a felület alkalmazkodik (álló és fekvő tájolás; fekvő tájolásnál az oldalsáv látható marad). A jelszó, a 2FA és a szerepkörök beállításai helyben nem léteznek; a nyelvet a szinkronpanelen, az *Felület nyelve* alatt lehet kiválasztani.
+- **Egy fiók alkalmazásonként:** a beállítás után az alkalmazás pontosan egy szinkronfiókhoz tartozik. A név, a menü és a szerkesztési jogok az alkalmazásban e fiók jogosultságait követik.
+- **Telefon és tablet:** a felület alkalmazkodik (álló és fekvő tájolás; fekvő tájolásnál az oldalsáv látható marad). A jelszó, a 2FA és a szerepkörök beállításai helyben nem léteznek; a nyelvet a szinkronpanelen, a *Felület nyelve* alatt lehet kiválasztani.
 - **Nem elérhető:** fájlfeltöltés/mellékletek, WebDAV-közzététel, MI-funkciók, PDF-letöltés a szerverről.
 
 ## Követelmények a fő rendszeren
 
-- ISMS Builder **1.75-ös vagy újabb verzió** (1-es szinkronprotokoll, a `GET /api/version` válaszában `syncProtocol` néven).
+- ISMS Builder **1.76-os vagy újabb verzió** (1-es szinkronprotokoll, a `GET /api/version` válaszában `syncProtocol` néven).
 - `STORAGE_BACKEND=json` (alapértelmezett). sqlite, mariadb vagy postgres esetén a szinkron végpontok `501`-gyel válaszolnak.
 - **HTTPS:** a szervernek `https://` címen kell elérhetőnek lennie (beállítás: `scripts/setup-ssl.sh`, *SSL/TLS beállítása* szakasz). Az alkalmazásban megadott címnek szerepelnie kell a tanúsítványban.
-- **Verziók:** az alkalmazásnak **saját verziószáma** van, és független a fő rendszertől. Kompatibilisek, ha a szinkronprotokoll egyezik (jelenleg 1), és a szerver legalább 1.75-ös verziójú. Az alkalmazás a *Szerver ellenőrzése* és az *Infó és követelmények* alatt mutatja a verziót és a kompatibilitást.
-- Egy felhasználói fiók. A szerepkör határozza meg, mit vihet át az alkalmazás:
+- **Verziók:** az alkalmazásnak **saját verziószáma** van, és független a fő rendszertől. Kompatibilisek, ha a szinkronprotokoll egyezik (jelenleg 1), és a szerver legalább 1.76-os verziójú. Az alkalmazás a *Szerver ellenőrzése* és az *Infó és követelmények* alatt mutatja a verziót és a kompatibilitást.
+- Egy **szinkronfiók** (lásd lent). A szinkronizáláshoz normál felhasználói fiók nem használatos.
 
-| Modul | Olvasás | Írás (push) |
-|---|---|---|
-| Dokumentumok/sablonok, SoA, eszközök | `reader` szinttől | `editor` szinttől |
-| Kockázatok, auditmegállapítások | `reader` szinttől | `auditor` / `contentowner` szinttől |
-| Útmutatók | `reader` szinttől (a dokumentum `minRole` értéke szerint) | csak olvasható |
+## Szinkronfiók létrehozása
+
+Az adminisztrátorok az *Adminisztráció → Felhasználók* alatt, a *Szinkronfiókok (mobilalkalmazás)* részben hozzák létre a szinkronfiókokat (*Új szinkronfiók*). A szinkronfiók egy **szerepkört vagy személyt** képvisel (pl. „CISO”, „adatvédelmi tisztviselő”, „audit”), és **független a felhasználóktól**: nincs bejelentkezés a felületre, nincs szerepkör, nincs jelszó, nincs 2FA. Kizárólag az alkalmazás adatszinkronizálására szolgál.
+
+- **Név**, pl. „CISO”. A név az alkalmazásban fiókként, az újonnan létrehozott rekordokon és az audit naplóban jelenik meg (`sync:CISO`).
+- **Jogosultságok modulonként:** *nincs hozzáférés*, *olvasás* vagy *olvasás és írás* (dokumentumok/sablonok, SoA, kockázatok, eszközök, megállapítások). Az útmutatók csak olvashatók. Példa: az auditor fiókja olvashatja és írhatja a kockázatokat és megállapításokat, mást nem.
+- **Érvényes eddig** (opcionális).
+- **Eszközök:** egy fióknak több eszköze lehet (pl. a CISO telefonja és tabletje). Minden eszköznek **saját kulcsa** van. A lista az eszköz nevét és az „utoljára használva” időpontot mutatja; az elveszett eszköz külön letiltható (✕), a többit nem érinti.
+
+### Eszköz beállítása (QR-kód)
+
+Létrehozás után, később pedig bármikor a QR-ikonnal az adminisztráció **QR-kódot és beállítási kódot** (formátum: `XXXX-XXXX-XXXX`) mutat. Mindkettő **15 percig érvényes és csak egyszer használható**; az új kód érvényteleníti az előzőt. Az a cím, amelyen az alkalmazás eléri a szervert, szerkeszthető (előre kitöltve az éppen használttal). A QR-kód csak ezt a címet és az egyszeri kódot tartalmazza — **a kulcsot nem**. A kulcs csak az alkalmazásban történő beváltáskor jön létre, az adminisztrátor soha nem látja, és a szerveren csak hashként tárolódik.
+
+**Szkriptekhez** (pl. `scripts/sync-import.js`) a kulcs ikon eszközkulcsot hoz létre (`ISMS-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`), amely **egyszer** jelenik meg.
+
+A letiltás, az újra engedélyezés, a jogosultságok módosítása és a törlés azonnal érvénybe lép. Az adminisztráció az audit naplóban rögzítésre kerül (kulcsok és kódok soha); a szinkronizálásból származó módosítások ott a szinkronfiók nevén szerepelnek.
+
+## Az eszköz beállítása az alkalmazásban
+
+1. Telepítse és nyissa meg az alkalmazást (aktív eszközzár esetén előbb oldja fel, lásd *Biztonság*). Az első indításkor az alkalmazás csak a beállítási képernyőt mutatja.
+2. **QR-kód beolvasása**, majd az adminisztráció QR-kódjának lefényképezése a kamerával. Vagy adja meg kézzel a szervercímet és a beállítási kódot. Az alkalmazás maga olvassa a QR-kódot, Google-szolgáltatások nélkül.
+3. Az alkalmazás beváltja a kódot az eszközkulcsra (az Android kulcstárolóban tárolva), letölti az alapadatokat (első szinkronizálás), és újraindul.
+
+Ezután az alkalmazás **ehhez az egy fiókhoz** tartozik: felül a fiók neve látható, a menü és a szerkesztési jogok a fiók jogosultságait követik. A hozzáférés nélküli modulok hiányoznak a menüből; a csak olvasható modulok írásvédettek (a módosításokat „Hozzáférés megtagadva” üzenettel utasítja el). A szinkronpanel a *Az eszköz fiókja* alatt mutatja a fiókot, az eszközt és a jogosultságokat.
+
+- **A jogosultságok változnak:** minden szinkronizálás lekéri az aktuális jogosultságokat. Ha egy olvasási jogot visszavonnak, az alkalmazás törli az adott modul helyi adatait (az el nem küldött módosításokat is); ha egy modult újonnan engednek, teljesen betölti. A megjelenítés és a menü a felület újratöltése után igazodik.
+- **Fiókváltás vagy az eszköz átadása:** a szinkronpanelen az *Eszköz visszaállítása* megerősítés után törli az összes helyi adatot, a fiókot és a kulcsot; ezután új beállítás szükséges. Az el nem küldött módosítások elvesznek.
 
 ## Tanúsítvány a telefonon
 
@@ -40,8 +62,10 @@ Hibaüzenetek: *A szerver nem érhető el* → ellenőrizze a címet, a portot, 
 
 ## Szinkronizálás Wi-Fi-n
 
+A beállítás után (lásd fent) a cím és a kulcs el van mentve: elég a *Szinkronizálás most* gomb. Az alábbi lépések akkor érvényesek, ha a kulcsot eltávolították, vagy másik eszközkulcsot használnak.
+
 1. Koppintson az alkalmazás jobb alsó sarkában lévő szinkron gombra.
-2. Adja meg a szerver címét (pl. `https://isms.example.org:3000`), a felhasználót és a jelszót (bekapcsolt 2FA esetén az alkalmazás mezőt jelenít meg a kódhoz). **A jelszó nem kerül mentésre.**
+2. Adja meg a szerver címét (pl. `https://isms.example.org:3000`) és a **hozzáférési kulcsot**. A *Szerver ellenőrzése* mutatja a szerververziót és a kompatibilitást; az első szinkronizálás után az alkalmazás a szinkronfiók nevét és jogosultságait is megjeleníti. A kulcs az Android védett kulcstárolójában kerül tárolásra; a *Kulcs eltávolítása* törli az eszközről.
 3. **Szinkronizálás most.** Az alkalmazás először elküldi a helyi módosításokat (push), majd letölti, ami új a szerveren (pull). Az első szinkronizálás a teljes alapadatállományt letölti.
 
 Szabályok:
@@ -50,40 +74,50 @@ Szabályok:
 - **Szerveridő:** a szerver fogadáskor adja meg az `updatedAt` értéket. A telefon rosszul járó órája nem zavarja a szinkronizálást.
 - **Ütközések:** ha egy rekordot a szerveren módosítottak azután, hogy a telefon letöltötte, **nem íródik felül**. Az alkalmazásban az *Ütközések feloldása* alatt jelenik meg az eltérő mezőkkel. Rekordonként választható: *Saját változat megtartása* (a következő szinkronizáláskor kerül elküldésre) vagy *Szerverváltozat átvétele*.
 - **Törlés:** a telefonon végzett törlés a fő rendszer kukájába kerül. A telefonon végrehajtott *Végleges törlés* ott szintén törölt rekordként jelenik meg; nem távolítja el a rekordot a fő rendszerből.
-- **Elutasítva:** ha egy modulhoz hiányzik a szerepkör, az alkalmazás *elutasítva* jelzéssel közli; a helyi módosítások nem vesznek el.
+- **Jogosultságok:** az olvasási jog nélküli modulok nem kerülnek letöltésre. Ha egy modulhoz hiányzik az írási jog, az alkalmazás *elutasítva* jelzéssel közli; a helyi módosítások nem vesznek el. A *Hozzáférési kulcs érvénytelen, letiltott vagy lejárt* üzenet azt jelenti: ellenőrizze a fiókot az adminisztrációban.
 
 ## Szinkronizálás fájlon keresztül
 
 A fő rendszerhez hálózati kapcsolattal nem rendelkező eszközökhöz:
 
 - **Minden exportálása** — az alkalmazás adatainak teljes mentése (alkalmazásból alkalmazásba, vagy archívum).
-- **Csak a módosítások exportálása** — a helyben módosított rekordokat tartalmazó fájl. Beolvasás a fő rendszeren:
+- **Csak a módosítások exportálása** — a helyben módosított rekordokat tartalmazó fájl. Beolvasás a fő rendszeren szinkronfiókkal:
 
   ```bash
-  node scripts/sync-import.js http://localhost:3000 admin isms-mobile-changes-2026-10-18.json
+  ISMS_SYNC_KEY=ISMS-XXXX-… node scripts/sync-import.js https://isms.example.org:3000 isms-mobile-changes-2026-10-18.json
   ```
 
-  A jelszó az `ISMS_SYNC_PASSWORD` környezeti változóból vagy kérdésre érkezik. Ugyanaz az ütközési szabály érvényes, mint a Wi-Fi-szinkronnál; a `3`-as kilépési kód ütközést vagy elutasított rekordokat jelent.
+  `ISMS_SYNC_KEY` nélkül a szkript visszhang nélkül kéri a kulcsot. Ugyanazok a jogosultságok és ugyanaz az ütközési szabály érvényes, mint a Wi-Fi-szinkronnál; a `3`-as kilépési kód ütközést vagy elutasított rekordokat jelent.
 - **Fájl importálása** — alkalmazáscsomagot vagy a fő rendszer exportját (*Admin → Export*) fogadja. Az alkalmazás előbb **előnézetet** mutat (új / frissített / változatlan / ütközés). A helyben módosított rekordokat soha nem írja felül csendben. A fő rendszer exportja csak az általa szolgáltatott modulokat tartalmazza (pl. sablonok, SoA, kockázatok, útmutatók); az eszközök és megállapítások a Wi-Fi-szinkronnal érkeznek.
 
 ## API
 
+Minden hívás, a `/sync/enroll` kivételével, tartalmazza az `Authorization: Bearer <eszközkulcs>` fejlécet.
+
 | Metódus | Útvonal | Cél |
 |---|---|---|
-| GET | `/sync/pull?since=<ISO>&modules=a,b` | Módosítások `since` óta, a törölt rekordokkal együtt. A válasz tartalmazza a következő pullhoz szükséges `serverTime` értéket. |
+| POST | `/sync/enroll` | Eszköz beállítása: a beállítási kódot (a QR-kódból) eszközkulcsra váltja. Bejelentkezés nélkül; a kód egyszer használható és 15 percig érvényes; a sikertelen próbálkozások lassításra kerülnek. |
+| GET | `/sync/me` | A szinkronfiók neve, jogosultságai és érvényessége. |
+| GET | `/sync/pull?since=<ISO>&modules=a,b` | Módosítások `since` óta, a törölt rekordokkal együtt, csak az olvasható modulokra (a kifejezetten kért, de nem engedélyezett modulok a `denied` alatt szerepelnek). A válasz tartalmazza a következő pullhoz szükséges `serverTime` értéket. |
 | POST | `/sync/push` | `{ protocolVersion, changes: { <modul>: [rekordok baseUpdatedAt értékkel] } }` — válasz: `accepted`, `conflicts`, `rejected`. |
 
-Modulok: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Leírása: `docs/architecture/openapi.yaml`.
+A szinkronfiókok kezelése (`/admin/sync-accounts`) csak adminisztrátoroknak szól. Modulok: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Leírása: `docs/architecture/openapi.yaml`.
 
 ## Biztonság
 
 - Az átvitel **kizárólag titkosítva (HTTPS)** történik. Az alkalmazás elutasítja a titkosítatlan `http://` címet. A saját Wi-Fi-n kívül a szervernek ezen felül VPN-en vagy fordított proxyn át is elérhetőnek kell lennie.
+- A hozzáférési kulcs **kizárólag a szinkronizálásra** jogosít az engedélyezett modulokra, a felületre vagy az adminisztrációra nem. A szerveren csak a hash tárolódik; az eszközön az Android kulcstárolójában van. Ha egy eszköz elvész, tiltsa le vagy törölje a szinkronfiókot — azonnal hatályba lép.
+- A hibás kulcsok lassításra kerülnek (mint a hibás jelszavak a bejelentkezéskor).
+- **Alkalmazászár:** az alkalmazás induláskor és kb. két perc háttérben töltött idő után ujjlenyomatot, arcot vagy az eszköz PIN-kódját/mintáját/jelszavát kéri. Ha az eszközön nincs képernyőzár, az alkalmazás nem indul el, és megmagyarázza az okot.
+- Az alkalmazás Android-mentése ki van kapcsolva; a képernyőképek, a képernyőfelvétel és az előnézet az alkalmazásáttekintőben tiltottak. Aláírt kiadási (release) verzió kerül kiszállításra (nem „debuggable”, a WebView-hibakeresés ki van kapcsolva).
+- A beállítási kódok egyszer használhatók és 15 percig érvényesek; a hibás kódok lassításra kerülnek.
 - Az adatok az alkalmazás védett tárhelyén vannak az eszközön, de **nincsenek külön titkosítva**. Az eszközzár és az Android-eszköztitkosítás kötelező.
-- A munkamenet csak a szinkronizálásra érvényes, és nem kerül mentésre.
 
 ## Korlátok
 
 - Csak JSON háttértárral; a mellékletek nem szinkronizálódnak.
 - Az ütközések rekordonként, nem mezőnként oldhatók fel.
 - A fő rendszeren véglegesen törölt rekordok nem jutnak el a telefonra.
-- Az alkalmazás annak a verziónak a szerverlogikáját tartalmazza, amellyel készült. Szerverfrissítés után az alkalmazást is újra kell építeni (`npm run build:www` a `isms-builder-mobile` projektben).
+- A felület nem ismer modulonkénti jogosultságokat: csak azt különbözteti meg, hogy „írhat valahol” vagy „csak olvasható”. A pontos modulonkénti ellenőrzés mentéskor történik.
+- Az auditmegállapítások szinkronizálódnak, de az alkalmazásban még nincs saját nézetük.
+- Az alkalmazás annak a verziónak a szerverlogikáját tartalmazza, amellyel készült. Szerverfrissítés után az alkalmazást is újra kell építeni (`npm run build:android` az `isms-builder-mobile` projektben).

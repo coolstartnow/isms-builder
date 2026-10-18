@@ -1,10 +1,16 @@
-// © 2026 Claude Hecker — ISMS Builder V 1.75 — AGPL-3.0
+// © 2026 Claude Hecker — ISMS Builder V 1.76 — AGPL-3.0
 'use strict'
 /**
  * Mobile-Sync (Android-App): Delta-Abgleich der Kernmodule.
  *
+ *   POST /sync/enroll                         Gerät einrichten (Einrichtungscode → Geräteschlüssel)
+ *   GET  /sync/me                             Name, Rechte und Gültigkeit des Zugangs
  *   GET  /sync/pull?since=<ISO>&modules=a,b   Änderungen seit `since` (inkl. Soft-Deletes)
  *   POST /sync/push                           Änderungen vom Gerät einspielen
+ *
+ * Zugang: ausschließlich über ein Sync-Konto (Verwaltung → Benutzer → Sync-Konten), Header
+ * `Authorization: Bearer <Geräteschlüssel>`; der Schlüssel entsteht bei der Einrichtung des Geräts. Es gibt keinen Zugriff mit Benutzerkonto/Sitzungs-Cookie.
+ * Die Rechte (none/read/write) gelten je Modul; Guidance ist nur lesbar.
  *
  * Konfliktregel: Der Client schickt pro Datensatz `baseUpdatedAt` (Stand, auf dem er
  * seine Änderung aufgebaut hat). Wurde der Datensatz serverseitig danach geändert,
@@ -13,28 +19,31 @@
  * spielt keine Rolle, und andere Geräte bekommen die Änderung beim nächsten Pull).
  *
  * Unterstützt wird das JSON-Backend (STORAGE_BACKEND=json, Standard); bei
- * sqlite/mariadb/postgres antworten beide Endpunkte mit 501.
+ * sqlite/mariadb/postgres antworten die Endpunkte mit 501.
  * Anhänge (template-files) werden nicht synchronisiert; `attachments` bleibt serverseitig.
  */
 const express = require('express')
 const fs = require('fs')
 const path = require('path')
 const router = express.Router()
-const { requireAuth, authorize, ROLE_RANK } = require('../auth')
+const syncAccounts = require('../db/syncAccountStore')
+const loginThrottle = require('../loginThrottle')
 
 const SYNC_PROTOCOL = 1
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../../data')
 const MAX_BODY = '20mb'
 const FORBIDDEN_IDS = new Set(['__proto__', 'constructor', 'prototype'])
+const ROLE_RANK = { reader: 1, revision: 1, editor: 2, dept_head: 2, qmb: 2, contentowner: 3, auditor: 3, admin: 4 }
+const GUIDANCE_RANK = 1   // ein Sync-Konto sieht Guidance wie ein Leser (minRole „reader“)
 
-// kind: 'array' = [{id,…}], 'map' = { "<id>": {id,…} }; push: Mindest-Rollenrang (null = nur Pull)
+// kind: 'array' = [{id,…}], 'map' = { "<id>": {id,…} }
 const MODULES = {
-  templates: { file: 'templates.json', kind: 'array', push: 2 },
-  soa:       { file: 'soa.json',       kind: 'map',   push: 2 },
-  risks:     { file: 'risks.json',     kind: 'array', push: 3 },
-  assets:    { file: 'assets.json',    kind: 'array', push: 2 },
-  findings:  { file: 'findings.json',  kind: 'array', push: 3 },
-  guidance:  { file: 'guidance.json',  kind: 'array', push: null },
+  templates: { file: 'templates.json', kind: 'array' },
+  soa:       { file: 'soa.json',       kind: 'map' },
+  risks:     { file: 'risks.json',     kind: 'array' },
+  assets:    { file: 'assets.json',    kind: 'array' },
+  findings:  { file: 'findings.json',  kind: 'array' },
+  guidance:  { file: 'guidance.json',  kind: 'array' },
 }
 const PRESERVE_ON_UPDATE = { templates: ['attachments'] }
 
@@ -45,6 +54,32 @@ function jsonBackendOnly(req, res, next) {
   }
   next()
 }
+
+// Zugangsschlüssel prüfen. Falsche Schlüssel werden wie falsche Passwörter ausgebremst (Kennung + IP).
+function requireSyncAccount(req, res, next) {
+  const m = /^Bearer\s+(.+)$/i.exec(req.headers.authorization || '')
+  if (!m) return res.status(401).json({ error: 'Not authenticated' })
+  const ident = 'sync:' + (syncAccounts._normalize(m[1]) || '').slice(0, 4)
+  const delay = loginThrottle.getRequiredDelayMs(ident, req.ip)
+  if (delay > 0) {
+    res.set('Retry-After', String(Math.ceil(delay / 1000)))
+    return res.status(429).json({ error: 'Too many failed attempts. Please wait a moment and try again.', retryAfterMs: delay })
+  }
+  const r = syncAccounts.verify(m[1])
+  if (!r.account) {
+    loginThrottle.recordFailure(ident, req.ip)
+    return res.status(401).json({ error: r.reason === 'invalid' ? 'Invalid sync key' : 'Sync key is disabled or expired', reason: r.reason })
+  }
+  loginThrottle.recordSuccess(ident, req.ip)
+  syncAccounts.touch(r.account.id, r.device.id)
+  req.syncAccount = r.account
+  req.syncDevice = r.device
+  req.user = `sync:${r.account.name}`
+  next()
+}
+
+const canRead  = (acc, mod) => acc.permissions[mod] === 'read' || acc.permissions[mod] === 'write'
+const canWrite = (acc, mod) => acc.permissions[mod] === 'write'
 
 function nowISO() { return new Date().toISOString() }
 
@@ -85,26 +120,57 @@ function parseModules(raw) {
   return { wanted, unknown }
 }
 
-router.get('/sync/pull', requireAuth, authorize('reader'), jsonBackendOnly, (req, res) => {
+router.get('/sync/me', requireSyncAccount, (req, res) => {
+  const a = req.syncAccount
+  res.json({ protocolVersion: SYNC_PROTOCOL, id: a.id, name: a.name, permissions: a.permissions, expiresAt: a.expiresAt, device: req.syncDevice.name })
+})
+
+// Gerät einrichten: Einrichtungscode (aus dem QR-Code) gegen einen Geräteschlüssel tauschen. Ohne Anmeldung, aber
+// ausgebremst; der Code ist einmalig und nur kurz gültig.
+router.post('/sync/enroll', jsonBackendOnly, async (req, res) => {
+  const body = req.body || {}
+  const ident = 'enroll'
+  const delay = loginThrottle.getRequiredDelayMs(ident, req.ip)
+  if (delay > 0) {
+    res.set('Retry-After', String(Math.ceil(delay / 1000)))
+    return res.status(429).json({ error: 'Too many failed attempts. Please wait a moment and try again.', retryAfterMs: delay })
+  }
+  const r = syncAccounts.redeem(body.code, body.deviceName)
+  if (!r.account) {
+    loginThrottle.recordFailure(ident, req.ip)
+    return res.status(401).json({ error: 'Invalid or expired setup code', reason: r.reason })
+  }
+  loginThrottle.recordSuccess(ident, req.ip)
+  try {
+    await require('../db/auditStore').append({ user: `sync:${r.account.name}`, action: 'enroll', resource: 'mobile-sync', detail: `Gerät eingerichtet: ${r.device.name}` })
+  } catch { /* Audit-Fehler darf die Einrichtung nicht verhindern */ }
+  res.json({ protocolVersion: SYNC_PROTOCOL, key: r.token, device: r.device, account: { id: r.account.id, name: r.account.name, permissions: r.account.permissions, expiresAt: r.account.expiresAt } })
+})
+
+router.get('/sync/pull', requireSyncAccount, jsonBackendOnly, (req, res) => {
+  const acc = req.syncAccount
+  const explicit = !!req.query.modules
   const { wanted, unknown } = parseModules(req.query.modules)
   if (unknown.length) return res.status(400).json({ error: `Unknown modules: ${unknown.join(', ')}` })
   const since = typeof req.query.since === 'string' ? req.query.since : ''
   if (since && Number.isNaN(Date.parse(since))) return res.status(400).json({ error: 'since is not a valid ISO timestamp' })
 
   const serverTime = nowISO() // vor dem Lesen erfasst: nichts geht zwischen zwei Pulls verloren
-  const out = {}
+  const out = {}, denied = []
   for (const mod of wanted) {
+    if (!canRead(acc, mod)) { if (explicit) denied.push(mod); continue }
     let list = asList(mod, loadRecords(mod)).filter(r => r && validId(r.id))
     if (mod === 'guidance') {
-      list = list.filter(d => (ROLE_RANK[(d.minRole || 'reader').toLowerCase()] || 1) <= req.roleRank)
+      list = list.filter(d => (ROLE_RANK[(d.minRole || 'reader').toLowerCase()] || 1) <= GUIDANCE_RANK)
     }
     if (since) list = list.filter(r => changeTime(r) > since)
     out[mod] = list
   }
-  res.json({ protocolVersion: SYNC_PROTOCOL, serverTime, modules: out })
+  res.json({ protocolVersion: SYNC_PROTOCOL, serverTime, modules: out, denied })
 })
 
-router.post('/sync/push', requireAuth, authorize('editor'), jsonBackendOnly, express.json({ limit: MAX_BODY }), async (req, res) => {
+router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ limit: MAX_BODY }), async (req, res) => {
+  const acc = req.syncAccount
   const body = req.body
   if (!body || typeof body !== 'object' || typeof body.changes !== 'object' || body.changes === null) {
     return res.status(400).json({ error: 'Invalid body: changes object expected' })
@@ -122,8 +188,8 @@ router.post('/sync/push', requireAuth, authorize('editor'), jsonBackendOnly, exp
     const def = MODULES[mod]
     const incoming = body.changes[mod]
     if (!Array.isArray(incoming)) { result.rejected.push({ module: mod, reason: 'changes muss ein Array sein' }); continue }
-    if (def.push === null || req.roleRank < def.push) {
-      result.rejected.push({ module: mod, reason: def.push === null ? 'Modul ist nur lesbar' : 'Rolle reicht nicht aus' })
+    if (mod === 'guidance' || !canWrite(acc, mod)) {
+      result.rejected.push({ module: mod, reason: mod === 'guidance' ? 'Modul ist nur lesbar' : 'Keine Schreibrechte für dieses Modul' })
       continue
     }
 

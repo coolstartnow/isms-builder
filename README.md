@@ -1,4 +1,4 @@
-<!-- © 2026 Claude Hecker — ISMS Builder V 1.75 — AGPL-3.0 -->
+<!-- © 2026 Claude Hecker — ISMS Builder V 1.76 — AGPL-3.0 -->
 ![ISMS Builder Banner](isms-builder-banner.png)
 # ISMS Builder
 

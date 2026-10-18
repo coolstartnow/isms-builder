@@ -33,8 +33,40 @@ components:
       type: apiKey
       in: cookie
       name: sm_session
+    syncKeyAuth:
+      type: http
+      scheme: bearer
+      description: Device key of a sync account, e.g. `ISMS-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`. It is created when a device is set up with a setup code (`POST /sync/enroll`) or explicitly for scripts by an administrator.
 
   schemas:
+    SyncAccount:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        devices:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              createdAt: { type: string, format: date-time }
+              lastUsedAt: { type: string, format: date-time, nullable: true, description: Most recent use of any device }
+        enrollment:
+          type: object
+          nullable: true
+          description: Pending setup code (expiry only; never the code itself)
+          properties:
+            expiresAt: { type: string, format: date-time }
+        permissions:
+          type: object
+          additionalProperties: { type: string, enum: [none, read, write] }
+        expiresAt: { type: string, format: date-time, nullable: true }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string, nullable: true }
+        lastUsedAt: { type: string, format: date-time, nullable: true }
     CommonFields:
       type: object
       properties:
@@ -4241,6 +4273,78 @@ paths:
 
   # ─── MOBILE SYNC ─────────────────────────────────────────────────────────
 
+  /sync/enroll:
+    post:
+      tags: [sync]
+      operationId: syncEnroll
+      summary: Set up a device — exchange a setup code for a device key
+      description: |
+        The setup code comes from the QR code shown in the administration (`POST /admin/sync-accounts/{id}/enrollment`).
+        It is single-use and valid for 15 minutes. No login; failed attempts are slowed down.
+        The returned device key is shown only in this response and stored on the server only as a hash.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, example: ABCD-EFGH-JKMN }
+                deviceName: { type: string, maxLength: 60 }
+      responses:
+        '200':
+          description: Device key and account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  protocolVersion: { type: integer }
+                  key: { type: string }
+                  device: { type: object, properties: { id: { type: string }, name: { type: string } } }
+                  account:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      name: { type: string }
+                      permissions: { type: object, additionalProperties: { type: string, enum: [none, read, write] } }
+                      expiresAt: { type: string, format: date-time, nullable: true }
+        '401':
+          description: Setup code invalid, expired, already used, or the account is disabled/expired
+        '429':
+          description: Too many failed attempts
+        '501':
+          description: Storage backend is not json
+
+  /sync/me:
+    get:
+      tags: [sync]
+      operationId: syncMe
+      summary: Name, permissions and expiry of the sync account
+      security:
+        - syncKeyAuth: []
+      responses:
+        '200':
+          description: The sync account behind the access key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  protocolVersion: { type: integer }
+                  id: { type: string }
+                  name: { type: string }
+                  device: { type: string }
+                  permissions:
+                    type: object
+                    additionalProperties: { type: string, enum: [none, read, write] }
+                  expiresAt: { type: string, format: date-time, nullable: true }
+        '401':
+          description: Missing, invalid, disabled or expired access key
+        '429':
+          description: Too many failed attempts
+
   /sync/pull:
     get:
       tags: [sync]
@@ -4250,10 +4354,12 @@ paths:
         Returns all records whose latest change (max of updatedAt, deletedAt, createdAt) is
         newer than `since`. Without `since` the full base data set is returned. Store the
         returned `serverTime` and use it as `since` for the next pull.
-        Only available with STORAGE_BACKEND=json (otherwise 501). Guidance documents are
-        filtered by the caller's role (`minRole`).
+        Only modules the sync account may read are returned; explicitly requested modules
+        without permission are listed under `denied`. Guidance documents are limited to
+        those with `minRole` reader.
+        Only available with STORAGE_BACKEND=json (otherwise 501).
       security:
-        - cookieAuth: []
+        - syncKeyAuth: []
       parameters:
         - name: since
           in: query
@@ -4296,10 +4402,10 @@ paths:
         If the record changed on the server since then — or exists without a base — it is
         NOT overwritten but returned under `conflicts` with the server copy. Accepted records
         get `updatedAt` = server time and are returned so the client can adopt the new stamp.
-        Minimum roles: templates/soa/assets editor (2), risks/findings auditor (3);
-        guidance is pull-only. Template attachments are never changed by a push.
+        Needs `write` permission per module on the sync account; guidance is pull-only.
+        Template attachments are never changed by a push.
       security:
-        - cookieAuth: []
+        - syncKeyAuth: []
       requestBody:
         required: true
         content:
@@ -4351,9 +4457,194 @@ paths:
                         reason: { type: string }
         '400':
           description: Invalid body or unknown module
-        '403':
-          description: Role too low
+        '401':
+          description: Missing, invalid, disabled or expired access key
         '409':
           description: Unsupported sync protocol version
         '501':
           description: Storage backend is not json
+
+  # ─── SYNC ACCOUNTS (administration) ──────────────────────────────────────
+
+  /admin/sync-accounts:
+    get:
+      tags: [sync]
+      operationId: listSyncAccounts
+      summary: List sync accounts (admin) — never contains access keys
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Array of sync accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SyncAccount' }
+    post:
+      tags: [sync]
+      operationId: createSyncAccount
+      summary: Create a sync account (admin); devices are added afterwards via enrollment
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, permissions]
+              properties:
+                name: { type: string, maxLength: 80 }
+                permissions:
+                  type: object
+                  description: Level per module (templates, soa, risks, assets, findings, guidance); at least one must not be `none`; guidance is capped at `read`
+                  additionalProperties: { type: string, enum: [none, read, write] }
+                expiresAt: { type: string, format: date-time, nullable: true }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account: { $ref: '#/components/schemas/SyncAccount' }
+        '400':
+          description: Invalid name, permissions or expiry date
+        '409':
+          description: A sync account with this name already exists
+
+  /admin/sync-accounts/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [sync]
+      operationId: updateSyncAccount
+      summary: Rename, change permissions/expiry, disable or enable (admin)
+      security:
+        - cookieAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                permissions: { type: object, additionalProperties: { type: string, enum: [none, read, write] } }
+                expiresAt: { type: string, format: date-time, nullable: true }
+                active: { type: boolean }
+      responses:
+        '200':
+          description: Updated account
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncAccount' }
+        '400': { description: Invalid input }
+        '404': { description: Not found }
+        '409': { description: Name already in use }
+    delete:
+      tags: [sync]
+      operationId: deleteSyncAccount
+      summary: Delete a sync account; its access key stops working immediately (admin)
+      security:
+        - cookieAuth: []
+      responses:
+        '200': { description: Deleted }
+        '404': { description: Not found }
+
+  /admin/sync-accounts/{id}/enrollment:
+    post:
+      tags: [sync]
+      operationId: startSyncEnrollment
+      summary: Create a setup code and QR code for a new device (admin)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serverUrl]
+              properties:
+                serverUrl: { type: string, description: Address under which the app reaches the server }
+      responses:
+        '200':
+          description: Setup code (15 minutes, single-use) and QR code as data URI
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: string }
+                  expiresAt: { type: string, format: date-time }
+                  serverUrl: { type: string }
+                  payload: { type: string, description: Content of the QR code (`isms-sync://enroll?u=…&c=…`) }
+                  qr: { type: string, description: PNG data URI }
+        '400': { description: Invalid server address }
+        '404': { description: Not found }
+
+  /admin/sync-accounts/{id}/devices:
+    post:
+      tags: [sync]
+      operationId: createSyncDeviceKey
+      summary: Create a device key directly, e.g. for scripts (admin); shown only once
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 60 }
+      responses:
+        '201':
+          description: Device and key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account: { $ref: '#/components/schemas/SyncAccount' }
+                  device: { type: object, properties: { id: { type: string }, name: { type: string } } }
+                  token: { type: string }
+        '404': { description: Not found }
+
+  /admin/sync-accounts/{id}/devices/{deviceId}:
+    delete:
+      tags: [sync]
+      operationId: deleteSyncDevice
+      summary: Block a single device; its key stops working immediately (admin)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Account without the device
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncAccount' }
+        '404': { description: Not found }

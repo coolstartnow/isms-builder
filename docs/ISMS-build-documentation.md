@@ -65,7 +65,7 @@ Stand: 2026-10-16 | Version: V 1.60.0 (Audit-Management mit Auditprogramm, Dokum
 54. Docker-Deployment
 55. ownCloud/Nextcloud-Integration (WebDAV-Auto-Publish)
 56. Security-Historie seit V 1.37 & CI-Härtung
-57. Mobile App (Android) & Sync (V 1.75.0)
+57. Mobile App (Android) & Sync (V 1.76.0)
 
 ---
 
@@ -3469,7 +3469,7 @@ Betroffene, bewusst ausgenommene Pfade: `tests/**` (Demo-Login-Credentials in Te
 
 ---
 
-## 57. Mobile App (Android) & Sync (V 1.75.0)
+## 57. Mobile App (Android) & Sync (V 1.76.0)
 
 Eigenständige Android-App (Projekt `isms-builder-mobile`, Capacitor), die offline arbeitet und ihren Datenbestand mit dem Hauptsystem abgleicht. Vollständige Beschreibung für Anwender: `docs/module-mobile-sync.md` (de) bzw. `.en/.fr/.nl/.hu.md`.
 
@@ -3478,11 +3478,14 @@ Eigenständige Android-App (Projekt `isms-builder-mobile`, Capacitor), die offli
 - `server/routes/sync.js` — `GET /sync/pull?since=&modules=` und `POST /sync/push`; in `server/index.js` nach den übrigen Routen eingebunden. Nur `STORAGE_BACKEND=json` (sonst `501`).
 - Module: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance` (Guidance nur lesbar). Datensätze werden direkt in den JSON-Dateien des Datenverzeichnisses zusammengeführt (temporäre Datei + `rename`, damit kein halb geschriebener Stand entsteht).
 - **Konfliktregel:** Der Client schickt je Datensatz `baseUpdatedAt`. Hat sich der Datensatz am Server danach geändert (größtes von `updatedAt`, `deletedAt`, `createdAt`) oder existiert er ohne Basis, wird er nicht überschrieben, sondern unter `conflicts` samt Serverstand zurückgemeldet. Angenommene Datensätze erhalten `updatedAt` = Serverzeit.
-- Rechte: Vorlagen/SoA/Assets ab Rang 2 (`editor`), Risiken/Feststellungen ab Rang 3 (`auditor`/`contentowner`); Template-Anhänge werden von einem Push nie verändert.
+- **Zugang:** ausschließlich über **Sync-Konten** (`server/db/syncAccountStore.js`, `data/sync-accounts.json`; Verwaltung: `server/routes/syncAccounts.js`, Oberfläche: Verwaltung → Benutzer → Sync-Konten). Sie sind unabhängig von den RBAC-Benutzern: kein Login, keine Rolle. Ein Konto steht für eine Rolle/Person und hat **mehrere Geräte mit je eigenem Schlüssel**. Header `Authorization: Bearer <Geräteschlüssel>`; ein Sitzungs-Cookie genügt für `/sync/*` nicht. Schlüsselformat `ISMS-` + 8×4 Zeichen (31er-Alphabet, 160 Bit), gespeichert nur als SHA-256-Hash, Vergleich zeitkonstant; die erste Gruppe ist die Kennung (`keyId`). Falsche Schlüssel laufen durch `loginThrottle`.
+- **Einrichtung per QR-Code:** `POST /admin/sync-accounts/:id/enrollment` erzeugt einen Einrichtungscode (12 Zeichen, 15 Minuten, einmalig, nur als Hash gespeichert) und einen QR-Code (`isms-sync://enroll?u=<Server-Adresse>&c=<Code>`, serverseitig mit `qrcode`). Die App löst ihn über `POST /sync/enroll` (ohne Login, gebremst) ein und erhält dabei einen neuen Geräteschlüssel; der Administrator sieht den Schlüssel nie. Für Skripte: `POST …/devices` (Schlüssel einmalig sichtbar). Einzelne Geräte: `DELETE …/devices/:deviceId`.
+- **Rechte je Konto und Modul:** `none`/`read`/`write` für `templates`, `soa`, `risks`, `assets`, `findings`, `guidance` (Guidance höchstens `read`). Pull liefert nur lesbare Module (ausdrücklich angefragte, nicht erlaubte unter `denied`), Push braucht `write`. Neue Datensätze tragen `createdBy: sync:<Name>`; das Audit-Log nennt `sync:<Name>`. Template-Anhänge werden von einem Push nie verändert.
+- `GET /sync/me` liefert Id, Name, Rechte, Gültigkeit und Gerätename des Kontos. `/sync` hat einen eigenen JSON-Parser (20 MB) vor dem globalen (100 kB).
 - `GET /api/version` liefert zusätzlich `syncProtocol` (aktuell `1`); Clients mit anderem Protokoll bekommen `409`.
 - **Transport:** Die App akzeptiert nur `https://`. Bei eigenem/selbstsigniertem Zertifikat muss die Server-Adresse im Zertifikat stehen (`scripts/setup-ssl.sh` fragt dafür *Weitere Namen/IP-Adressen* ab) und das Zertifikat am Handy installiert werden (Details: `docs/module-mobile-sync.md`, Abschnitt *Zertifikat auf dem Handy*).
 - **Versionen:** App und Hauptsystem haben getrennte Versionsnummern; maßgeblich für die Verträglichkeit ist `syncProtocol`.
-- `scripts/sync-import.js <url> <benutzer> <datei>` spielt eine Änderungsdatei der App (Export „Nur Änderungen“) per `/sync/push` ein; Exitcode `3` bei Konflikten.
-- Tests: `tests/sync.test.js`, `tests/syncImport.test.js`; Schnittstelle in `docs/architecture/openapi.yaml` (Tag `sync`).
+- `scripts/sync-import.js <url> <datei>` spielt eine Änderungsdatei der App (Export „Nur Änderungen“) per `/sync/push` mit einem Sync-Konto ein (Schlüssel über `ISMS_SYNC_KEY` oder Abfrage); Exitcode `3` bei Konflikten.
+- Tests: `tests/sync.test.js`, `tests/syncAccounts.test.js`, `tests/syncAccountsUi.test.js`, `tests/syncImport.test.js`; Schnittstelle in `docs/architecture/openapi.yaml` (Tag `sync`).
 
-**App-Seite (Projekt `isms-builder-mobile`):** Die Oberfläche (`ui/`) und die Server-Routen/-Stores (`server/routes`, `server/db`) werden beim Bauen unverändert übernommen (`npm run build:www`: `scripts/sync-ui.sh` + esbuild-Bundle mit virtuellem Dateisystem auf IndexedDB); Änderungen am Server wirken nach einem erneuten Bau auch in der App.
+**App-Seite (Projekt `isms-builder-mobile`, Version 1.1.0, unabhängig vom Hauptsystem):** Die Oberfläche (`ui/`) und die Server-Routen/-Stores (`server/routes`, `server/db`) werden beim Bauen unverändert übernommen (`npm run build:www`: `scripts/sync-ui.sh` + esbuild-Bundle mit virtuellem Dateisystem auf IndexedDB); Änderungen am Server wirken nach einem erneuten Bau auch in der App.

@@ -28,6 +28,8 @@ if (process.env.TRUST_PROXY) {
   app.set('trust proxy', Number.isNaN(hops) ? process.env.TRUST_PROXY : hops)
 }
 
+// Sync-Pushes können groß sein: eigener Parser VOR dem globalen (der sonst bei 100 kB mit 413 abweist)
+app.use('/sync', express.json({ limit: '20mb' }))
 app.use(express.json())
 // Fehlertexte der API in der Sprache der Oberfläche (X-Lang) bzw. der Organisations-Standardsprache
 require('./i18n').installMiddleware(app)
@@ -162,6 +164,7 @@ app.use(require('./routes/nis2'))
 app.use(require('./routes/assessments'))
 app.use(require('./routes/assessmentPublic'))
 app.use(require('./routes/sync'))
+app.use(require('./routes/syncAccounts'))
 
 // Test-user management routes (temporary, test-env only)
 try {
