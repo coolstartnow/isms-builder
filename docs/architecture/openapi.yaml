@@ -343,6 +343,8 @@ tags:
     description: Public endpoints (no authentication required)
   - name: trash
     description: Soft-delete trash, restore, permanent delete
+  - name: sync
+    description: Delta sync for the mobile (Android) app — templates, SoA, risks, assets, findings, guidance
 
 paths:
 
@@ -4236,3 +4238,122 @@ paths:
                       format: date-time
                     deletedBy:
                       type: string
+
+  # ─── MOBILE SYNC ─────────────────────────────────────────────────────────
+
+  /sync/pull:
+    get:
+      tags: [sync]
+      operationId: syncPull
+      summary: Changes since a timestamp (incl. soft-deleted records as tombstones)
+      description: |
+        Returns all records whose latest change (max of updatedAt, deletedAt, createdAt) is
+        newer than `since`. Without `since` the full base data set is returned. Store the
+        returned `serverTime` and use it as `since` for the next pull.
+        Only available with STORAGE_BACKEND=json (otherwise 501). Guidance documents are
+        filtered by the caller's role (`minRole`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: since
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: modules
+          in: query
+          required: false
+          description: Comma-separated subset of templates, soa, risks, assets, findings, guidance
+          schema: { type: string }
+      responses:
+        '200':
+          description: Changed records per module
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  protocolVersion: { type: integer, example: 1 }
+                  serverTime: { type: string, format: date-time }
+                  modules:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items: { type: object }
+        '400':
+          description: Unknown module or invalid `since`
+        '401':
+          description: Not authenticated
+        '501':
+          description: Storage backend is not json
+
+  /sync/push:
+    post:
+      tags: [sync]
+      operationId: syncPush
+      summary: Apply changes from a device
+      description: |
+        Each record carries `baseUpdatedAt` (the server `updatedAt` the change was based on).
+        If the record changed on the server since then — or exists without a base — it is
+        NOT overwritten but returned under `conflicts` with the server copy. Accepted records
+        get `updatedAt` = server time and are returned so the client can adopt the new stamp.
+        Minimum roles: templates/soa/assets editor (2), risks/findings auditor (3);
+        guidance is pull-only. Template attachments are never changed by a push.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [protocolVersion, changes]
+              properties:
+                protocolVersion: { type: integer, example: 1 }
+                changes:
+                  type: object
+                  additionalProperties:
+                    type: array
+                    items:
+                      type: object
+                      required: [id]
+                      properties:
+                        id: { type: string }
+                        baseUpdatedAt: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Per-module result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  protocolVersion: { type: integer }
+                  serverTime: { type: string, format: date-time }
+                  accepted:
+                    type: object
+                    additionalProperties: { type: array, items: { type: object } }
+                  conflicts:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id: { type: string }
+                          server: { type: object }
+                  rejected:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        module: { type: string }
+                        id: { type: string }
+                        reason: { type: string }
+        '400':
+          description: Invalid body or unknown module
+        '403':
+          description: Role too low
+        '409':
+          description: Unsupported sync protocol version
+        '501':
+          description: Storage backend is not json

@@ -108,7 +108,7 @@ app.get('/', (req, res) => {
 
 // ── Versionsauskunft (kein Auth erforderlich, auch auf der Login-Seite sichtbar) ──
 app.get('/api/version', (req, res) => {
-  res.json({ version: require('../package.json').version })
+  res.json({ version: require('../package.json').version, syncProtocol: 1 })
 })
 
 // ── Health Check (kein Auth erforderlich) ──
@@ -161,6 +161,7 @@ app.use(require('./routes/ackPublic'))
 app.use(require('./routes/nis2'))
 app.use(require('./routes/assessments'))
 app.use(require('./routes/assessmentPublic'))
+app.use(require('./routes/sync'))
 
 // Test-user management routes (temporary, test-env only)
 try {

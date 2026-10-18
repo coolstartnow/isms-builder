@@ -87,8 +87,30 @@ case "$CHOICE" in
   read -rp " Hostname / CN [localhost]: " HOSTNAME
   HOSTNAME="${HOSTNAME:-localhost}"
 
+  # Weitere Namen/IP-Adressen: Der Client (Browser, Android-App) prüft, ob die aufgerufene Adresse im Zertifikat steht.
+  read -rp " Weitere Namen/IP-Adressen, z. B. für die Android-App (kommagetrennt, leer = keine): " EXTRA_SAN
+
+  # SAN-Eintrag: IPv4 → IP:, sonst DNS: (nur Buchstaben, Ziffern, Punkt, Bindestrich)
+  san_entry() {
+    local v="$1"
+    if [[ "$v" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then echo "IP:$v"
+    elif [[ "$v" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]]; then echo "DNS:$v"
+    else return 1
+    fi
+  }
+  SAN="$(san_entry "$HOSTNAME")" || err "Ungültiger Hostname: $HOSTNAME"
+  SAN="$SAN,DNS:localhost,IP:127.0.0.1"
+  IFS=',' read -ra EXTRA_LIST <<< "$EXTRA_SAN"
+  for entry_raw in "${EXTRA_LIST[@]}"; do
+    entry_raw="$(echo "$entry_raw" | tr -d '[:space:]')"
+    [[ -z "$entry_raw" ]] && continue
+    entry="$(san_entry "$entry_raw")" || err "Ungültiger Eintrag für Name/IP: $entry_raw"
+    SAN="$SAN,$entry"
+  done
+
   read -rp " Gültigkeitsdauer in Tagen [3650]: " DAYS
   DAYS="${DAYS:-3650}"
+  [[ "$DAYS" =~ ^[0-9]+$ && "$DAYS" -ge 1 ]] || err "Ungültige Gültigkeitsdauer: $DAYS (ganze Zahl ≥ 1 erwartet)"
 
   CERT_FILE="$SSL_DIR/cert.pem"
   KEY_FILE="$SSL_DIR/key.pem"
@@ -100,7 +122,7 @@ case "$CHOICE" in
     -keyout "$KEY_FILE" \
     -out "$CERT_FILE" \
     -subj "/CN=${HOSTNAME}/O=ISMS Builder/C=DE" \
-    -addext "subjectAltName=DNS:${HOSTNAME},DNS:localhost,IP:127.0.0.1" \
+    -addext "subjectAltName=${SAN}" \
     2>/dev/null
 
   chmod 600 "$KEY_FILE"
@@ -115,12 +137,15 @@ case "$CHOICE" in
   echo ""
   warn "Browser wird eine Sicherheitswarnung zeigen (selbstsigniert)."
   warn "Für interne Nutzung: Zertifikat im Browser / Betriebssystem als vertrauenswürdig markieren."
+  warn "Android-App: ssl/cert.pem aufs Handy kopieren und dort als Zertifikat installieren;"
+  warn "  die Adresse, die in der App eingetragen wird, muss unter 'Gültig für' stehen."
   warn "Starte den Server neu damit die Änderung wirkt."
 
   # Zertifikat-Info anzeigen
   echo ""
   info "Zertifikat-Details:"
   openssl x509 -in "$CERT_FILE" -noout -subject -dates 2>/dev/null | sed 's/^/  /'
+  echo "  Gültig für: ${SAN//,/, }"
   ;;
 
 # ══════════════════════════════════════════════════════════════════

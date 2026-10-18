@@ -65,6 +65,7 @@ Stand: 2026-10-16 | Version: V 1.60.0 (Audit-Management mit Auditprogramm, Dokum
 54. Docker-Deployment
 55. ownCloud/Nextcloud-Integration (WebDAV-Auto-Publish)
 56. Security-Historie seit V 1.37 & CI-Härtung
+57. Mobile App (Android) & Sync (V 1.75.0)
 
 ---
 
@@ -3465,3 +3466,23 @@ Betroffene, bewusst ausgenommene Pfade: `tests/**` (Demo-Login-Credentials in Te
 ### CI-Härtung — Ergänzung zu Abschnitt 49
 
 Über die dort beschriebene Dependabot-/`npm audit`-Automatisierung hinaus prüft jeder CI-Lauf zusätzlich mit **GitGuardian Security Checks** auf neu eingeführte Secrets, bevor ein Pull Request gemergt werden kann.
+
+---
+
+## 57. Mobile App (Android) & Sync (V 1.75.0)
+
+Eigenständige Android-App (Projekt `Confluence_ISMS_android`, Capacitor), die offline arbeitet und ihren Datenbestand mit dem Hauptsystem abgleicht. Vollständige Beschreibung für Anwender: `docs/module-mobile-sync.md` (de) bzw. `.en/.fr/.nl/.hu.md`.
+
+**Server-Seite (dieses Projekt):**
+
+- `server/routes/sync.js` — `GET /sync/pull?since=&modules=` und `POST /sync/push`; in `server/index.js` nach den übrigen Routen eingebunden. Nur `STORAGE_BACKEND=json` (sonst `501`).
+- Module: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance` (Guidance nur lesbar). Datensätze werden direkt in den JSON-Dateien des Datenverzeichnisses zusammengeführt (temporäre Datei + `rename`, damit kein halb geschriebener Stand entsteht).
+- **Konfliktregel:** Der Client schickt je Datensatz `baseUpdatedAt`. Hat sich der Datensatz am Server danach geändert (größtes von `updatedAt`, `deletedAt`, `createdAt`) oder existiert er ohne Basis, wird er nicht überschrieben, sondern unter `conflicts` samt Serverstand zurückgemeldet. Angenommene Datensätze erhalten `updatedAt` = Serverzeit.
+- Rechte: Vorlagen/SoA/Assets ab Rang 2 (`editor`), Risiken/Feststellungen ab Rang 3 (`auditor`/`contentowner`); Template-Anhänge werden von einem Push nie verändert.
+- `GET /api/version` liefert zusätzlich `syncProtocol` (aktuell `1`); Clients mit anderem Protokoll bekommen `409`.
+- **Transport:** Die App akzeptiert nur `https://`. Bei eigenem/selbstsigniertem Zertifikat muss die Server-Adresse im Zertifikat stehen (`scripts/setup-ssl.sh` fragt dafür *Weitere Namen/IP-Adressen* ab) und das Zertifikat am Handy installiert werden (Details: `docs/module-mobile-sync.md`, Abschnitt *Zertifikat auf dem Handy*).
+- **Versionen:** App und Hauptsystem haben getrennte Versionsnummern; maßgeblich für die Verträglichkeit ist `syncProtocol`.
+- `scripts/sync-import.js <url> <benutzer> <datei>` spielt eine Änderungsdatei der App (Export „Nur Änderungen“) per `/sync/push` ein; Exitcode `3` bei Konflikten.
+- Tests: `tests/sync.test.js`, `tests/syncImport.test.js`; Schnittstelle in `docs/architecture/openapi.yaml` (Tag `sync`).
+
+**App-Seite (Projekt `Confluence_ISMS_android`):** Die Oberfläche (`ui/`) und die Server-Routen/-Stores (`server/routes`, `server/db`) werden beim Bauen unverändert übernommen (`npm run build:www`: `scripts/sync-ui.sh` + esbuild-Bundle mit virtuellem Dateisystem auf IndexedDB); Änderungen am Server wirken nach einem erneuten Bau auch in der App.
