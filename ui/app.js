@@ -5947,7 +5947,9 @@ async function renderAdminSyncAccounts() {
       <button class="btn btn-primary btn-sm" onclick="syncNew()"><i class="ph ph-plus"></i> ${t('sync_new')}</button>
     </div>
     <p class="settings-desc">${escHtml(t('sync_intro'))}</p>
-    <p class="settings-desc" style="color:var(--text-subtle);font-size:12px;">${escHtml(t('sync_backendNote'))}</p>
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin:6px 0 12px;border-left:3px solid var(--warning-text,#e0a000);background:var(--surface-raised,rgba(255,255,255,.04));border-radius:4px;">
+      <i class="ph ph-warning" style="font-size:18px;color:var(--warning-text,#e0a000);margin-top:1px;"></i><strong style="font-weight:600;">${escHtml(t('sync_backendNote'))}</strong>
+    </div>
     ${_syncMsg ? `<p class="report-error">${escHtml(_syncMsg)}</p>` : ''}
     ${reveal}${enroll}${form}${table}`
   _syncMsg = ''

@@ -171,3 +171,16 @@ describe('Mobile-Sync: Push', () => {
     expect(log.some(e => e.action === 'sync' && e.user === 'sync:Voll')).toBe(true)
   })
 })
+
+describe('Mobile-Sync: nur JSON-Speicher', () => {
+  test('mit anderem Speicher-Backend antwortet der Sync mit 501 und nennt den Grund', async () => {
+    const old = process.env.STORAGE_BACKEND
+    process.env.STORAGE_BACKEND = 'sqlite'            // wird bei jeder Anfrage geprüft
+    try {
+      for (const res of [await get(full, '/sync/pull'), await push(full, { risks: [] }), await request(app).post('/sync/enroll').send({ code: 'AAAA-AAAA-AAAA' })]) {
+        expect(res.status).toBe(501)
+        expect(res.body.error).toMatch(/STORAGE_BACKEND=json/)
+      }
+    } finally { process.env.STORAGE_BACKEND = old }
+  })
+})

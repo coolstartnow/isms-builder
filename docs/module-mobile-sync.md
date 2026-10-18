@@ -3,6 +3,8 @@
 > Die Android-App ist eine eigenständige, offline nutzbare Variante des ISMS Builders. Sie hält einen
 > eigenen Datenbestand auf Handy oder Tablet und gleicht ihn bei Bedarf mit dem Hauptsystem ab — per WLAN oder per Datei.
 
+> **⚠ Wichtig — nur mit JSON-Speicher:** Die mobile App und der Abgleich funktionieren **ausschließlich**, wenn ISMS Builder den **JSON-Speicher** nutzt (`STORAGE_BACKEND=json`, der Standard). Mit **SQLite, MariaDB/MySQL oder PostgreSQL ist der Abgleich nicht verfügbar** (der Server antwortet mit `501`). Welcher Speicher aktiv ist, steht in der `.env` des Servers (`STORAGE_BACKEND`). Bitte vor dem Einsatz der App prüfen.
+
 ---
 
 ## Was die App kann
@@ -11,6 +13,7 @@
 - **Module:** Dokumente/Vorlagen, SoA (Statement of Applicability), Risiken, Assets, Audit-Feststellungen und Guidance. Alle anderen Module (z. B. GDPR, BCM, Lieferanten, Verwaltung) gibt es in der App nicht.
 - **Ein Konto je App:** Nach der Einrichtung gehört die App zu genau einem Sync-Konto. Name, Menü und Bearbeitungsrechte in der App folgen den Rechten dieses Kontos.
 - **Handy und Tablet:** Die Oberfläche passt sich an (Hoch- und Querformat; im Querformat bleibt die Seitenleiste sichtbar). Einstellungen für Passwort, 2FA und Rollen gibt es lokal nicht; die Sprache wählt man im Sync-Panel unter *Sprache der Oberfläche*.
+- **Hilfe in der App:** Über den Knopf „?“ im Sync-Panel und auf dem Einrichtungsbildschirm öffnet sich eine eingebaute Anwenderhilfe (Einrichtung, Abgleich, Konflikte, Dateiaustausch, Sicherheit, Fehlermeldungen). Sie ist offline lesbar und in allen fünf Sprachen verfügbar.
 - **Nicht verfügbar:** Datei-Uploads/Anhänge, WebDAV-Veröffentlichung, KI-Funktionen, PDF-Download vom Server.
 
 ## Voraussetzungen am Hauptsystem

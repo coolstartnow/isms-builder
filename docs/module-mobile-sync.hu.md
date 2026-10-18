@@ -3,6 +3,8 @@
 > Az Android-alkalmazás az ISMS Builder önálló, offline is használható változata. Saját adatállományt tart a telefonon
 > vagy a tableten, és igény szerint egyezteti a fő rendszerrel — Wi-Fi-n vagy fájlon keresztül.
 
+> **⚠ Fontos — csak JSON tárolással:** A mobilalkalmazás és a szinkronizálás **kizárólag** akkor működik, ha az ISMS Builder **JSON tárolást** használ (`STORAGE_BACKEND=json`, az alapértelmezett). **SQLite, MariaDB/MySQL vagy PostgreSQL esetén a szinkronizálás nem érhető el** (a szerver `501`-gyel válaszol). Az aktív tárolót a szerver `.env` fájlja adja meg (`STORAGE_BACKEND`). Az alkalmazás használata előtt ellenőrizze.
+
 ---
 
 ## Mit tud az alkalmazás
@@ -11,6 +13,7 @@
 - **Modulok:** dokumentumok/sablonok, SoA (alkalmazhatósági nyilatkozat), kockázatok, eszközök, auditmegállapítások és útmutatók. Az összes többi modul (pl. GDPR, BCM, szállítók, adminisztráció) nincs az alkalmazásban.
 - **Egy fiók alkalmazásonként:** a beállítás után az alkalmazás pontosan egy szinkronfiókhoz tartozik. A név, a menü és a szerkesztési jogok az alkalmazásban e fiók jogosultságait követik.
 - **Telefon és tablet:** a felület alkalmazkodik (álló és fekvő tájolás; fekvő tájolásnál az oldalsáv látható marad). A jelszó, a 2FA és a szerepkörök beállításai helyben nem léteznek; a nyelvet a szinkronpanelen, a *Felület nyelve* alatt lehet kiválasztani.
+- **Súgó az alkalmazásban:** A szinkronpanelen és a beállítási képernyőn lévő „?” gomb beépített felhasználói súgót nyit meg (beállítás, szinkronizálás, ütközések, fájlcsere, biztonság, hibaüzenetek). Offline olvasható, és mind az öt nyelven elérhető.
 - **Nem elérhető:** fájlfeltöltés/mellékletek, WebDAV-közzététel, MI-funkciók, PDF-letöltés a szerverről.
 
 ## Követelmények a fő rendszeren

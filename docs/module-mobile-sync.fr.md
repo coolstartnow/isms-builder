@@ -3,6 +3,8 @@
 > L'application Android est une variante autonome d'ISMS Builder, utilisable hors ligne. Elle conserve ses propres
 > données sur le téléphone ou la tablette et les synchronise à la demande avec le système principal — par Wi-Fi ou par fichier.
 
+> **⚠ Important — uniquement avec le stockage JSON :** L'application mobile et la synchronisation fonctionnent **exclusivement** lorsqu'ISMS Builder utilise le **stockage JSON** (`STORAGE_BACKEND=json`, par défaut). Avec **SQLite, MariaDB/MySQL ou PostgreSQL, la synchronisation n'est pas disponible** (le serveur répond `501`). Le stockage actif est défini dans le `.env` du serveur (`STORAGE_BACKEND`). À vérifier avant d'utiliser l'application.
+
 ---
 
 ## Ce que fait l'application
@@ -11,6 +13,7 @@
 - **Modules :** documents/modèles, SoA (déclaration d'applicabilité), risques, actifs, constats d'audit et guidance. Tous les autres modules (p. ex. RGPD, BCM, fournisseurs, administration) ne sont pas dans l'application.
 - **Un compte par application :** après la configuration, l'application appartient à exactement un compte de synchronisation. Nom, menu et droits d'édition dans l'application suivent les droits de ce compte.
 - **Téléphone et tablette :** l'interface s'adapte (portrait et paysage ; en paysage, la barre latérale reste visible). Il n'y a pas de réglages de mot de passe, 2FA et rôles en local ; la langue se choisit dans le panneau de synchronisation sous *Langue de l'interface*.
+- **Aide dans l'application :** Le bouton « ? » du panneau de synchronisation et de l'écran de configuration ouvre une aide intégrée (configuration, synchronisation, conflits, échange de fichiers, sécurité, messages d'erreur). Elle est lisible hors ligne et disponible dans les cinq langues.
 - **Non disponible :** envoi de fichiers/pièces jointes, publication WebDAV, fonctions d'IA, téléchargement de PDF depuis le serveur.
 
 ## Prérequis sur le système principal

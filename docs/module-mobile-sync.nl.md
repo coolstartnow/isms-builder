@@ -3,6 +3,8 @@
 > De Android-app is een zelfstandige, offline bruikbare variant van ISMS Builder. Ze bewaart een eigen gegevensbestand
 > op telefoon of tablet en synchroniseert dat op verzoek met het hoofdsysteem — via wifi of via een bestand.
 
+> **⚠ Belangrijk — alleen met JSON-opslag:** De mobiele app en de synchronisatie werken **uitsluitend** als ISMS Builder de **JSON-opslag** gebruikt (`STORAGE_BACKEND=json`, de standaard). Met **SQLite, MariaDB/MySQL of PostgreSQL is synchronisatie niet beschikbaar** (de server antwoordt met `501`). De actieve opslag staat in de `.env` van de server (`STORAGE_BACKEND`). Controleer dit voordat u de app gebruikt.
+
 ---
 
 ## Wat de app doet
@@ -11,6 +13,7 @@
 - **Modules:** documenten/sjablonen, SoA (Statement of Applicability), risico's, activa, auditbevindingen en guidance. Alle andere modules (bijv. AVG, BCM, leveranciers, beheer) zitten niet in de app.
 - **Eén account per app:** na de installatie hoort de app bij precies één synchronisatieaccount. Naam, menu en bewerkingsrechten in de app volgen de rechten van dit account.
 - **Telefoon en tablet:** de interface past zich aan (staand en liggend; liggend blijft de zijbalk zichtbaar). Instellingen voor wachtwoord, 2FA en rollen bestaan lokaal niet; de taal kies je in het synchronisatiepaneel onder *Taal van de interface*.
+- **Help in de app:** De knop “?” in het synchronisatiepaneel en op het installatiescherm opent een ingebouwde gebruikershulp (installatie, synchronisatie, conflicten, bestandsuitwisseling, beveiliging, foutmeldingen). Ze is offline leesbaar en in alle vijf talen beschikbaar.
 - **Niet beschikbaar:** bestandsuploads/bijlagen, WebDAV-publicatie, AI-functies, pdf-download vanaf de server.
 
 ## Vereisten op het hoofdsysteem

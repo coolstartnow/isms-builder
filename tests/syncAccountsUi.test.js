@@ -26,6 +26,10 @@ describe('Sync-Konten: Oberfläche (statisch)', () => {
   test('nach dem Anlegen geht es direkt mit der Geräteeinrichtung weiter', () => {
     expect(APP).toMatch(/if \(isNew\) \{ await syncEnroll\(data\.account\.id\)/)
   })
+  test('Hinweis „nur JSON-Speicher“ ist als hervorgehobene Warnung eingebaut, nicht als graue Fußzeile', () => {
+    expect(APP).toMatch(/ph ph-warning[\s\S]{0,260}sync_backendNote/)
+    expect(APP).not.toMatch(/font-size:12px;">\$\{escHtml\(t\('sync_backendNote'\)\)\}/)
+  })
   test('Formular inline, kein Modal', () => {
     const block = APP.slice(APP.indexOf('// ── Sync-Konten (mobile App)'), APP.indexOf('function openUserModal('))
     expect(block).not.toMatch(/class="modal|openModal|\.modal/)
