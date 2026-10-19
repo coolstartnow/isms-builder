@@ -9164,9 +9164,19 @@ async function scanImportUpload(formEl) {
 // ── Risk Create/Edit – Vollseite ──
 
 let _riskEditId = null   // null = neu, string = bearbeiten
+// Generationszaehler gegen ueberlappende openRiskModal()-Aufrufe: zwischen dem
+// Setzen von _riskEditId und dem fertigen Rendern liegen zwei awaits (Risk +
+// Entity-Tree). Ein zweiter Aufruf in dieser Luecke (z.B. versehentlicher
+// Doppelklick auf "Bearbeiten" direkt gefolgt von "Neuer Risk", oder
+// umgekehrt) kann _riskEditId ueberschreiben, obwohl am Ende das Formular des
+// ANDEREN, zuerst gestarteten Aufrufs gerendert wird — das Formular zeigt dann
+// einen bestehenden Risk, aber "Speichern" legt per POST einen neuen an statt
+// per PUT zu aktualisieren. Siehe Issue #101 (Risiken duplizieren sich).
+let _riskModalSeq = 0
 
 async function openRiskModal(id) {
-  _riskEditId = id || null
+  const seq = ++_riskModalSeq
+  const editId = id || null
   let risk = null
   if (id) {
     const res = await fetch(`/risks/${id}`, { headers: apiHeaders() })
@@ -9175,6 +9185,11 @@ async function openRiskModal(id) {
 
   const entRes = await fetch('/entities/tree', { headers: apiHeaders() })
   const entityTree = entRes.ok ? await entRes.json() : []
+  // Ein neuerer Aufruf hat uns ueberholt, waehrend wir noch auf Netzwerk
+  // warteten — unser Ergebnis ist veraltet, nicht mehr rendern oder
+  // _riskEditId setzen.
+  if (seq !== _riskModalSeq) return
+  _riskEditId = editId
   const entities = [] // flat list for submit, built from tree
   ;(function flatten(nodes) { for (const n of nodes) { entities.push(n); flatten(n.children||[]) } })(entityTree)
 
@@ -9334,7 +9349,7 @@ async function openRiskModal(id) {
         <div class="risk-form-footer">
           <p id="rModalError" style="color:var(--danger-text);font-size:13px;display:none;flex:1;margin:0;"></p>
           <button class="btn btn-secondary" onclick="renderRisk()">${t('ui_cancel')}</button>
-          <button class="btn btn-primary btn-lg" onclick="submitRiskForm()">
+          <button id="rModalSaveBtn" class="btn btn-primary btn-lg" onclick="submitRiskForm()">
             <i class="ph ph-floppy-disk"></i> ${t('risk_saveRisk')}
           </button>
         </div>
@@ -9401,7 +9416,15 @@ function updateRiskScorePreview() {
 
 async function submitRiskForm() {
   const errEl = dom('rModalError')
-  const show = msg => { errEl.textContent = msg; errEl.style.display = '' }
+  const show = msg => { errEl.textContent = msg; errEl.style.display = ''; saveBtn && (saveBtn.disabled = false) }
+
+  // Gegen Doppel-Submit (z.B. ungeduldiges Mehrfachklicken, waehrend die
+  // erste Anfrage noch laeuft): Button sofort sperren, erst bei Fehler
+  // wieder freigeben. Verhindert, dass aus einem einzigen beabsichtigten
+  // Speichern mehrere parallele POST/PUT-Anfragen werden (Issue #101).
+  const saveBtn = dom('rModalSaveBtn')
+  if (saveBtn?.disabled) return
+  if (saveBtn) saveBtn.disabled = true
 
   const title = dom('rModalTitle')?.value.trim()
   if (!title) return show(t('risk_titleRequiredErr'))
