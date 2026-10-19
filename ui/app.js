@@ -9457,12 +9457,40 @@ async function submitRiskForm() {
   const editId = _riskEditId
   const url    = editId ? `/risks/${editId}` : '/risks'
   const method = editId ? 'PUT' : 'POST'
-  const res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(body) })
-  if (!res.ok) { const e = await res.json(); return show(e.error || t('err_saveFailed')) }
+  let res
+  try {
+    res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(body) })
+  } catch {
+    // Netzwerkfehler (Verbindung weg, CORS, …) — ohne try/catch bliebe der
+    // Button wegen des obigen disabled=true sonst dauerhaft gesperrt, ohne
+    // jede Rueckmeldung (sah aus wie "Speichern geht nicht mehr").
+    return show(t('err_saveFailed'))
+  }
+  if (!res.ok) {
+    // Fehlerantwort ist nicht garantiert JSON (abgelaufene Session liefert
+    // z.B. eine HTML-Weiterleitung) — res.json() wuerde dann selbst werfen
+    // und denselben dauerhaften Lock-Effekt haben wie oben.
+    let msg = t('err_saveFailed')
+    try { const e = await res.json(); if (e?.error) msg = e.error } catch {}
+    return show(msg)
+  }
   const saved = await res.json()
   _riskEditId = null
-  if (editId) await openRiskDetail(saved.id)
-  else renderRisk()
+  if (editId) {
+    // openRiskModal() replaces #riskContainer with just the edit form,
+    // destroying the tab bar and #riskTabContent along with it.
+    // openRiskDetail() renders into #riskTabContent and silently no-ops if
+    // it doesn't exist (dom('riskTabContent') is null) — so calling it
+    // directly here always failed silently after editing from the list's
+    // pencil icon: the PUT succeeded, but nothing visible happened
+    // afterward, leaving the stale, now-disabled Save button on screen.
+    // Rebuilding the tab structure first restores #riskTabContent before
+    // navigating into the detail view.
+    await renderRisk()
+    await openRiskDetail(saved.id)
+  } else {
+    renderRisk()
+  }
 }
 
 async function deleteRisk(id) {
