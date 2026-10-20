@@ -328,7 +328,7 @@
 
   <div class="demo-reset-banner" id="demoResetBanner">
     <b><i class="ph ph-warning"></i> <span data-i18n="demoResetTitle">Demo-Modus beendet</span></b>
-    <span data-i18n="demoResetText">Das System wurde für den Produktivbetrieb zurückgesetzt. Bitte melden Sie sich mit <strong>admin@example.com</strong> / Passwort <strong>adminpass</strong> an und ändern Sie das Passwort sofort nach dem ersten Login.</span>
+    <span id="demoResetText" data-i18n="demoResetText">Das System wurde für den Produktivbetrieb zurückgesetzt. Bitte melden Sie sich mit <strong>admin@example.com</strong> / Passwort <strong>adminpass</strong> an und ändern Sie das Passwort sofort nach dem ersten Login.</span>
   </div>
 
   <div class="login-card">
@@ -518,6 +518,11 @@
       document.querySelectorAll('[data-i18n-html]').forEach(el => {
         el.innerHTML = t(el.dataset.i18nHtml)
       })
+      // Demo-Reset-Banner: tatsächliche Anmeldekennung des Admins statt der Standardadresse (#98)
+      if (window.__demoAdmin) {
+        const dr = document.getElementById('demoResetText')
+        if (dr) dr.textContent = dr.textContent.split('admin@example.com').join(window.__demoAdmin)
+      }
       document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
         el.placeholder = t(el.dataset.i18nPlaceholder)
       })
@@ -664,7 +669,10 @@
         const r = await fetch('/auth/demo-reset-done')
         if (r.ok) {
           const d = await r.json()
-          if (d.active) document.getElementById('demoResetBanner').classList.add('visible')
+          if (d.active) {
+            if (d.admin) { window.__demoAdmin = d.admin; applyLoginLang() }
+            document.getElementById('demoResetBanner').classList.add('visible')
+          }
         }
       } catch {}
     })()

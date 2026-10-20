@@ -13,7 +13,13 @@ const DEMO_LANG_FILE = path.join(DATA_DIR, '.demo_lang_set')
 
 // ── Demo-Reset-Status (öffentlich, kein Login erforderlich) ──
 router.get('/auth/demo-reset-done', (req, res) => {
-  res.json({ active: fs.existsSync(FLAG_FILE) })
+  const active = fs.existsSync(FLAG_FILE)
+  if (!active) return res.json({ active })
+  // Das Banner nennt die Anmeldekennung des Admins. Der Reset setzt nur das Passwort zurück, nicht die E-Mail –
+  // eine geänderte Adresse würde sonst falsch angezeigt (#98). Nur bei aktivem Flag, wie die Standard-Zugangsdaten selbst.
+  let admin = 'admin@example.com'
+  try { const u = require('../rbacStore').getUserByUsername('admin'); if (u && u.email) admin = u.email } catch { /* Standardwert */ }
+  res.json({ active, admin })
 })
 
 // ── Sprach-Konfiguration (öffentlich — wird von Login-Seite benötigt) ──

@@ -45,8 +45,45 @@ function rowToObj(row) {
   }
 }
 
+// Eingebaute Controls (BSI, NIS2, EUCS, EU AI Act, CRA und – falls vorhanden – die eigene data/iso-controls.json).
+// Die Liste liefert server/db/soaStore.js (gleiche Quelle wie das JSON-Backend), damit beide Backends dasselbe anlegen (#98).
+let _seedControls = []
+function setSeedControls(list) { _seedControls = Array.isArray(list) ? list : [] }
+
 async function init() {
   await getDb()
+}
+
+// Legt fehlende eingebaute Controls an, ergänzt also auch neue Frameworks nach einem Update. Idempotent und ohne bestehende
+// Controls zu verändern (Anpassungen der Nutzer bleiben erhalten) – wie JSON-`load()`. Muss nach knexDatabase.init() laufen
+// (server/index.js: bootstrap → seedAll).
+async function seedBuiltIn() {
+  if (!_seedControls.length) return { added: 0 }
+  const db = getDb()
+  const have = new Set((await db('soa_controls').select('id')).map(r => r.id))
+  const now = new Date().toISOString()
+  const rows = _seedControls.filter(c => c && c.id && !have.has(c.id)).map(c => ({
+    id: c.id,
+    framework: c.framework,
+    control_id: c.controlId || c.id,
+    title: c.title || '',
+    description: c.description || '',
+    theme: c.theme || '',
+    applicable: true,
+    status: 'not_started',
+    owner: '',
+    justification: '',
+    evidence: '',
+    applicable_entities: '[]',
+    linked_templates: '[]',
+    updated_by: 'system',
+    is_custom: false,
+    created_at: now,
+    updated_at: now,
+  }))
+  // in Blöcken: SQLite erlaubt höchstens 999 Platzhalter je Anweisung (17 Spalten × 40 Zeilen = 680)
+  for (let i = 0; i < rows.length; i += 40) await db('soa_controls').insert(rows.slice(i, i + 40))
+  return { added: rows.length }
 }
 
 async function getFrameworks() {
@@ -198,6 +235,8 @@ async function deleteCustomControl(id) {
 
 module.exports = {
   init,
+  setSeedControls,
+  seedBuiltIn,
   getFrameworks,
   getAll,
   getById,

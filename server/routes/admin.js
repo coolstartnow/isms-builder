@@ -536,6 +536,12 @@ router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, re
 // ── Demo-Import ──
 router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json({ limit: '50mb' }), async (req, res) => {
   try {
+    // Demo-Funktion, kein Backup/Restore: schreibt JSON-Dateien. Unter sqlite/mariadb/postgres würden sie nie gelesen –
+    // deshalb klar ablehnen statt still ins Leere zu schreiben (#98).
+    const backend = (process.env.STORAGE_BACKEND || 'json').toLowerCase()
+    if (backend !== 'json') {
+      return res.status(409).json({ error: `Demo import is only available with STORAGE_BACKEND=json (current: ${backend}). It is a demo function and not a backup or migration tool.` })
+    }
     const bundle = req.body
     if (!bundle || typeof bundle !== 'object') {
       return res.status(400).json({ error: 'Ungültiges Bundle-Format' })

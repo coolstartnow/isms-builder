@@ -28,11 +28,15 @@ if (process.env.TRUST_PROXY) {
   app.set('trust proxy', Number.isNaN(hops) ? process.env.TRUST_PROXY : hops)
 }
 
+// Fehlertexte der API in der Sprache der Oberfläche (X-Lang) bzw. der Organisations-Standardsprache.
+// Vor den Body-Parsern, damit auch deren Fehler (zu groß, ungültiges JSON) übersetzt werden (#98); die Middleware braucht den Body nicht.
+require('./i18n').installMiddleware(app)
+
 // Sync-Pushes können groß sein: eigener Parser VOR dem globalen (der sonst bei 100 kB mit 413 abweist)
 app.use('/sync', express.json({ limit: '20mb' }))
+// Demo-Import: Bundles sind groß; der eigene Parser (50 MB, wie in der Route) muss VOR dem globalen stehen, sonst gilt dessen 100-kB-Grenze (#98)
+app.use('/admin/demo-import', express.json({ limit: '50mb' }))
 app.use(express.json())
-// Fehlertexte der API in der Sprache der Oberfläche (X-Lang) bzw. der Organisations-Standardsprache
-require('./i18n').installMiddleware(app)
 
 // ── UI-Dateien: Login-Seite öffentlich, alles andere nur mit gültigem JWT ──
 const uiDir    = path.join(__dirname, '../ui')
@@ -241,6 +245,14 @@ async function runAutopurge() {
 
 // ── Idempotente Guidance-Seeds (Architekturdoku, Demo-Beitrag, Rollen-Guides, …) ──
 async function seedAll() {
+  // SoA: eingebaute Controls unter sqlite/mariadb/postgres anlegen (im JSON-Backend macht das der Store selbst) (#98)
+  try {
+    const r = await require('./db/soaStore').seedBuiltIn()
+    if (r && r.added) console.log(`[seed] ${r.added} SoA-Controls angelegt`)
+  } catch (e) {
+    console.warn('[seed] SoA-Controls konnten nicht angelegt werden:', e.message)
+  }
+
   const guidanceStore = require('./db/guidanceStore')
 
   try {
@@ -325,6 +337,16 @@ function startListener() {
     })
   }
 }
+
+// ── Fehler beim Lesen der Anfrage als JSON melden (nicht als HTML-Seite) ──────────
+// Ohne Fehlerhandler antwortet Express bei zu großem oder ungültigem JSON mit einer HTML-Fehlerseite; die Oberfläche
+// scheitert dann an JSON.parse („Unexpected token '<'“) statt die Ursache zu zeigen (#98). Andere Fehler bleiben unverändert.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err)
+  if (err && err.type === 'entity.too.large') return res.status(413).json({ error: 'Request body too large' })
+  if (err && err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON in request body' })
+  return next(err)
+})
 
 // ── Export für Tests ──────────────────────────────────────────────────────────
 // module.exports muss synchron bleiben: Tests machen `require('../server/index.js')`

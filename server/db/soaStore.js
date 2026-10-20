@@ -448,8 +448,10 @@ const _jsonExports = {
 
 if (STORAGE_BACKEND !== 'json') {
   const _knex = require('./stores/soaStore')
+  _knex.setSeedControls(ALL_SEED_CONTROLS)   // dieselben eingebauten Controls wie im JSON-Backend (#98)
   _knex.init().catch(e => console.error('[soaStore] Knex init:', e.message))
   module.exports = _knex
 } else {
+  _jsonExports.seedBuiltIn = async () => ({ added: 0 })   // JSON legt die Controls beim Laden selbst an (load())
   module.exports = _jsonExports
 }

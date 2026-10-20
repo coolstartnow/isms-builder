@@ -10,7 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **SoA unter SQLite, MariaDB und PostgreSQL bei frischer Installation leer (#98)** — Nur das JSON-Backend legte die eingebauten Controls (BSI, NIS2, EUCS, EU AI Act, CRA und – falls vorhanden – die eigene `data/iso-controls.json`) an; unter den SQL-Backends blieb die Tabelle `soa_controls` leer. `soaStore.seedBuiltIn()` legt sie jetzt beim Start nach der Datenbank-Initialisierung an bzw. ergänzt sie, ohne bestehende Einträge zu verändern; beide Backends nutzen dieselbe Liste. ISO-Controls werden weiterhin **nie** mitgeliefert. Test: `tests/soaSeedSql.test.js`.
+- **Zu große oder ungültige Anfragen meldeten HTML statt JSON (#98)** — Der globale 100-kB-Parser stand vor dem 50-MB-Parser des Demo-Imports; große Bundles scheiterten mit einer HTML-Fehlerseite („Unexpected token '<'“). Der Parser für `/admin/demo-import` steht jetzt davor, und ein Fehlerhandler antwortet bei zu großem (413) oder ungültigem JSON (400) als JSON in der Sprache der Oberfläche (die Übersetzungs-Middleware läuft dazu vor den Parsern). Test: `tests/apiErrorsAndDemoImport.test.js`.
+- **Login-Banner nach dem Demo-Reset nannte immer `admin@example.com` (#98)** — Der Reset setzt nur das Passwort zurück; eine geänderte E-Mail-Adresse des Admins blieb bestehen. `GET /auth/demo-reset-done` liefert bei aktivem Flag zusätzlich die tatsächliche Kennung (`admin`), das Banner zeigt sie an.
+
 ### Changed
+- **`demo-import` nur mit `STORAGE_BACKEND=json` (#98)** — Die Funktion schreibt JSON-Dateien und ist eine Demo-Funktion, kein Backup-, Restore- oder Migrationswerkzeug. Unter `sqlite`, `mariadb` und `postgres` antwortet sie jetzt mit `409` und einer klaren Meldung, statt Dateien zu schreiben, die nie gelesen werden. Der Test zum Pfad-Schutz der Dateinamen (#70) läuft nun unter JSON (`tests/apiErrorsAndDemoImport.test.js`); unter SQL prüft `tests/dbBackendRoutes.test.js` die Ablehnung.
+- **README: „Going live“ neu gefasst** — Produktiv ist immer eine frische Installation, Demo und Produktiv werden nie vermischt; der Hinweis auf `scripts/prepare-production.js` (Demodaten leeren) entfällt, das Skript selbst bleibt unverändert. Klargestellt: Die eingebauten SoA-Frameworks werden auf jedem Speicher angelegt, ISO-Controls nie mitgeliefert.
 - **Mobile App: Screenshots in der Doku (App 1.4.0)** — `docs/module-mobile-sync*.md` (5 Sprachen): neuer Abschnitt „Screenshots“ mit 6 Bildern (`docs/images/mobile/`), erzeugt aus dem App-Projekt.
 - **Mobile App: Doku nennt die Seite „Open-Source-Lizenzen“ (App 1.3.1)** — `docs/module-mobile-sync*.md` (5 Sprachen).
 - **Mobile App: Doku erwähnt die optionale Firmenlizenz (App 1.3.0)** — `docs/module-mobile-sync*.md` (5 Sprachen).

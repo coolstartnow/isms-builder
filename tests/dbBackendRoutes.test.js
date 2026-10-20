@@ -162,16 +162,13 @@ describe(`DB-Backend-Routen [${BACKEND}] — #70 Regression`, () => {
     expect((await authedGet(app, adminCookie, '/audits/summary')).body.total).toBeGreaterThanOrEqual(1)
   })
 
-  test('Import-Bundle: Dateinamen mit Pfadanteilen werden nicht geschrieben', async () => {
-    const outside = path.join(dataDir, '..', 'escape-test.json')
-    const bundle = { files: { 'goals.json': [], '../escape-test.json': { x: 1 }, 'sub/dir.json': {}, 'ok-name.json': { a: 1 } },
-      gdpr: { '../gdpr-escape.json': {} } }
+  test('Demo-Import: unter einem SQL-Backend klar abgelehnt (schreibt keine JSON-Dateien, die nie gelesen würden) (#98)', async () => {
+    // Der Schutz vor Pfadanteilen in Dateinamen (#70/H0) wird unter json getestet: tests/apiErrorsAndDemoImport.test.js
+    const bundle = { files: { 'ok-name.json': { a: 1 } } }
     const res = await authedPost(app, adminCookie, '/admin/demo-import', bundle)
-    expect(res.status).toBe(200)
-    expect(fs.existsSync(outside)).toBe(false)
-    expect(fs.existsSync(path.join(dataDir, '..', 'gdpr-escape.json'))).toBe(false)
-    expect(fs.existsSync(path.join(dataDir, 'sub'))).toBe(false)
-    expect(fs.existsSync(path.join(dataDir, 'ok-name.json'))).toBe(true)
+    expect(res.status).toBe(409)
+    expect(res.body.error).toMatch(/STORAGE_BACKEND=json/)
+    expect(fs.existsSync(path.join(dataDir, 'ok-name.json'))).toBe(false)
   })
   test('Mail-Einstellungen aus der Oberfläche und Digest-Inhalt funktionieren auf dem SQL-Backend', async () => {
     // Früher synchron gelesen (orgSettings.get() ist hier ein Promise): UI-konfiguriertes SMTP wurde nie

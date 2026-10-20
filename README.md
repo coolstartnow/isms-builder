@@ -190,20 +190,17 @@ SSL_CERT_FILE=/etc/ssl/certs/your.crt
 SSL_KEY_FILE=/etc/ssl/private/your.key
 ```
 
-**Going live after evaluating with demo data?** Run the interactive production-prep tool instead
-of starting from a fresh install — it clears demo/test content module by module (or all at once),
-so any real data you've already entered (e.g. risks, assets) doesn't have to be re-entered:
+**Going live?** Production is always a **fresh installation** – demo and production are never mixed.
+Do not turn a demo instance (or its data) into a production system: install a new instance
+(`STORAGE_BACKEND=json` is the recommended default, see `.env.example`), create your own administrator
+and set your own secrets. The in-app *Demo Reset* and *Demo Import* are functions of the demo
+instance only: they are not a backup, restore or migration tool, and *Demo Import* works with
+`STORAGE_BACKEND=json` only.
 
-```bash
-bash stop.sh
-node scripts/prepare-production.js
-bash start.sh
-```
-
-It always creates a backup (`data.bak.<timestamp>/`, next to your `data/` directory) before
-changing anything, and never touches `STORAGE_BACKEND` — unlike the in-app "Demo Reset" admin
-action, which is meant for the demo instance and still switches to `sqlite` for historical reasons
-(see [Issue #42](https://github.com/coolstartnow/isms-builder/issues/42)).
+The built-in SoA frameworks (BSI IT-Grundschutz, EU NIS2, EUCS, EU AI Act, CRA) are created
+automatically on every storage backend. The control texts of ISO 27001 / 9000 / 9001 are
+copyrighted by ISO and are **never** shipped – provide them yourself in `data/iso-controls.json`
+(see `scripts/import-iso-controls.sh`).
 
 ---
 

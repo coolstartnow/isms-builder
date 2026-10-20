@@ -566,6 +566,8 @@ GET /reports/export/csv     – CSV-Export ?type=...&entity=...&framework=...
 > geschützt. Unbefugte Vervielfältigung oder öffentliche Zugänglichmachung — auch im internen
 > Betrieb ohne Lizenz — ist unzulässig.
 
+**Anlegen der eingebauten Controls (alle Speicher):** Die vorinstallierten Frameworks (BSI, NIS2, EUCS, EU AI Act, CRA) und – falls vorhanden – die eigene `data/iso-controls.json` werden bei jedem Start angelegt bzw. ergänzt, ohne bestehende Einträge zu verändern (Änderungen der Nutzer bleiben erhalten). Unter `STORAGE_BACKEND=json` macht das der Store beim Laden (`load()`), unter `sqlite`, `mariadb` und `postgres` `soaStore.seedBuiltIn()` im Bootstrap (`server/index.js` → `seedAll()`, nach der Datenbank-Initialisierung); beide Backends nutzen dieselbe Liste (#98). Zuvor blieb die SoA unter den SQL-Backends bei einer frischen Installation leer.
+
 **Frameworks (313 Controls gesamt):**
 
 | ID | Name | Controls |
@@ -2156,13 +2158,17 @@ Der ISMS Builder wird als Demo-System ausgeliefert. Zwei Admin-Wartungsfunktione
 4. admin-Account bleibt vollständig unverändert (Passwort, 2FA, Einstellungen)
 5. Löscht Flag-Datei falls vorhanden
 
+**Nur mit `STORAGE_BACKEND=json`:** Der Demo-Import schreibt JSON-Dateien. Unter `sqlite`, `mariadb` und `postgres` würden sie nie gelesen; die Route antwortet dort mit `409` und einer Meldung (`Demo import is only available with STORAGE_BACKEND=json …`), statt still ins Leere zu schreiben (#98). Er ist eine Demo-Funktion, kein Backup-, Restore- oder Migrationswerkzeug. Demo und Produktiv werden nie vermischt: Eine Produktiv-Instanz ist immer eine frische Installation.
+
+**Größe:** Bundles bis 50 MB. Der Parser dafür steht in `server/index.js` **vor** dem globalen `express.json()` (100 kB); sonst griffe dessen Grenze zuerst (#98).
+
 **RBAC:** admin only
 
 ### Öffentlicher Endpunkt
 
 | Route | Auth | Beschreibung |
 |---|---|---|
-| `GET /auth/demo-reset-done` | — | Gibt `{ active: true/false }` zurück (Flag-Datei vorhanden?) |
+| `GET /auth/demo-reset-done` | — | Gibt `{ active: true/false }` zurück (Flag-Datei vorhanden?). Bei aktivem Flag zusätzlich `admin` (E-Mail des Accounts `admin`), damit das Login-Banner die tatsächliche Anmeldekennung nennt (#98) |
 
 ### UI (Admin-Konsole → Wartung)
 
