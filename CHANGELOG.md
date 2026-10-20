@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.78.0] — 2026-10-20
+
+> Patch-Release: Korrekturen aus Issue #98 (SoA-Controls unter SQL-Backends, JSON-Fehlerantworten, Demo-Import, Login-Banner) und README „Going live“.
+
 ### Fixed
 - **SoA unter SQLite, MariaDB und PostgreSQL bei frischer Installation leer (#98)** — Nur das JSON-Backend legte die eingebauten Controls (BSI, NIS2, EUCS, EU AI Act, CRA und – falls vorhanden – die eigene `data/iso-controls.json`) an; unter den SQL-Backends blieb die Tabelle `soa_controls` leer. `soaStore.seedBuiltIn()` legt sie jetzt beim Start nach der Datenbank-Initialisierung an bzw. ergänzt sie, ohne bestehende Einträge zu verändern; beide Backends nutzen dieselbe Liste. ISO-Controls werden weiterhin **nie** mitgeliefert. Test: `tests/soaSeedSql.test.js`.
 - **Zu große oder ungültige Anfragen meldeten HTML statt JSON (#98)** — Der globale 100-kB-Parser stand vor dem 50-MB-Parser des Demo-Imports; große Bundles scheiterten mit einer HTML-Fehlerseite („Unexpected token '<'“). Der Parser für `/admin/demo-import` steht jetzt davor, und ein Fehlerhandler antwortet bei zu großem (413) oder ungültigem JSON (400) als JSON in der Sprache der Oberfläche (die Übersetzungs-Middleware läuft dazu vor den Parsern). Test: `tests/apiErrorsAndDemoImport.test.js`.
