@@ -9748,6 +9748,7 @@ async function scanImportUpload(formEl) {
 // ── Risk Create/Edit – Vollseite ──
 
 let _riskEditId = null   // null = neu, string = bearbeiten
+let _riskSaving = false   // verhindert doppeltes Absenden des Formulars
 
 async function openRiskModal(id) {
   _riskEditId = id || null
@@ -10071,15 +10072,29 @@ async function submitRiskForm() {
     linkedSuppliers:   getLinkedValues('risk', 'sup'),
   }
 
-  const editId = _riskEditId
-  const url    = editId ? `/risks/${editId}` : '/risks'
-  const method = editId ? 'PUT' : 'POST'
-  const res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(body) })
-  if (!res.ok) { const e = await res.json(); return show(e.error || t('err_saveFailed')) }
-  const saved = await res.json()
-  _riskEditId = null
-  if (editId) await openRiskDetail(saved.id)
-  else renderRisk()
+  // Doppelklick/Wiederholung während des Speicherns darf kein zweites Risiko anlegen
+  if (_riskSaving) return
+  _riskSaving = true
+  const saveBtn = document.querySelector('#riskContainer button[onclick="submitRiskForm()"]')
+  if (saveBtn) saveBtn.disabled = true
+  try {
+    const editId = _riskEditId
+    const url    = editId ? `/risks/${editId}` : '/risks'
+    const method = editId ? 'PUT' : 'POST'
+    const res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(body) })
+    if (!res.ok) { const e = await res.json().catch(() => ({})); return show(e.error || t('err_saveFailed')) }
+    const saved = await res.json()
+    _riskEditId = null
+    // Das Formular ersetzt die gesamte Risiko-Seite (inkl. #riskTabContent); ohne Neuaufbau blieb es
+    // nach dem Speichern offen — ein zweiter Klick auf „Speichern“ legte dann ein Duplikat an.
+    await renderRisk()
+    if (editId) await openRiskDetail(saved.id)
+  } catch (e) {
+    show(e.message || t('err_saveFailed'))
+  } finally {
+    _riskSaving = false
+    if (saveBtn) saveBtn.disabled = false
+  }
 }
 
 async function deleteRisk(id) {
