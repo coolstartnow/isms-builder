@@ -14,7 +14,8 @@
 - **Egy fiók alkalmazásonként:** a beállítás után az alkalmazás pontosan egy szinkronfiókhoz tartozik. A név, a menü és a szerkesztési jogok az alkalmazásban e fiók jogosultságait követik.
 - **Telefon és tablet:** a felület alkalmazkodik (álló és fekvő tájolás; fekvő tájolásnál az oldalsáv látható marad). A jelszó, a 2FA és a szerepkörök beállításai helyben nem léteznek; a nyelvet a szinkronpanelen, a *Felület nyelve* alatt lehet kiválasztani.
 - **Súgó az alkalmazásban:** A szinkronpanelen és a beállítási képernyőn lévő „?” gomb beépített felhasználói súgót nyit meg (beállítás, szinkronizálás, ütközések, fájlcsere, biztonság, hibaüzenetek). Offline olvasható, és mind az öt nyelven elérhető.
-- **Nem elérhető:** fájlfeltöltés/mellékletek, WebDAV-közzététel, MI-funkciók, PDF-letöltés a szerverről.
+- **Jogosultságok területenként:** Az új, szerkesztés, törlés és fájlfeltöltés csak azokon a területeken jelenik meg, ahol a szinkronfiók írhat; az útmutatók az alkalmazásban mindig csak olvashatók. A nyomtatási és PDF-funkciók csak a szerveren érhetők el.
+- **Nem elérhető:** fájlfeltöltés/mellékletek (az útmutatók PDF/Word-fájljai csak a szerveren vannak meg; az alkalmazás tájékoztatást mutat), WebDAV-közzététel, MI-funkciók, PDF-letöltés a szerverről.
 
 ## Követelmények a fő rendszeren
 

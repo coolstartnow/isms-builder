@@ -14,7 +14,8 @@
 - **Un compte par application :** après la configuration, l'application appartient à exactement un compte de synchronisation. Nom, menu et droits d'édition dans l'application suivent les droits de ce compte.
 - **Téléphone et tablette :** l'interface s'adapte (portrait et paysage ; en paysage, la barre latérale reste visible). Il n'y a pas de réglages de mot de passe, 2FA et rôles en local ; la langue se choisit dans le panneau de synchronisation sous *Langue de l'interface*.
 - **Aide dans l'application :** Le bouton « ? » du panneau de synchronisation et de l'écran de configuration ouvre une aide intégrée (configuration, synchronisation, conflits, échange de fichiers, sécurité, messages d'erreur). Elle est lisible hors ligne et disponible dans les cinq langues.
-- **Non disponible :** envoi de fichiers/pièces jointes, publication WebDAV, fonctions d'IA, téléchargement de PDF depuis le serveur.
+- **Droits par zone :** Nouveau, modifier, supprimer et envoi de fichier n'apparaissent que dans les zones où le compte de synchronisation peut écrire ; la guidance est toujours en lecture seule dans l'application. Les fonctions d'impression et de PDF n'existent que sur le serveur.
+- **Non disponible :** envoi de fichiers/pièces jointes (les fichiers PDF/Word de la guidance n'existent que sur le serveur ; l'application affiche une note), publication WebDAV, fonctions d'IA, téléchargement de PDF depuis le serveur.
 
 ## Prérequis sur le système principal
 

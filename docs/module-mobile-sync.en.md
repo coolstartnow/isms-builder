@@ -14,7 +14,8 @@
 - **One account per app:** after set-up the app belongs to exactly one sync account. Name, menu and editing rights in the app follow this account's permissions.
 - **Phone and tablet:** the interface adapts (portrait and landscape; in landscape the sidebar stays visible). There are no settings for password, 2FA and roles locally; the language is chosen in the sync panel under *Interface language*.
 - **Help in the app:** The “?” button in the sync panel and on the set-up screen opens built-in user help (set-up, sync, conflicts, file exchange, security, error messages). It is readable offline and available in all five languages.
-- **Not available:** file uploads/attachments, WebDAV publishing, AI features, PDF download from the server.
+- **Permissions per area:** New, edit, delete and file upload appear only in areas where the sync account may write; the guidance is always read-only in the app. Print and PDF functions are available on the server only.
+- **Not available:** file uploads/attachments (PDF/Word files of the guidance exist on the server only; the app shows a note), WebDAV publishing, AI features, PDF download from the server.
 
 ## Requirements on the main system
 

@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- **Mobile App: Doku beschreibt „Rechte je Bereich“ und fehlende Druck-/PDF-Knöpfe (App 1.2.2)** — `docs/module-mobile-sync*.md` (5 Sprachen).
+- **Mobile App: Doku nennt die Einschränkung „Guidance-PDF/Word nur am Server“ (App 1.2.1)** — `docs/module-mobile-sync*.md` (5 Sprachen): PDF- und Word-Dateien der Guidance liegen nur am Server, die App zeigt einen Hinweis.
+
 ## [1.77.0] — 2026-10-20
 
 > Patch-Release: Fehlerbehebung „Risiko bearbeiten legt Duplikat an“ und Änderungen seit 1.76.0 (Meilenstein „Mobile Anbindung“, Sprung von 1.60.0 auf 1.76.0).
