@@ -15,6 +15,7 @@
 - **Telefon és tablet:** a felület alkalmazkodik (álló és fekvő tájolás; fekvő tájolásnál az oldalsáv látható marad). A jelszó, a 2FA és a szerepkörök beállításai helyben nem léteznek; a nyelvet a szinkronpanelen, a *Felület nyelve* alatt lehet kiválasztani.
 - **Súgó az alkalmazásban:** A szinkronpanelen és a beállítási képernyőn lévő „?” gomb beépített felhasználói súgót nyit meg (beállítás, szinkronizálás, ütközések, fájlcsere, biztonság, hibaüzenetek). Offline olvasható, és mind az öt nyelven elérhető.
 - **Jogosultságok területenként:** Az új, szerkesztés, törlés és fájlfeltöltés csak azokon a területeken jelenik meg, ahol a szinkronfiók írhat; az útmutatók az alkalmazásban mindig csak olvashatók. A nyomtatási és PDF-funkciók csak a szerveren érhetők el.
+- **Céges licenc (opcionális):** Az alkalmazás szabadon használható marad. A licenckóddal, amelyet egy cég adminisztrátora kér a fejlesztőtől, a telepítés a céghez rendelődik („licencelve: …”). A kódot az eszköz offline ellenőrzi, adat nem kerül továbbításra; kód nélkül csak egy jelzősáv jelenik meg.
 - **Nem elérhető:** fájlfeltöltés/mellékletek (az útmutatók PDF/Word-fájljai csak a szerveren vannak meg; az alkalmazás tájékoztatást mutat), WebDAV-közzététel, MI-funkciók, PDF-letöltés a szerverről.
 
 ## Követelmények a fő rendszeren

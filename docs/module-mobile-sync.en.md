@@ -15,6 +15,7 @@
 - **Phone and tablet:** the interface adapts (portrait and landscape; in landscape the sidebar stays visible). There are no settings for password, 2FA and roles locally; the language is chosen in the sync panel under *Interface language*.
 - **Help in the app:** The “?” button in the sync panel and on the set-up screen opens built-in user help (set-up, sync, conflicts, file exchange, security, error messages). It is readable offline and available in all five languages.
 - **Permissions per area:** New, edit, delete and file upload appear only in areas where the sync account may write; the guidance is always read-only in the app. Print and PDF functions are available on the server only.
+- **Company licence (optional):** The app stays free to use. With a licence code that a company's administrator requests from the developer, the installation is assigned to the company (“licensed to …”). The code is checked offline on the device and no data is transmitted; without a code only a notice band appears.
 - **Not available:** file uploads/attachments (PDF/Word files of the guidance exist on the server only; the app shows a note), WebDAV publishing, AI features, PDF download from the server.
 
 ## Requirements on the main system

@@ -15,6 +15,7 @@
 - **Téléphone et tablette :** l'interface s'adapte (portrait et paysage ; en paysage, la barre latérale reste visible). Il n'y a pas de réglages de mot de passe, 2FA et rôles en local ; la langue se choisit dans le panneau de synchronisation sous *Langue de l'interface*.
 - **Aide dans l'application :** Le bouton « ? » du panneau de synchronisation et de l'écran de configuration ouvre une aide intégrée (configuration, synchronisation, conflits, échange de fichiers, sécurité, messages d'erreur). Elle est lisible hors ligne et disponible dans les cinq langues.
 - **Droits par zone :** Nouveau, modifier, supprimer et envoi de fichier n'apparaissent que dans les zones où le compte de synchronisation peut écrire ; la guidance est toujours en lecture seule dans l'application. Les fonctions d'impression et de PDF n'existent que sur le serveur.
+- **Licence d'entreprise (facultative) :** L'application reste libre d'utilisation. Avec un code de licence que l'administrateur d'une entreprise demande au développeur, l'installation est attribuée à l'entreprise (« sous licence pour … »). Le code est vérifié hors ligne sur l'appareil, aucune donnée n'est transmise ; sans code, seul un bandeau d'information s'affiche.
 - **Non disponible :** envoi de fichiers/pièces jointes (les fichiers PDF/Word de la guidance n'existent que sur le serveur ; l'application affiche une note), publication WebDAV, fonctions d'IA, téléchargement de PDF depuis le serveur.
 
 ## Prérequis sur le système principal

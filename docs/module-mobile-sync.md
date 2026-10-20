@@ -15,6 +15,7 @@
 - **Handy und Tablet:** Die Oberfläche passt sich an (Hoch- und Querformat; im Querformat bleibt die Seitenleiste sichtbar). Einstellungen für Passwort, 2FA und Rollen gibt es lokal nicht; die Sprache wählt man im Sync-Panel unter *Sprache der Oberfläche*.
 - **Hilfe in der App:** Über den Knopf „?“ im Sync-Panel und auf dem Einrichtungsbildschirm öffnet sich eine eingebaute Anwenderhilfe (Einrichtung, Abgleich, Konflikte, Dateiaustausch, Sicherheit, Fehlermeldungen). Sie ist offline lesbar und in allen fünf Sprachen verfügbar.
 - **Rechte je Bereich:** Anlegen, Bearbeiten, Löschen und Datei-Upload erscheinen nur in Bereichen, in denen das Sync-Konto schreiben darf; die Guidance ist in der App immer nur lesbar. Druck- und PDF-Funktionen gibt es nur am Server.
+- **Firmenlizenz (optional):** Die App bleibt frei nutzbar. Mit einem Lizenzcode, den der Administrator einer Firma beim Entwickler beantragt, wird die Installation der Firma zugeordnet („lizenziert für …“). Der Code wird offline auf dem Gerät geprüft, es werden keine Daten übertragen; ohne Code erscheint nur ein Hinweisband.
 - **Nicht verfügbar:** Datei-Uploads/Anhänge (auch PDF/Word-Dateien der Guidance liegen nur am Server; die App zeigt dafür einen Hinweis), WebDAV-Veröffentlichung, KI-Funktionen, PDF-Download vom Server.
 
 ## Voraussetzungen am Hauptsystem

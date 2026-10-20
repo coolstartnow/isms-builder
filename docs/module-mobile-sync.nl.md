@@ -15,6 +15,7 @@
 - **Telefoon en tablet:** de interface past zich aan (staand en liggend; liggend blijft de zijbalk zichtbaar). Instellingen voor wachtwoord, 2FA en rollen bestaan lokaal niet; de taal kies je in het synchronisatiepaneel onder *Taal van de interface*.
 - **Help in de app:** De knop “?” in het synchronisatiepaneel en op het installatiescherm opent een ingebouwde gebruikershulp (installatie, synchronisatie, conflicten, bestandsuitwisseling, beveiliging, foutmeldingen). Ze is offline leesbaar en in alle vijf talen beschikbaar.
 - **Rechten per gebied:** Nieuw, bewerken, verwijderen en bestandsupload verschijnen alleen in gebieden waar het synchronisatieaccount mag schrijven; de guidance is in de app altijd alleen-lezen. Afdruk- en pdf-functies zijn alleen op de server beschikbaar.
+- **Bedrijfslicentie (optioneel):** De app blijft vrij te gebruiken. Met een licentiecode die de beheerder van een bedrijf bij de ontwikkelaar aanvraagt, wordt de installatie aan het bedrijf toegewezen (“gelicentieerd voor …”). De code wordt offline op het apparaat gecontroleerd, er worden geen gegevens verzonden; zonder code verschijnt alleen een meldingsbalk.
 - **Niet beschikbaar:** bestandsuploads/bijlagen (PDF/Word-bestanden van de guidance staan alleen op de server; de app toont een melding), WebDAV-publicatie, AI-functies, pdf-download vanaf de server.
 
 ## Vereisten op het hoofdsysteem
