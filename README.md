@@ -313,6 +313,12 @@ gh attestation verify oci://ghcr.io/coolstartnow/isms-builder:latest --owner coo
 
 ---
 
+## One-Click Deploy
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/ISMS%20Builder/)
+
+---
+
 ## Requirements
 
 - **Node.js 18+** (tested: 18, 20, 22)
