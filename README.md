@@ -122,7 +122,7 @@ and that is not a reason to avoid the project, only a reason to plan realistical
 | Module | Description | Standards |
 |---|---|---|
 | **Policy Management** | Template CRUD, versioning, lifecycle (draft → review → approved → archived), space hierarchy, attachments | ISO 27001 §5 |
-| **Statement of Applicability** | 313 controls across 8 frameworks, inline editing, gap analysis, cross-mapping | ISO 27001 A / BSI / NIS2 / EUCS / EUAI / ISO 9001 / CRA |
+| **Statement of Applicability** | 147 built-in controls across 5 frameworks (BSI IT-Grundschutz, EU NIS2, EUCS, EU AI Act, CRA) plus ISO 27001 / 9000 / 9001 controls you import yourself (never shipped), inline editing, gap analysis, cross-mapping | ISO 27001 A / BSI / NIS2 / EUCS / EUAI / ISO 9001 / CRA |
 | **Measures Register** | One register for risk treatments, actions for audit findings, governance measures and TOMs — responsible person, due date, status, evidence; assignable to SoA controls, findings and risks; shown in SoA, risks, findings, governance and GDPR, upgraded automatically from earlier versions ([docs](docs/module-measures.en.md)) | ISO 27001 §6.1.3 / GDPR Art. 32 |
 | **Risk Management** | Risk register, treatment plans (kept in the measures register), auditor role | ISO 27001 §6.1 |
 | **Security Goals** | KPI tracking with progress bars, calendar integration | ISO 27001 §6.2 |
@@ -133,14 +133,19 @@ and that is not a reason to avoid the project, only a reason to plan realistical
 | **Supplier Management** | Vendor register, audit scheduling, risk assessment | ISO 27001 A.5.19–5.22 |
 | **Legal & Contracts** | Contracts, NDAs, privacy policies, expiry calendar | |
 | **Incident Inbox** | CISO inbox + **public reporting form** (no login required) | NIS2 / BSI |
-| **Governance** | Management reviews, action tracking | ISO 27001 §9.3 |
+| **Governance** | Management reviews, meeting minutes, governance measures (kept in the measures register) | ISO 27001 §9.3 |
 | **Reports** | Compliance matrix (Control × Entity), gap report, review cycles, CSV export | |
 | **Audit Findings** | Finding register (IST→SOLL→Risk→Recommendation), action plans, severity/status tracking, FIND-YYYY-NNNN ref | ISO 27001 §9.2 |
 | **Audit Management** | Audits with checklists, findings created from non-conformities, annual audit programme (quarterly plan, approval), calendar and dashboard integration, CSV/PDF export | ISO 27001 §9.2, ISO 19011 |
+| **Policy Acknowledgements** | Verifiable distribution of policies to staff and confirmation of understanding, central audit evidence ([docs](docs/module-policy-acknowledgements.en.md)) | ISO 27001 7.3, A.6.3 |
+| **NIS2** | Art. 21 governance checklist (30 items) and Art. 23 reporting deadlines with automatic alerts | NIS2 Art. 21 / 23 |
+| **Calendar** | One calendar for due dates across the modules: measures, risk treatments, audits, reviews, contracts, trainings, deadlines | |
+| **Guidance** | Built-in handbook and knowledge base (module guides, role guides, own documents) with search, in five languages | |
+| **Mobile App (Android)** | Separate Android app that works offline with its own data set and syncs with the server over Wi-Fi or a file bundle: sync accounts with per-module rights, set-up by QR code, templates, SoA, risks, assets, findings and guidance (read-only); requires `STORAGE_BACKEND=json` ([docs](docs/module-mobile-sync.en.md)) | |
 | **Traceability** | Every record links to SoA controls + policy documents — bidirectional | |
 | **Semantic Search** | Local AI search via Ollama (nomic-embed-text) with keyword fallback | |
 | **Multi-Entity** | Corporate structure tree, per-entity applicability for controls and policies | |
-| **Multilingual UI & Demo Data** | Full UI and demo content in 🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL; admin controls available languages | |
+| **Multilingual UI & Demo Data** | Full UI, demo content and module documentation in 🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL / 🇭🇺 HU; admin controls available languages | |
 
 ---
 
@@ -183,7 +188,7 @@ cp .env.example .env          # set JWT_SECRET to a long random string
 npm start                     # http://localhost:3000
 ```
 
-Login with **`admin@example.com` / `adminpass`**. On first login you will be prompted to choose your **demo data language** (🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL) or start with an empty system. Change the admin password immediately after.
+Login with **`admin@example.com` / `adminpass`**. On first login you will be prompted to choose your **demo data language** (🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL / 🇭🇺 HU) or start with an empty system. Change the admin password immediately after.
 
 For production use with HTTPS:
 
@@ -415,7 +420,7 @@ Contributions are very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 | ✅ Done | Semantic search (Ollama / nomic-embed-text) |
 | ✅ Done | SQLite backend, Docker, CI/CD |
 | ✅ Done | GDPR deletion log email alerts |
-| ✅ Done | Multilingual demo bundles (DE / EN / FR / NL) |
+| ✅ Done | Multilingual demo bundles (DE / EN / FR / NL / HU) |
 | ✅ Done | Audit Findings module with action plans (V 1.37.2.0) |
 | ✅ Done | FR/NL Guidance translations + admin language configuration (V 1.37.2.0) |
 | ✅ Done | MariaDB/MySQL backend (`STORAGE_BACKEND=mariadb`, V 1.37.2.1) |
@@ -429,6 +434,10 @@ Contributions are very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 | ✅ Done | ownCloud / Nextcloud integration — approved policies auto-published as PDF via WebDAV, optional favorite/public-link visibility, live-verified against a real NextcloudPi instance (#66, V 1.37.5.1) |
 | ✅ Done | Docker image published to GitHub Container Registry after every release (`ghcr.io/coolstartnow/isms-builder`, `linux/amd64` + `linux/arm64`, signed build provenance) — contributed by @bucherfa (#71, V 1.40.0). Maintenance-effort trial: dropped again if it turns out to be more upkeep than expected. |
 | ✅ Done | AI Policy Assistant — Ollama drafts content for any document type (Policy, Procedure, Risk Policy, SoA, Incident, Release) from title + type + language (#87, V 1.60.0) |
+| ✅ Done | Android app with offline use and data sync — sync accounts, QR-code set-up, per-module rights (V 1.76.0) |
+| ✅ Done | Audit management — audits with checklists, findings from non-conformities, annual audit programme |
+| ✅ Done | Measures register — one data set for risk treatments, finding actions, governance measures and TOMs (V 1.80.0) |
+| 🔜 Next | Audit-proof deletion — deleted records are kept for good, GDPR deletions anonymise instead of removing, audit-log integrity review |
 | 🔜 Next | Scheduled Reports — weekly/monthly compliance report delivered by email |
 | 🔜 Next | Audit-log anomaly detection (LLM batch) |
 | 🚀 Later | Quantitative risk scoring (€-values, FAIR-inspired) |
