@@ -10,7 +10,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-> Version 1.76.0: Sprung von 1.60.0 auf 1.76.0 als Meilenstein „Mobile Anbindung“.
+## [1.77.0] — 2026-10-20
+
+> Patch-Release: Fehlerbehebung „Risiko bearbeiten legt Duplikat an“ und Änderungen seit 1.76.0 (Meilenstein „Mobile Anbindung“, Sprung von 1.60.0 auf 1.76.0).
 
 ### Changed
 - **`scripts/setup-ssl.sh`: weitere Namen/IP-Adressen im selbstsignierten Zertifikat** — Der Client prüft, ob die aufgerufene Adresse im Zertifikat steht (Browser, Android-App). Bisher kamen nur Hostname, `localhost` und `127.0.0.1` hinein; jetzt lassen sich weitere Namen und IPv4-Adressen eintragen (als `DNS:`/`IP:` erkannt und geprüft, ungültige Eingaben brechen ab). Außerdem wird die Gültigkeitsdauer geprüft (vorher führte ein ungültiger Wert zu einem stillen `openssl`-Fehler).
