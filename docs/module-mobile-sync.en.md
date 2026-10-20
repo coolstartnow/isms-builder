@@ -7,6 +7,37 @@
 
 ---
 
+<!-- mobile-screenshots:start -->
+## Screenshots
+
+> The pictures are taken in a desktop browser with fictitious sample data (company “Acme Corp”), because the Android app blocks screenshots for security reasons. The app's interface matches them.
+
+![Set-up: scan the QR code or enter address and code](images/mobile/setup.png)
+
+*Set-up: scan the QR code or enter address and code*
+
+![Risks on the phone](images/mobile/risks.png)
+
+*Risks on the phone*
+
+![Tablet in landscape: menu and content side by side](images/mobile/tablet-risks.png)
+
+*Tablet in landscape: menu and content side by side*
+
+![The sync panel: status, server, sync](images/mobile/sync.png)
+
+*The sync panel: status, server, sync*
+
+![Company licence activated](images/mobile/license.png)
+
+*Company licence activated*
+
+![Locked app: unlock with the device lock](images/mobile/lock.png)
+
+*Locked app: unlock with the device lock*
+
+<!-- mobile-screenshots:end -->
+
 ## What the app does
 
 - **Works offline:** the app ships the user interface and the server logic (risk scoring, asset types, versioning, status transitions). No server is needed.
@@ -16,6 +47,7 @@
 - **Help in the app:** The “?” button in the sync panel and on the set-up screen opens built-in user help (set-up, sync, conflicts, file exchange, security, error messages). It is readable offline and available in all five languages.
 - **Permissions per area:** New, edit, delete and file upload appear only in areas where the sync account may write; the guidance is always read-only in the app. Print and PDF functions are available on the server only.
 - **Company licence (optional):** The app stays free to use. With a licence code that a company's administrator requests from the developer, the installation is assigned to the company (“licensed to …”). The code is checked offline on the device and no data is transmitted; without a code only a notice band appears.
+- **Open-source licences:** Under *Info* in the app, all included third-party components are listed with copyright notice and licence text (readable offline).
 - **Not available:** file uploads/attachments (PDF/Word files of the guidance exist on the server only; the app shows a note), WebDAV publishing, AI features, PDF download from the server.
 
 ## Requirements on the main system

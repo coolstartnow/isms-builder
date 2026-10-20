@@ -7,6 +7,37 @@
 
 ---
 
+<!-- mobile-screenshots:start -->
+## Képernyőképek
+
+> A képek asztali böngészőben készültek kitalált mintaadatokkal („Acme Corp” cég), mert az Android-alkalmazás biztonsági okokból letiltja a képernyőképeket. Az alkalmazás felülete ennek felel meg.
+
+![Beállítás: QR-kód beolvasása vagy cím és kód megadása](images/mobile/setup.png)
+
+*Beállítás: QR-kód beolvasása vagy cím és kód megadása*
+
+![Kockázatok a telefonon](images/mobile/risks.png)
+
+*Kockázatok a telefonon*
+
+![Tablet fekvő tájolásban: menü és tartalom egymás mellett](images/mobile/tablet-risks.png)
+
+*Tablet fekvő tájolásban: menü és tartalom egymás mellett*
+
+![A szinkronpanel: állapot, szerver, szinkronizálás](images/mobile/sync.png)
+
+*A szinkronpanel: állapot, szerver, szinkronizálás*
+
+![Céges licenc aktiválva](images/mobile/license.png)
+
+*Céges licenc aktiválva*
+
+![Zárolt alkalmazás: feloldás az eszközzárral](images/mobile/lock.png)
+
+*Zárolt alkalmazás: feloldás az eszközzárral*
+
+<!-- mobile-screenshots:end -->
+
 ## Mit tud az alkalmazás
 
 - **Offline munka:** az alkalmazás tartalmazza a felületet és a szerver logikáját (kockázatértékelés, eszköztípusok, verziókezelés, állapotváltások). Szerverre nincs szükség.
@@ -16,6 +47,7 @@
 - **Súgó az alkalmazásban:** A szinkronpanelen és a beállítási képernyőn lévő „?” gomb beépített felhasználói súgót nyit meg (beállítás, szinkronizálás, ütközések, fájlcsere, biztonság, hibaüzenetek). Offline olvasható, és mind az öt nyelven elérhető.
 - **Jogosultságok területenként:** Az új, szerkesztés, törlés és fájlfeltöltés csak azokon a területeken jelenik meg, ahol a szinkronfiók írhat; az útmutatók az alkalmazásban mindig csak olvashatók. A nyomtatási és PDF-funkciók csak a szerveren érhetők el.
 - **Céges licenc (opcionális):** Az alkalmazás szabadon használható marad. A licenckóddal, amelyet egy cég adminisztrátora kér a fejlesztőtől, a telepítés a céghez rendelődik („licencelve: …”). A kódot az eszköz offline ellenőrzi, adat nem kerül továbbításra; kód nélkül csak egy jelzősáv jelenik meg.
+- **Nyílt forráskódú licencek:** Az alkalmazásban az *Infó* alatt az összes beépített harmadik féltől származó összetevő szerzői jogi közléssel és licencszöveggel olvasható (offline).
 - **Nem elérhető:** fájlfeltöltés/mellékletek (az útmutatók PDF/Word-fájljai csak a szerveren vannak meg; az alkalmazás tájékoztatást mutat), WebDAV-közzététel, MI-funkciók, PDF-letöltés a szerverről.
 
 ## Követelmények a fő rendszeren

@@ -11,6 +11,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Changed
+- **Mobile App: Screenshots in der Doku (App 1.4.0)** — `docs/module-mobile-sync*.md` (5 Sprachen): neuer Abschnitt „Screenshots“ mit 6 Bildern (`docs/images/mobile/`), erzeugt aus dem App-Projekt.
+- **Mobile App: Doku nennt die Seite „Open-Source-Lizenzen“ (App 1.3.1)** — `docs/module-mobile-sync*.md` (5 Sprachen).
 - **Mobile App: Doku erwähnt die optionale Firmenlizenz (App 1.3.0)** — `docs/module-mobile-sync*.md` (5 Sprachen).
 - **Mobile App: Doku beschreibt „Rechte je Bereich“ und fehlende Druck-/PDF-Knöpfe (App 1.2.2)** — `docs/module-mobile-sync*.md` (5 Sprachen).
 - **Mobile App: Doku nennt die Einschränkung „Guidance-PDF/Word nur am Server“ (App 1.2.1)** — `docs/module-mobile-sync*.md` (5 Sprachen): PDF- und Word-Dateien der Guidance liegen nur am Server, die App zeigt einen Hinweis.

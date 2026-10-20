@@ -7,6 +7,37 @@
 
 ---
 
+<!-- mobile-screenshots:start -->
+## Schermafbeeldingen
+
+> De afbeeldingen zijn gemaakt in een desktopbrowser met fictieve voorbeeldgegevens (bedrijf “Acme Corp”), omdat de Android-app schermafbeeldingen om veiligheidsredenen blokkeert. De interface van de app komt ermee overeen.
+
+![Instellen: QR-code scannen of adres en code invoeren](images/mobile/setup.png)
+
+*Instellen: QR-code scannen of adres en code invoeren*
+
+![Risico's op de telefoon](images/mobile/risks.png)
+
+*Risico's op de telefoon*
+
+![Tablet in liggende stand: menu en inhoud naast elkaar](images/mobile/tablet-risks.png)
+
+*Tablet in liggende stand: menu en inhoud naast elkaar*
+
+![Het synchronisatiepaneel: status, server, synchronisatie](images/mobile/sync.png)
+
+*Het synchronisatiepaneel: status, server, synchronisatie*
+
+![Bedrijfslicentie geactiveerd](images/mobile/license.png)
+
+*Bedrijfslicentie geactiveerd*
+
+![Vergrendelde app: ontgrendelen met de apparaatvergrendeling](images/mobile/lock.png)
+
+*Vergrendelde app: ontgrendelen met de apparaatvergrendeling*
+
+<!-- mobile-screenshots:end -->
+
 ## Wat de app doet
 
 - **Offline werken:** de app bevat de gebruikersinterface en de serverlogica (risicoscore, activatypen, versiebeheer, statusovergangen). Een server is niet nodig.
@@ -16,6 +47,7 @@
 - **Help in de app:** De knop “?” in het synchronisatiepaneel en op het installatiescherm opent een ingebouwde gebruikershulp (installatie, synchronisatie, conflicten, bestandsuitwisseling, beveiliging, foutmeldingen). Ze is offline leesbaar en in alle vijf talen beschikbaar.
 - **Rechten per gebied:** Nieuw, bewerken, verwijderen en bestandsupload verschijnen alleen in gebieden waar het synchronisatieaccount mag schrijven; de guidance is in de app altijd alleen-lezen. Afdruk- en pdf-functies zijn alleen op de server beschikbaar.
 - **Bedrijfslicentie (optioneel):** De app blijft vrij te gebruiken. Met een licentiecode die de beheerder van een bedrijf bij de ontwikkelaar aanvraagt, wordt de installatie aan het bedrijf toegewezen (“gelicentieerd voor …”). De code wordt offline op het apparaat gecontroleerd, er worden geen gegevens verzonden; zonder code verschijnt alleen een meldingsbalk.
+- **Open-sourcelicenties:** Onder *Info* in de app staan alle meegeleverde componenten van derden met copyrightvermelding en licentietekst (offline leesbaar).
 - **Niet beschikbaar:** bestandsuploads/bijlagen (PDF/Word-bestanden van de guidance staan alleen op de server; de app toont een melding), WebDAV-publicatie, AI-functies, pdf-download vanaf de server.
 
 ## Vereisten op het hoofdsysteem

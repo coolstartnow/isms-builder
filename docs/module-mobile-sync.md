@@ -7,6 +7,37 @@
 
 ---
 
+<!-- mobile-screenshots:start -->
+## Screenshots
+
+> Die Bilder sind Aufnahmen in einem Desktop-Browser mit erfundenen Beispieldaten (Firma „Acme Corp“), denn die Android-App sperrt Bildschirmfotos aus Sicherheitsgründen. Die Oberfläche in der App entspricht ihnen.
+
+![Einrichtung: QR-Code scannen oder Adresse und Code eingeben](images/mobile/setup.png)
+
+*Einrichtung: QR-Code scannen oder Adresse und Code eingeben*
+
+![Risiken auf dem Handy](images/mobile/risks.png)
+
+*Risiken auf dem Handy*
+
+![Tablet im Querformat: Menü und Inhalt nebeneinander](images/mobile/tablet-risks.png)
+
+*Tablet im Querformat: Menü und Inhalt nebeneinander*
+
+![Das Sync-Panel: Status, Server, Abgleich](images/mobile/sync.png)
+
+*Das Sync-Panel: Status, Server, Abgleich*
+
+![Firmenlizenz aktiviert](images/mobile/license.png)
+
+*Firmenlizenz aktiviert*
+
+![Gesperrte App: Entsperren mit der Gerätesperre](images/mobile/lock.png)
+
+*Gesperrte App: Entsperren mit der Gerätesperre*
+
+<!-- mobile-screenshots:end -->
+
 ## Was die App kann
 
 - **Offline arbeiten:** Die App bringt die Oberfläche und die Server-Logik (Risiko-Bewertung, Asset-Typen, Versionierung, Statuswechsel) mit. Es wird kein Server benötigt.
@@ -16,6 +47,7 @@
 - **Hilfe in der App:** Über den Knopf „?“ im Sync-Panel und auf dem Einrichtungsbildschirm öffnet sich eine eingebaute Anwenderhilfe (Einrichtung, Abgleich, Konflikte, Dateiaustausch, Sicherheit, Fehlermeldungen). Sie ist offline lesbar und in allen fünf Sprachen verfügbar.
 - **Rechte je Bereich:** Anlegen, Bearbeiten, Löschen und Datei-Upload erscheinen nur in Bereichen, in denen das Sync-Konto schreiben darf; die Guidance ist in der App immer nur lesbar. Druck- und PDF-Funktionen gibt es nur am Server.
 - **Firmenlizenz (optional):** Die App bleibt frei nutzbar. Mit einem Lizenzcode, den der Administrator einer Firma beim Entwickler beantragt, wird die Installation der Firma zugeordnet („lizenziert für …“). Der Code wird offline auf dem Gerät geprüft, es werden keine Daten übertragen; ohne Code erscheint nur ein Hinweisband.
+- **Open-Source-Lizenzen:** Unter *Info* in der App stehen alle enthaltenen Fremdkomponenten mit Urheberrechtsvermerk und Lizenztext (offline lesbar).
 - **Nicht verfügbar:** Datei-Uploads/Anhänge (auch PDF/Word-Dateien der Guidance liegen nur am Server; die App zeigt dafür einen Hinweis), WebDAV-Veröffentlichung, KI-Funktionen, PDF-Download vom Server.
 
 ## Voraussetzungen am Hauptsystem

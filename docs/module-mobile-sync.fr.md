@@ -7,6 +7,37 @@
 
 ---
 
+<!-- mobile-screenshots:start -->
+## Captures d'écran
+
+> Les images sont prises dans un navigateur de bureau avec des données fictives (entreprise « Acme Corp »), car l'application Android bloque les captures d'écran pour des raisons de sécurité. L'interface de l'application leur correspond.
+
+![Configuration : scanner le code QR ou saisir adresse et code](images/mobile/setup.png)
+
+*Configuration : scanner le code QR ou saisir adresse et code*
+
+![Risques sur le téléphone](images/mobile/risks.png)
+
+*Risques sur le téléphone*
+
+![Tablette en paysage : menu et contenu côte à côte](images/mobile/tablet-risks.png)
+
+*Tablette en paysage : menu et contenu côte à côte*
+
+![Le panneau de synchronisation : statut, serveur, synchronisation](images/mobile/sync.png)
+
+*Le panneau de synchronisation : statut, serveur, synchronisation*
+
+![Licence d'entreprise activée](images/mobile/license.png)
+
+*Licence d'entreprise activée*
+
+![Application verrouillée : déverrouiller avec le verrouillage de l'appareil](images/mobile/lock.png)
+
+*Application verrouillée : déverrouiller avec le verrouillage de l'appareil*
+
+<!-- mobile-screenshots:end -->
+
 ## Ce que fait l'application
 
 - **Travail hors ligne :** l'application embarque l'interface et la logique du serveur (évaluation des risques, types d'actifs, gestion des versions, changements de statut). Aucun serveur n'est nécessaire.
@@ -16,6 +47,7 @@
 - **Aide dans l'application :** Le bouton « ? » du panneau de synchronisation et de l'écran de configuration ouvre une aide intégrée (configuration, synchronisation, conflits, échange de fichiers, sécurité, messages d'erreur). Elle est lisible hors ligne et disponible dans les cinq langues.
 - **Droits par zone :** Nouveau, modifier, supprimer et envoi de fichier n'apparaissent que dans les zones où le compte de synchronisation peut écrire ; la guidance est toujours en lecture seule dans l'application. Les fonctions d'impression et de PDF n'existent que sur le serveur.
 - **Licence d'entreprise (facultative) :** L'application reste libre d'utilisation. Avec un code de licence que l'administrateur d'une entreprise demande au développeur, l'installation est attribuée à l'entreprise (« sous licence pour … »). Le code est vérifié hors ligne sur l'appareil, aucune donnée n'est transmise ; sans code, seul un bandeau d'information s'affiche.
+- **Licences open source :** Sous *Info* dans l'application figurent tous les composants tiers inclus avec mention de droit d'auteur et texte de licence (lisible hors ligne).
 - **Non disponible :** envoi de fichiers/pièces jointes (les fichiers PDF/Word de la guidance n'existent que sur le serveur ; l'application affiche une note), publication WebDAV, fonctions d'IA, téléchargement de PDF depuis le serveur.
 
 ## Prérequis sur le système principal
