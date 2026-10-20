@@ -106,8 +106,13 @@ TOMs dokumentieren die Schutzmaßnahmen nach Art. 32 DSGVO — sowohl technisch
 
 **Anlegen:** DSGVO → TOMs → **„+ Neue TOM"**
 
-Felder: Kategorie (Vertraulichkeit/Integrität/Verfügbarkeit/Belastbarkeit),
-Beschreibung, Umsetzungsstand, verknüpfte VVT-Einträge.
+Felder: Kategorie (Zugriffskontrolle, Verschlüsselung, Protokollierung, Netzwerksicherheit, Anwendungssicherheit,
+Backup & Wiederherstellung, Organisatorisch, Schulung, Datenaufbewahrung), Risikostufe, Beschreibung, Umsetzungsstand,
+verknüpfte VVT-Einträge, Nachweis.
+
+**Seit Version 1.80** liegen die TOMs im zentralen [Maßnahmenregister](module-measures.md) (Kennzeichen *TOM*). Sie erscheinen
+dort zusammen mit allen anderen Maßnahmen, lassen sich nach Herkunft „Nur TOMs“ filtern und können zusätzlich
+SoA-Controls zugeordnet werden. Die Rechte bleiben wie hier: Anlegen und Ändern nur ab `contentowner`.
 
 ---
 

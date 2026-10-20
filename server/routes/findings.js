@@ -76,7 +76,7 @@ router.put('/findings/:id/actions/:actionId', requireAuth, authorize('editor'), 
 })
 
 router.delete('/findings/:id/actions/:actionId', requireAuth, authorize('auditor'), async (req, res) => {
-  const ok = await store.deleteAction(req.params.id, req.params.actionId)
+  const ok = await store.deleteAction(req.params.id, req.params.actionId, req.user)
   if (!ok) return res.status(404).json({ error: 'Not found' })
   res.json({ deleted: true })
 })

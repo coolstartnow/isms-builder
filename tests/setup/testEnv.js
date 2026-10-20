@@ -42,6 +42,7 @@ function createTestDataDir() {
   writeJson(path.join(dir, 'guidance.json'),         [])
   writeJson(path.join(dir, 'training.json'),         [])
   writeJson(path.join(dir, 'goals.json'),            [])
+  writeJson(path.join(dir, 'measures.json'),         [])
   writeJson(path.join(dir, 'assets.json'),           [])
   writeJson(path.join(dir, 'audit-log.json'),        [])
   writeJson(path.join(dir, 'public-incidents.json'), [])

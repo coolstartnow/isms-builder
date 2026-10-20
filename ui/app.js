@@ -10,7 +10,7 @@ const ROLE_RANK = { reader:1, revision:1, editor:2, dept_head:2, qmb:2, contento
 
 // Modul-Konfiguration (wird beim Start vom Server geladen)
 let MODULE_CONFIG = {
-  soa:true, guidance:true, goals:true, risk:true, legal:true,
+  soa:true, measures:true, guidance:true, goals:true, risk:true, legal:true,
   incident:true, gdpr:true, training:true, reports:true, calendar:true, assets:true,
   governance:true, bcm:true, suppliers:true, audits:true,
 }
@@ -29,6 +29,7 @@ const SECTION_META = [
   // ── Immer sichtbar (reader+) ─────────────────────────────────────────────
   { id:'dashboard',  labelKey:'nav_dashboard',  label:'Dashboard',          icon:'ph-chart-bar',           minRole:'reader' },
   { id:'soa',        labelKey:'nav_soa',        label:'SoA – Controls',     icon:'ph-shield-check',        minRole:'reader' },
+  { id:'measures',   labelKey:'nav_measures',   label:'Measures',           icon:'ph-list-checks',         minRole:'reader' },
   { id:'guidance',   labelKey:'nav_guidance',   label:'Guidance',           icon:'ph-compass',             minRole:'reader' },
   { id:'training',   labelKey:'nav_training',   label:'Training',           icon:'ph-graduation-cap',      minRole:'reader' },
   { id:'calendar',   labelKey:'nav_calendar',   label:'Calendar',           icon:'ph-calendar-dots',       minRole:'reader' },
@@ -1090,7 +1091,7 @@ function loadSection(sectionId){
 }
 
 function removeAllDynamicPanels() {
-  ['dashboardContainer','soaContainer','guidanceContainer','riskContainer','calendarContainer','adminPanelContainer','settingsPanelContainer','reportsContainer','gdprContainer','trainingContainer','incidentContainer','legalContainer','goalsContainer','assetsContainer','governanceContainer','nis2Container','bcmContainer','suppliersContainer','policyAcksContainer','auditsContainer'].forEach(id => {
+  ['dashboardContainer','soaContainer','measuresContainer','guidanceContainer','riskContainer','calendarContainer','adminPanelContainer','settingsPanelContainer','reportsContainer','gdprContainer','trainingContainer','incidentContainer','legalContainer','goalsContainer','assetsContainer','governanceContainer','nis2Container','bcmContainer','suppliersContainer','policyAcksContainer','auditsContainer'].forEach(id => {
     dom(id)?.remove()
   })
 }
@@ -1772,6 +1773,11 @@ async function openFindingDetail(id) {
           </div>
         </div>
 
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-list-checks"></i> ${t('measures_forFinding')}</h4>
+          <div id="finding-measures-${escHtml(f.id)}" class="measure-block"></div>
+        </div>
+
         ${canEdit ? `
         <div class="training-form-section">
           <button class="btn btn-primary" onclick="openFindingForm('${f.id}')">
@@ -1781,6 +1787,7 @@ async function openFindingDetail(id) {
       </div>
     </div>
   `
+  loadMeasuresBlock('finding', f.id, `finding-measures-${f.id}`)
 }
 
 async function printFindingDetail(findingId) {
@@ -2274,6 +2281,11 @@ function renderSectionContent(sectionId){
     editorCard.style.display = 'none'
     listPanel.style.display = 'none'
     renderLegal()
+    return
+  } else if (sectionId === 'measures') {
+    editorCard.style.display = 'none'
+    listPanel.style.display = 'none'
+    renderMeasures()
     return
   } else if (sectionId === 'goals') {
     editorCard.style.display = 'none'
@@ -2868,8 +2880,13 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
         <h4 class="soa-detail-heading"><i class="ph ph-buildings"></i> ${t('common_applicableEntities')}${entEditorHtml}</h4>
         <div class="soa-entity-bar">${applicableEnts.length === 0 ? `<span class="soa-detail-none">${t('filter_allEntities')}</span>` : entLabel}</div>
       </section>
+      <section class="soa-detail-section soa-detail-full">
+        <h4 class="soa-detail-heading"><i class="ph ph-list-checks"></i> ${t('measures_forControl')}</h4>
+        <div id="soa-measures-${escHtml(id)}" class="measure-block"></div>
+      </section>
     </div>
   `
+  loadMeasuresBlock('control', id, `soa-measures-${id}`)
 
   // Entity-Picker öffnen für SoA-Control
   const entEditBtn = el.querySelector('.soa-ent-edit')
@@ -2975,9 +2992,13 @@ function openSoaIsoImport() {
           body: JSON.stringify(controls)
         })
         const data = await res.json()
-        if (!res.ok) return showToast(t('error') + ': ' + (data.error || res.status), 'error')
-        showToast(t('soa_importSuccess', { count: data.imported }), 'success')
-        setTimeout(() => renderSoa(), 1200)
+        // Zeilen, die nicht übernommen wurden, mit Grund nennen (z. B. „ISO 27001:2022“ statt der Kennung ISO27001, #45)
+        const rejectedText = data.rejected
+          ? t('soa_importRejected', { n: data.rejected, reasons: Object.entries(data.rejectedByReason || {}).map(([r, n]) => `${n}× ${t('soa_importReason_' + r)}`).join('; ') })
+          : ''
+        if (!res.ok) return showToast(t('error') + ': ' + (data.error || res.status) + (rejectedText ? ' — ' + rejectedText : ''), 'error')
+        showToast(t('soa_importSuccess', { count: data.imported }) + (rejectedText ? ' ' + rejectedText : ''), rejectedText ? 'info' : 'success')
+        renderSoa()   // die Controls sind sofort da, kein Neustart nötig
       } catch (e) {
         showToast(t('err_network') + ': ' + e.message, 'error')
       }
@@ -4403,7 +4424,7 @@ async function saveSplashSettings() {
 
 // ── Nav-Reihenfolge Hilfsfunktion ─────────────────────────────────────────────
 
-const _NAV_ORDER_DEFAULT = ['dashboard','soa','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','audits','bcm','suppliers','policy-acks','reports','calendar','settings','admin']
+const _NAV_ORDER_DEFAULT = ['dashboard','soa','measures','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','audits','bcm','suppliers','policy-acks','reports','calendar','settings','admin']
 
 // Eine gespeicherte Reihenfolge kennt neue Module noch nicht. Die Navigation selbst
 // hängt Unbekanntes ans Ende (s. buildNav) — die Sortierliste im Admin muss dasselbe
@@ -5314,6 +5335,7 @@ async function restoreTrashItem(module, id, meta) {
   if (module === 'template') url = `/template/${meta.type}/${id}/restore`
   else if (module === 'risk') url = `/risks/${id}/restore`
   else if (module === 'goal') url = `/goals/${id}/restore`
+  else if (module === 'measure') url = `/measures/${id}/restore`
   else if (module === 'guidance') url = `/guidance/${id}/restore`
   else if (module === 'training') url = `/training/${id}/restore`
   else if (module === 'legal_contract') url = `/legal/contracts/${id}/restore`
@@ -5342,6 +5364,7 @@ async function permanentDeleteTrashItem(module, id, meta) {
   if (module === 'template') url = `/template/${meta.type}/${id}/permanent`
   else if (module === 'risk') url = `/risks/${id}/permanent`
   else if (module === 'goal') url = `/goals/${id}/permanent`
+  else if (module === 'measure') url = `/measures/${id}/permanent`
   else if (module === 'guidance') url = `/guidance/${id}/permanent`
   else if (module === 'training') url = `/training/${id}/permanent`
   else if (module === 'legal_contract') url = `/legal/contracts/${id}/permanent`
@@ -5371,6 +5394,11 @@ const MODULE_META = [
     id: 'soa', get label() { return t('nav_soa') }, icon: 'ph-shield-check',
     get desc() { return t('modmeta_soa') },
     norms: ['ISO 27001', 'BSI IT-Grundschutz', 'NIS2', 'EUCS', 'ISO 9001'],
+  },
+  {
+    id: 'measures', get label() { return t('nav_measures') }, icon: 'ph-list-checks',
+    get desc() { return t('modmeta_measures') },
+    norms: ['ISO 27001 Cl. 6.1.3'],
   },
   {
     id: 'guidance', get label() { return t('nav_guidance') }, icon: 'ph-compass',
@@ -8756,6 +8784,407 @@ async function submitGuidanceUpload() {
 }
 
 // ════════════════════════════════════════════════════════════
+// MASSNAHMEN – zentrales Register (Zuordnung zu SoA-Controls und Feststellungen)
+// ════════════════════════════════════════════════════════════
+
+const MEASURE_STATUS_COLOR = { planned: '#9ca3af', in_progress: '#60a5fa', implemented: '#4ade80', verified: '#22d3ee', cancelled: '#6b7280' }
+let _measuresFilter  = { q: '', status: '', responsible: '', overdue: false, control: '', finding: '', origin: '' }   // origin: '' | tom | governance | risk | finding
+let _measuresList    = []
+let _measuresPending = null    // { open: id } | { newFor: { kind, id } } – von SoA-Control bzw. Feststellung aus gesetzt
+let _measuresTimer   = null
+let _measuresSeq     = 0
+let _measureFormSeq  = 0       // nur die zuletzt angeforderte Formularansicht wird gezeichnet (schnelles Doppelklicken)
+let _measureForm     = null    // { controls, findings, risks: Set; allControls, allFindings, allRisks: []; readOnly, linksLocked }
+
+function measureCanEdit()   { return (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.editor }
+function measureCanDelete() { return (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.contentowner }
+function measureCanTom()    { return (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.contentowner }   // TOMs wie im DSGVO-Modul: ab Contentowner
+function measureCanLink()   { return (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.auditor }         // Risiken/Feststellungen zuordnen: wie in deren Modulen ab Auditor/Contentowner
+
+function _measureBadge(st) {
+  const c = MEASURE_STATUS_COLOR[st] || '#888'
+  return `<span class="measure-badge" style="background:${c}22;color:${c};border:1px solid ${c}55">${escHtml(t('measures_status_' + st))}</span>`
+}
+function _measureIsOverdue(m) {
+  return !!m.dueDate && m.dueDate < new Date().toISOString().slice(0, 10) && ['planned', 'in_progress'].includes(m.status)
+}
+function _measureDate(d) { return d ? new Date(d + 'T00:00:00').toLocaleDateString() : '' }
+function _measureQuery() {
+  const p = new URLSearchParams(), f = _measuresFilter
+  if (f.q) p.set('q', f.q)
+  if (f.status) p.set('status', f.status)
+  if (f.responsible) p.set('responsible', f.responsible)
+  if (f.overdue) p.set('overdue', '1')
+  if (f.control) p.set('control', f.control)
+  if (f.finding) p.set('finding', f.finding)
+  if (f.origin === 'tom') p.set('tom', '1')
+  if (f.origin === 'governance') p.set('governance', '1')
+  return p.toString()
+}
+function _measuresDebounced(fn) { clearTimeout(_measuresTimer); _measuresTimer = setTimeout(fn, 250) }
+function _measuresSearchInput(v) { _measuresFilter.q = v.trim(); _measuresDebounced(loadMeasuresList) }
+function _measuresRespInput(v)   { _measuresFilter.responsible = v.trim(); _measuresDebounced(loadMeasuresList) }
+function _measuresClearLink(kind) { _measuresFilter[kind] = ''; loadMeasuresList() }
+
+async function renderMeasures() {
+  dom('measuresContainer')?.remove()
+  const container = document.createElement('div')
+  container.id = 'measuresContainer'
+  dom('editor').appendChild(container)
+  const f = _measuresFilter
+  const statusOpts = `<option value="">${escHtml(t('filter_allStatuses'))}</option>` +
+    Object.keys(MEASURE_STATUS_COLOR).map(s => `<option value="${s}" ${f.status === s ? 'selected' : ''}>${escHtml(t('measures_status_' + s))}</option>`).join('')
+  container.innerHTML = `
+    <div class="admin-fullpage">
+      <div class="admin-fullpage-header">
+        <h2><i class="ph ph-list-checks"></i> ${t('measures_title')} <small style="font-size:.7em;font-weight:400;color:var(--text-subtle)">${t('measures_isoClause')}</small></h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto">
+          <button class="btn btn-secondary btn-sm" onclick="exportMeasuresCsv()"><i class="ph ph-file-csv"></i> CSV</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportMeasuresPdf()"><i class="ph ph-file-pdf"></i> PDF</button>
+          ${measureCanEdit() ? `<button class="btn btn-primary btn-sm" onclick="openMeasureForm()"><i class="ph ph-plus"></i> ${t('measures_new')}</button>` : ''}
+        </div>
+      </div>
+      <div id="measuresKpis" class="goals-kpi-row"></div>
+      <div class="gdpr-filter-bar" style="margin-bottom:12px;flex-wrap:wrap">
+        <input class="form-input" style="max-width:340px;font-size:.82rem" type="search" placeholder="${escHtml(t('measures_search'))}" value="${escHtml(f.q)}" oninput="_measuresSearchInput(this.value)">
+        <select class="select" style="font-size:.82rem;width:auto;min-width:150px" onchange="_measuresFilter.status=this.value;loadMeasuresList()">${statusOpts}</select>
+        <input class="form-input" style="max-width:170px;font-size:.82rem" placeholder="${escHtml(t('measures_fResponsible'))}" value="${escHtml(f.responsible)}" oninput="_measuresRespInput(this.value)">
+        <select class="select" style="font-size:.82rem;width:auto;min-width:150px" onchange="_measuresFilter.origin=this.value;loadMeasuresList()">
+          ${[['', 'measures_filterOriginAll'], ['tom', 'measures_originTom'], ['governance', 'measures_originGovernance'], ['risk', 'measures_originRisk'], ['finding', 'measures_originFinding']]
+            .map(([v, k]) => `<option value="${v}" ${f.origin === v ? 'selected' : ''}>${escHtml(t(k))}</option>`).join('')}
+        </select>
+        <label class="measure-check"><input type="checkbox" ${f.overdue ? 'checked' : ''} onchange="_measuresFilter.overdue=this.checked;loadMeasuresList()"> ${t('measures_onlyOverdue')}</label>
+        <span id="measuresChips"></span>
+        <span class="gdpr-filter-count" id="measuresCount"></span>
+      </div>
+      <div id="measuresListBody"><div class="dashboard-loading">${t('measures_loading')}</div></div>
+    </div>`
+  await loadMeasuresList()
+  const pend = _measuresPending
+  _measuresPending = null
+  if (pend && pend.open) openMeasureForm(pend.open)
+  else if (pend && pend.newFor) openMeasureForm(null, pend.newFor)
+}
+
+async function loadMeasuresList() {
+  const body = dom('measuresListBody')
+  if (!body) return
+  const seq = ++_measuresSeq
+  const qs = _measureQuery()
+  const [lr, sr] = await Promise.all([
+    fetch('/measures' + (qs ? '?' + qs : ''), { headers: apiHeaders() }),
+    fetch('/measures/summary', { headers: apiHeaders() }),
+  ])
+  if (seq !== _measuresSeq || !dom('measuresListBody')) return   // veraltete Antwort oder anderer Bereich
+  let list = lr.ok ? await lr.json() : []
+  const sum  = sr.ok ? await sr.json() : { byStatus: {} }
+  if (_measuresFilter.origin === 'risk') list = list.filter(m => (m.linkedRisks || []).length)          // Herkunft Risiko/Feststellung: Zuordnung vorhanden
+  if (_measuresFilter.origin === 'finding') list = list.filter(m => (m.linkedFindings || []).length)
+  _measuresList = list
+  const f = _measuresFilter
+
+  dom('measuresKpis').innerHTML = [
+    [sum.total || 0, t('common_total'), ''],
+    [(sum.byStatus || {}).planned || 0, t('measures_status_planned'), MEASURE_STATUS_COLOR.planned],
+    [(sum.byStatus || {}).in_progress || 0, t('measures_status_in_progress'), MEASURE_STATUS_COLOR.in_progress],
+    [((sum.byStatus || {}).implemented || 0) + ((sum.byStatus || {}).verified || 0), t('measures_status_implemented'), MEASURE_STATUS_COLOR.implemented],
+    [sum.overdue || 0, t('reports_overdue'), '#f87171'],
+    [sum.withoutLinks || 0, t('measures_kpiNoLinks'), '#f0b429'],
+  ].map(([v, l, c]) => `<div class="goals-kpi"><span class="goals-kpi-val" ${c ? `style="color:${c}"` : ''}>${v}</span><span class="goals-kpi-lbl">${escHtml(l)}</span></div>`).join('')
+
+  dom('measuresChips').innerHTML =
+    (f.control ? `<span class="measure-chip">${escHtml(t('measures_filterControl', { id: f.control }))} <button title="${escHtml(t('measures_clearFilter'))}" onclick="_measuresClearLink('control')">&times;</button></span>` : '') +
+    (f.finding ? `<span class="measure-chip">${escHtml(t('measures_filterFinding', { id: f.finding }))} <button title="${escHtml(t('measures_clearFilter'))}" onclick="_measuresClearLink('finding')">&times;</button></span>` : '')
+  dom('measuresCount').textContent = `${list.length} ${t('measures_countLabel')}`
+
+  if (!list.length) { body.innerHTML = `<p class="gdpr-empty">${t('measures_empty')}</p>`; return }
+  const edit = measureCanEdit(), del = measureCanDelete()
+  body.innerHTML = `
+    <table class="measure-table">
+      <thead><tr>
+        <th>${t('measures_colRef')}</th><th>${t('measures_fTitle')}</th><th>${t('col_status')}</th>
+        <th>${t('measures_fResponsible')}</th><th>${t('col_dueDate')}</th><th>${t('measures_colLinks')}</th><th></th>
+      </tr></thead>
+      <tbody>${list.map(m => `
+        <tr class="measure-row" onclick="openMeasureForm('${escHtml(m.id)}')">
+          <td class="measure-ref">${escHtml(m.ref)}</td>
+          <td><strong>${escHtml(m.title)}</strong>${m.tom ? ` <span class="measure-badge measure-tom" title="${escHtml(t('measures_isTom'))}">${escHtml(t('measures_tomBadge'))}</span>` : ''}${m.governance ? ` <span class="measure-badge measure-tom" title="${escHtml(t('measures_isGovernance'))}">${escHtml(t('measures_govBadge'))}</span>` : ''}${m.description ? `<div class="measure-desc">${escHtml(m.description.slice(0, 140))}${m.description.length > 140 ? '…' : ''}</div>` : ''}</td>
+          <td>${_measureBadge(m.status)}</td>
+          <td>${escHtml(m.responsible)}</td>
+          <td style="${_measureIsOverdue(m) ? 'color:#f87171;font-weight:600' : ''}">${escHtml(_measureDate(m.dueDate))}</td>
+          <td class="measure-links">
+            ${m.linkedControls.length ? `<span title="${escHtml(t('measures_linksControls'))}"><i class="ph ph-shield-check"></i> ${m.linkedControls.length}</span>` : ''}
+            ${m.linkedFindings.length ? `<span title="${escHtml(t('measures_linksFindings'))}"><i class="ph ph-magnifying-glass"></i> ${m.linkedFindings.length}</span>` : ''}
+            ${(m.linkedRisks || []).length ? `<span title="${escHtml(t('measures_linksRisks'))}"><i class="ph ph-warning"></i> ${m.linkedRisks.length}</span>` : ''}
+          </td>
+          <td class="measure-actions" onclick="event.stopPropagation()">
+            ${edit ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('measures_edit'))}" onclick="openMeasureForm('${escHtml(m.id)}')"><i class="ph ph-pencil"></i></button>` : ''}
+            ${del ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteMeasure('${escHtml(m.id)}')"><i class="ph ph-trash"></i></button>` : ''}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`
+}
+
+// ── Formular (Inline-Seite, kein Modal) ──────────────────────────────────────────
+// Auswahllisten für Zuordnungen: ctl = SoA-Controls, fnd = Feststellungen, rsk = Risiken
+const _MEASURE_PICK = { ctl: { all: 'allControls', sel: 'controls', ids: ['msCtlFilter', 'msCtlList', 'msCtlSel'] }, fnd: { all: 'allFindings', sel: 'findings', ids: ['msFndFilter', 'msFndList', 'msFndSel'] }, rsk: { all: 'allRisks', sel: 'risks', ids: ['msRskFilter', 'msRskList', 'msRskSel'] } }
+const _measurePickReadOnly = kind => _measureForm.readOnly || (kind !== 'ctl' && _measureForm.linksLocked)
+function _measurePickerItems(kind) {
+  const F = _measureForm, cfg = _MEASURE_PICK[kind]
+  const all = F[cfg.all]
+  const filter = (dom(cfg.ids[0])?.value || '').toLowerCase().trim()
+  const label = x => kind === 'ctl' ? `${x.id} — ${x.title || ''}` : kind === 'fnd' ? `${x.ref || ''} ${x.title || ''}`.trim() : x.title || x.id
+  const hits = all.filter(x => !filter || label(x).toLowerCase().includes(filter))
+  return { hits, label, total: all.length }
+}
+function _measureRenderPicker(kind) {
+  const F = _measureForm, cfg = _MEASURE_PICK[kind], sel = F[cfg.sel], ro = _measurePickReadOnly(kind)
+  const { hits, label } = _measurePickerItems(kind)
+  const shown = hits.slice(0, 60)
+  const listEl = dom(cfg.ids[1])
+  if (!listEl) return
+  listEl.innerHTML = shown.length
+    ? shown.map(x => `<label class="measure-pick"><input type="checkbox" ${sel.has(x.id) ? 'checked' : ''} ${ro ? 'disabled' : ''} onchange="_measureToggle('${kind}', this.dataset.id, this.checked)" data-id="${escHtml(x.id)}"> <span>${escHtml(label(x))}</span></label>`).join('') +
+      (hits.length > shown.length ? `<div class="measure-pick-more">${escHtml(t('measures_pickerMore'))}</div>` : '')
+    : `<div class="measure-pick-more">${escHtml(t('measures_pickerNone'))}</div>`
+  const names = new Map(F[cfg.all].map(x => [x.id, label(x)]))
+  dom(cfg.ids[2]).innerHTML = [...sel].map(id =>
+    `<span class="measure-chip">${escHtml(names.get(id) || id)}${ro ? '' : ` <button type="button" onclick="_measureToggle('${kind}', this.dataset.id, false)" data-id="${escHtml(id)}">&times;</button>`}</span>`).join('') || `<span class="soa-detail-none">${escHtml(t('measures_noneSelected'))}</span>`
+}
+function _measureTomToggle() { const f = dom('msTomFields'); if (f) f.style.display = dom('msTom').checked ? 'block' : 'none' }
+function _measureGovToggle() { const f = dom('msGovFields'); if (f) f.style.display = dom('msGov').checked ? 'block' : 'none' }
+function _measureToggle(kind, id, on) {
+  const sel = _measureForm[_MEASURE_PICK[kind].sel]
+  if (on) sel.add(id); else sel.delete(id)
+  _measureRenderPicker(kind)
+}
+
+async function openMeasureForm(id = null, prefill = null) {
+  const container = dom('measuresContainer')
+  if (!container) { _measuresPending = id ? { open: id } : { newFor: prefill }; loadSection('measures'); return }
+  const formSeq = ++_measureFormSeq
+  const [mr, cr, fr, rr] = await Promise.all([
+    id ? fetch(`/measures/${encodeURIComponent(id)}`, { headers: apiHeaders() }) : Promise.resolve(null),
+    fetch('/soa', { headers: apiHeaders() }),
+    fetch('/findings', { headers: apiHeaders() }),
+    fetch('/risks', { headers: apiHeaders() }),
+  ])
+  const m = id && mr && mr.ok ? await mr.json() : null
+  const allControls0 = cr.ok ? await cr.json() : [], allFindings0 = fr.ok ? await fr.json() : [], allRisks0 = rr.ok ? await rr.json() : []
+  if (formSeq !== _measureFormSeq || !dom('measuresContainer')) return   // veraltete Antwort oder anderer Bereich
+  if (id && !m) { showToast(t('measures_saveFailed'), 'error'); renderMeasures(); return }
+  const allControls = allControls0, allFindings = allFindings0, allRisks = allRisks0
+  // TOMs bearbeiten nur Contentowner (wie im DSGVO-Modul); Maßnahmen mit Risiko-Zuordnung nur Auditor/Contentowner (wie die Risiko-Behandlungen)
+  const riskLocked = !!(m && (m.linkedRisks || []).length && !measureCanLink())
+  const readOnly = !measureCanEdit() || !!(m && m.tom && !measureCanTom()) || riskLocked
+  _measureForm = {
+    readOnly, linksLocked: !measureCanLink(),
+    allControls: Array.isArray(allControls) ? allControls : [], allFindings: Array.isArray(allFindings) ? allFindings : [], allRisks: Array.isArray(allRisks) ? allRisks : [],
+    controls: new Set(m ? m.linkedControls : (prefill && prefill.kind === 'control' ? [prefill.id] : [])),
+    findings: new Set(m ? m.linkedFindings : (prefill && prefill.kind === 'finding' ? [prefill.id] : [])),
+    risks: new Set(m ? (m.linkedRisks || []) : (prefill && prefill.kind === 'risk' ? [prefill.id] : [])),
+  }
+  const dis = readOnly ? 'disabled' : ''
+  const statusOpts = Object.keys(MEASURE_STATUS_COLOR).map(s => `<option value="${s}" ${(m ? m.status : 'planned') === s ? 'selected' : ''}>${escHtml(t('measures_status_' + s))}</option>`).join('')
+  container.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" onclick="renderMeasures()"><i class="ph ph-arrow-left"></i> ${t('measures_back')}</button>
+        <h3 class="training-form-title"><i class="ph ph-list-checks"></i> ${m ? escHtml(m.ref) + ' — ' : ''}${readOnly ? t('measures_view') : (m ? t('measures_edit') : t('measures_new'))}</h3>
+      </div>
+      <div class="training-form-body">
+        <div class="training-form-section">
+          <div class="form-group">
+            <label class="form-label">${t('measures_fTitle')} <span class="form-required">*</span></label>
+            <input id="msTitle" class="form-input" ${dis} value="${escHtml(m ? m.title : '')}" placeholder="${escHtml(t('measures_titlePh'))}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">${t('measures_fDescription')}</label>
+            <textarea id="msDesc" class="form-input" rows="3" ${dis} placeholder="${escHtml(t('measures_descPh'))}">${escHtml(m ? m.description : '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">${t('measures_fImplementation')}</label>
+            <textarea id="msImpl" class="form-input" rows="5" ${dis} placeholder="${escHtml(t('measures_implPh'))}">${escHtml(m ? m.implementation : '')}</textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">${t('measures_fResponsible')}</label>
+              <input id="msResp" class="form-input" ${dis} value="${escHtml(m ? m.responsible : '')}"></div>
+            <div class="form-group"><label class="form-label">${t('measures_fDue')}</label>
+              <input id="msDue" type="date" class="form-input" ${dis} value="${escHtml(m && m.dueDate ? m.dueDate : '')}" style="color-scheme:dark"></div>
+            <div class="form-group"><label class="form-label">${t('measures_fReview')}</label>
+              <input id="msReview" type="date" class="form-input" ${dis} value="${escHtml(m && m.reviewDate ? m.reviewDate : '')}" style="color-scheme:dark"></div>
+            <div class="form-group"><label class="form-label">${t('measures_fStatus')}</label>
+              <select id="msStatus" class="select" ${dis}>${statusOpts}</select></div>
+          </div>
+        </div>
+        <div class="training-form-section">
+          <label class="measure-check"><input id="msTom" type="checkbox" ${m && m.tom ? 'checked' : ''} ${readOnly || !measureCanTom() ? 'disabled' : ''} onchange="_measureTomToggle()"> <strong>${t('measures_isTom')}</strong></label>
+          <div class="soa-detail-none" style="margin:4px 0 8px">${escHtml(t('measures_tomHint'))}</div>
+          <div id="msTomFields" style="display:${m && m.tom ? 'block' : 'none'}">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">${t('measures_fCategory')}</label>
+                <select id="msCat" class="select" ${dis}>${GDPR_TOM_CATS.map(c => `<option value="${c.id}" ${(m && m.category ? m.category : 'organizational') === c.id ? 'selected' : ''}>${escHtml(c.label)}</option>`).join('')}</select></div>
+              <div class="form-group"><label class="form-label">${t('measures_fRisk')}</label>
+                <select id="msRisk" class="select" ${dis}>${GDPR_RISK_LEVELS.map(c => `<option value="${c.id}" ${(m && m.riskLevel ? m.riskLevel : 'medium') === c.id ? 'selected' : ''}>${escHtml(c.label)}</option>`).join('')}</select></div>
+              <div class="form-group"><label class="form-label">${t('measures_fRetention')}</label>
+                <input id="msRetention" class="form-input" ${dis} value="${escHtml(m ? m.retentionRule : '')}"></div>
+            </div>
+            <div class="form-group"><label class="form-label">${t('measures_fEvidence')}</label>
+              <textarea id="msEvidence" class="form-input" rows="2" ${dis}>${escHtml(m ? m.evidenceNote : '')}</textarea></div>
+          </div>
+        </div>
+        <div class="training-form-section">
+          <label class="measure-check"><input id="msGov" type="checkbox" ${m && m.governance ? 'checked' : ''} ${readOnly ? 'disabled' : ''} onchange="_measureGovToggle()"> <strong>${t('measures_isGovernance')}</strong></label>
+          <div class="soa-detail-none" style="margin:4px 0 8px">${escHtml(t('measures_govHint'))}</div>
+          <div id="msGovFields" style="display:${m && m.governance ? 'block' : 'none'}">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">${t('measures_fSource')}</label>
+                <select id="msSource" class="select" ${dis}>${['management_review', 'internal_audit', 'external_audit', 'incident', 'other'].map(c => `<option value="${c}" ${(m && m.source ? m.source : 'management_review') === c ? 'selected' : ''}>${escHtml(t('measures_source_' + c))}</option>`).join('')}</select></div>
+              <div class="form-group"><label class="form-label">${t('measures_fSourceRef')}</label>
+                <input id="msSourceRef" class="form-input" ${dis} value="${escHtml(m ? m.sourceRef : '')}"></div>
+              <div class="form-group"><label class="form-label">${t('measures_fPriority')}</label>
+                <select id="msPriority" class="select" ${dis}>${['low', 'medium', 'high', 'critical'].map(c => `<option value="${c}" ${(m && m.priority ? m.priority : 'medium') === c ? 'selected' : ''}>${escHtml(t('measures_priority_' + c))}</option>`).join('')}</select></div>
+              <div class="form-group"><label class="form-label">${t('measures_fProgress')}</label>
+                <input id="msProgress" type="number" min="0" max="100" class="form-input" ${dis} value="${m ? m.progress || 0 : 0}"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">${t('measures_fOwnerEmail')}</label>
+                <input id="msOwnerEmail" type="email" class="form-input" ${dis} value="${escHtml(m ? m.ownerEmail : '')}"></div>
+              <div class="form-group"><label class="form-label">${t('measures_fCompleted')}</label>
+                <input id="msCompleted" type="date" class="form-input" ${dis} value="${escHtml(m && m.completedDate ? m.completedDate : '')}" style="color-scheme:dark"></div>
+            </div>
+            <div class="form-group"><label class="form-label">${t('measures_fNotes')}</label>
+              <textarea id="msNotes" class="form-input" rows="2" ${dis}>${escHtml(m ? m.notes : '')}</textarea></div>
+          </div>
+        </div>
+        <div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-link"></i> ${t('measures_links')}</h4>
+          ${riskLocked ? `<div class="soa-detail-none" style="margin-bottom:8px">${escHtml(t('measures_riskMeasuresLocked'))}</div>` : (_measureForm.linksLocked ? `<div class="soa-detail-none" style="margin-bottom:8px">${escHtml(t('measures_linkRightsHint'))}</div>` : '')}
+          <div class="measure-link-cols">
+            <div>
+              <label class="form-label"><i class="ph ph-shield-check"></i> ${t('measures_linksControls')}</label>
+              <div id="msCtlSel" class="measure-selected"></div>
+              ${readOnly ? '' : `<input id="msCtlFilter" class="form-input" placeholder="${escHtml(t('measures_pickerFilter'))}" oninput="_measureRenderPicker('ctl')">
+              <div id="msCtlList" class="measure-picker"></div>`}
+            </div>
+            <div>
+              <label class="form-label"><i class="ph ph-magnifying-glass"></i> ${t('measures_linksFindings')}</label>
+              <div id="msFndSel" class="measure-selected"></div>
+              ${readOnly || _measureForm.linksLocked ? '' : `<input id="msFndFilter" class="form-input" placeholder="${escHtml(t('measures_pickerFilter'))}" oninput="_measureRenderPicker('fnd')">
+              <div id="msFndList" class="measure-picker"></div>`}
+            </div>
+            <div>
+              <label class="form-label"><i class="ph ph-warning"></i> ${t('measures_linksRisks')}</label>
+              <div id="msRskSel" class="measure-selected"></div>
+              ${readOnly || _measureForm.linksLocked ? '' : `<input id="msRskFilter" class="form-input" placeholder="${escHtml(t('measures_pickerFilter'))}" oninput="_measureRenderPicker('rsk')">
+              <div id="msRskList" class="measure-picker"></div>`}
+            </div>
+          </div>
+        </div>
+        ${readOnly ? '' : `<div class="training-form-section" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="saveMeasure(${m ? `'${escHtml(m.id)}'` : 'null'})"><i class="ph ph-floppy-disk"></i> ${t('save')}</button>
+          <button class="btn btn-secondary" onclick="renderMeasures()">${t('cancel')}</button>
+        </div>`}
+      </div>
+    </div>`
+  _measureRenderPicker('ctl'); _measureRenderPicker('fnd'); _measureRenderPicker('rsk')
+  dom('msTitle')?.focus()
+}
+
+async function saveMeasure(id) {
+  const title = (dom('msTitle')?.value || '').trim()
+  if (!title) { dom('msTitle')?.focus(); showToast(t('measures_titleRequired'), 'error'); return }
+  const body = {
+    title, description: dom('msDesc').value, implementation: dom('msImpl').value, responsible: dom('msResp').value.trim(),
+    dueDate: dom('msDue').value || null, reviewDate: dom('msReview').value || null,
+    status: dom('msStatus').value, linkedControls: [..._measureForm.controls],
+    governance: !!dom('msGov')?.checked,
+  }
+  if (!_measureForm.linksLocked) Object.assign(body, { linkedFindings: [..._measureForm.findings], linkedRisks: [..._measureForm.risks] })   // Editoren senden keine Zuordnungen zu Risiken/Feststellungen (Server: ab Auditor)
+  if (body.governance) Object.assign(body, { source: dom('msSource').value, sourceRef: dom('msSourceRef').value.trim(), priority: dom('msPriority').value, progress: Number(dom('msProgress').value) || 0, ownerEmail: dom('msOwnerEmail').value.trim(), completedDate: dom('msCompleted').value || null, notes: dom('msNotes').value })
+  if (measureCanTom()) {   // Editoren senden das Kennzeichen nicht (Server: TOMs nur ab Contentowner)
+    body.tom = !!dom('msTom')?.checked
+    if (body.tom) Object.assign(body, { category: dom('msCat').value, riskLevel: dom('msRisk').value, retentionRule: dom('msRetention').value.trim(), evidenceNote: dom('msEvidence').value })
+  }
+  const r = await fetch(id ? `/measures/${encodeURIComponent(id)}` : '/measures', {
+    method: id ? 'PUT' : 'POST', headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+  if (!r.ok) {
+    let msg = t('measures_saveFailed')
+    try { const e = await r.json(); if (e && e.error) msg = e.error } catch { /* Standardtext */ }
+    showToast(msg, 'error'); return
+  }
+  showToast(t('measures_saved'), 'success')
+  renderMeasures()
+}
+
+async function deleteMeasure(id) {
+  const m = _measuresList.find(x => x.id === id)
+  if (!confirm(t('measures_deleteConfirm', { title: m ? m.title : id }))) return
+  const r = await fetch(`/measures/${encodeURIComponent(id)}`, { method: 'DELETE', headers: apiHeaders() })
+  if (!r.ok) { showToast(t('measures_deleteFailed'), 'error'); return }
+  showToast(t('measures_deleted'), 'success')
+  loadMeasuresList()
+}
+
+// ── Anzeige in SoA-Control und Feststellung ──────────────────────────────────────────────
+async function loadMeasuresBlock(kind, id, elId) {
+  const el = dom(elId)
+  if (!el) return
+  const r = await fetch(`/measures?${kind === 'control' ? 'control' : 'finding'}=${encodeURIComponent(id)}`, { headers: apiHeaders() })
+  const list = r.ok ? await r.json() : []
+  if (!dom(elId)) return
+  el.innerHTML =
+    (list.length
+      ? list.map(m => `<a class="measure-chip measure-chip-link" href="#" onclick="event.preventDefault();openMeasureFromLink('${escHtml(m.id)}')" title="${escHtml(m.title)}">${escHtml(m.ref)} ${escHtml(m.title.length > 48 ? m.title.slice(0, 47) + '…' : m.title)} ${_measureBadge(m.status)}</a>`).join('')
+      : `<span class="soa-detail-none">${t('measures_none')}</span>`) +
+    (measureCanEdit() ? ` <button class="btn btn-secondary btn-sm" onclick="newMeasureFor('${kind}','${escHtml(id)}')"><i class="ph ph-plus"></i> ${t('measures_add')}</button>` : '')
+}
+function openMeasureFromLink(id) { _measuresPending = { open: id }; loadSection('measures') }
+function newMeasureFor(kind, id) { _measuresPending = { newFor: { kind, id } }; loadSection('measures') }
+
+// ── Export ──────────────────────────────────────────────────────────────────────────────────
+function _measureExportRows() {
+  return _measuresList.map(m => ({
+    ref: m.ref, title: m.title, description: m.description, implementation: m.implementation, tom: m.tom ? t('measures_tomBadge') : '', status: t('measures_status_' + m.status), responsible: m.responsible,
+    dueDate: m.dueDate || '', controls: (m.linkedControls || []).join('; '), findings: (m.linkedFindings || []).join('; '), risks: (m.linkedRisks || []).join('; '),
+  }))
+}
+function exportMeasuresCsv() {
+  const rows = _measureExportRows()
+  const head = [t('measures_colRef'), t('measures_fTitle'), t('measures_fDescription'), t('measures_fImplementation'), t('measures_tomBadge'), t('col_status'), t('measures_fResponsible'), t('col_dueDate'), t('measures_linksControls'), t('measures_linksFindings'), t('measures_linksRisks')]
+  // Zellen, die mit = + - @ beginnen, würden Tabellenkalkulationen als Formel auslesen → Hochkomma voranstellen
+  const esc = v => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"` }
+  const cols = ['ref', 'title', 'description', 'implementation', 'tom', 'status', 'responsible', 'dueDate', 'controls', 'findings', 'risks']
+  const csv = [head.map(esc).join(','), ...rows.map(r => cols.map(c => esc(r[c])).join(','))].join('\r\n')
+  const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+  const a = document.createElement('a')
+  a.href = url; a.download = `measures-${new Date().toISOString().slice(0, 10)}.csv`; a.click()
+  URL.revokeObjectURL(url)
+}
+function exportMeasuresPdf() {
+  const rows = _measureExportRows()
+  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const win = window.open('', '_blank')
+  if (!win) return alert(t('err_popupBlocked'))
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(t('measures_title'))} — ${new Date().toLocaleDateString()}</title>
+    <style>
+      body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 28px; }
+      h1 { font-size: 15px; margin-bottom: 4px; } .sub { font-size: 11px; color: #666; margin-bottom: 16px; }
+      table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ccc; padding: 4px 8px; font-size: 11px; text-align: left; vertical-align: top; }
+      th { background: #f0f0f0; font-weight: bold; } @media print { body { margin: 0; } }
+    </style></head><body>
+    <h1>${esc(t('measures_title'))}</h1>
+    <div class="sub">${esc(new Date().toLocaleString())} · ISMS Builder · ${rows.length} ${esc(t('measures_countLabel'))}</div>
+    <table><thead><tr><th>${esc(t('measures_colRef'))}</th><th>${esc(t('measures_fTitle'))}</th><th>${esc(t('measures_fDescription'))}</th><th>${esc(t('measures_fImplementation'))}</th><th>${esc(t('measures_tomBadge'))}</th><th>${esc(t('col_status'))}</th>
+      <th>${esc(t('measures_fResponsible'))}</th><th>${esc(t('col_dueDate'))}</th><th>${esc(t('measures_linksControls'))}</th><th>${esc(t('measures_linksFindings'))}</th><th>${esc(t('measures_linksRisks'))}</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${esc(r.ref)}</td><td>${esc(r.title)}</td><td>${esc(r.description)}</td><td>${esc(r.implementation)}</td><td>${esc(r.tom)}</td><td>${esc(r.status)}</td><td>${esc(r.responsible)}</td><td>${esc(r.dueDate)}</td><td>${esc(r.controls)}</td><td>${esc(r.findings)}</td><td>${esc(r.risks)}</td></tr>`).join('')}</tbody></table>
+    <script>window.onload = () => window.print()<\/script></body></html>`)
+  win.document.close()
+}
+
+// ════════════════════════════════════════════════════════════
 // KALENDER – Wiedervorlage
 // ════════════════════════════════════════════════════════════
 
@@ -8763,6 +9192,7 @@ const CAL_EVENT_CFG = {
   risk_due:        { get label() { return t('cal_riskDue') },        cls:'cal-chip-risk',      icon:'ph-warning' },
   risk_review:     { get label() { return t('cal_riskReview') },     cls:'cal-chip-review',    icon:'ph-arrows-clockwise' },
   treatment_due:   { get label() { return t('cal_measureDue') },     cls:'cal-chip-treatment', icon:'ph-list-checks' },
+  measure_due:     { get label() { return t('cal_measureRegDue') },  cls:'cal-chip-treatment', icon:'ph-list-checks' },
   template_review: { get label() { return t('cal_templateReview') }, cls:'cal-chip-template',  icon:'ph-files' },
   template_due:         { get label() { return t('cal_templateDue') },            cls:'cal-chip-template',  icon:'ph-clock' },
   finding_action_due:   { get label() { return t('cal_findingActionDue') },      cls:'cal-chip-risk',       icon:'ph-magnifying-glass' },
@@ -9749,9 +10179,14 @@ async function scanImportUpload(formEl) {
 
 let _riskEditId = null   // null = neu, string = bearbeiten
 let _riskSaving = false   // verhindert doppeltes Absenden des Formulars
+// Zählt die Aufrufe von openRiskModal(): Zwischen dem Start und dem fertigen Rendern liegen mehrere await-Aufrufe. Überholt
+// ein zweiter Aufruf den ersten (z. B. Doppelklick auf „Bearbeiten“ und „Neues Risiko“), darf nur der letzte rendern und
+// _riskEditId setzen – sonst zeigt das Formular ein bestehendes Risiko, speichert aber per POST ein neues (#101, Hinweis aus PR #102).
+let _riskModalSeq = 0
 
 async function openRiskModal(id) {
-  _riskEditId = id || null
+  const seq = ++_riskModalSeq
+  const editId = id || null
   let risk = null
   if (id) {
     const res = await fetch(`/risks/${id}`, { headers: apiHeaders() })
@@ -9767,6 +10202,9 @@ async function openRiskModal(id) {
   const asList = async resp => { const d = resp.ok ? await resp.json() : []; return Array.isArray(d) ? d : [] }
   const refAssets    = await asList(assetRes)
   const refSuppliers = await asList(supRes)
+  // Ein neuerer Aufruf hat uns inzwischen überholt: unser Ergebnis ist veraltet – weder rendern noch _riskEditId setzen
+  if (seq !== _riskModalSeq) return
+  _riskEditId = editId
   const entities = [] // flat list for submit, built from tree
   ;(function flatten(nodes) { for (const n of nodes) { entities.push(n); flatten(n.children||[]) } })(entityTree)
 
@@ -10190,6 +10628,23 @@ async function deleteTreatment(riskId, tpId) {
   const res = await fetch(`/risks/${riskId}/treatments/${tpId}`, { method: 'DELETE', headers: apiHeaders() })
   if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
   await openRiskDetail(riskId)
+}
+
+// Kurze, nicht blockierende Meldung (Erfolg/Fehler/Info) unten rechts. Wird an mehreren Stellen aufgerufen
+// (Feststellungen, Maßnahmen, …); sie war bisher nirgends definiert, die Aufrufe lösten einen ReferenceError aus.
+function showToast(message, type = 'info') {
+  let box = document.getElementById('toastBox')
+  if (!box) {
+    box = document.createElement('div')
+    box.id = 'toastBox'; box.className = 'toast-box'
+    box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'polite')
+    document.body.appendChild(box)
+  }
+  const el = document.createElement('div')
+  el.className = `toast toast-${['success', 'error', 'info'].includes(type) ? type : 'info'}`
+  el.textContent = String(message == null ? '' : message)
+  box.appendChild(el)
+  setTimeout(() => { el.classList.add('toast-out'); setTimeout(() => el.remove(), 300) }, type === 'error' ? 6000 : 3500)
 }
 
 function escHtml(str) {
@@ -17155,7 +17610,7 @@ window.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('pageshow', (e) => {
   if (!e.persisted || !document.querySelector('.app-body')) return
   const containerIds = [
-    'dashboardContainer','soaContainer','guidanceContainer','riskContainer',
+    'dashboardContainer','soaContainer','measuresContainer','guidanceContainer','riskContainer',
     'calendarContainer','adminPanelContainer','settingsPanelContainer','reportsContainer',
     'gdprContainer','trainingContainer','incidentContainer','legalContainer',
     'goalsContainer','assetsContainer','governanceContainer','bcmContainer','suppliersContainer','policyAcksContainer','auditsContainer'

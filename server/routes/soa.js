@@ -129,17 +129,38 @@ router.get('/soa/import-controls/status', requireAuth, authorize('reader'), (req
 })
 
 // Import: write iso-controls.json and reload the store
+// Erlaubte Werte des Feldes `framework` beim ISO-Import (Kennungen, nicht die Bezeichnungen wie „ISO 27001:2022“)
+const ISO_IMPORT_FRAMEWORKS = ['ISO27001', 'ISO9000', 'ISO9001']
+const isText = (v, max) => typeof v === 'string' && v.trim() !== '' && v.length <= max
+
 router.post('/soa/import-controls', requireAuth, authorize('admin'), express.json({ limit: '10mb' }), async (req, res) => {
   const controls = req.body
   if (!Array.isArray(controls)) return res.status(400).json({ error: 'Expected JSON array of controls' })
-  // Validate: each must have id, theme, title, framework
-  const valid = controls.filter(c => c.id && c.theme && c.title && c.framework)
-  if (valid.length === 0) return res.status(400).json({ error: 'No valid controls found' })
-  const isoFile = path.join(DATA_DIR, 'iso-controls.json')
-  fs.writeFileSync(isoFile, JSON.stringify(valid, null, 2))
-  await soaStore.init()  // reload
-  await auditStore.append({ user: req.user, action: 'import', resource: 'iso-controls', detail: `Imported ${valid.length} ISO controls` })
-  res.json({ imported: valid.length })
+
+  // Jede Zeile einzeln prüfen: gültige werden übernommen, ungültige mit Grund gemeldet (statt still zu verschwinden, #45)
+  const existing = new Map((await soaStore.getAll()).map(c => [c.id, c.framework]))
+  const seen = new Set(), accepted = [], rejected = []
+  controls.forEach((c, index) => {
+    const id = c && typeof c.id === 'string' ? c.id.trim() : ''
+    const bad = reason => rejected.push({ index, id: id || null, reason })
+    if (!c || typeof c !== 'object' || Array.isArray(c)) return bad('not_an_object')
+    if (!isText(c.id, 120) || !isText(c.theme, 120) || !isText(c.title, 512)) return bad('missing_field')
+    if (!ISO_IMPORT_FRAMEWORKS.includes(c.framework)) return bad('invalid_framework')
+    if (seen.has(id)) return bad('duplicate_id')
+    if (existing.has(id) && existing.get(id) !== c.framework) return bad('id_conflict')   // Kennung gehört schon zu einem anderen Framework
+    seen.add(id)
+    const item = { id, theme: c.theme.trim(), title: c.title.trim(), framework: c.framework }
+    if (isText(c.description, 4000)) item.description = c.description.trim()
+    accepted.push(item)
+  })
+  const rejectedByReason = rejected.reduce((m, r) => (m[r.reason] = (m[r.reason] || 0) + 1, m), {})   // über alle abgelehnten Zeilen
+  const summary = { imported: accepted.length, rejected: rejected.length, rejectedByReason, rejectedDetails: rejected.slice(0, 20), allowedFrameworks: ISO_IMPORT_FRAMEWORKS }
+  if (!accepted.length) return res.status(400).json({ error: 'No valid controls found', ...summary })
+
+  fs.writeFileSync(path.join(DATA_DIR, 'iso-controls.json'), JSON.stringify(accepted, null, 2))
+  const { added } = await soaStore.reloadIsoControls()   // sofort sichtbar, kein Neustart nötig
+  await auditStore.append({ user: req.user, action: 'import', resource: 'iso-controls', detail: `Imported ${accepted.length} ISO controls (${rejected.length} rejected)` })
+  res.json({ ...summary, added })
 })
 
 // ── Custom Controls ───────────────────────────────────────────────────────────

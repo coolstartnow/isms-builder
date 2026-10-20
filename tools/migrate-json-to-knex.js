@@ -176,6 +176,47 @@ async function main() {
       deleted_at: g.deletedAt || null,
     })), 'Goals')
 
+    // ── Maßnahmen (Register) ─────────────────────────────────────────────────
+    const measures = readJson('measures.json', [])
+    await batchInsert(knex, 'measures', measures.map((m, i) => ({
+      id: m.id,
+      ref: str(m.ref) || `M-${String(i + 1).padStart(3, '0')}`,
+      title: str(m.title),
+      description: str(m.description),
+      implementation: str(m.implementation),
+      responsible: str(m.responsible),
+      due_date: m.dueDate || null,
+      review_date: m.reviewDate || null,
+      status: str(m.status || 'planned'),
+      linked_controls: arr(m.linkedControls),
+      linked_findings: arr(m.linkedFindings),
+      linked_risks: arr(m.linkedRisks),
+      linked_policies: arr(m.linkedPolicies),
+      linked_vvt: arr(m.linkedVvt),
+      applicable_entities: arr(m.applicableEntities),
+      tom: m.tom ? 1 : 0,
+      category: str(m.category),
+      risk_level: str(m.riskLevel),
+      evidence_note: str(m.evidenceNote),
+      retention_rule: str(m.retentionRule),
+      governance: m.governance ? 1 : 0,
+      source: str(m.source),
+      source_ref: str(m.sourceRef),
+      priority: str(m.priority),
+      progress: Number.isFinite(Number(m.progress)) ? Number(m.progress) : 0,
+      completed_date: m.completedDate || null,
+      notes: str(m.notes),
+      owner_email: str(m.ownerEmail),
+      entity_id: str(m.entityId),
+      attachments: arr(m.attachments),
+      created_by: str(m.createdBy || 'system'),
+      updated_by: str(m.updatedBy || m.createdBy || 'system'),
+      created_at: m.createdAt || now(),
+      updated_at: m.updatedAt || now(),
+      deleted_at: m.deletedAt || null,
+      deleted_by: m.deletedBy || null,
+    })), 'Measures')
+
     // ── Assets ────────────────────────────────────────────────────────────────
     const assets = readJson('assets.json', [])
     await batchInsert(knex, 'assets', assets.map(a => ({
@@ -364,12 +405,12 @@ async function main() {
       email: str(u.email),
       domain: str(u.domain || ''),
       role: u.role || 'user',
-      functions: jstr(u.functions) || null,
+      functions: jstr(u.functions) || '[]',
       password_hash: u.passwordHash || '',
       totp_secret: u.totpSecret || null,
       totp_enabled: u.totpEnabled ? 1 : 0,
       totp_verified: u.totpVerified ? 1 : 0,
-      sections: jstr(u.sections) || null,
+      sections: jstr(u.sections) || '[]',
       created_at: u.createdAt || now(),
       updated_at: u.updatedAt || now(),
     }))

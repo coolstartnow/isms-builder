@@ -46,6 +46,10 @@ Fields:
 - **Priority** — `low` / `medium` / `high`
 - **Status** — `open` / `in_progress` / `completed` / `cancelled`
 
+**Since version 1.80** these actions are kept in the central [measures register](module-measures.en.md) (*Governance* flag). Nothing
+changes in how you work here; in the register they appear together with all other measures and can additionally be assigned to
+controls, findings and risks. Attachments stay with the action in this area. Only an administrator may still delete them.
+
 ---
 
 ## Meetings

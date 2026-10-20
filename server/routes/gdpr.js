@@ -299,7 +299,7 @@ router.post('/gdpr/toms', requireAuth, authorizeContentOwner, async (req, res) =
   res.status(201).json(await gdprStore.toms.create(req.body, req.user))
 })
 router.put('/gdpr/toms/:id', requireAuth, authorizeContentOwner, async (req, res) => {
-  const item = await gdprStore.toms.update(req.params.id, req.body)
+  const item = await gdprStore.toms.update(req.params.id, req.body, req.user)
   if (!item) return res.status(404).json({ error: 'Not found' })
   res.json(item)
 })

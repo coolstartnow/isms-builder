@@ -94,6 +94,11 @@ router.get('/calendar', requireAuth, authorize('reader'), async (req, res) => {
     events.push(...goalEvts)
   } catch {}
 
+  // Maßnahmen (Register): Fälligkeit offener Maßnahmen
+  try {
+    events.push(...await require('../db/measuresStore').getCalendarEvents())
+  } catch {}
+
   // Assets EoL
   try {
     const assets = await assetStore.getAll({ status: 'active' })

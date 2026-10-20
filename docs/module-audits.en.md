@@ -97,6 +97,18 @@ The PDF is created through the browser's print dialog.
 
 ---
 
+## Actions for findings
+
+Every finding has an **action plan** (Reports → Audit Findings → open a finding). `auditor` and `contentowner` may create or delete
+an action; anyone from `editor` upwards may change its status.
+
+**Since version 1.80** these actions are entries in the central [measures register](module-measures.en.md): the finding’s action plan shows
+them as before, and below it the block **“Measures (register)”** lists them with reference (`M-…`) and status. The same measure can
+additionally be assigned to controls and risks in the register. If an action that is still assigned elsewhere is deleted in the action plan,
+only the assignment to this finding is removed.
+
+---
+
 ## Trash
 
 Deleted audits and audit programmes stay in the trash for 30 days (**Admin → Trash**) and can be restored or

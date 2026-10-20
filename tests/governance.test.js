@@ -144,7 +144,7 @@ describe('Governance Module', () => {
     })
     expect(res.status).toBe(201)
     expect(res.body.id).toBeDefined()
-    expect(res.body.id).toMatch(/^gact_/)
+    expect(res.body.id).toMatch(/^meas_/)   // Maßnahmen liegen seit 1.80 im zentralen Register (früher gact_)
     expect(res.body.title).toBe('Penetrationstest Produktionsnetz')
     expect(res.body.priority).toBe('high')
     actionId = res.body.id

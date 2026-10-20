@@ -12,8 +12,10 @@ const STATUSES       = ['open','in_treatment','accepted','closed']
 
 const { riskLevel, calcScore, optRating, OPTIONAL_RATINGS, derivedRatings } = require('../riskScore')
 const { LINK_FIELDS, normalizeIds, matchesLinks } = require('../riskLinks')
+const treatments = require('../riskTreatments')   // Behandlungen = Maßnahmen im Register mit Zuordnung zu diesem Risiko (1.80)
 
-function rowToRisk(row) {
+// `tps` = Behandlungen des Risikos aus dem Register (siehe riskTreatments.js)
+function rowToRisk(row, tps) {
   if (!row) return null
   const extra = _json(row.treatments, {})
   const score = calcScore({ probability: row.likelihood, impact: row.impact })
@@ -42,7 +44,7 @@ function rowToRisk(row) {
     linkedAssetTypes: normalizeIds(extra.linkedAssetTypes),
     linkedSuppliers:  normalizeIds(extra.linkedSuppliers),
     applicableEntities: _json(row.applicable_entities, []),
-    treatmentPlans: extra.treatmentPlans || [],
+    treatmentPlans: tps || [],
     needsReview: extra.needsReview || false,
     source: extra.source || null,
     scanRef: extra.scanRef || null,
@@ -73,7 +75,6 @@ function packExtra(r) {
     dueDate: r.dueDate, reviewDate: r.reviewDate,
     linkedControls: r.linkedControls || [], linkedTemplates: r.linkedTemplates || [],
     linkedAssets: r.linkedAssets || [], linkedAssetTypes: r.linkedAssetTypes || [], linkedSuppliers: r.linkedSuppliers || [],
-    treatmentPlans: r.treatmentPlans || [],
     needsReview: r.needsReview || false, source: r.source, scanRef: r.scanRef,
     cvssScore: r.cvssScore, cveIds: r.cveIds || [],
     approvedBy: r.approvedBy, approvedAt: r.approvedAt,
@@ -88,7 +89,8 @@ module.exports = {
     if (category) q.where('category', category)
     if (status)   q.where('status', status)
     const rows = await q.orderBy('created_at', 'desc')
-    let list = rows.map(rowToRisk)
+    const tpMap = await treatments.groupByRisk()
+    let list = rows.map(row => rowToRisk(row, tpMap.get(row.id) || []))
     if (entity) list = list.filter(r => !r.applicableEntities?.length || r.applicableEntities.includes(entity))
     if (asset || assetType || supplier) list = list.filter(r => matchesLinks(r, { asset, assetType, supplier }))
     return list
@@ -96,7 +98,7 @@ module.exports = {
 
   getById: async (id) => {
     const row = await getDb()('risks').where('id', id).whereNull('deleted_at').first()
-    return rowToRisk(row)
+    return rowToRisk(row, row ? await treatments.forRisk(id) : [])
   },
 
   create: async (fields, createdBy) => {
@@ -127,7 +129,6 @@ module.exports = {
       linkedAssetTypes: normalizeIds(fields.linkedAssetTypes),
       linkedSuppliers: normalizeIds(fields.linkedSuppliers),
       applicableEntities: Array.isArray(fields.applicableEntities) ? fields.applicableEntities : [],
-      treatmentPlans: [],
       needsReview: fields.needsReview === true,
       source: fields.source || null,
       scanRef: fields.scanRef || null,
@@ -151,7 +152,7 @@ module.exports = {
   update: async (id, fields) => {
     const row = await getDb()('risks').where('id', id).whereNull('deleted_at').first()
     if (!row) return null
-    const r = rowToRisk(row)
+    const r = rowToRisk(row, await treatments.forRisk(id))
     const updatable = ['title','description','category','threat','vulnerability','probability',
       'impact','treatmentOption','mitigationNotes','owner','dueDate','reviewDate','status',
       'linkedControls','linkedTemplates','applicableEntities',
@@ -188,6 +189,7 @@ module.exports = {
 
   permanentDelete: async (id) => {
     const affected = await getDb()('risks').where('id', id).del()
+    if (affected > 0) await treatments.onRiskRemoved(id)   // Behandlungen verschwinden mit dem Risiko (Papierkorb), Zuordnungen entfallen
     return affected > 0
   },
 
@@ -195,23 +197,25 @@ module.exports = {
     const row = await getDb()('risks').where('id', id).first()
     if (!row) return null
     await getDb()('risks').where('id', id).update({ deleted_at: null, deleted_by: null, updated_at: nowISO() })
-    return rowToRisk({ ...row, deleted_at: null, deleted_by: null })
+    return rowToRisk({ ...row, deleted_at: null, deleted_by: null }, await treatments.forRisk(id))
   },
 
   getDeleted: async () => {
     const rows = await getDb()('risks').whereNotNull('deleted_at').orderBy('deleted_at', 'desc')
-    return rows.map(rowToRisk)
+    const tpMap = await treatments.groupByRisk()
+    return rows.map(row => rowToRisk(row, tpMap.get(row.id) || []))
   },
 
   getReviewPending: async () => {
     const rows = await getDb()('risks').whereNull('deleted_at')
-    return rows.map(rowToRisk).filter(r => r.needsReview)
+    const tpMap = await treatments.groupByRisk()
+    return rows.map(row => rowToRisk(row, tpMap.get(row.id) || [])).filter(r => r.needsReview)
   },
 
   approve: async (id, approvedBy) => {
     const row = await getDb()('risks').where('id', id).whereNull('deleted_at').first()
     if (!row) return null
-    const r = rowToRisk(row)
+    const r = rowToRisk(row, await treatments.forRisk(id))
     r.needsReview = false
     r.approvedBy = approvedBy || 'system'
     r.approvedAt = nowISO()
@@ -225,69 +229,31 @@ module.exports = {
   addTreatment: async (riskId, fields, createdBy) => {
     const row = await getDb()('risks').where('id', riskId).whereNull('deleted_at').first()
     if (!row) return null
-    const r = rowToRisk(row)
-    const tp = {
-      id: makeId('tp'),
-      title: fields.title || 'Maßnahme',
-      description: fields.description || '',
-      responsible: fields.responsible || '',
-      dueDate: fields.dueDate || null,
-      status: ['open','in_progress','completed'].includes(fields.status) ? fields.status : 'open',
-      createdAt: nowISO(),
-      updatedAt: nowISO(),
-      createdBy: createdBy || 'system',
-    }
-    r.treatmentPlans = r.treatmentPlans || []
-    r.treatmentPlans.push(tp)
-    r.updatedAt = nowISO()
-    await getDb()('risks').where('id', riskId).update({
-      treatments: packExtra(r), updated_at: r.updatedAt,
-    })
-    return tp
+    return treatments.add(riskId, fields, createdBy)
   },
 
-  updateTreatment: async (riskId, tpId, fields) => {
+  updateTreatment: async (riskId, tpId, fields, updatedBy) => {
     const row = await getDb()('risks').where('id', riskId).whereNull('deleted_at').first()
     if (!row) return null
-    const r = rowToRisk(row)
-    const tp = (r.treatmentPlans || []).find(t => t.id === tpId)
-    if (!tp) return null
-    if (fields.title !== undefined) tp.title = fields.title
-    if (fields.description !== undefined) tp.description = fields.description
-    if (fields.responsible !== undefined) tp.responsible = fields.responsible
-    if (fields.dueDate !== undefined) tp.dueDate = fields.dueDate
-    if (fields.status !== undefined) tp.status = fields.status
-    tp.updatedAt = nowISO()
-    r.updatedAt = nowISO()
-    await getDb()('risks').where('id', riskId).update({
-      treatments: packExtra(r), updated_at: r.updatedAt,
-    })
-    return tp
+    return treatments.update(riskId, tpId, fields, updatedBy)
   },
 
-  deleteTreatment: async (riskId, tpId) => {
+  deleteTreatment: async (riskId, tpId, deletedBy) => {
     const row = await getDb()('risks').where('id', riskId).whereNull('deleted_at').first()
     if (!row) return false
-    const r = rowToRisk(row)
-    const before = (r.treatmentPlans || []).length
-    r.treatmentPlans = (r.treatmentPlans || []).filter(t => t.id !== tpId)
-    if (r.treatmentPlans.length === before) return false
-    r.updatedAt = nowISO()
-    await getDb()('risks').where('id', riskId).update({
-      treatments: packExtra(r), updated_at: r.updatedAt,
-    })
-    return true
+    return treatments.remove(riskId, tpId, deletedBy)
   },
 
   getCalendarEvents: async () => {
     const rows = await getDb()('risks').whereNull('deleted_at')
+    const tpMap = await treatments.groupByRisk()
     const events = []
     for (const row of rows) {
-      const r = rowToRisk(row)
+      const r = rowToRisk(row, tpMap.get(row.id) || [])
       if (r.dueDate) events.push({ date: r.dueDate, type: 'risk_due', label: `Fälligkeit: ${r.title}`, riskId: r.id, riskTitle: r.title })
       if (r.reviewDate) events.push({ date: r.reviewDate, type: 'risk_review', label: `Review: ${r.title}`, riskId: r.id, riskTitle: r.title })
       for (const tp of r.treatmentPlans || []) {
-        if (tp.dueDate) events.push({ date: tp.dueDate, type: 'treatment_due', label: `Maßnahme: ${tp.title}`, riskId: r.id, riskTitle: r.title, tpId: tp.id })
+        if (tp.dueDate && tp.status !== 'completed') events.push({ date: tp.dueDate, type: 'treatment_due', label: `Maßnahme: ${tp.title}`, riskId: r.id, riskTitle: r.title, tpId: tp.id })
       }
     }
     events.sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -296,7 +262,8 @@ module.exports = {
 
   getSummary: async () => {
     const rows = await getDb()('risks').whereNull('deleted_at')
-    const risks = rows.map(rowToRisk)
+    const tpMap = await treatments.groupByRisk()
+    const risks = rows.map(row => rowToRisk(row, tpMap.get(row.id) || []))
     const byLevel = { low: 0, medium: 0, high: 0, critical: 0 }
     const byCategory = { technical: 0, organizational: 0, physical: 0, legal: 0 }
     const byStatus = { open: 0, in_treatment: 0, accepted: 0, closed: 0 }

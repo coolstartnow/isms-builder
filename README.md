@@ -109,6 +109,10 @@ and that is not a reason to avoid the project, only a reason to plan realistical
 |---|---|
 | ![Guidance](docs/screenshots/13-guidance.png) | ![Reports](docs/screenshots/14-reports.png) |
 
+| Measures register | Measures for a control |
+|---|---|
+| ![Measures register](docs/images/measures/register-list.png) | ![Measures in the SoA](docs/images/measures/soa-block.png) |
+
 > Run `npm start` and open `https://localhost:3000` to explore the full demo dataset locally.
 
 ---
@@ -119,7 +123,8 @@ and that is not a reason to avoid the project, only a reason to plan realistical
 |---|---|---|
 | **Policy Management** | Template CRUD, versioning, lifecycle (draft → review → approved → archived), space hierarchy, attachments | ISO 27001 §5 |
 | **Statement of Applicability** | 313 controls across 8 frameworks, inline editing, gap analysis, cross-mapping | ISO 27001 A / BSI / NIS2 / EUCS / EUAI / ISO 9001 / CRA |
-| **Risk Management** | Risk register, treatment plans, auditor role | ISO 27001 §6.1 |
+| **Measures Register** | One register for risk treatments, actions for audit findings, governance measures and TOMs — responsible person, due date, status, evidence; assignable to SoA controls, findings and risks; shown in SoA, risks, findings, governance and GDPR, upgraded automatically from earlier versions ([docs](docs/module-measures.en.md)) | ISO 27001 §6.1.3 / GDPR Art. 32 |
+| **Risk Management** | Risk register, treatment plans (kept in the measures register), auditor role | ISO 27001 §6.1 |
 | **Security Goals** | KPI tracking with progress bars, calendar integration | ISO 27001 §6.2 |
 | **GDPR & Privacy** | VVT, AV-contracts, DSFA, TOMs, DSAR queue, 72h-timer, deletion log with email alerts | DSGVO Art. 13–35 |
 | **Asset Management** | Asset register, editable asset types, protection goals (CIA + authenticity) with dependency inheritance, classification levels, EoL tracking | ISO 27001 A.5.9–5.12 |

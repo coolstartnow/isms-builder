@@ -48,6 +48,10 @@ Velden:
 - **Prioriteit** — `low` / `medium` / `high`
 - **Status** — `open` / `in_progress` / `completed` / `cancelled`
 
+**Sinds versie 1.80** staan deze maatregelen in het centrale [maatregelenregister](module-measures.nl.md) (kenmerk *Governance*). Aan de bediening hier
+verandert niets; in het register verschijnen ze samen met alle andere maatregelen en kunnen ze bovendien aan controls, bevindingen en
+risico’s worden toegewezen. Bijlagen blijven in dit onderdeel aan de maatregel hangen. Verwijderen mag nog steeds alleen een beheerder.
+
 ---
 
 ## Vergaderingen

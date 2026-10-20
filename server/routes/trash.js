@@ -54,6 +54,18 @@ router.get('/trash', requireAuth, authorize('admin'), async (req, res) => {
     }))
   } catch {}
 
+  // Maßnahmen
+  try {
+    const deletedMeasures = (await require('../db/measuresStore').getDeleted?.() || []).filter(m => !m.tom)   // TOMs stehen unter gdpr_toms
+    deletedMeasures.forEach(m => items.push({
+      module: 'measure', moduleLabel: tr(lang, 'srv_trash_measure'),
+      id: m.id, title: m.title || m.id,
+      deletedAt: m.deletedAt, deletedBy: m.deletedBy,
+      expiresAt: new Date(new Date(m.deletedAt).getTime() + 30*86400000).toISOString(),
+      meta: { ref: m.ref }
+    }))
+  } catch {}
+
   // Guidance
   try {
     const deletedGuidance = await guidanceStore.getDeleted?.() || []

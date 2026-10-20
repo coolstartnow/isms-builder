@@ -108,8 +108,13 @@ Les MTO documentent les mesures de protection selon l'art. 32 RGPD — tant tech
 
 **Créer :** RGPD → MTO → **« + Nouvelle MTO »**
 
-Champs : catégorie (confidentialité/intégrité/disponibilité/résilience), description,
-état de mise en œuvre, entrées RAT associées.
+Champs : catégorie (contrôle d’accès, chiffrement, journalisation, sécurité réseau, sécurité applicative,
+sauvegarde et restauration, organisationnelle, formation, conservation des données), niveau de risque, description,
+état de mise en œuvre, entrées RAT associées, preuve.
+
+**Depuis la version 1.80**, les MTO (« TOM » dans l’interface) sont tenues dans le [registre des mesures](module-measures.fr.md) central
+(indicateur *TOM*). Elles y apparaissent avec toutes les autres mesures, peuvent être filtrées par origine « Uniquement les TOM »
+et peuvent en outre être affectées à des contrôles SoA. Les droits restent ceux décrits ici : création et modification à partir de `contentowner`.
 
 ---
 

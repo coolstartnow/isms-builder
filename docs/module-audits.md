@@ -99,6 +99,18 @@ Das PDF entsteht über den Druckdialog des Browsers.
 
 ---
 
+## Maßnahmen zu Feststellungen
+
+Zu jeder Feststellung gehört ein **Maßnahmenplan** (Reports → Audit-Feststellungen → Feststellung öffnen). Eine Maßnahme anlegen
+oder löschen dürfen `auditor` und `contentowner`; den Status ändern darf ab `editor` jeder.
+
+**Seit Version 1.80** sind diese Maßnahmen Einträge im zentralen [Maßnahmenregister](module-measures.md): Der Maßnahmenplan der
+Feststellung zeigt sie wie bisher, darunter listet der Block **„Maßnahmen (Register)“** sie mit Referenz (`M-…`) und Status. Dieselbe
+Maßnahme lässt sich im Register zusätzlich Controls und Risiken zuordnen. Wird eine Maßnahme im Maßnahmenplan gelöscht, die noch an
+anderer Stelle zugeordnet ist, wird nur die Zuordnung zu dieser Feststellung gelöst.
+
+---
+
 ## Papierkorb
 
 Gelöschte Audits und Auditprogramme liegen 30 Tage im Papierkorb (**Admin → Papierkorb**) und können von

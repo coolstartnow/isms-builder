@@ -86,12 +86,12 @@ router.post('/risks/:id/treatments', requireAuth, authorizeAuditor, async (req, 
   res.status(201).json(tp)
 })
 router.put('/risks/:id/treatments/:tpId', requireAuth, authorizeAuditor, async (req, res) => {
-  const tp = await riskStore.updateTreatment(req.params.id, req.params.tpId, req.body)
+  const tp = await riskStore.updateTreatment(req.params.id, req.params.tpId, req.body, req.user)
   if (!tp) return res.status(404).json({ error: 'Not found' })
   res.json(tp)
 })
 router.delete('/risks/:id/treatments/:tpId', requireAuth, authorizeAuditor, async (req, res) => {
-  const ok = await riskStore.deleteTreatment(req.params.id, req.params.tpId)
+  const ok = await riskStore.deleteTreatment(req.params.id, req.params.tpId, req.user)
   if (!ok) return res.status(404).json({ error: 'Not found' })
   await require('../db/auditStore').append({ user: req.user, action: 'delete', resource: 'risk_treatment', resourceId: req.params.tpId, detail: `riskId: ${req.params.id}` })
   res.json({ deleted: true })

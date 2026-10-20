@@ -144,6 +144,7 @@ app.use(require('./routes/templates'))
 app.use(require('./routes/soa'))
 app.use(require('./routes/risks'))
 app.use(require('./routes/goals'))
+app.use(require('./routes/measures'))
 app.use(require('./routes/assets'))
 app.use(require('./routes/governance'))
 app.use(require('./routes/bcm'))
@@ -217,6 +218,8 @@ async function runAutopurge() {
 
   await purge('Risks',              () => riskStore.getDeleted(),                     (id) => riskStore.permanentDelete(id))
   await purge('Goals',              () => goalsStore.getDeleted(),                    (id) => goalsStore.permanentDelete(id))
+  const measuresStore = require('./db/measuresStore')
+  await purge('Measures',           () => measuresStore.getDeleted(),                 (id) => measuresStore.permanentDelete(id))
   await purge('Guidance',           () => guidanceStore.getDeleted(),                 (id) => guidanceStore.permanentDelete(id))
   await purge('Training',           () => trainingStore.getDeleted(),                 (id) => trainingStore.permanentDelete(id))
   await purge('Contracts',          () => legalStore.contracts.getDeleted(),          (id) => legalStore.contracts.permanentDelete(id))
@@ -245,6 +248,16 @@ async function runAutopurge() {
 
 // ── Idempotente Guidance-Seeds (Architekturdoku, Demo-Beitrag, Rollen-Guides, …) ──
 async function seedAll() {
+  // In anderen Modulen eingebettete Maßnahmen (TOMs, Risiko-Behandlungen, …) ins Maßnahmen-Register übernehmen
+  // (idempotent, die alten Daten bleiben als Sicherung liegen)
+  try {
+    const r = await require('./db/measureMigration').run()
+    if (r.migrated) console.log(`[migration] ${r.migrated} Maßnahmen in das Register übernommen (TOMs ${r.toms.migrated}, Risiko-Behandlungen ${r.risks.migrated}, Feststellungs-Maßnahmen ${r.findings.migrated}, Governance-Maßnahmen ${r.governance.migrated})`)
+    if (r.failed) console.warn(`[migration] ${r.failed} Maßnahmen konnten nicht übernommen werden – siehe Meldungen oben`)
+  } catch (e) {
+    console.warn('[migration] Übernahme der Maßnahmen fehlgeschlagen:', e.message)
+  }
+
   // SoA: eingebaute Controls unter sqlite/mariadb/postgres anlegen (im JSON-Backend macht das der Store selbst) (#98)
   try {
     const r = await require('./db/soaStore').seedBuiltIn()

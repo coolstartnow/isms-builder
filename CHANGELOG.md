@@ -10,6 +10,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.80.0] — 2026-10-20
+
+> Minor-Release: Maßnahmenregister — ein Bestand für alle Maßnahmen — sowie Korrekturen an ISO-Import, KI-Suche, Oberflächen-Meldungen und der Sichtbarkeit der Moduldoku in der Guidance.
+
+### Added
+- **Maßnahmenregister (neu)** — Ein zentrales Register für alle Maßnahmen im ISMS (ISO 27001 Kap. 6.1.3, DSGVO Art. 32): Referenz `M-001…`, Titel, Beschreibung, konkrete Umsetzung, Verantwortlicher, Fälligkeit, Wiedervorlage, Status (Geplant · In Umsetzung · Umgesetzt · Wirksamkeit geprüft · Abgebrochen), Zuordnung zu SoA-Controls, Feststellungen und Risiken. Neue Seite „Maßnahmen“ (hinter „SoA – Controls“) mit Kennzahlen, Suche, Filtern (Status, Verantwortlicher, überfällig, Herkunft), CSV- (mit Formel-Schutz) und PDF-Export sowie Blöcken in SoA-Control und Feststellung. Routen `/measures…`, Speicher für JSON und SQL, Kalender (`measure_due`), Papierkorb, KI-Suche, Audit-Log. Doku: `docs/module-measures*.md` (5 Sprachen, mit Screenshots).
+- **Ein Bestand statt vier Listen** — Risiko-Behandlungen, Maßnahmen zu Feststellungen, Governance-Maßnahmen und TOMs liegen jetzt im Register. Die Module zeigen sie weiter an gewohnter Stelle; ihre Schnittstellen (`/risks/:id/treatments`, `/findings/:id/actions`, `/governance/actions`, `/gdpr/toms`) und Rechte bleiben unverändert. Eine Änderung gilt überall, nichts erscheint doppelt. Maßnahmen mit Risiko-Zuordnung gelten als Behandlung dieses Risikos.
+- **Übernahme vorhandener Daten beim Start** — Eingebettete Maßnahmen werden automatisch ins Register übernommen (idempotent; Kennungen, Zeitstempel und Löschstatus bleiben erhalten; die alten Daten bleiben unverändert als Sicherung liegen und werden nicht mehr gelesen). Abgeschlossene Maßnahmen behalten ihr ursprüngliches Datum statt „heute“.
+- **Governance-Felder und Risiko-Auswahl im Register** — Kennzeichen „Governance-Maßnahme“ (Anlass, Bezug, Priorität, Fortschritt, E-Mail, Erledigt am, Notizen), Auswahlliste für Risiken, Herkunfts-Filter (TOMs, Governance, Risiko-Behandlungen, Feststellungs-Maßnahmen). Editoren sehen Zuordnungen zu Risiken und Feststellungen schreibgeschützt (Server: ab Auditor/Contentowner).
+- **Demo-Bundles mit Register (de, en, fr, nl, hu)** — Je zwei Feststellungen mit Maßnahmen, drei Risiko-Behandlungen und vier eigene Maßnahmen; vorhandene TOMs und Governance-Aktionen stehen im Register. Test `tests/demoBundleRegister.test.js` prüft alle Bundles.
+- **`tools/make-measures-screenshots.js`** — Erzeugt die Doku-Screenshots (`docs/images/measures/`) mit echtem Chrome gegen eine Demo-Instanz.
+
+### Changed
+- **ISO-Controls importieren prüft jede Zeile (#45)** — `POST /soa/import-controls` akzeptiert nur die Frameworks `ISO27001`, `ISO9000`, `ISO9001`, verlangt die Pflichtfelder, lehnt doppelte und mit vorhandenen Controls kollidierende IDs ab und übernimmt nur bekannte Felder. Die Antwort nennt `imported`, `rejected`, `rejectedByReason`, `rejectedDetails`, `allowedFrameworks` und `added`; sind alle Zeilen ungültig, antwortet der Server mit 400. Die importierten Controls stehen sofort ohne Neustart zur Verfügung (`soaStore.reloadIsoControls()`); die Oberfläche zeigt die Ablehnungsgründe.
+- **Demo-Daten laden übernimmt Maßnahmen sofort** — Nach `POST /admin/demo-load-bundle` und `POST /admin/demo-import` stehen eingebettete Maßnahmen ohne Serverneustart im Register; ein erneut geladenes Bundle ersetzt das Register (unter JSON).
+- **`tools/migrate-json-to-knex.js`** — übernimmt das Register mit allen Feldern und Anhängen; Benutzer aus älteren JSON-Beständen erhalten Standardwerte für `functions` und `sections`.
+- **Neue Governance-Maßnahmen erhalten IDs `meas_…`** (früher `gact_…`); vorhandene Kennungen ändern sich nicht.
+- **KI-Suche bezieht Maßnahmen ein.**
+- **Doku:** `docs/module-gdpr*.md` nennt die tatsächlichen neun TOM-Kategorien (statt Vertraulichkeit/Integrität/Verfügbarkeit/Belastbarkeit); `docs/module-governance*.md`, `docs/module-audits*.md`, `ISMS-build-documentation.md` (Kapitel 58), `docs/architecture/data-model.md`, `docs/architecture/openapi.yaml` und README beschreiben das Register.
+
+### Fixed
+- **Moduldoku „Mobile App & Sync“ und „Maßnahmenregister“ fehlten in der Guidance** — Die Guidance-Seeds (`server/db/guidanceStore.js`) führen die Moduldocs in einer festen Liste; die beiden Docs standen nicht darin und waren in der Anwendung nicht sichtbar. Beide sind jetzt als „Systemhandbuch“-Einträge in allen fünf Sprachen vorhanden; relative Bildverweise (`images/…`) der Moduldocs werden beim Einlesen auf den geschützten Pfad `docs/images/…` umgeschrieben.
+- **Meldungen der Oberfläche (`showToast`) fehlten** — Die Funktion war nie definiert; 18 Aufrufstellen (u. a. im ISO-Import-Dialog) lösten einen `ReferenceError` aus. Sie ist jetzt definiert, mit Darstellung.
+- **KI-Suche fand unter SQL-Backends fast nichts** — In `server/ai/embeddingStore.js` und `lexicalSearch.js` fehlte bei allen bestehenden Modulen ein `await`; unter SQLite, MariaDB und PostgreSQL lieferte die Suche nur Treffer aus dem Maßnahmenregister. Gemessen und behoben, Tests für JSON und SQL.
+- **„Risiko bearbeiten“ konnte bei langsamer Antwort mit dem falschen Risiko speichern** — `openRiskModal` zählt jetzt Aufrufe und zeichnet nur die jüngste Anforderung; die Bearbeitungs-ID wird erst nach den Antworten und nur für die jüngste gesetzt (Anregung aus PR #102, selbst umgesetzt und im echten Browser geprüft). Dasselbe gilt für das Formular des Maßnahmenregisters.
+
 ## [1.78.0] — 2026-10-20
 
 > Patch-Release: Korrekturen aus Issue #98 (SoA-Controls unter SQL-Backends, JSON-Fehlerantworten, Demo-Import, Login-Banner) und README „Going live“.

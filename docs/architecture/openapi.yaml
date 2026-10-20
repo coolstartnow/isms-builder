@@ -182,6 +182,109 @@ components:
           items:
             type: string
 
+    Measure:
+      type: object
+      description: >
+        A measure in the central register. The origin follows from the links and flags: linkedRisks (risk treatment),
+        linkedFindings (action for a finding), governance (governance measure), tom (TOM, Art. 32 GDPR).
+      properties:
+        id:
+          type: string
+          example: meas_mvguknxttncz
+        ref:
+          type: string
+          description: Reference assigned by the server
+          example: M-016
+        title:
+          type: string
+        description:
+          type: string
+        implementation:
+          type: string
+          description: What has been done (evidence for auditors)
+        responsible:
+          type: string
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        reviewDate:
+          type: string
+          format: date
+          nullable: true
+        completedDate:
+          type: string
+          format: date
+          nullable: true
+          description: Set automatically when the status becomes implemented or verified and no date is given
+        status:
+          type: string
+          enum: [planned, in_progress, implemented, verified, cancelled]
+        linkedControls:
+          type: array
+          items: { type: string }
+        linkedFindings:
+          type: array
+          items: { type: string }
+          description: Changing requires auditor or contentowner
+        linkedRisks:
+          type: array
+          items: { type: string }
+          description: Changing requires auditor or contentowner
+        linkedPolicies:
+          type: array
+          items: { type: string }
+        linkedVvt:
+          type: array
+          items: { type: string }
+        applicableEntities:
+          type: array
+          items: { type: string }
+        tom:
+          type: boolean
+          description: TOM flag — creating or changing requires contentowner
+        category:
+          type: string
+          enum: ['', access, encryption, logging, network, application, backup, organizational, training, retention]
+        riskLevel:
+          type: string
+          enum: ['', low, medium, high, critical]
+        evidenceNote:
+          type: string
+        retentionRule:
+          type: string
+        governance:
+          type: boolean
+          description: Governance flag — deleting requires admin
+        source:
+          type: string
+          enum: ['', management_review, internal_audit, external_audit, incident, other]
+        sourceRef:
+          type: string
+        priority:
+          type: string
+          enum: ['', low, medium, high, critical]
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        ownerEmail:
+          type: string
+        entityId:
+          type: string
+        notes:
+          type: string
+        attachments:
+          type: array
+          description: Read-only here; set only by the governance upload routes
+          items: { type: object }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string }
+        updatedAt: { type: string, format: date-time }
+        updatedBy: { type: string }
+        deletedAt: { type: string, format: date-time, nullable: true }
+        deletedBy: { type: string, nullable: true }
+
     Risk:
       allOf:
         - $ref: '#/components/schemas/CommonFields'
@@ -347,6 +450,8 @@ tags:
     description: Corporate/organisational entity structure
   - name: soa
     description: Statement of Applicability — controls across 8 frameworks
+  - name: measures
+    description: Measures register — one data set for risk treatments, finding actions, governance measures and TOMs (V 1.80)
   - name: risks
     description: Risk register and treatment plans
   - name: goals
@@ -3220,6 +3325,170 @@ paths:
       responses:
         '200':
           description: Deleted
+
+  /measures:
+    get:
+      tags: [measures]
+      summary: List measures
+      description: >
+        Filters are combined with AND. The register covers all origins; use `risk`, `finding`, `governance` and `tom`
+        to select an origin.
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: 'Full-text search (reference, title, description, implementation, notes, source reference, responsible)' }
+        - { name: status, in: query, schema: { type: string, enum: [planned, in_progress, implemented, verified, cancelled] } }
+        - { name: responsible, in: query, schema: { type: string }, description: Substring match }
+        - { name: control, in: query, schema: { type: string }, description: SoA control id }
+        - { name: finding, in: query, schema: { type: string }, description: Finding id }
+        - { name: risk, in: query, schema: { type: string }, description: Risk id }
+        - { name: overdue, in: query, schema: { type: boolean } }
+        - { name: tom, in: query, schema: { type: boolean } }
+        - { name: governance, in: query, schema: { type: boolean } }
+        - { name: source, in: query, schema: { type: string } }
+        - { name: priority, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Array of measures, sorted by reference
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Measure'
+    post:
+      tags: [measures]
+      summary: Create a measure (editor+)
+      description: >
+        Setting `tom` requires contentowner; setting `linkedRisks` or `linkedFindings` requires auditor or contentowner.
+        Unknown risk, finding or control ids are rejected with 400.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Measure'
+      responses:
+        '201':
+          description: Created measure with a generated reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Measure'
+        '400':
+          description: Invalid input or unknown link
+        '403':
+          description: Role too low for TOM or for links to risks/findings
+
+  /measures/summary:
+    get:
+      tags: [measures]
+      summary: Key figures
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Totals by status, overdue, without links (TOMs and governance measures excluded), number of TOMs
+
+  /measures/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [measures]
+      summary: Get a single measure
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Measure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Measure'
+        '404':
+          description: Not found
+    put:
+      tags: [measures]
+      summary: Update a measure (editor+; only the fields passed change)
+      description: >
+        Editors cannot change measures that are assigned to a risk, nor links to risks/findings (auditor or contentowner).
+        TOMs can only be changed by contentowner. `attachments` cannot be set here.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Measure'
+      responses:
+        '200':
+          description: Updated measure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Measure'
+        '400':
+          description: Invalid input or unknown link
+        '403':
+          description: Role too low
+        '404':
+          description: Not found
+    delete:
+      tags: [measures]
+      summary: Delete a measure (contentowner+; governance measures admin)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Moved to the trash
+        '403':
+          description: Role too low
+        '404':
+          description: Not found
+
+  /measures/{id}/restore:
+    post:
+      tags: [measures]
+      summary: Restore a deleted measure (admin)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Restored measure
+        '404':
+          description: Not found
+
+  /measures/{id}/permanent:
+    delete:
+      tags: [measures]
+      summary: Delete a measure permanently (admin)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
 
   /gdpr/toms:
     get:

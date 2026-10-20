@@ -99,70 +99,8 @@ function deleteReview(id) {
 
 // ─── Actions ────────────────────────────────────────────────────────────────
 
-function getActions() {
-  return load().actions.filter(a => !a.deletedAt)
-}
-
-function getActionById(id) {
-  return load().actions.find(a => a.id === id && !a.deletedAt) || null
-}
-
-function createAction(fields, { createdBy } = {}) {
-  const data = load()
-  const item = {
-    id:            makeId('gact'),
-    title:         fields.title         || 'Ohne Titel',
-    description:   fields.description   || '',
-    source:        fields.source        || 'management_review',
-    sourceRef:     fields.sourceRef     || '',
-    owner:         fields.owner         || '',
-    ownerEmail:    fields.ownerEmail    || '',
-    dueDate:       fields.dueDate       || '',
-    completedDate: fields.completedDate || '',
-    priority:      fields.priority      || 'medium',
-    status:        fields.status        || 'open',
-    progress:      typeof fields.progress === 'number' ? fields.progress : 0,
-    notes:         fields.notes         || '',
-    entityId:      fields.entityId      || '',
-    linkedControls: Array.isArray(fields.linkedControls) ? fields.linkedControls : [],
-    linkedPolicies: Array.isArray(fields.linkedPolicies) ? fields.linkedPolicies : [],
-    createdAt:     nowISO(),
-    updatedAt:     nowISO(),
-    createdBy:     createdBy || 'system',
-    deletedAt:     null,
-  }
-  data.actions.push(item)
-  save(data)
-  return item
-}
-
-function updateAction(id, patch, { changedBy } = {}) {
-  const data = load()
-  const idx  = data.actions.findIndex(a => a.id === id && !a.deletedAt)
-  if (idx < 0) return null
-  const allowed = ['title','description','source','sourceRef','owner','ownerEmail',
-    'dueDate','completedDate','priority','status','progress','notes','entityId',
-    'linkedControls','linkedPolicies']
-  for (const k of allowed) {
-    if (patch[k] !== undefined) data.actions[idx][k] = patch[k]
-  }
-  if (patch.status === 'completed' && !data.actions[idx].completedDate) {
-    data.actions[idx].completedDate = nowISO().slice(0, 10)
-  }
-  data.actions[idx].updatedAt = nowISO()
-  if (changedBy) data.actions[idx].updatedBy = changedBy
-  save(data)
-  return data.actions[idx]
-}
-
-function deleteAction(id) {
-  const data = load()
-  const idx  = data.actions.findIndex(a => a.id === id && !a.deletedAt)
-  if (idx < 0) return false
-  data.actions[idx].deletedAt = nowISO()
-  save(data)
-  return true
-}
+// Maßnahmen liegen im zentralen Maßnahmen-Register (1.80), siehe governanceActions.js
+const { getActions, getActionById, createAction, updateAction, deleteAction } = require('./governanceActions')
 
 // ─── Meetings ───────────────────────────────────────────────────────────────
 
@@ -233,7 +171,7 @@ function deleteMeeting(id) {
 function getSummary() {
   const data    = load()
   const reviews = data.reviews.filter(r => !r.deletedAt)
-  const actions = data.actions.filter(a => !a.deletedAt)
+  const actions = getActions()
   const meetings = data.meetings.filter(m => !m.deletedAt)
 
   const today = new Date().toISOString().slice(0, 10)

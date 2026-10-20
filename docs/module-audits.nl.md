@@ -97,6 +97,18 @@ De PDF ontstaat via het afdrukvenster van de browser.
 
 ---
 
+## Acties bij bevindingen
+
+Bij elke bevinding hoort een **actieplan** (Reports → Auditbevindingen → een bevinding openen). `auditor` en `contentowner` mogen een actie aanmaken
+of verwijderen; iedereen vanaf `editor` mag de status wijzigen.
+
+**Sinds versie 1.80** zijn deze acties vermeldingen in het centrale [maatregelenregister](module-measures.nl.md): het actieplan van de bevinding toont
+ze zoals voorheen, en daaronder somt het blok **“Maatregelen (register)”** ze op met referentie (`M-…`) en status. Dezelfde maatregel kan in het register
+bovendien aan controls en risico’s worden toegewezen. Wordt in het actieplan een actie verwijderd die elders nog is toegewezen, dan wordt alleen de
+toewijzing aan deze bevinding opgeheven.
+
+---
+
 ## Prullenbak
 
 Verwijderde audits en auditprogramma's blijven 30 dagen in de prullenbak (**Admin → Prullenbak**) en kunnen door beheerders worden hersteld of

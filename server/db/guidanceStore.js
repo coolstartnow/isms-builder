@@ -24,6 +24,9 @@ function save(docs) {
 
 function nowISO() { return new Date().toISOString() }
 
+// Seed-Dateien lesen; relative Bildverweise der Moduldocs (`images/…`) werden von der App-Seite (/ui/) aus als docs/images/… über den geschützten Pfad /ui/docs/ geladen
+const readSeedFile = f => fs.readFileSync(f, 'utf8').replace(/\]\(images\//g, '](docs/images/')
+
 function makeId() {
   return 'guid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
 }
@@ -367,6 +370,22 @@ const ARCH_SEED = [
     minRole:       null,
   },
   {
+    seedId:        'seed_module_measures',
+    title:         { de: "Modul: Maßnahmenregister", en: "Module: Measures Register", fr: "Module: Registre des mesures", nl: "Module: Maatregelenregister", hu: "Modul: Intézkedésnyilvántartás" },
+    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-measures.md'), en: path.join(PROJECT_ROOT, 'docs/module-measures.en.md'), fr: path.join(PROJECT_ROOT, 'docs/module-measures.fr.md'), nl: path.join(PROJECT_ROOT, 'docs/module-measures.nl.md'), hu: path.join(PROJECT_ROOT, 'docs/module-measures.hu.md') },
+    refreshContent: true,
+    category:      'systemhandbuch',
+    minRole:       null,
+  },
+  {
+    seedId:        'seed_module_mobile_sync',
+    title:         { de: "Modul: Mobile App (Android) & Sync", en: "Module: Mobile App (Android) & Sync", fr: "Module: Application mobile (Android) et synchronisation", nl: "Module: Mobiele app (Android) en synchronisatie", hu: "Modul: Mobilalkalmazás (Android) és szinkronizálás" },
+    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-mobile-sync.md'), en: path.join(PROJECT_ROOT, 'docs/module-mobile-sync.en.md'), fr: path.join(PROJECT_ROOT, 'docs/module-mobile-sync.fr.md'), nl: path.join(PROJECT_ROOT, 'docs/module-mobile-sync.nl.md'), hu: path.join(PROJECT_ROOT, 'docs/module-mobile-sync.hu.md') },
+    refreshContent: true,
+    category:      'systemhandbuch',
+    minRole:       null,
+  },
+  {
     seedId:        'seed_changelog',
     title:         'ISMS Builder – Changelog',
     srcFile:       path.join(PROJECT_ROOT, 'CHANGELOG.md'),
@@ -404,7 +423,7 @@ function seedArchitectureDocs() {
         changed = true
         // Refresh content when language changes (for srcFiles entries)
         if (entry.srcFiles && srcFile && fs.existsSync(srcFile)) {
-          let fresh = fs.readFileSync(srcFile, 'utf8')
+          let fresh = readSeedFile(srcFile)
           if (entry.wrapCode) fresh = `\`\`\`${entry.wrapCode}\n${fresh}\n\`\`\``
           existing.content   = fresh
           existing.updatedAt = new Date().toISOString()
@@ -412,7 +431,7 @@ function seedArchitectureDocs() {
       }
       // Always refresh content for entries that change frequently (e.g. CHANGELOG)
       if (entry.refreshContent && srcFile && fs.existsSync(srcFile)) {
-        let fresh = fs.readFileSync(srcFile, 'utf8')
+        let fresh = readSeedFile(srcFile)
         if (entry.wrapCode) fresh = `\`\`\`${entry.wrapCode}\n${fresh}\n\`\`\``
         if (existing.content !== fresh) {
           existing.content   = fresh
@@ -425,7 +444,7 @@ function seedArchitectureDocs() {
 
     if (!srcFile || !fs.existsSync(srcFile)) continue
 
-    let content = fs.readFileSync(srcFile, 'utf8')
+    let content = readSeedFile(srcFile)
     if (entry.wrapCode) {
       content = `\`\`\`${entry.wrapCode}\n${content}\n\`\`\``
     }
@@ -4041,7 +4060,7 @@ if (STORAGE_BACKEND !== 'json') {
         ? (entry.srcFiles[lang] || entry.srcFiles.en || entry.srcFile)
         : entry.srcFile
       if (!srcFile || !fs.existsSync(srcFile)) continue
-      let content = fs.readFileSync(srcFile, 'utf8')
+      let content = readSeedFile(srcFile)
       if (entry.wrapCode) content = '```' + entry.wrapCode + '\n' + content + '\n```'
       await _knex.upsertSeed(entry.seedId, {
         id: 'guid_arch_' + entry.seedId, category: entry.category || 'admin-intern',

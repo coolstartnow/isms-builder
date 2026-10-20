@@ -104,8 +104,13 @@ TOMs document the security measures under Art. 32 GDPR — both technical
 
 **Create:** GDPR → TOMs → **"+ New TOM"**
 
-Fields: category (confidentiality/integrity/availability/resilience), description,
-implementation status, linked RoPA entries.
+Fields: category (access control, encryption, logging, network security, application security,
+backup & recovery, organizational, training, data retention), risk level, description, implementation status,
+linked RoPA entries, evidence.
+
+**Since version 1.80** the TOMs are kept in the central [measures register](module-measures.en.md) (*TOM* flag). They appear
+there together with all other measures, can be filtered by origin “TOMs only”, and can additionally be assigned
+to SoA controls. The rights stay as described here: create and change only from `contentowner`.
 
 ---
 

@@ -7,14 +7,20 @@ function makeId() { return `finding_${Date.now()}_${Math.random().toString(36).s
 function makeActId() { return `act_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` }
 function _json(val, fallback) { if (!val) return fallback; try { return JSON.parse(val) } catch { return fallback } }
 
+const actions = require('../findingActions')   // Maßnahmen der Feststellung = Maßnahmen im Register mit Zuordnung zu ihr (1.80)
+
 const SEVERITIES = ['critical', 'high', 'medium', 'low', 'observation']
 const STATUSES   = ['open', 'in_progress', 'resolved', 'accepted']
 const ACT_STATUS = ['open', 'in_progress', 'done']
 
-function rowToFinding(row) {
+// `acts` = Maßnahmen der Feststellung aus dem Register (siehe findingActions.js). Die in älteren Daten eingebettete Liste wird
+// nie gelesen und beim Speichern nicht mehr geschrieben.
+function rowToFinding(row, acts) {
   if (!row) return null
-  return { id: row.id, ..._json(row.data, {}), createdBy: row.created_by, createdAt: row.created_at, updatedAt: row.updated_at, deletedAt: row.deleted_at || null }
+  return { id: row.id, ..._json(row.data, {}), actions: acts || [], createdBy: row.created_by, createdAt: row.created_at, updatedAt: row.updated_at, deletedAt: row.deleted_at || null }
 }
+const packFinding = f => { const { actions: _a, ...rest } = f; return JSON.stringify(rest) }
+const forRow = async row => rowToFinding(row, row ? await actions.forFinding(row.id) : [])
 
 async function nextRef() {
   const year = new Date().getFullYear()
@@ -31,7 +37,8 @@ module.exports = {
 
   getAll: async ({ status, severity, auditor, auditId } = {}) => {
     const rows = await getDb()('findings').whereNull('deleted_at').orderBy('created_at', 'desc')
-    let list = rows.map(rowToFinding)
+    const actMap = await actions.groupByFinding()
+    let list = rows.map(row => rowToFinding(row, actMap.get(row.id) || []))
     if (status) list = list.filter(f => f.status === status)
     if (severity) list = list.filter(f => f.severity === severity)
     if (auditor) list = list.filter(f => f.auditor === auditor)
@@ -41,7 +48,7 @@ module.exports = {
 
   getById: async (id) => {
     const row = await getDb()('findings').where('id', id).whereNull('deleted_at').first()
-    return rowToFinding(row)
+    return forRow(row)
   },
 
   create: async (fields, createdBy) => {
@@ -62,18 +69,18 @@ module.exports = {
       linkedRisks: Array.isArray(fields.linkedRisks) ? fields.linkedRisks : [],
       auditId: typeof fields.auditId === 'string' && fields.auditId ? fields.auditId : null,
       sourceItemId: typeof fields.sourceItemId === 'string' && fields.sourceItemId ? fields.sourceItemId : null,
-      actions: [], deletedBy: null,
+      deletedBy: null,
     }
     await getDb()('findings').insert({
-      id, data: JSON.stringify(f), created_by: createdBy || 'system', created_at: now, updated_at: now,
+      id, data: packFinding(f), created_by: createdBy || 'system', created_at: now, updated_at: now,
     })
-    return { id, ...f, createdBy: createdBy || 'system', createdAt: now, updatedAt: now, deletedAt: null }
+    return { id, ...f, actions: [], createdBy: createdBy || 'system', createdAt: now, updatedAt: now, deletedAt: null }
   },
 
   update: async (id, fields, updatedBy) => {
     const row = await getDb()('findings').where('id', id).whereNull('deleted_at').first()
     if (!row) return null
-    const f = rowToFinding(row)
+    const f = await forRow(row)
     const allowed = ['title','severity','status','observation','requirement','impact',
       'recommendation','auditor','auditedArea','auditPeriodFrom','auditPeriodTo',
       'linkedControls','linkedPolicies','linkedRisks','auditId']
@@ -83,7 +90,7 @@ module.exports = {
     if (fields.severity && !SEVERITIES.includes(fields.severity)) f.severity = 'medium'
     if (fields.status && !STATUSES.includes(fields.status)) f.status = 'open'
     f.updatedAt = nowISO()
-    await getDb()('findings').where('id', id).update({ data: JSON.stringify(f), updated_at: f.updatedAt })
+    await getDb()('findings').where('id', id).update({ data: packFinding(f), updated_at: f.updatedAt })
     return f
   },
 
@@ -93,79 +100,55 @@ module.exports = {
     const f = rowToFinding(row)
     f.deletedAt = nowISO()
     f.deletedBy = deletedBy || 'system'
-    await getDb()('findings').where('id', id).update({ deleted_at: nowISO(), data: JSON.stringify(f) })
+    await getDb()('findings').where('id', id).update({ deleted_at: nowISO(), data: packFinding(f) })
     return true
   },
 
   permanentDelete: async (id) => {
     const affected = await getDb()('findings').where('id', id).del()
+    if (affected > 0) await actions.onFindingRemoved(id)   // Maßnahmen verschwinden mit der Feststellung (Papierkorb), Zuordnungen entfallen
     return affected > 0
   },
 
   restore: async (id) => {
     const row = await getDb()('findings').where('id', id).first()
     if (!row) return null
-    const f = rowToFinding(row)
+    const f = await forRow(row)
     delete f.deletedAt
     delete f.deletedBy
     f.updatedAt = nowISO()
-    await getDb()('findings').where('id', id).update({ deleted_at: null, data: JSON.stringify(f), updated_at: f.updatedAt })
+    await getDb()('findings').where('id', id).update({ deleted_at: null, data: packFinding(f), updated_at: f.updatedAt })
     return f
   },
 
   getDeleted: async () => {
     const rows = await getDb()('findings').whereNotNull('deleted_at')
-    return rows.map(rowToFinding)
+    const actMap = await actions.groupByFinding()
+    return rows.map(row => rowToFinding(row, actMap.get(row.id) || []))
   },
 
   addAction: async (findingId, fields, updatedBy) => {
     const row = await getDb()('findings').where('id', findingId).whereNull('deleted_at').first()
     if (!row) return null
-    const f = rowToFinding(row)
-    const action = {
-      id: makeActId(), description: fields.description || '',
-      responsible: fields.responsible || '', dueDate: fields.dueDate || null,
-      status: ACT_STATUS.includes(fields.status) ? fields.status : 'open',
-      updatedAt: nowISO(), updatedBy: updatedBy || 'system',
-    }
-    f.actions = f.actions || []
-    f.actions.push(action)
-    f.updatedAt = nowISO()
-    await getDb()('findings').where('id', findingId).update({ data: JSON.stringify(f), updated_at: f.updatedAt })
-    return action
+    return actions.add(findingId, fields, updatedBy)
   },
 
   updateAction: async (findingId, actionId, fields, updatedBy) => {
     const row = await getDb()('findings').where('id', findingId).whereNull('deleted_at').first()
     if (!row) return null
-    const f = rowToFinding(row)
-    const action = (f.actions || []).find(a => a.id === actionId)
-    if (!action) return null
-    if (fields.description !== undefined) action.description = fields.description
-    if (fields.responsible !== undefined) action.responsible = fields.responsible
-    if (fields.dueDate !== undefined) action.dueDate = fields.dueDate
-    if (fields.status && ACT_STATUS.includes(fields.status)) action.status = fields.status
-    action.updatedAt = nowISO()
-    action.updatedBy = updatedBy || 'system'
-    f.updatedAt = nowISO()
-    await getDb()('findings').where('id', findingId).update({ data: JSON.stringify(f), updated_at: f.updatedAt })
-    return action
+    return actions.update(findingId, actionId, fields, updatedBy)
   },
 
-  deleteAction: async (findingId, actionId) => {
+  deleteAction: async (findingId, actionId, deletedBy) => {
     const row = await getDb()('findings').where('id', findingId).whereNull('deleted_at').first()
     if (!row) return false
-    const f = rowToFinding(row)
-    const before = (f.actions || []).length
-    f.actions = (f.actions || []).filter(a => a.id !== actionId)
-    f.updatedAt = nowISO()
-    await getDb()('findings').where('id', findingId).update({ data: JSON.stringify(f), updated_at: f.updatedAt })
-    return f.actions.length < before
+    return actions.remove(findingId, actionId, deletedBy)
   },
 
   getSummary: async () => {
     const rows = await getDb()('findings').whereNull('deleted_at')
-    const list = rows.map(rowToFinding)
+    const actMap = await actions.groupByFinding()
+    const list = rows.map(row => rowToFinding(row, actMap.get(row.id) || []))
     const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, observation: 0 }
     const byStatus = { open: 0, in_progress: 0, resolved: 0, accepted: 0 }
     for (const f of list) {

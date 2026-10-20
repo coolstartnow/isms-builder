@@ -88,45 +88,51 @@ async function reindexAll() {
     const storage = require('../storage')
     const types = ['policy','procedure','record','guideline','template']
     for (const t of types) {
-      const items = storage.getTemplates?.(t) || []
+      const items = (await storage.getTemplates?.(t)) || []
       await indexMany(items, 'Dokument', () => '#templates')
     }
   } catch {}
 
   try {
     const riskStore = require('../db/riskStore')
-    await indexMany(riskStore.getAll?.() || [], 'Risiko', () => '#risks')
+    await indexMany((await riskStore.getAll?.()) || [], 'Risiko', () => '#risks')
+  } catch {}
+
+  try {
+    const { searchDoc } = require('../db/measuresCommon')
+    const measures = await require('../db/measuresStore').getAll()
+    await indexMany(measures.map(searchDoc), 'Maßnahme', () => '#measures')
   } catch {}
 
   try {
     const goalsStore = require('../db/goalsStore')
-    await indexMany(goalsStore.getAll?.() || [], 'Sicherheitsziel', () => '#goals')
+    await indexMany((await goalsStore.getAll?.()) || [], 'Sicherheitsziel', () => '#goals')
   } catch {}
 
   try {
     const guidanceStore = require('../db/guidanceStore')
-    await indexMany(guidanceStore.getAll?.() || [], 'Systemhandbuch', i => `#guidance`)
+    await indexMany((await guidanceStore.getAll?.()) || [], 'Systemhandbuch', i => `#guidance`)
   } catch {}
 
   try {
     const trainingStore = require('../db/trainingStore')
-    await indexMany(trainingStore.getAll?.() || [], 'Schulung', () => '#training')
+    await indexMany((await trainingStore.getAll?.()) || [], 'Schulung', () => '#training')
   } catch {}
 
   try {
     const assetStore = require('../db/assetStore')
-    await indexMany(assetStore.getAll?.() || [], 'Asset', () => '#assets')
+    await indexMany((await assetStore.getAll?.()) || [], 'Asset', () => '#assets')
   } catch {}
 
   try {
     const supplierStore = require('../db/supplierStore')
-    await indexMany(supplierStore.getAll?.() || [], 'Lieferant', () => '#suppliers')
+    await indexMany((await supplierStore.getAll?.()) || [], 'Lieferant', () => '#suppliers')
   } catch {}
 
   try {
     const bcmStore = require('../db/bcmStore')
-    await indexMany(bcmStore.getBias?.() || [], 'BCM-BIA', () => '#bcm')
-    await indexMany(bcmStore.getPlans?.() || [], 'BCM-Plan', () => '#bcm')
+    await indexMany((await bcmStore.getBias?.()) || [], 'BCM-BIA', () => '#bcm')
+    await indexMany((await bcmStore.getPlans?.()) || [], 'BCM-Plan', () => '#bcm')
   } catch {}
 
   try {
@@ -136,7 +142,7 @@ async function reindexAll() {
     // mit findingId (Folgefehler aus derselben Diskussion): ein Klick auf das
     // Suchergebnis soll das konkrete Finding öffnen, nicht nur das Modul.
     const findingStore = require('../db/findingStore')
-    const findings = (findingStore.getAll?.() || []).map(f => ({
+    const findings = ((await findingStore.getAll?.()) || []).map(f => ({
       ...f,
       description: [f.observation, f.requirement, f.recommendation, f.auditedArea].filter(Boolean).join(' '),
     }))

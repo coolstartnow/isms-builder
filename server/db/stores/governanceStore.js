@@ -1,6 +1,7 @@
 'use strict'
 
 const { getDb, init: initDb } = require('../knexDatabase')
+const actions = require('../governanceActions')   // Maßnahmen im zentralen Register (1.80)
 
 function nowISO() { return new Date().toISOString() }
 function makeId(prefix) { return `${prefix}_${require('crypto').randomBytes(4).toString('hex')}` }
@@ -65,49 +66,12 @@ module.exports = {
     return affected > 0
   },
 
-  getActions: async () => {
-    const rows = await getDb()('governance_entries').where('gov_type', 'action').whereNull('deleted_at')
-    return rows.map(rowToItem)
-  },
-  getActionById: async (id) => {
-    const row = await getDb()('governance_entries').where('id', id).where('gov_type', 'action').whereNull('deleted_at').first()
-    return rowToItem(row)
-  },
-  createAction: async (fields, { createdBy } = {}) => {
-    const id = makeId('gact')
-    const now = nowISO()
-    const item = {
-      id, title: fields.title || 'Ohne Titel', description: fields.description || '',
-      source: fields.source || 'management_review', sourceRef: fields.sourceRef || '',
-      owner: fields.owner || '', ownerEmail: fields.ownerEmail || '',
-      dueDate: fields.dueDate || '', completedDate: fields.completedDate || '',
-      priority: fields.priority || 'medium', status: fields.status || 'open',
-      progress: typeof fields.progress === 'number' ? fields.progress : 0,
-      notes: fields.notes || '', entityId: fields.entityId || '',
-      linkedControls: Array.isArray(fields.linkedControls) ? fields.linkedControls : [],
-      linkedPolicies: Array.isArray(fields.linkedPolicies) ? fields.linkedPolicies : [],
-      createdBy: createdBy || 'system', createdAt: now, updatedAt: now, deletedAt: null,
-    }
-    await getDb()('governance_entries').insert({ id, gov_type: 'action', data: JSON.stringify(item), created_by: createdBy || 'system', created_at: now, updated_at: now })
-    return item
-  },
-  updateAction: async (id, patch, { changedBy } = {}) => {
-    const row = await getDb()('governance_entries').where('id', id).where('gov_type', 'action').whereNull('deleted_at').first()
-    if (!row) return null
-    const item = rowToItem(row)
-    const allowed = ['title','description','source','sourceRef','owner','ownerEmail',
-      'dueDate','completedDate','priority','status','progress','notes','entityId','linkedControls','linkedPolicies']
-    for (const k of allowed) { if (patch[k] !== undefined) item[k] = patch[k] }
-    if (patch.status === 'completed' && !item.completedDate) item.completedDate = nowISO().slice(0, 10)
-    item.updatedAt = nowISO()
-    if (changedBy) item.updatedBy = changedBy
-    await getDb()('governance_entries').where('id', id).update({ data: JSON.stringify(item), updated_at: item.updatedAt })
-    return item
-  },
-  deleteAction: async (id) => {
-    const affected = await getDb()('governance_entries').where('id', id).where('gov_type', 'action').whereNull('deleted_at').update({ deleted_at: nowISO() })
-    return affected > 0
-  },
+  // Maßnahmen liegen im zentralen Maßnahmen-Register (1.80), siehe governanceActions.js
+  getActions: () => actions.getActions(),
+  getActionById: (id) => actions.getActionById(id),
+  createAction: (fields, opts) => actions.createAction(fields, opts),
+  updateAction: (id, patch, opts) => actions.updateAction(id, patch, opts),
+  deleteAction: (id, by) => actions.deleteAction(id, by),
 
   getMeetings: async () => {
     const rows = await getDb()('governance_entries').where('gov_type', 'meeting').whereNull('deleted_at')
@@ -155,7 +119,7 @@ module.exports = {
   getSummary: async () => {
     const db = getDb()
     const reviews = (await db('governance_entries').where('gov_type', 'review').whereNull('deleted_at')).map(rowToItem)
-    const actions = (await db('governance_entries').where('gov_type', 'action').whereNull('deleted_at')).map(rowToItem)
+    const actionList = await actions.getActions()
     const meetings = (await db('governance_entries').where('gov_type', 'meeting').whereNull('deleted_at')).map(rowToItem)
     const today = new Date().toISOString().slice(0, 10)
     const in90 = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10)
@@ -167,11 +131,11 @@ module.exports = {
         nextPlanned: reviews.filter(r => r.status === 'planned' && r.date).map(r => r.date).sort()[0] || null,
       },
       actions: {
-        total: actions.length, open: actions.filter(a => a.status === 'open').length,
-        inProgress: actions.filter(a => a.status === 'in_progress').length,
-        completed: actions.filter(a => a.status === 'completed').length,
-        overdue: actions.filter(a => (a.status === 'open' || a.status === 'in_progress') && a.dueDate && a.dueDate < today).length,
-        critical: actions.filter(a => a.priority === 'critical' && (a.status === 'open' || a.status === 'in_progress')).length,
+        total: actionList.length, open: actionList.filter(a => a.status === 'open').length,
+        inProgress: actionList.filter(a => a.status === 'in_progress').length,
+        completed: actionList.filter(a => a.status === 'completed').length,
+        overdue: actionList.filter(a => (a.status === 'open' || a.status === 'in_progress') && a.dueDate && a.dueDate < today).length,
+        critical: actionList.filter(a => a.priority === 'critical' && (a.status === 'open' || a.status === 'in_progress')).length,
       },
       meetings: {
         total: meetings.length,

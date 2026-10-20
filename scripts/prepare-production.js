@@ -21,6 +21,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(PROJECT_ROOT, 'data')
 // gespiegelt, damit beide Wege dieselben "leer"-Formen verwenden.
 const MODULES = [
   { key: 'templates',  file: 'templates.json',        empty: [] },
+  { key: 'measures',   file: 'measures.json',         empty: [] },
   { key: 'risks',      file: 'risks.json',             empty: [] },
   { key: 'entities',   file: 'entities.json',          empty: [] },
   { key: 'guidance',   file: 'guidance.json',          empty: [] },

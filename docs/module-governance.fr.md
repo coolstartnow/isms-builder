@@ -48,6 +48,10 @@ Champs :
 - **Priorité** — `low` / `medium` / `high`
 - **Statut** — `open` / `in_progress` / `completed` / `cancelled`
 
+**Depuis la version 1.80**, ces mesures sont tenues dans le [registre des mesures](module-measures.fr.md) central (indicateur *Gouvernance*). Rien ne
+change dans l’utilisation ici ; dans le registre, elles apparaissent avec toutes les autres mesures et peuvent en outre être affectées à des
+contrôles, constats et risques. Les pièces jointes restent attachées à la mesure dans ce domaine. Seul un administrateur peut toujours les supprimer.
+
 ---
 
 ## Réunions

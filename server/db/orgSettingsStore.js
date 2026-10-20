@@ -57,6 +57,7 @@ const DEFAULTS = {
     soa:      true,   // SoA – Statement of Applicability
     guidance: true,   // Guidance & Dokumentation
     goals:    true,   // Sicherheitsziele (ISO 27001 Kap. 6.2)
+    measures: true,   // Maßnahmen-Register
     risk:     true,   // Risk & Compliance
     legal:    true,   // Legal & Privacy (Verträge, NDAs, Policies)
     incident: true,   // Incident Inbox (CISO-Posteingang)
@@ -141,7 +142,7 @@ const DEFAULTS = {
   },
 
   // Navigations-Reihenfolge (array der Section-IDs; fehlende landen am Ende)
-  navOrder: ['dashboard','soa','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','audits','bcm','suppliers','policy-acks','reports','calendar','settings','admin'],
+  navOrder: ['dashboard','soa','measures','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','audits','bcm','suppliers','policy-acks','reports','calendar','settings','admin'],
 
   // E-Mail-Benachrichtigungen (Digest, täglich)
   emailNotifications: {

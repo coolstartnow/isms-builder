@@ -109,8 +109,13 @@ szabályzatok) intézkedéseket.
 
 **Létrehozás:** GDPR → TOM-ok → **„+ Új TOM"**
 
-Mezők: kategória (bizalmasság/sértetlenség/rendelkezésre állás/ellenálló-képesség),
-leírás, megvalósítás állapota, kapcsolódó VVT-bejegyzések.
+Mezők: kategória (hozzáférés-szabályozás, titkosítás, naplózás, hálózatbiztonság, alkalmazásbiztonság,
+biztonsági mentés és helyreállítás, szervezeti, képzés, adatmegőrzés), kockázati szint, leírás, megvalósítás állapota,
+kapcsolódó VVT-bejegyzések, bizonyíték.
+
+**Az 1.80-as verzió óta** a TOM-ok a központi [intézkedésnyilvántartásban](module-measures.hu.md) találhatók (*TOM* jelölés). Ott az összes
+más intézkedéssel együtt jelennek meg, az „Csak TOM-ok” eredet szerint szűrhetők, és emellett SoA-kontrollokhoz is
+hozzárendelhetők. A jogosultságok az itt leírtak szerint maradnak: létrehozás és módosítás csak `contentowner` szerepkörtől.
 
 ---
 

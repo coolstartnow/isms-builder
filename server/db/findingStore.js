@@ -17,6 +17,8 @@ function nowISO()      { return new Date().toISOString() }
 function makeId()      { return `finding_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` }
 function makeActId()   { return `act_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` }
 
+const actions = require('./findingActions')   // Maßnahmen der Feststellung = Maßnahmen im Register mit Zuordnung zu ihr (1.80)
+
 const SEVERITIES = ['critical', 'high', 'medium', 'low', 'observation']
 const STATUSES   = ['open', 'in_progress', 'resolved', 'accepted']
 const ACT_STATUS = ['open', 'in_progress', 'done']
@@ -32,8 +34,12 @@ function nextRef() {
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
+// Maßnahmen der Feststellung (`actions`) stammen aus dem Register; ohne Angabe werden sie für diese Feststellung gelesen
+const withActions = (f, acts) => (f ? { ...f, actions: acts !== undefined ? acts : actions.forFinding(f.id) } : f)
+
 function getAll({ status, severity, auditor, auditId } = {}) {
-  let list = load().filter(f => !f.deletedAt)
+  const actMap = actions.groupByFinding()
+  let list = load().filter(f => !f.deletedAt).map(f => withActions(f, actMap.get(f.id) || []))
   if (status)   list = list.filter(f => f.status   === status)
   if (severity) list = list.filter(f => f.severity === severity)
   if (auditor)  list = list.filter(f => f.auditor  === auditor)
@@ -42,7 +48,7 @@ function getAll({ status, severity, auditor, auditId } = {}) {
 }
 
 function getById(id) {
-  return load().find(f => f.id === id && !f.deletedAt) || null
+  return withActions(load().find(f => f.id === id && !f.deletedAt) || null)
 }
 
 function create(fields, createdBy) {
@@ -70,8 +76,6 @@ function create(fields, createdBy) {
     // Zuordnung zu einem Audit (Audit-Modul); sourceItemId = Prüfpunkt, aus dem das Finding entstand
     auditId:          typeof fields.auditId === 'string' && fields.auditId ? fields.auditId : null,
     sourceItemId:     typeof fields.sourceItemId === 'string' && fields.sourceItemId ? fields.sourceItemId : null,
-    // Maßnahmenplan
-    actions:          [],
     // Metadaten
     createdAt:        nowISO(),
     updatedAt:        nowISO(),
@@ -81,7 +85,7 @@ function create(fields, createdBy) {
   }
   list.push(f)
   save(list)
-  return f
+  return withActions(f, [])
 }
 
 function update(id, fields, updatedBy) {
@@ -101,7 +105,7 @@ function update(id, fields, updatedBy) {
   if (fields.status   && !STATUSES.includes(fields.status))     f.status   = 'open'
   f.updatedAt = nowISO()
   save(list)
-  return f
+  return withActions(f)
 }
 
 function remove(id, deletedBy) {
@@ -120,6 +124,7 @@ function permanentDelete(id) {
   if (idx === -1) return false
   list.splice(idx, 1)
   save(list)
+  actions.onFindingRemoved(id)   // Maßnahmen verschwinden mit der Feststellung (Papierkorb), Zuordnungen entfallen
   return true
 }
 
@@ -131,65 +136,35 @@ function restore(id) {
   f.deletedBy = null
   f.updatedAt = nowISO()
   save(list)
-  return f
+  return withActions(f)
 }
 
 function getDeleted() {
-  return load().filter(f => f.deletedAt)
+  return load().filter(f => f.deletedAt).map(f => withActions(f))
 }
 
 // ── Maßnahmenplan (Actions) ───────────────────────────────────────────────────
+const liveFinding = id => load().find(f => f.id === id && !f.deletedAt)
+
 function addAction(findingId, fields, updatedBy) {
-  const list = load()
-  const f    = list.find(f => f.id === findingId && !f.deletedAt)
-  if (!f) return null
-  const action = {
-    id:          makeActId(),
-    description: fields.description || '',
-    responsible: fields.responsible || '',
-    dueDate:     fields.dueDate     || null,
-    status:      ACT_STATUS.includes(fields.status) ? fields.status : 'open',
-    updatedAt:   nowISO(),
-    updatedBy:   updatedBy || 'system',
-  }
-  f.actions = f.actions || []
-  f.actions.push(action)
-  f.updatedAt = nowISO()
-  save(list)
-  return action
+  if (!liveFinding(findingId)) return null
+  return actions.add(findingId, fields, updatedBy)
 }
 
 function updateAction(findingId, actionId, fields, updatedBy) {
-  const list = load()
-  const f    = list.find(f => f.id === findingId && !f.deletedAt)
-  if (!f) return null
-  const action = (f.actions || []).find(a => a.id === actionId)
-  if (!action) return null
-  if (fields.description !== undefined) action.description = fields.description
-  if (fields.responsible !== undefined) action.responsible = fields.responsible
-  if (fields.dueDate     !== undefined) action.dueDate     = fields.dueDate
-  if (fields.status && ACT_STATUS.includes(fields.status)) action.status = fields.status
-  action.updatedAt = nowISO()
-  action.updatedBy = updatedBy || 'system'
-  f.updatedAt = nowISO()
-  save(list)
-  return action
+  if (!liveFinding(findingId)) return null
+  return actions.update(findingId, actionId, fields, updatedBy)
 }
 
-function deleteAction(findingId, actionId) {
-  const list = load()
-  const f    = list.find(f => f.id === findingId && !f.deletedAt)
-  if (!f) return false
-  const before = (f.actions || []).length
-  f.actions  = (f.actions || []).filter(a => a.id !== actionId)
-  f.updatedAt = nowISO()
-  save(list)
-  return f.actions.length < before
+function deleteAction(findingId, actionId, deletedBy) {
+  if (!liveFinding(findingId)) return false
+  return actions.remove(findingId, actionId, deletedBy)
 }
 
 // ── Summary für Dashboard/Reports ─────────────────────────────────────────────
 function getSummary() {
-  const list = load().filter(f => !f.deletedAt)
+  const actMap = actions.groupByFinding()
+  const list = load().filter(f => !f.deletedAt).map(f => withActions(f, actMap.get(f.id) || []))
   const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, observation: 0 }
   const byStatus   = { open: 0, in_progress: 0, resolved: 0, accepted: 0 }
   for (const f of list) {

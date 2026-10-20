@@ -24,14 +24,17 @@ const STATUSES       = ['open','in_treatment','accepted','closed']
 
 const { riskLevel, calcScore, optRating, OPTIONAL_RATINGS, derivedRatings } = require('./riskScore')
 const { LINK_FIELDS, normalizeIds, matchesLinks } = require('./riskLinks')
+const treatments = require('./riskTreatments')   // Behandlungen = Maßnahmen im Register mit Zuordnung zu diesem Risiko (1.80)
 
-function publicRisk(r) {
+// `tps` = Behandlungen des Risikos (aus dem Register); ohne Angabe werden sie für dieses Risiko gelesen
+function publicRisk(r, tps) {
   const score = calcScore(r)
-  return { ...r, ...derivedRatings(r), score, riskLevel: riskLevel(score) }
+  return { ...r, ...derivedRatings(r), treatmentPlans: tps !== undefined ? tps : treatments.forRisk(r.id), score, riskLevel: riskLevel(score) }
 }
 
 function getAll({ category, status, entity, asset, assetType, supplier } = {}) {
-  let list = load().filter(r => !r.deletedAt).map(publicRisk)
+  const tpMap = treatments.groupByRisk()
+  let list = load().filter(r => !r.deletedAt).map(r => publicRisk(r, tpMap.get(r.id) || []))
   if (category) list = list.filter(r => r.category === category)
   if (status)   list = list.filter(r => r.status   === status)
   if (entity)   list = list.filter(r => !r.applicableEntities?.length || r.applicableEntities.includes(entity))
@@ -72,7 +75,6 @@ function create(fields, createdBy) {
     linkedAssetTypes:  normalizeIds(fields.linkedAssetTypes),
     linkedSuppliers:   normalizeIds(fields.linkedSuppliers),
     applicableEntities:Array.isArray(fields.applicableEntities)?fields.applicableEntities: [],
-    treatmentPlans:    [],
     // Scanner-Import-Felder
     needsReview:       fields.needsReview === true,
     source:            fields.source     || null,
@@ -130,6 +132,7 @@ function permanentDelete(id) {
   if (idx === -1) return false
   risks.splice(idx, 1)
   save(risks)
+  treatments.onRiskRemoved(id)   // Behandlungen verschwinden mit dem Risiko (Papierkorb), Zuordnungen entfallen
   return true
 }
 
@@ -144,13 +147,13 @@ function restore(id) {
 }
 
 function getDeleted() {
-  return load().filter(r => r.deletedAt).map(publicRisk)
+  return load().filter(r => r.deletedAt).map(r => publicRisk(r))
 }
 
 // ── Scanner-Import: Review-Queue ──
 
 function getReviewPending() {
-  return load().filter(r => !r.deletedAt && r.needsReview).map(publicRisk)
+  return load().filter(r => !r.deletedAt && r.needsReview).map(r => publicRisk(r))
 }
 
 function approve(id, approvedBy) {
@@ -168,65 +171,33 @@ function approve(id, approvedBy) {
 // ── Treatment Plans ──
 
 function addTreatment(riskId, fields, createdBy) {
-  const risks = load()
-  const r = risks.find(r => r.id === riskId)
+  const r = load().find(r => r.id === riskId && !r.deletedAt)
   if (!r) return null
-  const tp = {
-    id:          makeId('tp'),
-    title:       fields.title       || 'Maßnahme',
-    description: fields.description || '',
-    responsible: fields.responsible || '',
-    dueDate:     fields.dueDate     || null,
-    status:      ['open','in_progress','completed'].includes(fields.status) ? fields.status : 'open',
-    createdAt:   nowISO(),
-    updatedAt:   nowISO(),
-    createdBy:   createdBy || 'system'
-  }
-  r.treatmentPlans = r.treatmentPlans || []
-  r.treatmentPlans.push(tp)
-  r.updatedAt = nowISO()
-  save(risks)
-  return tp
+  return treatments.add(riskId, fields, createdBy)
 }
 
-function updateTreatment(riskId, tpId, fields) {
-  const risks = load()
-  const r = risks.find(r => r.id === riskId)
+function updateTreatment(riskId, tpId, fields, updatedBy) {
+  const r = load().find(r => r.id === riskId && !r.deletedAt)
   if (!r) return null
-  const tp = (r.treatmentPlans || []).find(t => t.id === tpId)
-  if (!tp) return null
-  if (fields.title       !== undefined) tp.title       = fields.title
-  if (fields.description !== undefined) tp.description = fields.description
-  if (fields.responsible !== undefined) tp.responsible = fields.responsible
-  if (fields.dueDate     !== undefined) tp.dueDate     = fields.dueDate
-  if (fields.status      !== undefined) tp.status      = fields.status
-  tp.updatedAt = nowISO()
-  r.updatedAt  = nowISO()
-  save(risks)
-  return tp
+  return treatments.update(riskId, tpId, fields, updatedBy)
 }
 
-function deleteTreatment(riskId, tpId) {
-  const risks = load()
-  const r = risks.find(r => r.id === riskId)
+function deleteTreatment(riskId, tpId, deletedBy) {
+  const r = load().find(r => r.id === riskId && !r.deletedAt)
   if (!r) return false
-  const before = (r.treatmentPlans || []).length
-  r.treatmentPlans = (r.treatmentPlans || []).filter(t => t.id !== tpId)
-  if (r.treatmentPlans.length === before) return false
-  r.updatedAt = nowISO()
-  save(risks)
-  return true
+  return treatments.remove(riskId, tpId, deletedBy)
 }
 
 // ── Calendar: all upcoming dates across risks + treatment plans ──
 function getCalendarEvents() {
   const risks = load().filter(r => !r.deletedAt)
+  const tpMap = treatments.groupByRisk()
   const events = []
   for (const r of risks) {
     if (r.dueDate)    events.push({ date: r.dueDate,    type: 'risk_due',    label: `Fälligkeit: ${r.title}`,  riskId: r.id, riskTitle: r.title })
     if (r.reviewDate) events.push({ date: r.reviewDate, type: 'risk_review', label: `Review: ${r.title}`,      riskId: r.id, riskTitle: r.title })
-    for (const tp of r.treatmentPlans || []) {
-      if (tp.dueDate) events.push({ date: tp.dueDate, type: 'treatment_due', label: `Maßnahme: ${tp.title}`, riskId: r.id, riskTitle: r.title, tpId: tp.id })
+    for (const tp of tpMap.get(r.id) || []) {
+      if (tp.dueDate && tp.status !== 'completed') events.push({ date: tp.dueDate, type: 'treatment_due', label: `Maßnahme: ${tp.title}`, riskId: r.id, riskTitle: r.title, tpId: tp.id })
     }
   }
   events.sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -235,7 +206,8 @@ function getCalendarEvents() {
 
 // ── Summary for reports ──
 function getSummary() {
-  const risks = load().filter(r => !r.deletedAt).map(publicRisk)
+  const tpMap = treatments.groupByRisk()
+  const risks = load().filter(r => !r.deletedAt).map(r => publicRisk(r, tpMap.get(r.id) || []))
   const byLevel    = { low: 0, medium: 0, high: 0, critical: 0 }
   const byCategory = { technical: 0, organizational: 0, physical: 0, legal: 0 }
   const byStatus   = { open: 0, in_treatment: 0, accepted: 0, closed: 0 }

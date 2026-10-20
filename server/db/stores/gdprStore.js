@@ -18,9 +18,7 @@ const INCIDENT_STATUSES = ['detected','contained','reported','closed']
 const INCIDENT_RISKS = ['low','medium','high']
 const DSAR_TYPES = ['access','rectification','erasure','restriction','portability','objection','review_automated']
 const DSAR_STATUSES = ['received','in_progress','extended','completed','refused']
-const TOM_CATEGORIES = ['access','encryption','logging','network','application','backup','organizational','training','retention']
-const TOM_STATUSES = ['planned','in_progress','implemented','verified']
-const TOM_RISKS = ['low','medium','high','critical']
+const { TOM_CATEGORIES, TOM_STATUSES } = require('../measuresCommon')
 
 function rowToItem(row) {
   if (!row) return null
@@ -282,44 +280,8 @@ const dsar = (() => {
   }
 })()
 
-const toms = (() => {
-  const base = _makeSubStore('tom')
-  return {
-    getAll: async ({ entity, category } = {}) => {
-      const q = getDb()('gdpr_entries').where('gdpr_type', 'tom').whereNull('deleted_at')
-      let list = (await q).map(rowToItem)
-      if (entity) list = list.filter(t => !t.applicableEntities?.length || t.applicableEntities.includes(entity))
-      if (category) list = list.filter(t => t.category === category)
-      return list
-    },
-    getById: base.getById, getDeleted: base._getDeleted,
-    create: async (fields, createdBy) => {
-      const id = makeId('tom')
-      const item = {
-        id, title: fields.title || 'Ohne Titel',
-        category: TOM_CATEGORIES.includes(fields.category) ? fields.category : 'organizational',
-        description: fields.description || '', implementation: fields.implementation || '',
-        status: TOM_STATUSES.includes(fields.status) ? fields.status : 'planned',
-        owner: fields.owner || '', evidenceNote: fields.evidenceNote || '',
-        retentionRule: fields.retentionRule || '',
-        linkedVvt: Array.isArray(fields.linkedVvt) ? fields.linkedVvt : [],
-        riskLevel: TOM_RISKS.includes(fields.riskLevel) ? fields.riskLevel : 'medium',
-        reviewDate: fields.reviewDate || null,
-        applicableEntities: Array.isArray(fields.applicableEntities) ? fields.applicableEntities : [],
-        linkedControls: Array.isArray(fields.linkedControls) ? fields.linkedControls : [],
-        linkedPolicies: Array.isArray(fields.linkedPolicies) ? fields.linkedPolicies : [],
-        createdBy: createdBy || 'system', createdAt: nowISO(), updatedAt: nowISO(),
-      }
-      return base._createEntry(id, item, createdBy)
-    },
-    update: async (id, fields) => {
-      return base._updateEntry(id, fields, ['title','category','description','implementation','status','owner',
-        'evidenceNote','retentionRule','linkedVvt','riskLevel','reviewDate','applicableEntities',
-        'linkedControls','linkedPolicies'])
-    },
-    delete: base._deleteEntry, permanentDelete: base._permanentDelete, restore: base._restore,
-  }
-})()
+// TOMs: Sicht auf das Maßnahmen-Register (Maßnahmen mit Kennzeichen tom) – siehe ../tomsFacade.js (1.80)
+const toms = require('../tomsFacade')
 
 const dsb = {
   get: async () => {

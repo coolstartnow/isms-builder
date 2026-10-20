@@ -66,6 +66,7 @@ Stand: 2026-10-16 | Version: V 1.60.0 (Audit-Management mit Auditprogramm, Dokum
 55. ownCloud/Nextcloud-Integration (WebDAV-Auto-Publish)
 56. Security-Historie seit V 1.37 & CI-Härtung
 57. Mobile App (Android) & Sync (V 1.76.0)
+58. Maßnahmenregister — ein Bestand für alle Maßnahmen (V 1.80.0)
 
 ---
 
@@ -1260,7 +1261,7 @@ Beide Vererbungsquellen laufen zusammen: Die Abhängigkeitsvererbung aus 26.1 (M
 
 Modul für die gesamte Governance-Dokumentation: Management-Reviews nach ISO 27001 Kap. 9.3, Maßnahmen-Tracking aus Audits/Reviews sowie Sitzungsprotokolle für Ausschüsse.
 
-**Datenspeicherung:** `data/governance.json` (drei Collections: reviews, actions, meetings)
+**Datenspeicherung:** `data/governance.json` (drei Collections: reviews, actions, meetings). **Seit V 1.80.0** liegen die Maßnahmen (`actions`) im Maßnahmenregister (Kapitel 58); `governance.json` behält nur Reviews und Sitzungen, die alten Maßnahmen bleiben als Sicherung stehen
 
 ```
 GET  /governance/summary              – KPI-Übersicht (alle drei Collections)
@@ -2033,7 +2034,7 @@ Das Risikomodul ist framework-agnostisch implementiert. `linkedControls[]` nimmt
   "linkedControls": [],   // SoA-Control-IDs (beliebige Frameworks)
   "linkedPolicies": [],   // Template-IDs
   "applicableEntities": [],
-  "treatmentPlans": [],
+  "treatmentPlans": [],   // seit V 1.80.0 abgeleitet: Maßnahmen im Register mit Zuordnung zu diesem Risiko (Kapitel 58), nicht mehr eingebettet gespeichert
   "createdAt": "", "updatedAt": "", "createdBy": "", "deletedAt": null
 }
 ```
@@ -2775,7 +2776,7 @@ Das Findings-Modul erfasst Audit-Feststellungen nach dem **IST → SOLL → Risi
 - **Papierkorb**: `GET /trash` aggregiert gelöschte Findings; Autopurge nach 30 Tagen (Serverstart)
 - **Audit-Log**: create/update/delete/restore werden protokolliert
 - **UI**: Tab "Audit Findings" in Reports-Sektion; Summary-KPIs; Liste mit Filter; Inline-Formular; Maßnahmenplan pro Feststellung
-- **Datei**: `data/findings.json`
+- **Datei**: `data/findings.json` — Seit V 1.80.0 stehen die Maßnahmen (`actions`) im Maßnahmenregister (Kapitel 58); die Feststellung behält Zuordnung und Ansicht, die Schnittstelle `/findings/:id/actions` ist unverändert
 
 ### Relevante Dateien
 
@@ -3495,3 +3496,94 @@ Eigenständige Android-App (Projekt `isms-builder-mobile`, Capacitor), die offli
 - Tests: `tests/sync.test.js`, `tests/syncAccounts.test.js`, `tests/syncAccountsUi.test.js`, `tests/syncImport.test.js`; Schnittstelle in `docs/architecture/openapi.yaml` (Tag `sync`).
 
 **App-Seite (Projekt `isms-builder-mobile`, Version 1.1.0, unabhängig vom Hauptsystem):** Die Oberfläche (`ui/`) und die Server-Routen/-Stores (`server/routes`, `server/db`) werden beim Bauen unverändert übernommen (`npm run build:www`: `scripts/sync-ui.sh` + esbuild-Bundle mit virtuellem Dateisystem auf IndexedDB); Änderungen am Server wirken nach einem erneuten Bau auch in der App.
+
+---
+
+## 58. Maßnahmenregister — ein Bestand für alle Maßnahmen (V 1.80.0)
+
+Bis 1.79 führten vier Module jeweils eine eigene Maßnahmenliste: Risiko-Behandlungen (`treatmentPlans` im Risiko), Maßnahmen zu Feststellungen
+(`actions` in der Feststellung), Governance-Maßnahmen (`governance.json`) und TOMs (`gdpr/toms.json`). Seit 1.80 gibt es **einen Bestand**, das
+Maßnahmenregister. Anwender-Beschreibung: `docs/module-measures.md` (fünf Sprachen, mit Screenshots).
+
+### Architektur
+
+| Baustein | Datei | Aufgabe |
+|---|---|---|
+| Gemeinsame Logik | `server/db/measuresCommon.js` | Status, Normalisierung der Eingaben, Filter, Kennzahlen, Kalender, Referenzen `M-001…` |
+| Speicher JSON | `server/db/measuresStore.js` | `data/measures.json` |
+| Speicher SQL | `server/db/stores/measuresStore.js` | Tabelle `measures` (Schema in `knexDatabase.js`; Verknüpfungen als JSON-Text) |
+| Routen | `server/routes/measures.js` | `/measures…`, Rechteprüfung, Audit-Log |
+| Sicht TOMs | `server/db/tomsFacade.js` | `/gdpr/toms` als Sicht auf Maßnahmen mit Kennzeichen `tom` |
+| Sicht Risiken | `server/db/riskTreatments.js` | `treatmentPlans` und `/risks/:id/treatments` als Sicht auf Maßnahmen mit `linkedRisks` |
+| Sicht Feststellungen | `server/db/findingActions.js` | `actions` und `/findings/:id/actions` als Sicht auf Maßnahmen mit `linkedFindings` |
+| Sicht Governance | `server/db/governanceActions.js` | `/governance/actions` als Sicht auf Maßnahmen mit Kennzeichen `governance` |
+
+Die Sichten sind **Fassaden**: Die bisherigen Store-Funktionen (`addTreatment`, `addAction`, `createAction`, …) und Routen bleiben mit
+unverändertem Verhalten erhalten, lesen und schreiben aber im Register. Unter JSON sind die Aufrufe synchron, unter SQL liefern sie Promises
+(wie der jeweilige Store). Damit gibt es keine zweite Datenhaltung und keine Abgleichslogik.
+
+**Statusabbildung:**
+
+| Register | Risiko-Behandlung | Feststellungs-Maßnahme | Governance |
+|---|---|---|---|
+| `planned` | `open` | `open` | `open` |
+| `in_progress` | `in_progress` | `in_progress` | `in_progress` |
+| `implemented`, `verified` | `completed` | `done` | `completed` |
+| `cancelled` | (ausgeblendet) | (ausgeblendet) | `cancelled` |
+
+Setzt jemand `implemented`/`verified` ohne Datum, trägt das Register `completedDate` (heute) ein.
+
+### Felder des Registers
+
+`id` (`meas_…`), `ref` (`M-nnn`), `title`, `description`, `implementation`, `responsible`, `dueDate`, `reviewDate`, `status`, `completedDate`,
+`linkedControls`, `linkedFindings`, `linkedRisks`, `linkedPolicies`, `linkedVvt`, `applicableEntities`; TOM: `tom`, `category`, `riskLevel`,
+`evidenceNote`, `retentionRule`; Governance: `governance`, `source`, `sourceRef`, `priority`, `progress`, `ownerEmail`, `entityId`, `notes`;
+`attachments` (nur serverseitig, siehe unten); Metadaten `createdAt/By`, `updatedAt/By`, `deletedAt/By`.
+
+**Anhänge** (`attachments`) werden ausschließlich von den Upload-Routen der Governance gesetzt (`measuresStore.setAttachments`). Die
+Eingabe-Bereinigung des Registers kennt das Feld nicht; über `/measures` lässt es sich daher nicht beeinflussen (Schutz vor manipulierten
+`storedName`-Pfaden).
+
+### Rechte
+
+| Aktion | Mindestrolle |
+|---|---|
+| Lesen | `reader` |
+| Anlegen, Ändern | `editor` |
+| Zuordnung zu Risiken/Feststellungen ändern; Maßnahmen mit Risiko-Zuordnung ändern | Rang ≥ 3 (`auditor`/`contentowner`) |
+| TOM anlegen/ändern | `contentowner` |
+| Löschen | `contentowner`; Governance-Maßnahmen: `admin` |
+| Wiederherstellen, endgültig löschen | `admin` |
+
+Das Register verleiht keine weitergehenden Rechte als die Module bisher (Risiko-Behandlungen: Auditor/Contentowner; Feststellungs-Maßnahmen
+anlegen/löschen: Auditor; TOMs: Contentowner; Governance löschen: Admin).
+
+### Übernahme vorhandener Daten
+
+`server/db/measureMigration.js` (aufgerufen in `seedAll`, `server/index.js`) übernimmt bei jedem Start die eingebetteten Maßnahmen:
+TOMs (`tomMigration.js`), Risiko-Behandlungen, Maßnahmen zu Feststellungen und Governance-Maßnahmen. Der Lauf ist **idempotent** (vorhandene
+Kennungen werden übersprungen), erhält Kennung, Zeitstempel und Löschstatus und **verändert die alten Daten nicht**. Statuswerte werden
+nach der obigen Tabelle abgebildet; `completedDate` wird nicht automatisch auf „heute“ gesetzt. Nach `POST /admin/demo-load-bundle` und
+`POST /admin/demo-import` läuft die Übernahme sofort; ein geladenes Bundle ersetzt das Register (unter JSON; bringt es kein `measures.json` mit, wird es
+geleert).
+
+`tools/migrate-json-to-knex.js` überträgt das Register (alle Felder, Anhänge) beim Wechsel von JSON auf SQL.
+
+### Weitere Anbindung
+
+- **Kalender** (`server/routes/calendar.js`): Register-Termine (`measure_due`) nur für Maßnahmen ohne Risiko-/Feststellungs-/Governance-Bezug; diese erscheinen weiter als `treatment_due`, `finding_action_due`, `governance_action`.
+- **Papierkorb** (`server/routes/trash.js`): Modul `measure` (TOMs stehen unter den DSGVO-Einträgen); Autopurge nach 30 Tagen.
+- **Löschen über die Sichten:** Risiko-Behandlung oder Feststellungs-Maßnahme „löschen“ löscht die Maßnahme nur, wenn sie sonst nirgends zugeordnet ist; andernfalls wird nur die Zuordnung gelöst. Wird ein Risiko oder eine Feststellung endgültig gelöscht, entfällt die Zuordnung (Maßnahmen ohne weitere Zuordnung gehen in den Papierkorb).
+- **KI-Suche:** `server/ai/embeddingStore.js` und `lexicalSearch.js` indizieren Maßnahmen.
+- **Export/Zurücksetzen:** `server/routes/admin.js` und `scripts/prepare-production.js` führen `measures.json`.
+
+### Tests
+
+`measures(.Sql).test.js`, `riskTreatments(.Sql).test.js`, `findingActions(.Sql).test.js`, `governanceActions(.Sql).test.js`,
+`tomMigration(.Sql).test.js`, `demoBundleRegister.test.js` (alle fünf Demo-Bundles), `migrationTool.test.js`; gemeinsame Testgruppen in
+`tests/setup/*Suite.js`, jeweils für JSON und SQLite.
+
+### Screenshots der Doku
+
+`tools/make-measures-screenshots.js` erzeugt `docs/images/measures/*.png` mit echtem Chrome gegen eine Demo-Instanz mit dem deutschen
+Bundle (siehe Kopfkommentar des Skripts).

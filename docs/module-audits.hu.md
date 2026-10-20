@@ -97,6 +97,18 @@ A PDF a böngésző nyomtatási párbeszédablakán keresztül készül.
 
 ---
 
+## Megállapításokhoz tartozó intézkedések
+
+Minden megállapításhoz tartozik egy **intézkedési terv** (Reports → Audit megállapítások → megállapítás megnyitása). Intézkedést `auditor` és `contentowner`
+hozhat létre vagy törölhet; az állapotát `editor` szerepkörtől kezdve bárki módosíthatja.
+
+**Az 1.80-as verzió óta** ezek az intézkedések a központi [intézkedésnyilvántartás](module-measures.hu.md) bejegyzései: a megállapítás intézkedési terve a korábbiak
+szerint mutatja őket, alatta az **„Intézkedések (nyilvántartás)”** blokk hivatkozással (`M-…`) és állapottal sorolja fel őket. Ugyanaz az intézkedés a nyilvántartásban
+emellett kontrollokhoz és kockázatokhoz is hozzárendelhető. Ha az intézkedési tervben olyan intézkedést törölnek, amely máshová is hozzá van rendelve, csak az
+ehhez a megállapításhoz tartozó hozzárendelés szűnik meg.
+
+---
+
 ## Kuka
 
 A törölt auditok és auditprogramok 30 napig maradnak a kukában (**Admin → Kuka**), és az adminisztrátorok visszaállíthatják vagy

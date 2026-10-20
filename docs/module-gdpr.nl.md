@@ -107,8 +107,13 @@ TOM's documenteren de beveiligingsmaatregelen conform art. 32 AVG — zowel tech
 
 **Aanmaken:** AVG → TOM → **« + Nieuwe TOM »**
 
-Velden: categorie (vertrouwelijkheid/integriteit/beschikbaarheid/veerkracht),
-beschrijving, implementatiestatus, gekoppelde VR-vermeldingen.
+Velden: categorie (toegangscontrole, versleuteling, logging, netwerkbeveiliging, applicatiebeveiliging,
+back-up en herstel, organisatorisch, training, gegevensbewaring), risiconiveau, beschrijving, implementatiestatus,
+gekoppelde VR-vermeldingen, bewijs.
+
+**Sinds versie 1.80** staan de TOM’s in het centrale [maatregelenregister](module-measures.nl.md) (kenmerk *TOM*). Ze verschijnen
+daar samen met alle andere maatregelen, zijn te filteren op herkomst “Alleen TOM’s” en kunnen bovendien aan
+SoA-controls worden toegewezen. De rechten blijven zoals hier beschreven: aanmaken en wijzigen alleen vanaf `contentowner`.
 
 ---
 

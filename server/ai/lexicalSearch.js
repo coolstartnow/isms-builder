@@ -42,40 +42,46 @@ async function search(query, topK = 8) {
     const storage = require('../storage')
     const types = ['policy','procedure','record','guideline','template']
     for (const t of types) {
-      const items = storage.getTemplates?.(t) || []
+      const items = (await storage.getTemplates?.(t)) || []
       results.push(...collect(items, 'Dokument', '#templates', terms))
     }
   } catch {}
 
   try {
     const riskStore = require('../db/riskStore')
-    results.push(...collect(riskStore.getAll?.() || [], 'Risiko', '#risks', terms))
+    results.push(...collect((await riskStore.getAll?.()) || [], 'Risiko', '#risks', terms))
+  } catch {}
+
+  try {
+    const { searchDoc } = require('../db/measuresCommon')
+    const measures = (await require('../db/measuresStore').getAll()).map(searchDoc)
+    results.push(...collect(measures, 'Maßnahme', '#measures', terms))
   } catch {}
 
   try {
     const goalsStore = require('../db/goalsStore')
-    results.push(...collect(goalsStore.getAll?.() || [], 'Sicherheitsziel', '#goals', terms))
+    results.push(...collect((await goalsStore.getAll?.()) || [], 'Sicherheitsziel', '#goals', terms))
   } catch {}
 
   try {
     const guidanceStore = require('../db/guidanceStore')
-    results.push(...collect(guidanceStore.getAll?.(4) || [], 'Systemhandbuch', '#guidance', terms))
+    results.push(...collect((await guidanceStore.getAll?.(4)) || [], 'Systemhandbuch', '#guidance', terms))
   } catch {}
 
   try {
     const trainingStore = require('../db/trainingStore')
-    results.push(...collect(trainingStore.getAll?.() || [], 'Schulung', '#training', terms))
+    results.push(...collect((await trainingStore.getAll?.()) || [], 'Schulung', '#training', terms))
   } catch {}
 
   try {
     const assetStore = require('../db/assetStore')
-    const assets = (assetStore.getAll?.() || []).map(a => ({ ...a, title: a.name }))
+    const assets = ((await assetStore.getAll?.()) || []).map(a => ({ ...a, title: a.name }))
     results.push(...collect(assets, 'Asset', '#assets', terms))
   } catch {}
 
   try {
     const supplierStore = require('../db/supplierStore')
-    const suppliers = (supplierStore.getAll?.() || []).map(s => ({ ...s, title: s.name }))
+    const suppliers = ((await supplierStore.getAll?.()) || []).map(s => ({ ...s, title: s.name }))
     results.push(...collect(suppliers, 'Lieferant', '#suppliers', terms))
   } catch {}
 
@@ -85,7 +91,7 @@ async function search(query, topK = 8) {
     // derselben Diskussion): ein Klick auf das Suchergebnis soll das konkrete
     // Finding öffnen, nicht nur das Modul.
     const findingStore = require('../db/findingStore')
-    const findings = (findingStore.getAll?.() || []).map(f => ({
+    const findings = ((await findingStore.getAll?.()) || []).map(f => ({
       ...f,
       description: [f.observation, f.requirement, f.recommendation, f.auditedArea].filter(Boolean).join(' '),
     }))

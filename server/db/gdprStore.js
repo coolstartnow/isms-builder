@@ -505,92 +505,9 @@ function _addDays(isoStr, days) {
 
 // ── TOMs (Art. 32) ─────────────────────────────────────────────────
 
-const TOM_CATEGORIES = ['access','encryption','logging','network','application','backup','organizational','training','retention']
-const TOM_STATUSES   = ['planned','in_progress','implemented','verified']
-const TOM_RISKS      = ['low','medium','high','critical']
-
-const toms = {
-  getAll({ entity, category } = {}) {
-    let list = loadFile('toms.json').filter(t => !t.deletedAt)
-    if (entity)   list = list.filter(t => !t.applicableEntities?.length || t.applicableEntities.includes(entity))
-    if (category) list = list.filter(t => t.category === category)
-    return list
-  },
-  getById(id) {
-    return loadFile('toms.json').find(t => t.id === id && !t.deletedAt) || null
-  },
-  create(fields, createdBy) {
-    const list = loadFile('toms.json')
-    const item = {
-      id:               makeId('tom'),
-      title:            fields.title            || 'Ohne Titel',
-      category:         TOM_CATEGORIES.includes(fields.category) ? fields.category : 'organizational',
-      description:      fields.description      || '',
-      implementation:   fields.implementation   || '',
-      status:           TOM_STATUSES.includes(fields.status) ? fields.status : 'planned',
-      owner:            fields.owner            || '',
-      evidenceNote:     fields.evidenceNote     || '',
-      retentionRule:    fields.retentionRule    || '',
-      linkedVvt:        Array.isArray(fields.linkedVvt) ? fields.linkedVvt : [],
-      riskLevel:        TOM_RISKS.includes(fields.riskLevel) ? fields.riskLevel : 'medium',
-      reviewDate:       fields.reviewDate       || null,
-      applicableEntities: Array.isArray(fields.applicableEntities) ? fields.applicableEntities : [],
-      linkedControls:   Array.isArray(fields.linkedControls) ? fields.linkedControls : [],
-      linkedPolicies:   Array.isArray(fields.linkedPolicies) ? fields.linkedPolicies : [],
-      createdAt:        nowISO(),
-      updatedAt:        nowISO(),
-      createdBy:        createdBy || 'system'
-    }
-    list.push(item)
-    saveFile('toms.json', list)
-    return item
-  },
-  update(id, fields) {
-    const list = loadFile('toms.json')
-    const idx  = list.findIndex(t => t.id === id)
-    if (idx === -1) return null
-    const item = list[idx]
-    const updatable = ['title','category','description','implementation','status','owner',
-                       'evidenceNote','retentionRule','linkedVvt','riskLevel','reviewDate','applicableEntities',
-                       'linkedControls','linkedPolicies']
-    for (const k of updatable) {
-      if (fields[k] !== undefined) item[k] = fields[k]
-    }
-    item.updatedAt = nowISO()
-    list[idx] = item
-    saveFile('toms.json', list)
-    return item
-  },
-  delete(id, deletedBy) {
-    const list = loadFile('toms.json')
-    const idx  = list.findIndex(t => t.id === id)
-    if (idx === -1) return false
-    list[idx].deletedAt = new Date().toISOString()
-    list[idx].deletedBy = deletedBy || null
-    saveFile('toms.json', list)
-    return true
-  },
-  permanentDelete(id) {
-    const list = loadFile('toms.json')
-    const idx  = list.findIndex(t => t.id === id)
-    if (idx === -1) return false
-    list.splice(idx, 1)
-    saveFile('toms.json', list)
-    return true
-  },
-  restore(id) {
-    const list = loadFile('toms.json')
-    const idx  = list.findIndex(t => t.id === id)
-    if (idx === -1) return null
-    list[idx].deletedAt = null
-    list[idx].deletedBy = null
-    saveFile('toms.json', list)
-    return list[idx]
-  },
-  getDeleted() {
-    return loadFile('toms.json').filter(t => t.deletedAt)
-  }
-}
+// TOMs: Sicht auf das Maßnahmen-Register (Maßnahmen mit Kennzeichen tom) – siehe tomsFacade.js (#Variante C, 1.80)
+const toms = require('./tomsFacade')
+const { TOM_CATEGORIES, TOM_STATUSES } = require('./measuresCommon')   // weiterhin von hier exportiert
 
 // ── DSB (Singleton) ────────────────────────────────────────────────
 

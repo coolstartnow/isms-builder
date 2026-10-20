@@ -43,6 +43,10 @@ Mezők:
 - **Prioritás** – `alacsony` / `közepes` / `magas`
 - **Állapot** – `nyitott` / `folyamatban` / `teljesített` / `lemondva`
 
+**Az 1.80-as verzió óta** ezek az intézkedések a központi [intézkedésnyilvántartásban](module-measures.hu.md) találhatók (*Irányítás* jelölés). Az itteni kezelés
+nem változik; a nyilvántartásban az összes többi intézkedéssel együtt jelennek meg, és emellett kontrollokhoz, megállapításokhoz és
+kockázatokhoz is hozzárendelhetők. A mellékletek ebben a területen maradnak az intézkedéshez csatolva. Törölni továbbra is csak rendszergazda tudja.
+
 ---
 
 ## Értekezletek

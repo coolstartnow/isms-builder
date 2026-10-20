@@ -261,8 +261,8 @@ function loadUserISOControls() {
 // ISO 27001 / ISO 9000 / ISO 9001 werden aus data/iso-controls.json
 // geladen (falls vorhanden) — nicht aus dem Quellcode.
 // ─────────────────────────────────────────────────────────────────
-const USER_ISO_CONTROLS = loadUserISOControls()
-const ALL_SEED_CONTROLS = [
+let USER_ISO_CONTROLS = loadUserISOControls()
+let ALL_SEED_CONTROLS = [
   ...BSI_CONTROLS,
   ...NIS2_CONTROLS,
   ...EUCS_CONTROLS,
@@ -322,6 +322,22 @@ function save(data) {
 }
 
 let store = load()
+
+// Nach einem Import (POST /soa/import-controls): die eigene data/iso-controls.json neu lesen und fehlende Controls ergänzen,
+// ohne Neustart. Vorhandene Einträge (und Änderungen der Nutzer daran) bleiben unverändert. → { added }
+async function reloadIsoControls() {
+  USER_ISO_CONTROLS = loadUserISOControls()
+  ALL_SEED_CONTROLS = [...BSI_CONTROLS, ...NIS2_CONTROLS, ...EUCS_CONTROLS, ...EUAI_CONTROLS, ...CRA_CONTROLS, ...USER_ISO_CONTROLS]
+  if (STORAGE_BACKEND === 'json') {
+    let added = 0
+    for (const [id, ctrl] of Object.entries(buildSeed())) if (!store[id]) { store[id] = ctrl; added++ }
+    if (added) save(store)
+    return { added }
+  }
+  const knexStore = require('./stores/soaStore')
+  knexStore.setSeedControls(ALL_SEED_CONTROLS)
+  return knexStore.seedBuiltIn()
+}
 
 const _jsonExports = {
   init: () => { store = load() },
@@ -449,9 +465,11 @@ const _jsonExports = {
 if (STORAGE_BACKEND !== 'json') {
   const _knex = require('./stores/soaStore')
   _knex.setSeedControls(ALL_SEED_CONTROLS)   // dieselben eingebauten Controls wie im JSON-Backend (#98)
+  _knex.reloadIsoControls = reloadIsoControls
   _knex.init().catch(e => console.error('[soaStore] Knex init:', e.message))
   module.exports = _knex
 } else {
   _jsonExports.seedBuiltIn = async () => ({ added: 0 })   // JSON legt die Controls beim Laden selbst an (load())
+  _jsonExports.reloadIsoControls = reloadIsoControls
   module.exports = _jsonExports
 }

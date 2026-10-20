@@ -97,6 +97,18 @@ Le PDF est généré via la boîte de dialogue d'impression du navigateur.
 
 ---
 
+## Actions sur les constats
+
+Chaque constat dispose d’un **plan d’actions** (Reports → Constatations d’audit → ouvrir un constat). `auditor` et `contentowner` peuvent créer
+ou supprimer une action ; toute personne à partir de `editor` peut en modifier le statut.
+
+**Depuis la version 1.80**, ces actions sont des entrées du [registre des mesures](module-measures.fr.md) central : le plan d’actions du constat
+les affiche comme auparavant, et en dessous le bloc **« Mesures (registre) »** les liste avec référence (`M-…`) et statut. La même mesure peut en
+outre être affectée à des contrôles et à des risques dans le registre. Si une action encore affectée ailleurs est supprimée dans le plan d’actions,
+seule l’affectation à ce constat est retirée.
+
+---
+
 ## Corbeille
 
 Les audits et programmes supprimés restent 30 jours dans la corbeille (**Admin → Corbeille**) et peuvent être restaurés ou

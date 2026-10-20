@@ -47,6 +47,11 @@ Felder:
 - **Priorität** — `low` / `medium` / `high`
 - **Status** — `open` / `in_progress` / `completed` / `cancelled`
 
+**Seit Version 1.80** liegen diese Maßnahmen im zentralen [Maßnahmenregister](module-measures.md) (Kennzeichen *Governance*). Hier
+ändert sich nichts an der Bedienung; im Register erscheinen sie zusammen mit allen anderen Maßnahmen und lassen sich dort zusätzlich
+Controls, Feststellungen und Risiken zuordnen. Anhänge bleiben an der Maßnahme in diesem Bereich. Löschen darf sie weiterhin nur ein
+Administrator.
+
 ---
 
 ## Meetings

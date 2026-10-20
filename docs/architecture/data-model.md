@@ -144,6 +144,9 @@ nicht gespeichert (V 1.60). Bei SQLite/PostgreSQL liegen sie im JSON-Blob der Sp
 `linkedAssets`, `linkedAssetTypes` und `linkedSuppliers` sind ID-Listen (V 1.60); `GET /risks` filtert über
 `?asset=`, `?assetType=` und `?supplier=`.
 
+**Behandlungen (V 1.80):** Das Feld `treatments`/`treatmentPlans` wird nicht mehr im Risiko gespeichert. Es ist eine abgeleitete Sicht auf die
+Maßnahmen im [Maßnahmenregister](#maßnahmenregister-datameasuresjson), deren `linkedRisks` die ID dieses Risikos enthält.
+
 ---
 
 ## Audits (`data/audits.json`, Tabelle `audits`)
@@ -288,6 +291,11 @@ Audits gehören über `programId` zu einem Programm; die Quartalsansicht ergibt 
 }
 ```
 
+
+**Maßnahmen (`actions`, V 1.80):** Die Collection `actions` wird nicht mehr in dieser Datei geführt; Governance-Maßnahmen sind
+Maßnahmen mit Kennzeichen `governance` im [Maßnahmenregister](#maßnahmenregister-datameasuresjson). Die Felder (`title`, `source`,
+`priority`, `owner`, `dueDate`, `progress`, `attachments`, …) bleiben in der Governance-Ansicht unverändert (`owner` = `responsible`).
+
 ---
 
 ## GDPR (`data/gdpr/*.json`)
@@ -299,7 +307,7 @@ Nine sub-modules, each in its own file:
 | `vvt.json` | Verarbeitungsverzeichnis (Art. 30 DSGVO) |
 | `av.json` | Auftragsverarbeitungsverträge (Art. 28) |
 | `dsfa.json` | Datenschutz-Folgenabschätzungen (Art. 35) |
-| `toms.json` | Technische & organisatorische Maßnahmen |
+| `toms.json` | Technische & organisatorische Maßnahmen — seit V 1.80 im [Maßnahmenregister](#maßnahmenregister-datameasuresjson) (Kennzeichen `tom`); die Datei bleibt als Sicherung bestehen |
 | `incidents.json` | Datenpannen (Art. 33/34) |
 | `dsar.json` | Betroffenenanfragen (Art. 15–22) |
 | `dsb.json` | DSB-Kontaktdaten |
@@ -343,6 +351,42 @@ This gives ~36-bit entropy, URL-safe, roughly time-sortable, no external depende
 
 ---
 
+## Maßnahmenregister (`data/measures.json`)
+
+Ein Bestand für Risiko-Behandlungen, Maßnahmen zu Feststellungen, Governance-Maßnahmen und TOMs (V 1.80). Unter SQL: Tabelle `measures`
+(Verknüpfungen und Anhänge als JSON-Text). Beschreibung der Architektur: `ISMS-build-documentation.md`, Kapitel 58.
+
+```json
+{
+  "id": "meas_mvguknxttncz",
+  "ref": "M-016",
+  "title": "Mehrfaktor-Authentifizierung für Administratoren",
+  "description": "MFA für alle privilegierten Konten.",
+  "implementation": "Hardware-Token für Domänen-Admins, App-basiertes MFA für übrige.",
+  "responsible": "IT-Sicherheit",
+  "dueDate": "2026-11-30", "reviewDate": "2027-05-30", "completedDate": null,
+  "status": "in_progress",
+  "linkedControls": ["BSI-ISMS.1"],
+  "linkedFindings": [],
+  "linkedRisks": ["risk_demo_de_006"],
+  "linkedPolicies": [], "linkedVvt": [], "applicableEntities": [],
+  "tom": false, "category": "", "riskLevel": "", "evidenceNote": "", "retentionRule": "",
+  "governance": false, "source": "", "sourceRef": "", "priority": "", "progress": 0, "ownerEmail": "", "entityId": "", "notes": "",
+  "attachments": [],
+  "createdAt": "", "createdBy": "", "updatedAt": "", "updatedBy": "", "deletedAt": null, "deletedBy": null
+}
+```
+
+`status`: `planned` · `in_progress` · `implemented` · `verified` · `cancelled`. TOM-Kategorien: `access`, `encryption`, `logging`, `network`,
+`application`, `backup`, `organizational`, `training`, `retention`. Anlass (`source`) von Governance-Maßnahmen: `management_review`,
+`internal_audit`, `external_audit`, `incident`, `other`; `priority`: `low` · `medium` · `high` · `critical`.
+`attachments` wird nur serverseitig geschrieben (Upload-Routen der Governance) und ist über `/measures` nicht änderbar.
+
+**Herkunft** ergibt sich aus den Zuordnungen und Kennzeichen, nicht aus einem eigenen Feld: `linkedRisks` ≠ leer → Behandlung dieses Risikos;
+`linkedFindings` ≠ leer → Maßnahme der Feststellung; `governance` → Governance-Maßnahme; `tom` → TOM. Eine Maßnahme kann mehrere Herkünfte haben.
+
+---
+
 ## Entity-Relationship Overview
 
 ```
@@ -363,6 +407,13 @@ BCM * ──linkedPolicies──▶ Templates
 Governance * ──linkedControls──▶ SoA Controls
 Governance * ──linkedPolicies──▶ Templates
 Governance * ──attachments[]──▶ Files (data/governance-files/)
+
+Measures ──linkedControls──▶ SoA Controls
+Measures ──linkedFindings──▶ Findings
+Measures ──linkedRisks──▶ Risks
+Measures ──linkedPolicies──▶ Templates
+Measures ──linkedVvt──▶ GDPR VVT
+Measures ──applicableEntities[]──▶ Entities
 
 Templates ──applicableEntities[]──▶ Entities
 SoA Controls ──applicableEntities[]──▶ Entities

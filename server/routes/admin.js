@@ -33,7 +33,7 @@ function buildFullExport(dataDir) {
     'templates.json','soa.json','risks.json','entities.json',
     'rbac_users.json','guidance.json','training.json','public-incidents.json',
     'org-settings.json','custom-lists.json','audit-log.json',
-    'goals.json','assets.json','bcm.json','suppliers.json','governance.json',
+    'goals.json','measures.json','assets.json','bcm.json','suppliers.json','governance.json',
     'findings.json','audits.json','audit-programs.json'
   ]
   const bundle = { exportedAt: nowISO(), version: '1.28', files: {}, gdpr: {}, legal: {} }
@@ -448,6 +448,7 @@ router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, re
       { file: 'public-incidents.json',empty: [] },
       { file: 'audit-log.json',       empty: [] },
       { file: 'goals.json',           empty: [] },
+      { file: 'measures.json',        empty: [] },
       { file: 'assets.json',          empty: [] },
       { file: 'bcm.json',             empty: { bia: [], plans: [], exercises: [] } },
       { file: 'suppliers.json',       empty: [] },
@@ -604,6 +605,7 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
       await gs.seedIsoNotice()
     } catch {}
 
+    await adoptRegisterData()
     await auditStore.append({ user: req.user, action: 'demo_import', resource: 'org', detail: 'Demo-Daten importiert — alice/bob wiederhergestellt' })
     res.json({ ok: true, restoredAt: nowISO() })
   } catch (e) {
@@ -628,6 +630,12 @@ router.put('/admin/seed-lang', requireAuth, authorize('admin'), express.json(), 
   res.json({ ok: true, lang })
 })
 
+
+// Nach dem Laden von Demo-Daten (Bundle, Import): Maßnahmen, die in den geladenen Dateien noch eingebettet sind (TOMs, Risiko-Behandlungen,
+// Feststellungs- und Governance-Maßnahmen), sofort ins Maßnahmen-Register übernehmen – nicht erst beim nächsten Serverstart.
+async function adoptRegisterData() {
+  try { await require('../db/measureMigration').run() } catch (e) { console.warn('[migration] Übernahme nach Demo-Import fehlgeschlagen:', e.message) }
+}
 // ── Demo-Bundle aus Server-Datei laden (First-Login-Sprachauswahl) ──
 router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.json(), async (req, res) => {
   try {
@@ -653,6 +661,8 @@ router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.
     const bundle = JSON.parse(fs.readFileSync(bundleFile, 'utf8'))
     const dataDir = DATA_DIR
     const protectedFiles = new Set(['soa.json', 'custom-lists.json', 'org-settings.json', 'rbac_users.json'])
+    // Das Register gehört zu den Demo-Daten: ein neu geladenes Bundle ersetzt es (sonst blieben Maßnahmen zu verschwundenen Risiken stehen)
+    if ((process.env.STORAGE_BACKEND || 'json').toLowerCase() === 'json' && !(bundle.files && bundle.files['measures.json'])) fs.writeFileSync(path.join(dataDir, 'measures.json'), '[]')
 
     if (bundle.files && typeof bundle.files === 'object') {
       for (const [filename, content] of Object.entries(bundle.files)) {
@@ -703,6 +713,7 @@ router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.
       await gs.seedIsoNotice()
     } catch {}
 
+    await adoptRegisterData()
     await auditStore.append({ user: req.user, action: 'demo_import', resource: 'org', detail: `Demo-Bundle '${lang}' geladen` })
     res.json({ ok: true, lang, loadedAt: nowISO() })
   } catch (e) {

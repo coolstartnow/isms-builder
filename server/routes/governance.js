@@ -59,7 +59,7 @@ router.put('/governance/actions/:id', requireAuth, authorize('editor'), async (r
   res.json(a)
 })
 router.delete('/governance/actions/:id', requireAuth, authorize('admin'), async (req, res) => {
-  if (!(await govStore.deleteAction(req.params.id))) return res.status(404).json({ error: 'Not found' })
+  if (!(await govStore.deleteAction(req.params.id, req.user))) return res.status(404).json({ error: 'Not found' })
   await require('../db/auditStore').append({ user: req.user, action: 'delete', resource: 'governance_action', detail: req.params.id })
   res.json({ ok: true })
 })
