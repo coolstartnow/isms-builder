@@ -8,6 +8,11 @@ async function ensureLoginState() {
       return false
     }
     const data = await res.json()
+    // Vom Administrator vergebenes Passwort noch nicht geändert: nur die Wechselseite ist nutzbar (der Server sperrt alles andere)
+    if (data.mustChangePassword && !/change-password\.html$/.test(window.location.pathname)) {
+      window.location.href = '/ui/change-password.html'
+      return false
+    }
     localStorage.setItem('isms_current_user', data.username)
     localStorage.setItem('isms_current_role', data.role)
     localStorage.setItem('isms_current_functions', JSON.stringify(data.functions || []))

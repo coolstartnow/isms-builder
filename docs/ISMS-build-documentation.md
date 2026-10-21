@@ -703,8 +703,8 @@ Der Organisation-Tab enthält folgende Sektionen:
 
 ```
 GET  /admin/users              – Benutzerliste
-POST /admin/users              – Benutzer anlegen
-PUT  /admin/users/:id          – Benutzer bearbeiten
+POST /admin/users              – Benutzer anlegen (Anfangspasswort: der Nutzer muss es beim ersten Login ändern, seit V 1.80.1)
+PUT  /admin/users/:id          – Benutzer bearbeiten (ein gesetztes Passwort = Rücksetzen: Nutzer muss es beim nächsten Login ändern, außer beim eigenen Konto)
 DELETE /admin/users/:id        – Benutzer löschen
 
 GET  /admin/lists              – alle editierbaren Listen
@@ -762,7 +762,7 @@ Jeder Benutzer erreicht seine persönlichen Einstellungen über **Benutzermenü 
 
 | Bereich | Funktion |
 |---|---|
-| **Passwort ändern** | Aktuelles Passwort eingeben, neues Passwort (min. 6 Zeichen) zweimal bestätigen; `PUT /me/password` |
+| **Passwort ändern** | Aktuelles Passwort eingeben, neues Passwort (min. 6 Zeichen) zweimal bestätigen; `PUT /me/password`. Ein vom Administrator vergebenes Passwort (Anfangs- oder Rücksetz-Passwort) muss beim nächsten Login auf der Seite `ui/change-password.html` geändert werden; bis dahin sperrt der Server (`server/auth.js` `requireAuth`) jede Schnittstelle außer `PUT /me/password` und `/logout` mit `403 PASSWORD_CHANGE_REQUIRED`, sofort auch für eine bereits laufende Sitzung (Kennzeichen `mustChangePassword` in `rbac_users.json`, `rbacStore.isPasswordChangeRequired`); das neue Passwort muss sich vom bisherigen unterscheiden |
 | **2FA einrichten** | QR-Code wird automatisch geladen (TOTP); Authenticator-App scannen; 6-stelligen Code eingeben → Aktivieren |
 | **2FA deaktivieren** | Button erscheint, wenn 2FA bereits aktiv ist; Bestätigungsdialog |
 
@@ -3460,6 +3460,11 @@ Kompakte Übersicht aller seit V 1.37 behobenen Sicherheitsfindings — Details 
 | V 1.37.5 | Startup-Race unter SQL-Backends | Absturzrisiko beim Serverstart unter `STORAGE_BACKEND=sqlite/mariadb/pg` (Issue #42) | Abschnitt 31 |
 | **V 1.40.3** | **GHSA-63xg-pg3x-g36f** — Broken Access Control | `GET /admin/org-settings` gab SMTP-/WebDAV-Zugangsdaten (Abschnitt 55) im Klartext an jede Rolle ab `reader` zurück, statt wie die Schwester-Endpunkte auf `admin` beschränkt zu sein. CVSS 6.5 (medium), gemeldet über GitHubs private Vulnerability-Reporting-Funktion. Fix: Zugangsdaten werden für alle Rollen unterhalb `admin` herausgefiltert; der restliche Endpunkt bleibt erreichbar, da alle Rollen beim Login auf ihn angewiesen sind (Navigationsreihenfolge, Splash-Einstellungen). | [GHSA-63xg-pg3x-g36f](https://github.com/coolstartnow/isms-builder/security/advisories/GHSA-63xg-pg3x-g36f) |
 | **V 1.40.4** | Kein Brute-Force-Schutz auf `POST /login` | Login-Endpunkt (Passwort- und 2FA-Prüfung) hatte keine Verzögerung/Sperre nach wiederholten Fehlversuchen — beliebig viele automatisierte Versuche pro Benutzername/E-Mail waren möglich. Selbst gefunden während der Anwenderdokumentation, keine öffentliche Advisory. Fix: `server/loginThrottle.js`, In-Memory-Zähler pro Benutzername/E-Mail + Quell-IP, 429 mit exponentiell steigender Wartezeit (1s–30s) ab dem 4. Fehlversuch, ohne neue Abhängigkeit. | CHANGELOG.md |
+| **V 1.80.1** | **GHSA-vwc3-4j58-wrxc** — JWT-Platzhalter-Secret | Der Platzhalter aus `.env.docker`/`.env.example` (`CHANGE_ME_…`) wurde von der Warnung nicht erkannt; im Docker-Image startete der Server mit öffentlich bekanntem Secret. Seitdem prüft `server/secretCheck.js` (fehlend, < 32 Zeichen, Platzhalter) und verweigert in Produktion den Start | CHANGELOG 1.80.1 |
+| **V 1.80.1** | **GHSA-m8g6-pq5j-2r9r** — Gespeichertes XSS (Guidance) | Guidance-Markdown/HTML wurde unbereinigt angezeigt; jetzt `renderGuidanceMarkdown()` mit DOMPurify, Wächter-Test gegen rohes `marked.parse()` | CHANGELOG 1.80.1 |
+| **V 1.80.1** | **GHSA-8w4w-fqgh-c4fq** — Benutzer-Aufzählung per Timing | Unbekannte Benutzer wurden vor dem bcrypt-Vergleich abgewiesen; jetzt Vergleich gegen Platzhalter-Hash | CHANGELOG 1.80.1 |
+| **V 1.80.1** | **GHSA-vf3w-pmvj-x8mc** — Token mit `Math.random()` | Token der öffentlichen Bestätigungsseiten jetzt aus `crypto.randomBytes` (`server/secureToken.js`) | CHANGELOG 1.80.1 |
+| **V 1.80.1** | Härtung: Administratoren kannten Passwörter | **Dienst-Zugangsdaten nur schreibbar:** SMTP-Passwort und WebDAV-App-Passwort werden nie mehr ausgeliefert (auch nicht an Administratoren): `GET/PUT /admin/org-settings` nennen nur `passSet`/`appPasswordSet`; leeres Feld beim Speichern = unverändert, `clearPass`/`clearAppPassword` = entfernen; der WebDAV-Verbindungstest nutzt das gespeicherte Passwort nur für die gespeicherte Adresse und den gespeicherten Benutzer (`server/orgSecrets.js`). **Datenexport** (`GET /admin/export`, `demo-reset`) enthält weder Passwort-Hashes und 2FA-Geheimnisse der Nutzer noch Dienst-Passwörter; der Export liest jetzt aus `DATA_DIR` statt fest aus `data/`. **Passwortwechsel beim ersten Login** für vom Administrator vergebene Passwörter (siehe Persönliche Einstellungen) | CHANGELOG 1.80.1 |
 
 ### Secret-Scanning (GitGuardian, seit September 2026)
 

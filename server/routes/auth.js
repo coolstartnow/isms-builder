@@ -68,6 +68,8 @@ router.post('/login', async (req, res) => {
     userRaw = rbac.getUserByUsername(usernameField)
   }
   if (!userRaw) {
+    // gleicher Aufwand wie bei einem bekannten Benutzer (kein Timing-Unterschied, GHSA-8w4w-fqgh-c4fq)
+    await rbac.verifyPassword('', password || '')
     loginThrottle.recordFailure(throttleId, req.ip)
     return res.status(401).json({ error: 'Invalid credentials' })
   }
@@ -123,7 +125,7 @@ router.post('/login', async (req, res) => {
   // Admin-Erstlogin: Demo-Sprache noch nicht gewählt?
   const needsDemoLang = userRaw.role === 'admin' && !fs.existsSync(DEMO_LANG_FILE)
 
-  return res.json({ username: userRaw.username, role: userRaw.role, domain: userRaw.domain, functions, has2FA, needsDemoLang })
+  return res.json({ username: userRaw.username, role: userRaw.role, domain: userRaw.domain, functions, has2FA, needsDemoLang, mustChangePassword: rbac.isPasswordChangeRequired(userRaw.username) })
 })
 
 // Who am I
@@ -135,7 +137,7 @@ router.get('/whoami', (req, res) => {
   const has2FA = !!(user && user.totpSecret && user.totpSecret.length > 0 && user.totpVerified === true)
   // functions: JWT-Payload ist Source of Truth; falls user-Record neuere Funktionen hat, diese vorziehen
   const functions = (user && user.functions) ? user.functions : (sess.functions || [])
-  res.json({ ...sess, functions, has2FA })
+  res.json({ ...sess, functions, has2FA, mustChangePassword: rbac.isPasswordChangeRequired(sess.username) })
 })
 
 // Logout — GET (Legacy) und POST (UI seit app.js fetch-Aufruf)
@@ -158,7 +160,11 @@ router.put('/me/password', requireAuth, async (req, res) => {
   const rbac = require('../rbacStore')
   const ok = await rbac.verifyPassword(req.user, currentPassword)
   if (!ok) return res.status(401).json({ error: 'Aktuelles Passwort ist falsch.' })
-  await rbac.setPasswordHash(req.user, newPassword)
+  // Ein vom Administrator vergebenes Passwort muss durch ein anderes ersetzt werden
+  if (rbac.isPasswordChangeRequired(req.user) && newPassword === currentPassword) {
+    return res.status(400).json({ error: 'Das neue Passwort muss sich vom bisherigen unterscheiden.', code: 'PASSWORD_UNCHANGED' })
+  }
+  await rbac.setPasswordHash(req.user, newPassword)   // hebt die Pflicht zum Wechsel auf
   res.json({ ok: true })
 })
 

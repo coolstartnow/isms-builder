@@ -194,7 +194,7 @@ For production use with HTTPS:
 
 ```bash
 # .env
-JWT_SECRET=your-very-long-random-secret
+JWT_SECRET=<output of: openssl rand -hex 32>   # required; production refuses a missing, short or placeholder secret
 STORAGE_BACKEND=json
 SSL_CERT_FILE=/etc/ssl/certs/your.crt
 SSL_KEY_FILE=/etc/ssl/private/your.key
@@ -334,7 +334,7 @@ gh attestation verify oci://ghcr.io/coolstartnow/isms-builder:latest --owner coo
 
 | Variable | Default | Description |
 |---|---|---|
-| `JWT_SECRET` | *(required)* | Secret for JWT signing — use 32+ random characters |
+| `JWT_SECRET` | *(required)* | Secret for JWT signing — at least 32 random characters (`openssl rand -hex 32`). With `NODE_ENV=production` (always the case in the Docker image) the server does not start with a missing, short or placeholder secret |
 | `PORT` | `3000` | HTTP/HTTPS listen port |
 | `STORAGE_BACKEND` | `json` | `json` (dev/demo) or `sqlite` (production) |
 | `SSL_CERT_FILE` | — | Path to TLS certificate → enables HTTPS |

@@ -277,6 +277,9 @@ describe('Email Campaign Mode', () => {
     expect(res.status).toBe(200)
     expect(res.body.length).toBe(2)
     expect(res.body.every(a => a.token)).toBe(true)
+    // Tokens sind die einzigen Geheimnisse der öffentlichen Links: kryptografischer Zufall, 192 Bit, einmalig (GHSA-vf3w-pmvj-x8mc)
+    expect(res.body.every(a => /^[A-Za-z0-9_-]{32,}$/.test(a.token))).toBe(true)
+    expect(new Set(res.body.map(a => a.token)).size).toBe(res.body.length)
     expect(res.body.every(a => a.acknowledgedAt === null)).toBe(true)
   })
 

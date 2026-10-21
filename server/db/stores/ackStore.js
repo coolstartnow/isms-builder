@@ -3,6 +3,7 @@
 
 const { getDb } = require('../knexDatabase')
 
+const { randomToken } = require('../../secureToken')
 function uuidv4() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`
 }
@@ -178,7 +179,7 @@ async function prepareEmailAcks(distributionId, emailList) {
       distribution_id: distributionId,
       recipient_email: email,
       recipient_name:  '',
-      token:           uuidv4(),
+      token:           randomToken(),   // geheim: kryptografischer Zufall (GHSA-vf3w-pmvj-x8mc)
       acknowledged_at: null,
       ip_address:      null,
       method:          'email_link',

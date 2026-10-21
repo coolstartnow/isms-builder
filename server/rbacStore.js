@@ -69,19 +69,35 @@ function saveUsers(data) {
 let USERS = loadUsers()
 
 // Passwort eines Benutzers prüfen (async, bcrypt)
+// Platzhalter-Hash gleichen Aufwands: Auch für unbekannte Benutzer wird ein bcrypt-Vergleich ausgeführt, damit die Antwortzeit
+// nicht verrät, ob ein Konto existiert (Benutzer-Aufzählung per Timing, GHSA-8w4w-fqgh-c4fq). Erst bei Bedarf berechnet.
+let _dummyHash = null
+const dummyHash = () => _dummyHash || (_dummyHash = bcrypt.hashSync(require('crypto').randomBytes(16).toString('hex'), BCRYPT_ROUNDS))
+
 async function verifyPassword(username, plaintext) {
-  const u = USERS[username]
-  if (!u || !u.passwordHash) return false
+  const u = Object.prototype.hasOwnProperty.call(USERS, username) ? USERS[username] : null
+  if (!u || !u.passwordHash) {
+    await bcrypt.compare(String(plaintext == null ? '' : plaintext), dummyHash())
+    return false
+  }
   return bcrypt.compare(plaintext, u.passwordHash)
 }
 
 // Passwort-Hash setzen (z.B. nach Passwortänderung)
-async function setPasswordHash(username, plaintext) {
+// mustChange: Der Administrator kennt dieses Passwort (Anfangs-/Rücksetz-Passwort) → der Nutzer muss es beim nächsten Login ändern.
+// Setzt der Nutzer sein Passwort selbst, entfällt die Pflicht.
+async function setPasswordHash(username, plaintext, { mustChange = false } = {}) {
   const hash = await bcrypt.hash(plaintext, BCRYPT_ROUNDS)
   if (!USERS[username]) return false
   USERS[username].passwordHash = hash
+  if (mustChange) USERS[username].mustChangePassword = true; else delete USERS[username].mustChangePassword
   saveUsers(USERS)
   return true
+}
+
+// true, solange der Nutzer ein vom Administrator vergebenes Passwort noch ändern muss
+function isPasswordChangeRequired(username) {
+  return Object.prototype.hasOwnProperty.call(USERS, username) && USERS[username].mustChangePassword === true
 }
 
 function getUserSections(username) {
@@ -104,7 +120,8 @@ function getAllUsers() {
     sections: u.sections || [],
     domain: u.domain,
     role: u.role,
-    functions: u.functions || []
+    functions: u.functions || [],
+    mustChangePassword: u.mustChangePassword === true
   }))
 }
 
@@ -138,26 +155,30 @@ function confirmTotpVerified(username) {
   return true
 }
 
-async function createUser({ username, email, domain, role, functions, password }) {
+async function createUser({ username, email, domain, role, functions, password, mustChangePassword }) {
   if (USERS[username]) throw new Error('User already exists')
   const passwordHash = await bcrypt.hash(password || 'changeme', BCRYPT_ROUNDS)
   USERS[username] = {
     username, email: email || '', domain: domain || 'Global',
     role: role || 'reader', functions: Array.isArray(functions) ? functions : [],
-    passwordHash, totpSecret: '', sections: []
+    passwordHash, totpSecret: '', sections: [],
+    ...(mustChangePassword === true ? { mustChangePassword: true } : {})
   }
   saveUsers(USERS)
   return getAllUsers().find(u => u.username === username)
 }
 
-async function updateUser(username, { email, domain, role, functions, password }) {
+async function updateUser(username, { email, domain, role, functions, password, mustChangePassword }) {
   const u = USERS[username]
   if (!u) return null
   if (email     !== undefined) u.email     = email
   if (domain    !== undefined) u.domain    = domain
   if (role      !== undefined) u.role      = role
   if (functions !== undefined) u.functions = Array.isArray(functions) ? functions : []
-  if (password) u.passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
+  if (password) {
+    u.passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
+    if (mustChangePassword === true) u.mustChangePassword = true; else delete u.mustChangePassword
+  }
   saveUsers(USERS)
   return getAllUsers().find(uu => uu.username === username)
 }
@@ -180,6 +201,7 @@ module.exports = {
   init: () => { USERS = loadUsers() },
   verifyPassword,
   setPasswordHash,
+  isPasswordChangeRequired,
   getUserSections,
   setUserSections,
   getAllUsers,

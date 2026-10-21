@@ -6,12 +6,13 @@ const router   = express.Router()
 const ackStore = require('../db/ackStore')
 const storage  = require('../storage')
 const { tr, pageLang, fmtDate, fmtDateTime } = require('../i18n')
+const { isTokenFormat } = require('../secureToken')
 
 // ── GET /ack/:token — Bestätigungsseite anzeigen ──────────────────────────────
 router.get('/ack/:token', async (req, res) => {
   // Nie aus dem Cache: Inhalt und Bestaetigungsstand koennen sich aendern.
   res.setHeader('Cache-Control', 'no-store')
-  const ack  = await ackStore.getAckByToken(req.params.token)
+  const ack  = isTokenFormat(req.params.token) ? await ackStore.getAckByToken(req.params.token) : null   // ungültiges Format = unbekannt
   if (!ack) {
     const l = pageLang(req)
     return res.status(404).send(`<!DOCTYPE html><html lang="${l}"><head><meta charset="UTF-8">
@@ -51,7 +52,7 @@ router.get('/ack/:token', async (req, res) => {
     </div>` : ''
 
   const formHtml = alreadyConfirmed ? '' : `
-    <form method="POST" action="/ack/${req.params.token}?lang=${L}" class="ack-form">
+    <form method="POST" action="/ack/${escapeHtml(req.params.token)}?lang=${L}" class="ack-form">
       <label for="recipientName">${tr(L, 'srv_ackpub_nameLabel')}</label>
       <input type="text" id="recipientName" name="recipientName" placeholder="${tr(L, 'srv_ackpub_namePh')}" />
       <button type="submit" class="btn-confirm">
@@ -166,7 +167,7 @@ router.post('/ack/:token', express.urlencoded({ extended: false }), async (req, 
   const ip   = req.ip || ''
   const name = (req.body.recipientName || '').trim().slice(0, 200)
 
-  const ack = await ackStore.confirmByToken(req.params.token, { recipientName: name, ipAddress: ip })
+  const ack = isTokenFormat(req.params.token) ? await ackStore.confirmByToken(req.params.token, { recipientName: name, ipAddress: ip }) : null
   if (!ack) {
     const l = pageLang(req)
     return res.status(404).send(`<!DOCTYPE html><html lang="${l}"><head><meta charset="UTF-8">

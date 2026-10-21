@@ -6,6 +6,7 @@ const STORAGE_BACKEND = (process.env.STORAGE_BACKEND || 'json').toLowerCase()
 const fs   = require('fs')
 const path = require('path')
 
+const { randomToken } = require('../secureToken')
 function uuidv4() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`
 }
@@ -143,7 +144,7 @@ function prepareEmailAcks(distributionId, emailList) {
       distributionId,
       recipientEmail:  email,
       recipientName:   '',
-      token:           uuidv4(),
+      token:           randomToken(),   // geheim: kryptografischer Zufall (GHSA-vf3w-pmvj-x8mc)
       acknowledgedAt:  null,
       ipAddress:       null,
       method:          'email_link',

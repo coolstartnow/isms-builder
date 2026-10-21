@@ -67,7 +67,9 @@ async function submitLogin() {
       localStorage.setItem('isms_current_role', data.role)
       localStorage.setItem('isms_current_functions', JSON.stringify(data.functions || []))
       if (data.domain) localStorage.setItem('isms_current_domain', data.domain)
-      if (data.needsDemoLang && typeof openDemoLangOverlay === 'function') {
+      if (data.mustChangePassword) {
+        window.location.href = '/ui/change-password.html'   // vom Administrator vergebenes Passwort: erst ändern
+      } else if (data.needsDemoLang && typeof openDemoLangOverlay === 'function') {
         openDemoLangOverlay()
       } else {
         showSplashThenGo()
@@ -100,7 +102,9 @@ async function submitLogin() {
               localStorage.setItem('isms_current_role', data2.role)
               localStorage.setItem('isms_current_functions', JSON.stringify(data2.functions || []))
               if (data2.domain) localStorage.setItem('isms_current_domain', data2.domain)
-              if (data2.needsDemoLang && typeof openDemoLangOverlay === 'function') {
+              if (data2.mustChangePassword) {
+                window.location.href = '/ui/change-password.html'
+              } else if (data2.needsDemoLang && typeof openDemoLangOverlay === 'function') {
                 openDemoLangOverlay()
               } else {
                 showSplashThenGo()

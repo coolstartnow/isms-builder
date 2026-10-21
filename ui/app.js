@@ -4207,7 +4207,8 @@ async function renderAdminOrgTab() {
           <label class="org-label">${t('org_smtpUsername')}</label>
           <input class="input" id="smtpUser" value="${escHtml(smtp.user||'')}" placeholder="isms@example.com" autocomplete="off">
           <label class="org-label">${t('org_smtpPassword')}</label>
-          <input class="input" id="smtpPass" type="password" value="${escHtml(smtp.pass||'')}" placeholder="••••••••" autocomplete="new-password">
+          <input class="input" id="smtpPass" type="password" value="" placeholder="${escHtml(smtp.passSet ? t('org_secretKeep') : '••••••••')}" autocomplete="new-password">
+          ${smtp.passSet ? `<label style="display:flex;gap:6px;align-items:center;font-size:.8rem;color:var(--text-subtle);margin-top:4px"><input type="checkbox" id="smtpPassClear"> ${t('org_secretClear')}</label>` : ''}
           <label class="org-label">${t('org_smtpSender')}</label>
           <input class="input" id="smtpFrom" value="${escHtml(smtp.from||'')}" placeholder="ISMS Builder <isms@example.com>">
         </div>
@@ -4244,7 +4245,8 @@ async function renderAdminOrgTab() {
           <label class="org-label">${t('org_webdavUsername')}</label>
           <input class="input" id="webdavUsername" value="${escHtml(webdav.username||'')}" autocomplete="off">
           <label class="org-label">${t('org_webdavAppPassword')}</label>
-          <input class="input" id="webdavAppPassword" type="password" value="${escHtml(webdav.appPassword||'')}" placeholder="••••••••" autocomplete="new-password">
+          <input class="input" id="webdavAppPassword" type="password" value="" placeholder="${escHtml(webdav.appPasswordSet ? t('org_secretKeep') : '••••••••')}" autocomplete="new-password">
+          ${webdav.appPasswordSet ? `<label style="display:flex;gap:6px;align-items:center;font-size:.8rem;color:var(--text-subtle);margin-top:4px"><input type="checkbox" id="webdavPassClear"> ${t('org_secretClear')}</label>` : ''}
           <label class="org-label">${t('org_webdavFolder')}</label>
           <input class="input" id="webdavFolder" value="${escHtml(webdav.folder||'ISMS-Richtlinien')}">
         </div>
@@ -4542,10 +4544,13 @@ async function saveSmtpSettings() {
       port:   parseInt(document.getElementById('smtpPort')?.value || '587', 10),
       secure,
       user:   document.getElementById('smtpUser')?.value.trim() || '',
-      pass:   document.getElementById('smtpPass')?.value || '',
       from:   document.getElementById('smtpFrom')?.value.trim() || '',
     }
   }
+  // Passwort nur schreibbar: leer = gespeicherten Wert behalten, ausgefüllt = ersetzen, Häkchen = entfernen
+  const smtpPw = document.getElementById('smtpPass')?.value || ''
+  if (smtpPw) patch.smtpSettings.pass = smtpPw
+  if (document.getElementById('smtpPassClear')?.checked) patch.smtpSettings.clearPass = true
   const res = await fetch('/admin/org-settings', {
     method: 'PUT',
     headers: { ...apiHeaders('admin'), 'Content-Type': 'application/json' },
@@ -4595,13 +4600,17 @@ async function sendTestMail() {
 // ── WebDAV-Publish (Nextcloud/ownCloud, #66) ──────────────────────────────────
 
 function _webdavSettingsFromForm() {
-  return {
+  const out = {
     enabled:     document.getElementById('webdavEnabled')?.checked || false,
     baseUrl:     document.getElementById('webdavBaseUrl')?.value.trim() || '',
     username:    document.getElementById('webdavUsername')?.value.trim() || '',
-    appPassword: document.getElementById('webdavAppPassword')?.value || '',
     folder:      document.getElementById('webdavFolder')?.value.trim() || 'ISMS-Richtlinien',
   }
+  // Passwort nur schreibbar: leer = gespeicherten Wert behalten, ausgefüllt = ersetzen, Häkchen = entfernen
+  const pw = document.getElementById('webdavAppPassword')?.value || ''
+  if (pw) out.appPassword = pw
+  if (document.getElementById('webdavPassClear')?.checked) out.clearAppPassword = true
+  return out
 }
 
 async function saveWebdavSettings() {
@@ -6130,6 +6139,7 @@ function openUserModal(user) {
               <input id="uModalPw2" class="form-input" type="password" placeholder="${t('admin_pwRepeatPh')}" />
             </div>
           </div>
+          <p style="font-size:11px;color:var(--text-subtle);margin:0;"><i class="ph ph-info"></i> ${t('admin_pwMustChange')}</p>
           <p id="uModalError" style="color:var(--danger-text);font-size:12px;display:none;margin:0;"></p>
         </div>
         <div class="modal-footer">
@@ -7442,6 +7452,25 @@ async function refreshVersionBox(tmpl) {
 }
 
 /** Rendert Markdown sicher: kein Roh-HTML, keine javascript:-Verweise. */
+// Guidance-Dokumente (Markdown/HTML, von Contentownern geschrieben) werden mit DOMPurify bereinigt, bevor sie angezeigt, in der
+// Vorschau gezeigt oder in ein Druckfenster geschrieben werden (GHSA-m8g6-pq5j-2r9r: gespeichertes XSS). Erlaubt bleibt gewöhnliches
+// HTML (Absätze, Tabellen, Bilder, Links …); Skripte, Ereignis-Attribute, Formulare, Rahmen und Stile entfallen. Steht DOMPurify nicht
+// zur Verfügung, wird der Text als reiner Text gezeigt – nie als ungeprüftes HTML.
+function renderGuidanceMarkdown(md) {
+  const text = String(md || '')
+  if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') return `<pre>${escHtml(text)}</pre>`
+  const clean = DOMPurify.sanitize(marked.parse(text), {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select', 'option', 'iframe', 'frame', 'frameset', 'object', 'embed', 'link', 'meta', 'base'],
+    FORBID_ATTR: ['style', 'srcdoc', 'formaction'],
+    ALLOW_DATA_ATTR: false,
+  })
+  const box = document.createElement('div')
+  box.innerHTML = clean
+  box.querySelectorAll('a[href]').forEach(a => { a.target = '_blank'; a.rel = 'noopener noreferrer' })
+  return box.innerHTML
+}
+
 function renderMarkdownSafe(md) {
   const text = String(md || '')
   if (typeof marked === 'undefined') return `<pre>${escHtml(text)}</pre>`
@@ -8393,9 +8422,7 @@ function renderGuidanceDoc(doc) {
 
   let bodyHtml = ''
   if (doc.type === 'markdown' || doc.type === 'html') {
-    const rendered = (typeof marked !== 'undefined')
-      ? marked.parse(doc.content || '')
-      : `<pre>${escHtml(doc.content || '')}</pre>`
+    const rendered = renderGuidanceMarkdown(doc.content || '')
     bodyHtml = `<div class="guidance-md">${rendered}</div>`
   } else if (doc.type === 'pdf') {
     bodyHtml = `<embed src="/guidance/${doc.id}/file" type="application/pdf"
@@ -8451,9 +8478,7 @@ function _printGuidanceDocs(docs) {
     : `ISMS Builder – ${catLabel} (${t('guidance_docsCount', { n: docs.length })})`
 
   const bodyParts = docs.map(doc => {
-    const html = (typeof marked !== 'undefined')
-      ? marked.parse(doc.content || '')
-      : `<pre>${escHtml(doc.content || '')}</pre>`
+    const html = renderGuidanceMarkdown(doc.content || '')
     return `<section class="doc-section">
       <h1 class="doc-title">${escHtml(doc.title)}</h1>
       <div class="doc-body">${html}</div>
@@ -8653,7 +8678,7 @@ function refreshGuidancePreview() {
   const pv = dom('gEditPreview')
   if (!pv || pv.style.display === 'none') return
   const txt = dom('gEditContent')?.value || ''
-  pv.innerHTML = (typeof marked !== 'undefined') ? marked.parse(txt) : `<pre>${escHtml(txt)}</pre>`
+  pv.innerHTML = renderGuidanceMarkdown(txt)
 }
 
 async function saveGuidanceEditor(existingId) {

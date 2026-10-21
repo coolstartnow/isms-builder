@@ -28,6 +28,8 @@ function isSafeJsonName(name) {
   return typeof name === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*\.json$/.test(name) && !name.includes('..')
 }
 
+const { redactOrgSettings, prepareOrgPatch, sanitizeExportFile } = require('../orgSecrets')
+
 function buildFullExport(dataDir) {
   const jsonFiles = [
     'templates.json','soa.json','risks.json','entities.json',
@@ -38,7 +40,7 @@ function buildFullExport(dataDir) {
   ]
   const bundle = { exportedAt: nowISO(), version: '1.28', files: {}, gdpr: {}, legal: {} }
   for (const f of jsonFiles) {
-    try { bundle.files[f] = JSON.parse(fs.readFileSync(path.join(dataDir, f), 'utf8')) } catch {}
+    try { bundle.files[f] = sanitizeExportFile(f, JSON.parse(fs.readFileSync(path.join(dataDir, f), 'utf8'))) } catch {}
   }
   const gdprDir = path.join(dataDir, 'gdpr')
   if (fs.existsSync(gdprDir)) {
@@ -136,7 +138,8 @@ router.post('/admin/users', requireAuth, authorize('admin'), async (req, res) =>
   if (!username || !email || !role) return res.status(400).json({ error: 'username, email und role sind erforderlich' })
   if (!password || password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' })
   try {
-    const user = await require('../rbacStore').createUser({ username, email, domain, role, functions, password })
+    // Das Anfangspasswort kennt der Administrator → der neue Nutzer muss es beim ersten Login ändern
+    const user = await require('../rbacStore').createUser({ username, email, domain, role, functions, password, mustChangePassword: true })
     const fnStr = (functions||[]).join(', ') || '—'
     await auditStore.append({ user: req.user, action: 'create', resource: 'user', resourceId: username, detail: `Rolle: ${role} | Funktionen: ${fnStr}` })
     res.status(201).json(user)
@@ -149,7 +152,8 @@ router.put('/admin/users/:username', requireAuth, authorize('admin'), async (req
   const { username } = req.params
   const { email, domain, role, functions, password } = req.body || {}
   if (password && password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' })
-  const updated = await require('../rbacStore').updateUser(username, { email, domain, role, functions, password: password || undefined })
+  // Ein vom Administrator gesetztes Passwort (Zurücksetzen) muss der Nutzer beim nächsten Login ändern; das eigene nicht
+  const updated = await require('../rbacStore').updateUser(username, { email, domain, role, functions, password: password || undefined, mustChangePassword: username !== req.user })
   if (!updated) return res.status(404).json({ error: 'Not found' })
   const fnStr = (functions||[]).join(', ') || '—'
   await auditStore.append({ user: req.user, action: 'update', resource: 'user', resourceId: username, detail: role ? `Neue Rolle: ${role} | Funktionen: ${fnStr}` : 'Profil aktualisiert' })
@@ -228,21 +232,15 @@ router.post('/admin/list/:listId/reset', requireAuth, authorize('admin'), async 
 // Splash-Settings) — deshalb bleibt er bei 'reader', aber Zugangsdaten werden für
 // Nicht-Admins herausgefiltert statt den kompletten Endpunkt zu sperren.
 router.get('/admin/org-settings', requireAuth, authorize('reader'), async (req, res) => {
-  const settings = await orgSettingsStore.get()
-  if (req.roleRank < ROLE_RANK.admin) {
-    const { smtpSettings, webdavSettings, ...rest } = settings
-    return res.json({
-      ...rest,
-      smtpSettings:   smtpSettings   ? { ...smtpSettings,   pass: undefined }         : smtpSettings,
-      webdavSettings: webdavSettings ? { ...webdavSettings, appPassword: undefined }  : webdavSettings,
-    })
-  }
-  res.json(settings)
+  // Dienst-Zugangsdaten (SMTP-Passwort, WebDAV-App-Passwort) werden nie ausgeliefert, auch nicht an Administratoren:
+  // sie sind nur schreibbar; die Ausgabe nennt nur, ob sie gesetzt sind (passSet, appPasswordSet).
+  res.json(redactOrgSettings(await orgSettingsStore.get()))
 })
 router.put('/admin/org-settings', requireAuth, authorize('admin'), async (req, res) => {
-  const updated = await orgSettingsStore.update(req.body)
+  // leeres Geheimnis = unverändert, clearPass/clearAppPassword = entfernen (siehe server/orgSecrets.js)
+  const updated = await orgSettingsStore.update(prepareOrgPatch(req.body))
   await auditStore.append({ user: req.user, action: 'settings', resource: 'org', detail: 'Organisationseinstellungen aktualisiert' })
-  res.json(updated)
+  res.json(redactOrgSettings(updated))
 })
 
 // Modul-Konfiguration
@@ -334,7 +332,14 @@ router.get('/admin/update-check', requireAuth, authorize('admin'), async (req, r
 router.post('/admin/webdav/test', requireAuth, authorize('admin'), async (req, res) => {
   const webdav = require('../webdav')
   const { baseUrl, username, appPassword, folder } = req.body || {}
-  const cfg = { baseUrl, username, appPassword, folder: folder || 'ISMS-Richtlinien' }
+  // Das Passwort ist nur schreibbar: Bleibt das Feld leer, wird das gespeicherte benutzt – aber nur für genau die gespeicherte
+  // Adresse und denselben Benutzer. Sonst ließe sich das gespeicherte Passwort an eine fremde Adresse schicken und so auslesen.
+  let pw = appPassword
+  if (!pw) {
+    const stored = (await orgSettingsStore.get()).webdavSettings || {}
+    if (stored.appPassword && baseUrl === stored.baseUrl && username === stored.username) pw = stored.appPassword
+  }
+  const cfg = { baseUrl, username, appPassword: pw, folder: folder || 'ISMS-Richtlinien' }
   const result = await webdav.testConnection(cfg)
   if (result.ok) {
     await auditStore.append({ user: req.user, action: 'settings', resource: 'org', detail: 'WebDAV-Verbindungstest erfolgreich' })
@@ -386,14 +391,14 @@ router.put('/admin/ai-settings', requireAuth, authorize('admin'), async (req, re
 // ── Daten & Wartung ──
 router.get('/admin/export', requireAuth, authorize('admin'), async (req, res) => {
   try {
-    const dataDir = path.join(__dirname, '../../data')
+    const dataDir = DATA_DIR   // (früher fest ../../data: ignorierte DATA_DIR)
     const jsonFiles = ['templates.json','soa.json','risks.json','entities.json',
       'rbac_users.json','guidance.json','training.json','public-incidents.json',
       'org-settings.json','custom-lists.json','audit-log.json']
     const bundle = { exportedAt: nowISO(), files: {} }
     for (const f of jsonFiles) {
       const fp = path.join(dataDir, f)
-      try { bundle.files[f] = JSON.parse(fs.readFileSync(fp, 'utf8')) } catch {}
+      try { bundle.files[f] = sanitizeExportFile(f, JSON.parse(fs.readFileSync(fp, 'utf8'))) } catch {}
     }
     const gdprDir = path.join(dataDir, 'gdpr')
     bundle.gdpr = {}

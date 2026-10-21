@@ -195,6 +195,11 @@ describe('Geräte und Einrichtung per QR-Code', () => {
     const log = fs.readFileSync(path.join(dataDir, 'audit-log.json'), 'utf8')
     expect(log).toMatch(/sync-account/); expect(log).toMatch(/enrollment-start/); expect(log).toMatch(/Gerät eingerichtet/)
     expect(log).not.toMatch(/ISMS-[A-Z0-9]{4}-/)
-    expect(log).not.toMatch(/\b[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}\b/)
+    // Einrichtungscode „XXXX-XXXX-XXXX“ als eigenständiges Token. Die Randprüfung verhindert Zufallstreffer in UUIDs
+    // (deren mittlere Vierergruppen sind bei rund 0,4 % der UUIDs rein numerisch, z. B. 9548-4448-9632).
+    const CODE = /(?<![A-Za-z0-9-])[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}(?![A-Za-z0-9-])/
+    expect(log).not.toMatch(CODE)
+    expect('1566256d-9548-4448-9632-552485566194').not.toMatch(CODE)   // UUID mit rein numerischer Mitte: kein Treffer
+    expect('Code ABCD-1234-WXYZ ').toMatch(CODE)                         // echter Code: Treffer
   })
 })

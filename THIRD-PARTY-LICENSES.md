@@ -19,6 +19,12 @@ All licenses are compatible with the project's AGPL-3.0 license.
 - **Copyright:** © 2011–2025 Christopher Jeffrey
 - **Files:** `ui/vendor/marked.min.js`
 
+### DOMPurify
+- **Version:** 3.4.17
+- **License:** MPL-2.0 OR Apache-2.0 (used under Apache-2.0)
+- **Copyright:** © Cure53 and other contributors
+- **Files:** `ui/vendor/purify.min.js`
+
 ---
 
 ## Backend / Runtime Dependencies (npm)

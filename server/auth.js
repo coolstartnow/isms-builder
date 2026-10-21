@@ -10,9 +10,8 @@ const JWT_SECRET = process.env.JWT_SECRET
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h'
 const DEV_HEADER_AUTH = process.env.DEV_HEADER_AUTH === 'true'
 
-if (!JWT_SECRET || JWT_SECRET.startsWith('changeme')) {
-  console.warn('[AUTH] WARNUNG: JWT_SECRET ist nicht gesetzt oder noch der Default-Wert. Bitte .env anpassen!')
-}
+// Unsicheres Secret: in Produktion Abbruch, sonst Warnung (GHSA-vwc3-4j58-wrxc)
+require('./secretCheck').enforce({ secret: JWT_SECRET })
 
 const ROLE_RANK = {
   reader:       1,  // Lesezugriff auf alle Module
@@ -72,9 +71,16 @@ function getSessionFromReq(req) {
   return null
 }
 
+// Solange ein Nutzer ein vom Administrator vergebenes Passwort noch ändern muss, sind nur das Ändern des Passworts und das Abmelden erlaubt
+// (der Administrator kennt das Anfangs-/Rücksetz-Passwort; die Sperre gilt serverseitig für jede Schnittstelle).
+const PASSWORD_CHANGE_ALLOWED = (req) => (req.method === 'PUT' && req.path === '/me/password') || req.path === '/logout'
+
 function requireAuth(req, res, next) {
   const sess = getSessionFromReq(req)
   if (!sess) return res.status(401).json({ error: 'Not authenticated' })
+  if (require('./rbacStore').isPasswordChangeRequired(sess.username) && !PASSWORD_CHANGE_ALLOWED(req)) {
+    return res.status(403).json({ error: 'Password change required', code: 'PASSWORD_CHANGE_REQUIRED' })
+  }
   req.user = sess.username
   req.role = sess.role
   req.domain = sess.domain
