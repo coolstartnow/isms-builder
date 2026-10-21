@@ -36,3 +36,14 @@ test('jede Operation hat Responses, operationIds sind eindeutig, Pfade beginnen 
     }
   }
 })
+
+// js-yaml (YAML 1.2) liest mehr als streng nach YAML 1.1 arbeitende Parser (z. B. PyYAML, viele Python-Werkzeuge, ältere Validatoren):
+// ein unquotierter Text mit „?“ oder „&“ in einer Flow-Map („{ … description: … }“) wurde dort abgelehnt (seit 1.76.0 unbemerkt).
+// Ist python3 mit PyYAML vorhanden, muss die Datei auch dort lesbar sein; sonst wird der Test übersprungen.
+const { spawnSync } = require('child_process')
+const hasPyYaml = spawnSync('python3', ['-c', 'import yaml'], { encoding: 'utf8' }).status === 0
+;(hasPyYaml ? test : test.skip)('openapi.yaml ist auch mit einem strengen YAML-1.1-Parser (PyYAML) lesbar', () => {
+  const r = spawnSync('python3', ['-c', 'import sys, yaml; d = yaml.safe_load(open(sys.argv[1], encoding="utf-8")); print(len(d["paths"]))', FILE], { encoding: 'utf8' })
+  expect({ status: r.status, stderr: (r.stderr || '').split('\n').slice(-3).join(' ') }).toEqual({ status: 0, stderr: '' })
+  expect(Number(r.stdout.trim())).toBeGreaterThan(100)
+})

@@ -141,7 +141,7 @@ and that is not a reason to avoid the project, only a reason to plan realistical
 | **NIS2** | Art. 21 governance checklist (30 items) and Art. 23 reporting deadlines with automatic alerts | NIS2 Art. 21 / 23 |
 | **Calendar** | One calendar for due dates across the modules: measures, risk treatments, audits, reviews, contracts, trainings, deadlines | |
 | **Guidance** | Built-in handbook and knowledge base (module guides, role guides, own documents) with search, in five languages | |
-| **Mobile App (Android)** | Separate Android app that works offline with its own data set and syncs with the server over Wi-Fi or a file bundle: sync accounts with per-module rights, set-up by QR code, templates, SoA, risks, assets, findings and guidance (read-only); requires `STORAGE_BACKEND=json` ([docs](docs/module-mobile-sync.en.md)) | |
+| **Mobile App (Android)** | Separate Android app that works offline with its own data set and syncs with the server over Wi-Fi or a file bundle: sync accounts with per-module rights, set-up by QR code, templates, SoA, risks, assets, findings and guidance (read-only); requires `STORAGE_BACKEND=json` ([docs](docs/module-mobile-sync.en.md)). Not publicly released yet: if you would like to try it beforehand, get in touch via the [project website](https://www.isms-builder.com/#contact) | |
 | **Traceability** | Every record links to SoA controls + policy documents — bidirectional | |
 | **Semantic Search** | Local AI search via Ollama (nomic-embed-text) with keyword fallback | |
 | **Multi-Entity** | Corporate structure tree, per-entity applicability for controls and policies | |

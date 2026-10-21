@@ -10,6 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.80.1.1] — 2026-10-21
+
+> Korrektur-Release zu 1.80.1: Die OpenAPI-Beschreibung ist wieder für alle YAML-Parser lesbar.
+
+### Fixed
+- **`docs/architecture/openapi.yaml` ließ sich mit strengen YAML-Parsern nicht lesen** — Eine Beschreibung in einer Flow-Map (`payload: { … description: Content of the QR code (`isms-sync://enroll?u=…&c=…`) }`, seit 1.76.0) enthielt unquotiert `?` und `&`; js-yaml (YAML 1.2) las das, nach YAML 1.1 arbeitende Parser wie PyYAML (und darauf aufbauende Python-Werkzeuge und Validatoren) brachen mit „expected ',' or '}'“ ab. Der Text steht jetzt in Anführungszeichen. Neuer Test `tests/openapi.test.js`: Ist python3 mit PyYAML vorhanden, muss die Datei auch dort lesbar sein (sonst wird er übersprungen). Die Anwendung selbst liest die Datei nicht als YAML (die Guidance zeigt sie als Text), die Sicherheitskorrekturen aus 1.80.1 waren davon nicht betroffen.
+
+### Changed
+- **README:** Die Mobile App ist im Feature-Überblick als „noch nicht öffentlich veröffentlicht“ gekennzeichnet; wer sie vorab ausprobieren möchte, nimmt Kontakt über die Projektseite auf. Das Wiki (eigenes Repository) wurde überarbeitet: aktuelle Zahlen, Modultabelle, FAQ „Demo → Produktiv“ (immer frische Installation), `JWT_SECRET`-Hinweise, Ungarisch.
+
 ## [1.80.1] — 2026-10-21
 
 > Sicherheits-Release: Korrekturen zu vier privat gemeldeten Sicherheitsmeldungen sowie Härtungen: Passwörter und Geheimnisse sind auch für Administratoren nicht lesbar (Dienst-Passwörter, Datenexport) und vergebene Anfangspasswörter müssen beim ersten Login geändert werden.

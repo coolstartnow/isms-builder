@@ -4857,7 +4857,7 @@ paths:
                   code: { type: string }
                   expiresAt: { type: string, format: date-time }
                   serverUrl: { type: string }
-                  payload: { type: string, description: Content of the QR code (`isms-sync://enroll?u=…&c=…`) }
+                  payload: { type: string, description: 'Content of the QR code (`isms-sync://enroll?u=…&c=…`)' }
                   qr: { type: string, description: PNG data URI }
         '400': { description: Invalid server address }
         '404': { description: Not found }
