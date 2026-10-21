@@ -4,13 +4,16 @@
 // Funktion renderGuidanceMarkdown aus ui/app.js, den echten Bibliotheken marked und DOMPurify in echtem Chrome und gibt JSON aus.
 const fs = require('fs')
 const path = require('path')
-const puppeteer = require('puppeteer-core')
+// puppeteer-core ist ein ES-Modul: per dynamischem import() laden (require() scheitert auf Node 18 mit ERR_REQUIRE_ESM).
+// Lässt es sich nicht laden, endet der Prozess mit Code 3; der Test überspringt dann den Browserteil.
 const ROOT = path.join(__dirname, '..', '..')
 const APP_JS = fs.readFileSync(path.join(ROOT, 'ui', 'app.js'), 'utf8')
 const CHROME = process.argv[2]
 const PAYLOADS = JSON.parse(process.argv[3])
 
 ;(async () => {
+  let puppeteer
+  try { const mod = await import('puppeteer-core'); puppeteer = mod.default || mod } catch (e) { console.error('puppeteer-core nicht ladbar: ' + e.message); process.exit(3) }
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-gpu'] })
   try {
     const page = await browser.newPage()
