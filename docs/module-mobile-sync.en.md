@@ -127,6 +127,26 @@ For devices without a network connection to the main system:
   Without `ISMS_SYNC_KEY` the script asks for the key without echo. The same permissions and conflict rule apply as for the Wi-Fi sync; exit code `3` means conflicts or rejected records.
 - **Import file** — accepts an app bundle or an export of the main system (*Admin → Export*). The app first shows a **preview** (new / updated / unchanged / conflicts). Locally changed records are never silently overwritten. The main system's export contains only the modules it provides itself (e.g. templates, SoA, risks, guidance); assets and findings arrive through the Wi-Fi sync.
 
+## Measures
+
+Measures have **no permission of their own** in the sync account. Access follows the modules a measure is linked to:
+
+| Link | Module |
+|---|---|
+| Risk | Risks |
+| Finding | Findings |
+| SoA control | SoA |
+| Policy | Documents/templates |
+
+- **Read:** at least one linked module is readable.
+- **Change, create, delete:** write access to **all** modules of the measure (previous and new state). A new measure needs at least one link; measures without a link are not synchronised.
+- **Never changeable via the app:** TOMs, governance measures and measures linked to processing activities. Attachments stay on the server.
+- If a read permission is withdrawn, the affected measures disappear from the device at the next sync. A measure linked to a risk **and** a finding needs write access to both.
+- Treatments of risks and actions of findings are measures of the register and follow the same rules.
+- The reference (M-001 …) is assigned by the server; if the reference of a measure created on the device collides, it gets the next free one.
+
+Note: web roles (e.g. auditor, content owner) do not apply to sync accounts; only the per-module permissions count.
+
 ## API
 
 All calls except `/sync/enroll` carry the header `Authorization: Bearer <device key>`.

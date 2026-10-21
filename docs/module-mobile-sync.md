@@ -127,6 +127,26 @@ Für Geräte ohne Netzverbindung zum Hauptsystem:
   Ohne `ISMS_SYNC_KEY` fragt das Skript den Schlüssel ohne Echo ab. Es gelten dieselben Rechte und dieselbe Konfliktregel wie beim WLAN-Abgleich; Exitcode `3` bedeutet Konflikte oder abgelehnte Datensätze.
 - **Datei importieren** — nimmt ein App-Bundle oder einen Export des Hauptsystems (*Admin → Export*) entgegen. Vorher zeigt die App eine **Vorschau** (neu / aktualisiert / unverändert / Konflikte). Lokal geänderte Datensätze werden nie stillschweigend überschrieben. Der Export des Hauptsystems enthält nur die Module, die er selbst liefert (z. B. Vorlagen, SoA, Risiken, Guidance); Assets und Feststellungen kommen über den WLAN-Abgleich.
 
+## Maßnahmen
+
+Maßnahmen haben **kein eigenes Recht** im Sync-Konto. Der Zugriff ergibt sich aus den Modulen, mit denen eine Maßnahme verknüpft ist:
+
+| Verknüpfung | Modul |
+|---|---|
+| Risiko | Risiken |
+| Feststellung | Feststellungen |
+| SoA-Control | SoA |
+| Richtlinie | Dokumente/Vorlagen |
+
+- **Lesen:** mindestens ein verknüpftes Modul ist lesbar.
+- **Ändern, anlegen, löschen:** Schreibrecht auf **alle** Module der Maßnahme (bisheriger und neuer Stand). Eine neue Maßnahme braucht mindestens eine Verknüpfung; Maßnahmen ohne Verknüpfung werden nicht synchronisiert.
+- **Nie über die App änderbar:** TOMs, Governance-Maßnahmen und Maßnahmen, die mit Verarbeitungstätigkeiten verknüpft sind. Anhänge bleiben am Server.
+- Entzieht man ein Leserecht, verschwinden die betroffenen Maßnahmen beim nächsten Abgleich vom Gerät. Ist eine Maßnahme mit Risiko **und** Feststellung verknüpft, sind Schreibrechte auf beide nötig.
+- Behandlungen von Risiken und Maßnahmen von Feststellungen sind Maßnahmen des Registers und folgen denselben Regeln.
+- Die Referenz (M-001 …) vergibt der Server; kollidiert die Referenz einer am Gerät angelegten Maßnahme, bekommt sie die nächste freie.
+
+Hinweis: Rollen der Weboberfläche (z. B. Auditor, Content Owner) gelten für Sync-Konten nicht; maßgeblich sind allein die Rechte je Modul.
+
 ## API
 
 Alle Aufrufe außer `/sync/enroll` tragen den Header `Authorization: Bearer <Geräteschlüssel>`.

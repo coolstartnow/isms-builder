@@ -33,13 +33,13 @@ beforeAll(async () => {
 afterAll(() => { removeTestDataDir(dataDir) })
 
 const get  = (token, url) => request(app).get(url).set('Authorization', `Bearer ${token}`)
-const push = (token, changes, protocolVersion = 1) =>
+const push = (token, changes, protocolVersion = 2) =>
   request(app).post('/sync/push').set('Authorization', `Bearer ${token}`).send({ protocolVersion, changes })
 
 describe('Mobile-Sync: Zugang', () => {
   test('/api/version nennt das Sync-Protokoll', async () => {
     const res = await request(app).get('/api/version')
-    expect(res.body.syncProtocol).toBe(1)
+    expect(res.body.syncProtocol).toBe(2)
   })
 
   test('ohne Schlüssel, mit falschem Schlüssel und mit Benutzer-Sitzung → 401', async () => {
@@ -56,7 +56,7 @@ describe('Mobile-Sync: Zugang', () => {
     expect(res.body.name).toBe('Voll')
     expect(res.body.device).toBe('Testgerät')
     expect(res.body.permissions.guidance).toBe('read')
-    expect(res.body.protocolVersion).toBe(1)
+    expect(res.body.protocolVersion).toBe(2)
   })
 
   test('Schlüssel wird tolerant gelesen (Kleinschreibung, ohne Bindestriche)', async () => {
@@ -69,7 +69,7 @@ describe('Mobile-Sync: Pull', () => {
   test('liefert nur die erlaubten Module, mit Serverzeit', async () => {
     const res = await get(risksOnly, '/sync/pull')
     expect(res.status).toBe(200)
-    expect(Object.keys(res.body.modules)).toEqual(['risks'])
+    expect(Object.keys(res.body.modules).sort()).toEqual(['measures', 'risks'])
     expect(Number.isNaN(Date.parse(res.body.serverTime))).toBe(false)
   })
 
@@ -81,7 +81,7 @@ describe('Mobile-Sync: Pull', () => {
 
   test('alle Module bei vollem Zugang', async () => {
     const res = await get(full, '/sync/pull')
-    expect(Object.keys(res.body.modules).sort()).toEqual(['assets', 'findings', 'guidance', 'risks', 'soa', 'templates'])
+    expect(Object.keys(res.body.modules).sort()).toEqual(['assets', 'findings', 'guidance', 'measures', 'risks', 'soa', 'templates'])
   })
 
   test('unbekanntes Modul / ungültiges since → 400', async () => {

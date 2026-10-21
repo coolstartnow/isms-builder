@@ -114,7 +114,7 @@ app.get('/', (req, res) => {
 
 // ── Versionsauskunft (kein Auth erforderlich, auch auf der Login-Seite sichtbar) ──
 app.get('/api/version', (req, res) => {
-  res.json({ version: require('../package.json').version, syncProtocol: 1 })
+  res.json({ version: require('../package.json').version, syncProtocol: 2 })
 })
 
 // ── Health Check (kein Auth erforderlich) ──

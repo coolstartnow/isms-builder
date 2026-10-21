@@ -10,6 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.81.0] — 2026-10-21
+
+### Geändert
+- **Mobile-Sync, Protokoll 2: Maßnahmen mit abgeleiteten Rechten** — Der Abgleich kennt jetzt das Modul `measures` (Maßnahmen-Register). Maßnahmen bekommen **kein eigenes Recht** im Sync-Konto; der Zugriff folgt den verknüpften Modulen (Risiko → Risiken, Feststellung → Feststellungen, Control → SoA, Richtlinie → Dokumente/Vorlagen). **Lesen:** mindestens ein verknüpftes Modul ist lesbar. **Ändern, anlegen, löschen:** Schreibrecht auf *alle* Module der Maßnahme (gespeicherter und neuer Stand); eine neue Maßnahme braucht mindestens eine Verknüpfung; Maßnahmen ohne Verknüpfung werden nicht synchronisiert. TOMs, Governance-Maßnahmen und Maßnahmen mit Verknüpfung zu Verarbeitungstätigkeiten sind über die App nie änderbar. Die Regeln liegen als reine Funktionen in `server/db/measureAccess.js` (auch für die App). Der Pull filtert pro Datensatz und liefert `visibleIds.measures`, damit die App Maßnahmen entfernen kann, deren Leserecht entzogen wurde. Der Push prüft jeden Datensatz einzeln; abgelehnte stehen in `rejected` mit `code` (`no_write`, `no_link`, `locked_tom`, `locked_governance`, `locked_vvt`, `unlinked`). Anhänge, TOM-/Governance-Kennzeichen und die Referenz kommen nie aus der App; kollidiert die Referenz einer am Gerät angelegten Maßnahme, vergibt der Server die nächste freie `M-nnn`. In Risiko- und Feststellungs-Pushes werden eingebettete `treatmentPlans` bzw. `actions` verworfen (sie sind Maßnahmen des Registers). Das Audit-Log nennt zusätzlich die Zahl abgelehnter Datensätze. **Sync-Protokoll 2:** `/api/version` meldet `syncProtocol: 2`; Apps mit Protokoll 1 (bis 1.4.0) erhalten `409` und müssen auf Version 1.5.0 aktualisiert werden. `scripts/sync-import.js` erwartet Änderungsdateien mit `protocolVersion: 2`. Die Verwaltung der Sync-Konten erklärt die Regel; Modul-Doku (de/en/fr/nl/hu; fr/nl/hu maschinell erstellt), OpenAPI und ISMS-Dokumentation Kapitel 57 sind ergänzt. Tests: `tests/syncMeasures.test.js`.
+
 ## [1.80.1.1] — 2026-10-21
 
 > Korrektur-Release zu 1.80.1: Die OpenAPI-Beschreibung ist wieder für alle YAML-Parser lesbar.

@@ -5933,6 +5933,7 @@ async function renderAdminSyncAccounts() {
           <small style="color:var(--text-subtle);">${t('sync_expiresHint')}</small></div>
       </div>
       <label class="form-label" style="margin-top:14px;">${t('sync_rights')}</label>
+      <div style="color:var(--text-subtle);font-size:12px;max-width:520px;margin-bottom:8px;">${t('sync_measuresHint')}</div>
       <div style="display:grid;grid-template-columns:minmax(160px,auto) minmax(200px,260px);gap:8px 14px;align-items:center;max-width:520px;">
         ${SYNC_MODULES.map(m => {
           const cur = (editing && editing.permissions[m.id]) || 'none'

@@ -4626,6 +4626,10 @@ paths:
         Only modules the sync account may read are returned; explicitly requested modules
         without permission are listed under `denied`. Guidance documents are limited to
         those with `minRole` reader.
+        `measures` has no permission of its own: a measure is returned if at least one module
+        it is linked to (risk, finding, SoA control, policy) is readable. `visibleIds.measures`
+        lists the ids of all readable measures (not just changed ones) so a client can drop
+        measures it may no longer see.
         Only available with STORAGE_BACKEND=json (otherwise 501).
       security:
         - syncKeyAuth: []
@@ -4637,7 +4641,7 @@ paths:
         - name: modules
           in: query
           required: false
-          description: Comma-separated subset of templates, soa, risks, assets, findings, guidance
+          description: Comma-separated subset of templates, soa, risks, assets, findings, guidance, measures
           schema: { type: string }
       responses:
         '200':
@@ -4647,13 +4651,18 @@ paths:
               schema:
                 type: object
                 properties:
-                  protocolVersion: { type: integer, example: 1 }
+                  protocolVersion: { type: integer, example: 2 }
                   serverTime: { type: string, format: date-time }
                   modules:
                     type: object
                     additionalProperties:
                       type: array
                       items: { type: object }
+                  visibleIds:
+                    type: object
+                    description: Ids of all measures the account may read (present when measures were requested)
+                    properties:
+                      measures: { type: array, items: { type: string } }
         '400':
           description: Unknown module or invalid `since`
         '401':
@@ -4673,6 +4682,14 @@ paths:
         get `updatedAt` = server time and are returned so the client can adopt the new stamp.
         Needs `write` permission per module on the sync account; guidance is pull-only.
         Template attachments are never changed by a push.
+        `measures` is accepted per record: write access to ALL modules the measure is linked to
+        (stored and new state) is required, a new measure needs at least one link, and TOMs,
+        governance measures and measures linked to processing activities are rejected. Rejected
+        records are listed under `rejected` with a `code` (`no_write`, `no_link`, `locked_tom`,
+        `locked_governance`, `locked_vvt`, `unlinked`). A reference already in use is replaced by
+        the next free one (returned in `accepted`). `treatmentPlans` / `actions` embedded in risk
+        or finding records are ignored: treatments and actions are measures of the register.
+        Protocol 1 is rejected with 409.
       security:
         - syncKeyAuth: []
       requestBody:
@@ -4683,7 +4700,7 @@ paths:
               type: object
               required: [protocolVersion, changes]
               properties:
-                protocolVersion: { type: integer, example: 1 }
+                protocolVersion: { type: integer, example: 2 }
                 changes:
                   type: object
                   additionalProperties:

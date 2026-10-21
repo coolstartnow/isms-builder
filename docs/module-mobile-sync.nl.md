@@ -127,6 +127,26 @@ Voor apparaten zonder netwerkverbinding met het hoofdsysteem:
   Zonder `ISMS_SYNC_KEY` vraagt het script de sleutel zonder echo. Dezelfde rechten en conflictregel als bij wifi-synchronisatie gelden; exitcode `3` betekent conflicten of geweigerde records.
 - **Bestand importeren** — accepteert een app-bundel of een export van het hoofdsysteem (*Admin → Export*). De app toont eerst een **voorbeeld** (nieuw / bijgewerkt / ongewijzigd / conflicten). Lokaal gewijzigde records worden nooit stilzwijgend overschreven. De export van het hoofdsysteem bevat alleen de modules die het zelf levert (bijv. sjablonen, SoA, risico's, guidance); activa en bevindingen komen via de wifi-synchronisatie.
 
+## Maatregelen
+
+Maatregelen hebben **geen eigen recht** in het synchronisatieaccount. De toegang volgt uit de modules waaraan een maatregel is gekoppeld:
+
+| Koppeling | Module |
+|---|---|
+| Risico | Risico’s |
+| Bevinding | Bevindingen |
+| SoA-control | SoA |
+| Beleid | Documenten/sjablonen |
+
+- **Lezen:** minstens één gekoppelde module is leesbaar.
+- **Wijzigen, aanmaken, verwijderen:** schrijfrechten op **alle** modules van de maatregel (vorige en nieuwe toestand). Een nieuwe maatregel heeft minstens één koppeling nodig; maatregelen zonder koppeling worden niet gesynchroniseerd.
+- **Nooit wijzigbaar via de app:** TOM’s, governancemaatregelen en maatregelen gekoppeld aan verwerkingsactiviteiten. Bijlagen blijven op de server.
+- Wordt een leesrecht ingetrokken, dan verdwijnen de betreffende maatregelen bij de volgende synchronisatie van het apparaat. Een maatregel gekoppeld aan een risico **en** een bevinding vraagt schrijfrechten op beide.
+- Behandelingen van risico’s en acties van bevindingen zijn maatregelen van het register en volgen dezelfde regels.
+- De referentie (M-001 …) wordt door de server toegekend; bij een botsing krijgt een op het apparaat aangemaakte maatregel de eerstvolgende vrije referentie.
+
+Opmerking: rollen van de webinterface (bijv. auditor, content owner) gelden niet voor synchronisatieaccounts; alleen de rechten per module tellen.
+
 ## API
 
 Alle aanroepen behalve `/sync/enroll` dragen de header `Authorization: Bearer <apparaatsleutel>`.

@@ -29,25 +29,25 @@ const write = (name, obj) => { const f = path.join(tmp, name); fs.writeFileSync(
 
 describe('scripts/sync-import.js', () => {
   test('spielt eine Änderungsdatei der App mit einem Sync-Konto ein', async () => {
-    const f = write('ok.json', { protocolVersion: 1, changes: { risks: [{ id: 'risk_file_1', title: 'Aus Datei', probability: 2, impact: 2 }] } })
+    const f = write('ok.json', { protocolVersion: 2, changes: { risks: [{ id: 'risk_file_1', title: 'Aus Datei', probability: 2, impact: 2 }] } })
     const r = await run(f)
     expect(r.code).toBe(0)
     expect(r.out).toMatch(/risks: 1 übernommen/)
     expect(JSON.parse(fs.readFileSync(path.join(dataDir, 'risks.json'), 'utf8')).some(x => x.id === 'risk_file_1')).toBe(true)
   })
   test('Konflikt wird gemeldet und nicht überschrieben (Exitcode 3)', async () => {
-    const f = write('conflict.json', { protocolVersion: 1, changes: { risks: [{ id: 'risk_file_1', title: 'Überschreiben?' }] } })
+    const f = write('conflict.json', { protocolVersion: 2, changes: { risks: [{ id: 'risk_file_1', title: 'Überschreiben?' }] } })
     const r = await run(f)
     expect(r.code).toBe(3)
     expect(r.out).toMatch(/KONFLIKT risks\/risk_file_1/)
     expect(JSON.parse(fs.readFileSync(path.join(dataDir, 'risks.json'), 'utf8')).find(x => x.id === 'risk_file_1').title).toBe('Aus Datei')
   })
   test('fehlende Schreibrechte werden als abgelehnt gemeldet', async () => {
-    const r = await run(write('ro.json', { protocolVersion: 1, changes: { risks: [{ id: 'risk_file_2', title: 'x' }] } }), roKey)
+    const r = await run(write('ro.json', { protocolVersion: 2, changes: { risks: [{ id: 'risk_file_2', title: 'x' }] } }), roKey)
     expect(r.code).toBe(3); expect(r.out).toMatch(/abgelehnt risks/)
   })
   test('falscher Schlüssel und falsches Dateiformat brechen sauber ab', async () => {
-    const f = write('x.json', { protocolVersion: 1, changes: {} })
+    const f = write('x.json', { protocolVersion: 2, changes: {} })
     const bad = await run(f, 'ISMS-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA')
     expect(bad.code).toBe(1); expect(bad.out).toMatch(/ungültig/)
     const fmt = await run(write('bundle.json', { format: 'isms-mobile-bundle', modules: {} }))

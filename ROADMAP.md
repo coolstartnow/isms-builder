@@ -28,9 +28,15 @@ Deleting must never destroy evidence. Planned as its own release:
 
 ## Measures register — follow-ups
 
-- **Mobile app:** the app does not synchronise the measures register yet and bundles the server logic of the version it was built with; it needs a rebuild and a sync module for measures.
+- **Mobile app 1.5.0:** the server side (sync protocol 2, rights derived from the linked modules) ships with 1.81.0; the app still has to be rebuilt with a measures module and the new rules.
 - **AI search coverage:** the search indexes risks, measures, goals, guidance, training, assets, suppliers, BCM, findings and audits. Not yet covered: SoA controls, GDPR, legal, governance reviews, NIS2, entities, public incidents.
 - **Dashboard:** key figures of the register (overdue, unassigned) on the dashboard.
+
+---
+
+## Related projects
+
+- **NIS2 Quick-Check** ([coolstartnow/nis2-quickcheck](https://github.com/coolstartnow/nis2-quickcheck), AGPL-3.0, already online) — planned for 1.82.0 as a link only (for example from the NIS2 module); no code integration, nothing else changes.
 
 ---
 

@@ -127,6 +127,26 @@ Pour les appareils sans connexion réseau au système principal :
   Sans `ISMS_SYNC_KEY`, le script demande la clé sans l'afficher. Les mêmes droits et la même règle de conflit que pour la synchronisation Wi-Fi s'appliquent ; le code de sortie `3` signale des conflits ou des enregistrements refusés.
 - **Importer un fichier** — accepte un bundle de l'application ou un export du système principal (*Admin → Export*). L'application affiche d'abord un **aperçu** (nouveau / mis à jour / inchangé / conflits). Les enregistrements modifiés localement ne sont jamais écrasés silencieusement. L'export du système principal ne contient que les modules qu'il fournit lui-même (p. ex. modèles, SoA, risques, guidance) ; les actifs et les constats arrivent par la synchronisation Wi-Fi.
 
+## Mesures
+
+Les mesures n’ont **pas de droit propre** dans le compte de synchronisation. L’accès découle des modules auxquels une mesure est liée :
+
+| Lien | Module |
+|---|---|
+| Risque | Risques |
+| Constat | Constats |
+| Contrôle SoA | SoA |
+| Politique | Documents/modèles |
+
+- **Lecture :** au moins un module lié est lisible.
+- **Modifier, créer, supprimer :** droit d’écriture sur **tous** les modules de la mesure (état précédent et nouveau). Une nouvelle mesure nécessite au moins un lien ; les mesures sans lien ne sont pas synchronisées.
+- **Jamais modifiables via l’application :** les TOM, les mesures de gouvernance et les mesures liées à des activités de traitement. Les pièces jointes restent sur le serveur.
+- Si un droit de lecture est retiré, les mesures concernées disparaissent de l’appareil à la prochaine synchronisation. Une mesure liée à un risque **et** à un constat exige l’écriture sur les deux.
+- Les traitements de risques et les actions de constats sont des mesures du registre et suivent les mêmes règles.
+- La référence (M-001 …) est attribuée par le serveur ; en cas de collision, la mesure créée sur l’appareil reçoit la prochaine référence libre.
+
+Remarque : les rôles de l’interface web (p. ex. auditeur, content owner) ne s’appliquent pas aux comptes de synchronisation ; seuls comptent les droits par module.
+
 ## API
 
 Tous les appels sauf `/sync/enroll` portent l'en-tête `Authorization: Bearer <clé d'appareil>`.

@@ -24,8 +24,8 @@ async function main() {
   if (!/^https?:\/\//i.test(url)) { console.error('Die Server-Adresse muss mit http:// oder https:// beginnen'); process.exit(2) }
   let payload
   try { payload = JSON.parse(fs.readFileSync(file, 'utf8')) } catch (e) { console.error(`Datei nicht lesbar: ${e.message}`); process.exit(2) }
-  if (!payload || typeof payload.changes !== 'object' || payload.protocolVersion !== 1) {
-    console.error('Das ist keine Änderungsdatei der App (erwartet: { protocolVersion: 1, changes: {…} }). Bitte in der App „Nur Änderungen exportieren“ wählen.')
+  if (!payload || typeof payload.changes !== 'object' || payload.protocolVersion !== 2) {
+    console.error('Das ist keine Änderungsdatei der App (erwartet: { protocolVersion: 2, changes: {…} }). Bitte in der App „Nur Änderungen exportieren“ wählen.')
     process.exit(2)
   }
   const base = url.replace(/\/+$/, '')

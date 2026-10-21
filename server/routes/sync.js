@@ -27,9 +27,11 @@ const fs = require('fs')
 const path = require('path')
 const router = express.Router()
 const syncAccounts = require('../db/syncAccountStore')
+const measureAccess = require('../db/measureAccess')
+const measuresCommon = require('../db/measuresCommon')
 const loginThrottle = require('../loginThrottle')
 
-const SYNC_PROTOCOL = 1
+const SYNC_PROTOCOL = 2   // 2: Maßnahmen (abgeleitete Rechte), Antwort enthält visibleIds
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../../data')
 const MAX_BODY = '20mb'
 const FORBIDDEN_IDS = new Set(['__proto__', 'constructor', 'prototype'])
@@ -44,8 +46,12 @@ const MODULES = {
   assets:    { file: 'assets.json',    kind: 'array' },
   findings:  { file: 'findings.json',  kind: 'array' },
   guidance:  { file: 'guidance.json',  kind: 'array' },
+  // Maßnahmen: kein eigenes Recht im Sync-Konto, Zugriff je Datensatz aus den verknüpften Modulen (db/measureAccess.js)
+  measures:  { file: 'measures.json',  kind: 'array', derived: true },
 }
 const PRESERVE_ON_UPDATE = { templates: ['attachments'] }
+// Aus dem Maßnahmen-Register abgeleitete Listen: gehören nicht in Risiko-/Feststellungs-Datensätze und werden verworfen
+const DROP_ON_PUSH = { risks: ['treatmentPlans'], findings: ['actions'] }
 
 function jsonBackendOnly(req, res, next) {
   const backend = (process.env.STORAGE_BACKEND || 'json').toLowerCase()
@@ -120,6 +126,56 @@ function parseModules(raw) {
   return { wanted, unknown }
 }
 
+// Maßnahmen einspielen: Rechte je Datensatz aus den verknüpften Modulen, geschützte Felder bleiben unverändert.
+function pushMeasures(incoming, acc, req, result) {
+  const mod = 'measures'
+  const data = loadRecords(mod)
+  const index = new Map(data.map((r, i) => [r && r.id, i]))
+  const accepted = [], conflicts = []
+  const reject = (rec, code, reason) => result.rejected.push({ module: mod, id: rec && rec.id, code, reason })
+  let dirty = false
+
+  for (const rec of incoming) {
+    if (!rec || typeof rec !== 'object' || !validId(rec.id)) { reject(rec, 'invalid', 'ungültiger Datensatz/ID'); continue }
+    const { baseUpdatedAt, ...fields } = rec
+    // Geschützte bzw. abgeleitete Felder kommen nie aus der App
+    delete fields.attachments
+    const existing = index.has(rec.id) ? data[index.get(rec.id)] : undefined
+
+    if (existing && !measureAccess.modulesOf(existing).length) { reject(rec, 'unlinked', 'Maßnahme ohne Verknüpfung wird nicht synchronisiert'); continue }
+    const verdict = measureAccess.canWrite(existing || null, fields, acc.permissions)
+    if (!verdict.ok) { reject(rec, verdict.code, verdict.reason); continue }
+    if (existing && (typeof baseUpdatedAt !== 'string' || changeTime(existing) > baseUpdatedAt)) {
+      conflicts.push({ id: rec.id, server: existing })
+      continue
+    }
+
+    const stamp = nowISO()
+    let merged
+    if (existing) {
+      merged = { ...measuresCommon.normalize(fields, existing), id: existing.id, ref: existing.ref, attachments: existing.attachments || [], tom: false, governance: false,
+        createdAt: existing.createdAt, createdBy: existing.createdBy, updatedAt: stamp, updatedBy: req.user }
+    } else {
+      // Referenz: die der App behalten, wenn frei; sonst die nächste freie (Kollision mit einer Maßnahme am Server oder Hauptsystem)
+      const taken = new Set(data.map(r => r && r.ref))
+      const wantRef = typeof fields.ref === 'string' ? fields.ref.trim() : ''
+      const ref = wantRef && !taken.has(wantRef) ? wantRef : measuresCommon.nextRef([...taken])
+      merged = { ...measuresCommon.normalize(fields, { ...measuresCommon.blank(), id: rec.id, ref }), id: rec.id, ref, attachments: [], tom: false, governance: false,
+        createdAt: stamp, createdBy: req.user, updatedAt: stamp, updatedBy: req.user }
+    }
+    if (rec.deletedAt) { merged.deletedAt = stamp; merged.deletedBy = req.user } else { merged.deletedAt = null; merged.deletedBy = null }
+
+    if (existing) data[index.get(rec.id)] = merged
+    else { index.set(rec.id, data.length); data.push(merged) }
+    accepted.push(merged)
+    dirty = true
+  }
+
+  if (dirty) saveRecords(mod, data)
+  result.accepted[mod] = accepted
+  result.conflicts[mod] = conflicts
+}
+
 router.get('/sync/me', requireSyncAccount, (req, res) => {
   const a = req.syncAccount
   res.json({ protocolVersion: SYNC_PROTOCOL, id: a.id, name: a.name, permissions: a.permissions, expiresAt: a.expiresAt, device: req.syncDevice.name })
@@ -157,7 +213,15 @@ router.get('/sync/pull', requireSyncAccount, jsonBackendOnly, (req, res) => {
 
   const serverTime = nowISO() // vor dem Lesen erfasst: nichts geht zwischen zwei Pulls verloren
   const out = {}, denied = []
+  let visibleIds
   for (const mod of wanted) {
+    if (MODULES[mod].derived) {
+      // Maßnahmen: pro Datensatz nach den verknüpften Modulen filtern; visibleIds = alles, was das Konto sehen darf
+      const readableList = asList(mod, loadRecords(mod)).filter(r => r && validId(r.id) && measureAccess.canRead(r, acc.permissions))
+      visibleIds = readableList.map(r => r.id)
+      out[mod] = since ? readableList.filter(r => changeTime(r) > since) : readableList
+      continue
+    }
     if (!canRead(acc, mod)) { if (explicit) denied.push(mod); continue }
     let list = asList(mod, loadRecords(mod)).filter(r => r && validId(r.id))
     if (mod === 'guidance') {
@@ -166,7 +230,9 @@ router.get('/sync/pull', requireSyncAccount, jsonBackendOnly, (req, res) => {
     if (since) list = list.filter(r => changeTime(r) > since)
     out[mod] = list
   }
-  res.json({ protocolVersion: SYNC_PROTOCOL, serverTime, modules: out, denied })
+  const body = { protocolVersion: SYNC_PROTOCOL, serverTime, modules: out, denied }
+  if (visibleIds) body.visibleIds = { measures: visibleIds }
+  res.json(body)
 })
 
 router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ limit: MAX_BODY }), async (req, res) => {
@@ -188,6 +254,7 @@ router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ li
     const def = MODULES[mod]
     const incoming = body.changes[mod]
     if (!Array.isArray(incoming)) { result.rejected.push({ module: mod, reason: 'changes muss ein Array sein' }); continue }
+    if (def.derived) { pushMeasures(incoming, acc, req, result); total += (result.accepted[mod] || []).length; continue }
     if (mod === 'guidance' || !canWrite(acc, mod)) {
       result.rejected.push({ module: mod, reason: mod === 'guidance' ? 'Modul ist nur lesbar' : 'Keine Schreibrechte für dieses Modul' })
       continue
@@ -205,6 +272,7 @@ router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ li
         continue
       }
       const { baseUpdatedAt, ...fields } = rec
+      for (const k of DROP_ON_PUSH[mod] || []) delete fields[k]
       const existing = def.kind === 'array'
         ? (index.has(rec.id) ? data[index.get(rec.id)] : undefined)
         : (Object.prototype.hasOwnProperty.call(data, rec.id) ? data[rec.id] : undefined)
@@ -247,7 +315,7 @@ router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ li
   try {
     await require('../db/auditStore').append({
       user: req.user, action: 'sync', resource: 'mobile-sync',
-      detail: `Push: ${total} Datensätze angenommen, ${Object.values(result.conflicts).reduce((n, c) => n + c.length, 0)} Konflikte`,
+      detail: `Push: ${total} Datensätze angenommen, ${Object.values(result.conflicts).reduce((n, c) => n + c.length, 0)} Konflikte, ${result.rejected.length} abgelehnt`,
     })
   } catch { /* Audit-Fehler darf den bereits geschriebenen Sync nicht verwerfen */ }
 

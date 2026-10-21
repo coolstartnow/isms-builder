@@ -127,6 +127,26 @@ A fő rendszerhez hálózati kapcsolattal nem rendelkező eszközökhöz:
   `ISMS_SYNC_KEY` nélkül a szkript visszhang nélkül kéri a kulcsot. Ugyanazok a jogosultságok és ugyanaz az ütközési szabály érvényes, mint a Wi-Fi-szinkronnál; a `3`-as kilépési kód ütközést vagy elutasított rekordokat jelent.
 - **Fájl importálása** — alkalmazáscsomagot vagy a fő rendszer exportját (*Admin → Export*) fogadja. Az alkalmazás előbb **előnézetet** mutat (új / frissített / változatlan / ütközés). A helyben módosított rekordokat soha nem írja felül csendben. A fő rendszer exportja csak az általa szolgáltatott modulokat tartalmazza (pl. sablonok, SoA, kockázatok, útmutatók); az eszközök és megállapítások a Wi-Fi-szinkronnal érkeznek.
 
+## Intézkedések
+
+Az intézkedéseknek **nincs saját jogosultságuk** a szinkronfiókban. A hozzáférés azokból a modulokból adódik, amelyekhez az intézkedés kapcsolódik:
+
+| Kapcsolat | Modul |
+|---|---|
+| Kockázat | Kockázatok |
+| Megállapítás | Megállapítások |
+| SoA-kontroll | SoA |
+| Szabályzat | Dokumentumok/sablonok |
+
+- **Olvasás:** legalább egy kapcsolt modul olvasható.
+- **Módosítás, létrehozás, törlés:** írási jog az intézkedés **összes** moduljára (korábbi és új állapot). Új intézkedéshez legalább egy kapcsolat kell; a kapcsolat nélküli intézkedések nem szinkronizálódnak.
+- **Az alkalmazásban soha nem módosíthatók:** a TOM-ok, a governance-intézkedések és az adatkezelési tevékenységekhez kapcsolt intézkedések. A mellékletek a szerveren maradnak.
+- Ha egy olvasási jogot visszavonnak, az érintett intézkedések a következő szinkronizáláskor eltűnnek az eszközről. Kockázathoz **és** megállapításhoz kapcsolt intézkedéshez mindkettőre írási jog kell.
+- A kockázatok kezelései és a megállapítások intézkedései a nyilvántartás intézkedései, és ugyanezek a szabályok vonatkoznak rájuk.
+- A hivatkozást (M-001 …) a szerver adja; ütközés esetén az eszközön létrehozott intézkedés a következő szabad hivatkozást kapja.
+
+Megjegyzés: a webes felület szerepkörei (pl. auditor, content owner) nem vonatkoznak a szinkronfiókokra; csak a moduljogosultságok számítanak.
+
 ## API
 
 Minden hívás, a `/sync/enroll` kivételével, tartalmazza az `Authorization: Bearer <eszközkulcs>` fejlécet.
