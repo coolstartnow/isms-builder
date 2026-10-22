@@ -19,7 +19,7 @@ router.get('/auth/demo-reset-done', (req, res) => {
   // eine geänderte Adresse würde sonst falsch angezeigt (#98). Nur bei aktivem Flag, wie die Standard-Zugangsdaten selbst.
   let admin = 'admin@example.com'
   try { const u = require('../rbacStore').getUserByUsername('admin'); if (u && u.email) admin = u.email } catch { /* Standardwert */ }
-  res.json({ active, admin })
+  res.json({ active, admin, logoRequired: require('../orgLogo').info().required })
 })
 
 // ── Sprach-Konfiguration (öffentlich — wird von Login-Seite benötigt) ──

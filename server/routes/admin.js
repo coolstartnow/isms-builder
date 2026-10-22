@@ -12,6 +12,7 @@ const customListsStore = require('../db/customListsStore')
 const assetStore       = require('../db/assetStore')
 const storage          = require('../storage')
 const mailer           = require('../mailer')
+const orgLogo          = require('../orgLogo')
 
 function nowISO() { return new Date().toISOString() }
 
@@ -234,7 +235,7 @@ router.post('/admin/list/:listId/reset', requireAuth, authorize('admin'), async 
 router.get('/admin/org-settings', requireAuth, authorize('reader'), async (req, res) => {
   // Dienst-Zugangsdaten (SMTP-Passwort, WebDAV-App-Passwort) werden nie ausgeliefert, auch nicht an Administratoren:
   // sie sind nur schreibbar; die Ausgabe nennt nur, ob sie gesetzt sind (passSet, appPasswordSet).
-  res.json(redactOrgSettings(await orgSettingsStore.get()))
+  res.json({ ...redactOrgSettings(await orgSettingsStore.get()), logo: orgLogo.info() })
 })
 router.put('/admin/org-settings', requireAuth, authorize('admin'), async (req, res) => {
   // leeres Geheimnis = unverändert, clearPass/clearAppPassword = entfernen (siehe server/orgSecrets.js)
@@ -493,6 +494,9 @@ router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, re
     await rbac.setPasswordHash('admin', 'adminpass')
     rbac.setUserTotpSecret('admin', null)
 
+    // Demo-Logo entfernen; der Hinweis „Firmenlogo setzen“ bleibt aktiv, bis ein eigenes Logo hochgeladen ist
+    const logoRequired = orgLogo.prepareForProduction()
+
     // Write demo-reset flag; remove demo-lang flag so next admin login can pick language again
     fs.writeFileSync(FLAG_FILE, nowISO())
     if (fs.existsSync(DEMO_LANG_FILE)) try { fs.unlinkSync(DEMO_LANG_FILE) } catch {}
@@ -533,6 +537,7 @@ router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, re
     // restartRequired im Header mitgeben damit das Frontend informieren kann
     res.setHeader('X-Restart-Required', restartRequired ? '1' : '0')
     res.setHeader('X-Env-Switched', envSwitched ? '1' : '0')
+    res.setHeader('X-Logo-Required', logoRequired ? '1' : '0')
     res.json(bundle)
   } catch (e) {
     res.status(500).json({ error: e.message })
@@ -694,6 +699,9 @@ router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.
         fs.writeFileSync(path.join(legalDir, filename), JSON.stringify(content, null, 2))
       }
     }
+
+    // Mitgeliefertes ISMS-Builder-Logo (ein eigenes Logo bleibt)
+    orgLogo.installDemoLogo()
 
     // Recreate demo users alice and bob
     const rbac = require('../rbacStore')

@@ -12,6 +12,7 @@ It is maintained alongside the codebase and updated as priorities shift.
 - **Asset protection goals and dependencies** — protection goals per asset type with inheritance and an asset dependency tree (issues #29, #64; see CHANGELOG).
 - **Audit management and reports** — audits, findings with action plans, audit report PDF, programme planning.
 - **Measures register** — one data set for risk treatments, finding actions, governance measures and TOMs (see `docs/module-measures.md`).
+- **Company logo (1.82.0)** — upload in the organisation settings; shown on the login page, policy PDFs and print views; the ISMS Builder logo ships with the demo set and a notice asks for the company logo when switching to production.
 - **ISO control import hardening (#45)** — per-row validation, rejection reasons, no restart needed.
 
 ---
@@ -34,9 +35,15 @@ Deleting must never destroy evidence. Planned as its own release:
 
 ---
 
+## Safe AI drafts (planned)
+
+- **AI policy drafts without internal data:** one shared, pure module in the main project (like the measures access rules) used by the server and the mobile app: the prompt is built from a document type chosen from a list, the title chosen from a list and the language only; a PII filter blocks anything personal (e-mail, phone, IBAN, IP address, URL, identifiers); the model writes with placeholders (company name, ISMS owner) that are filled in locally afterwards. The dialog shows what is sent and where. Mobile app: hand the filtered prompt over to an AI app through the Android share menu and paste the answer back. The AI search is not part of this.
+
+---
+
 ## Related projects
 
-- **NIS2 Quick-Check** ([coolstartnow/nis2-quickcheck](https://github.com/coolstartnow/nis2-quickcheck), AGPL-3.0, already online) — planned for 1.82.0 as a link only (for example from the NIS2 module); no code integration, nothing else changes.
+- **NIS2 Quick-Check** ([coolstartnow/nis2-quickcheck](https://github.com/coolstartnow/nis2-quickcheck), AGPL-3.0, already online) — planned as a link only (for example from the NIS2 module); no code integration, nothing else changes.
 
 ---
 

@@ -34,6 +34,7 @@
       color: var(--text-inv); font-size: 20px; font-weight: 700; margin-bottom: 28px;
     }
     .login-brand i { font-size: 28px; color: #4C9AFF; }
+    .login-org-logo { max-height: 64px; max-width: 240px; background: #fff; padding: 8px 12px; border-radius: 8px; margin: -12px 0 20px; }
 
     .login-card {
       background: var(--surface); border: 1px solid var(--border);
@@ -319,6 +320,7 @@
     <i class="ph ph-shield-check"></i>
     ISMS Builder
   </div>
+  <img class="login-org-logo" id="orgLogo" alt="" src="/branding/logo" style="display:none" onload="this.style.display='block'" onerror="this.remove()">
 
   <div class="dev-warning-banner" id="devWarningBanner">
     <span class="dev-warn-title"><i class="ph ph-warning-diamond-fill"></i> <span data-i18n="devWarnTitle">Development demo</span></span>
@@ -329,6 +331,7 @@
   <div class="demo-reset-banner" id="demoResetBanner">
     <b><i class="ph ph-warning"></i> <span data-i18n="demoResetTitle">Demo-Modus beendet</span></b>
     <span id="demoResetText" data-i18n="demoResetText">Das System wurde für den Produktivbetrieb zurückgesetzt. Bitte melden Sie sich mit <strong>admin@example.com</strong> / Passwort <strong>adminpass</strong> an und ändern Sie das Passwort sofort nach dem ersten Login.</span>
+    <span id="demoResetLogo" style="display:none"><br><b data-i18n="org_logoRequired">Bitte jetzt das Firmenlogo setzen.</b></span>
   </div>
 
   <div class="login-card">
@@ -671,6 +674,7 @@
           const d = await r.json()
           if (d.active) {
             if (d.admin) { window.__demoAdmin = d.admin; applyLoginLang() }
+            if (d.logoRequired) document.getElementById('demoResetLogo').style.display = ''
             document.getElementById('demoResetBanner').classList.add('visible')
           }
         }

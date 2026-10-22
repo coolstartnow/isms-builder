@@ -72,7 +72,7 @@ describe('Demo-Reset-Banner nennt die tatsächliche Anmeldekennung (#98)', () =>
   })
   test('mit Flag: Kennung des Admins (E-Mail), auch wenn sie geändert wurde', async () => {
     fs.writeFileSync(flag(), new Date().toISOString())
-    expect((await request(app).get('/auth/demo-reset-done')).body).toEqual({ active: true, admin: 'admin@test.local' })
+    expect((await request(app).get('/auth/demo-reset-done')).body).toEqual({ active: true, admin: 'admin@test.local', logoRequired: false })
     const rbac = require('../server/rbacStore')
     const u = rbac.getUserByUsername('admin')
     await authedPost(app, adminCookie, '/admin/users', { username: 'tmp-admin-mail', email: 'x@test.local', domain: 'IT', role: 'reader', password: 'tmppass123' })

@@ -688,7 +688,7 @@ Der Organisation-Tab enthält folgende Sektionen:
 
 | Sektion | Felder / Funktion |
 |---|---|
-| **Organisationsdaten** | Org-Name, Kürzel, ISMS-Scope, Logo-Text |
+| **Organisationsdaten** (Abschnitt „Allgemeine Informationen“) | Org-Name, Kürzel, ISMS-Scope, Logo-Text, **Firmenlogo** (PNG/JPEG, ab 1.82.0) |
 | **Verantwortlichkeiten** | CISO-Name/E-Mail, GDPO-Name/E-Mail, ICS-Kontakt |
 | **Sicherheitsrichtlinien** | 2FA systemweit erzwingen (blockiert Login ohne TOTP) |
 | **KI-Integration** | Ollama-URL (leer = localhost:11434), Embedding-Modell (leer = nomic-embed-text), globaler KI-Toggle |
@@ -3593,3 +3593,23 @@ geleert).
 
 `tools/make-measures-screenshots.js` erzeugt `docs/images/measures/*.png` mit echtem Chrome gegen eine Demo-Instanz mit dem deutschen
 Bundle (siehe Kopfkommentar des Skripts).
+
+## 59. Firmenlogo (V 1.82.0)
+
+Das Firmenlogo wird von Administratoren in *Admin → Organisation* (Abschnitt *Allgemeine Informationen*) hochgeladen und erscheint
+auf der **Anmeldeseite**, im Kopf der **Richtlinien-PDFs** (Server, pdfkit) und in den **Druckansichten** der Oberfläche (Berichte, Risiko-, Feststellungs-,
+Maßnahmen- und Auditausgaben, Dokumentenexport). Nicht in der Kopfzeile der App.
+
+| Baustein | Datei | Aufgabe |
+|---|---|---|
+| Speicher und Prüfung | `server/orgLogo.js` | Datei im Datenverzeichnis, unabhängig vom Speicher-Backend; Typ und Größe aus den Bytes (PNG, JPEG), höchstens 512 kB und 4000 px; SVG wird bewusst abgelehnt (Skripte, pdfkit) |
+| Endpunkte | `server/routes/branding.js` | `GET /branding/logo` (öffentlich, `nosniff`), `GET/PUT/DELETE /admin/logo` (Schreiben nur Admin; Audit-Eintrag) |
+| PDF | `server/pdfExport.js` | Logo oben rechts, Titel darunter; defektes Logo → PDF ohne Logo |
+| Druckfenster | `openPrintWindow()` in `ui/app.js` | setzt das Logo in jedes Druckfenster; fehlt es, blendet sich das Bild aus |
+| Test | `tests/orgLogo.test.js` | Prüfung, Endpunkte, Rechte, Demo/Produktiv, PDF |
+| Anwenderleitfaden | `docs/module-organisation*.md` | Systemhandbuch, fünf Sprachen (Guidance-Seed `seed_module_organisation`) |
+
+**Demo und Produktiv:** Das ISMS-Builder-Logo (`data/demo-bundles/isms-builder-logo.png`, Quelle `.svg`) gehört zum Demoset: Es wird mit `POST /admin/demo-load-bundle`
+installiert, aber nur, wenn kein eigenes Logo vorliegt. Beim Wechsel in den Produktivbetrieb (`POST /admin/demo-reset`) wird das Demo-Logo entfernt (ein eigenes bleibt)
+und der Hinweis **„Firmenlogo setzen“** aktiviert: im Ergebnistext des Resets, im Banner der Anmeldeseite, im Dashboard für Administratoren und in den Einstellungen, bis ein Logo
+hochgeladen ist. Das Logo ist nicht Teil des JSON-Datenexports (Backup des Datenverzeichnisses sichert es mit).

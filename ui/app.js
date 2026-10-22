@@ -113,6 +113,26 @@ function switchAppLang(lang) {
   setTimeout(() => location.reload(), 800)
 }
 
+// Druckfenster mit Firmenlogo: setzt das Logo (falls vorhanden) oben rechts in jedes geschriebene Dokument.
+// Das Bild wird vom Server geladen; fehlt das Logo, blendet sich das <img> selbst aus.
+function openPrintWindow() {
+  const win = window.open('', '_blank')
+  if (!win) return win
+  const write = win.document.write.bind(win.document)
+  const css = '.org-logo{float:right;max-height:48px;max-width:200px;margin:0 0 10px 14px}'
+  const img = `<img class="org-logo" alt="" src="${location.origin}/branding/logo" onerror="this.style.display='none'">`
+  let done = false
+  win.document.write = html => {
+    let out = String(html)
+    if (!done && /<body[^>]*>/i.test(out)) {
+      done = true
+      out = out.replace(/<\/style>/i, css + '</style>').replace(/<body[^>]*>/i, m => m + img)
+    }
+    return write(out)
+  }
+  return win
+}
+
 function apiHeaders(role) {
   return {
     'Content-Type': 'application/json',
@@ -1510,7 +1530,7 @@ function exportReportPdf() {
   const resultEl = dom('reportResult')
   if (!resultEl || !_lastReportData) return alert(t('rep_generateFirst'))
   const title = `${t('reports_printTitle')} — ${(_activeReportType||'').replace(/_/g,' ')} — ${new Date().toLocaleDateString('en-GB')}`
-  const win = window.open('', '_blank')
+  const win = openPrintWindow()
   if (!win) return alert(t('err_popupBlocked'))
   win.document.write(`<!DOCTYPE html><html><head>
     <meta charset="UTF-8">
@@ -1800,7 +1820,7 @@ async function printFindingDetail(findingId) {
   const pct  = actions.length ? Math.round(done / actions.length * 100) : 0
   const sevColor = { critical:'#c0392b', high:'#e67e22', medium:'#f39c12', low:'#27ae60', observation:'#2980b9' }
   const actLabel = FINDING_ACT_STATUS_LABELS
-  const win = window.open('', '_blank')
+  const win = openPrintWindow()
   if (!win) return alert(t('err_popupBlocked'))
   win.document.write(`<!DOCTYPE html><html><head>
     <meta charset="UTF-8">
@@ -1894,7 +1914,7 @@ async function exportFindingsPdf() {
   const list = await r.json()
   const esc  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   const sevColor = { critical:'#c0392b', high:'#e67e22', medium:'#f39c12', low:'#27ae60', observation:'#2980b9' }
-  const win  = window.open('', '_blank')
+  const win  = openPrintWindow()
   if (!win) return alert(t('err_popupBlocked'))
   win.document.write(`<!DOCTYPE html><html><head>
     <meta charset="UTF-8">
@@ -3591,6 +3611,8 @@ async function renderDashboard() {
     </div>
   `
 
+  showLogoRequiredNotice(container)
+
   // ── Dashboard-Klick-Handler ──
   container.querySelectorAll('.dash-link').forEach(el => {
     el.addEventListener('click', async () => {
@@ -4063,6 +4085,8 @@ async function renderAdminOrgTab() {
           <input class="input" id="orgShort" value="${escHtml(s.orgShort||'')}" placeholder="EL">
           <label class="org-label">${t('org_logoText')}</label>
           <input class="input" id="orgLogoText" value="${escHtml(s.logoText||'')}" placeholder="ISMS">
+          <label class="org-label">${t('org_logo')}</label>
+          <div id="orgLogoBox">${orgLogoBoxHtml(s.logo)}</div>
           <label class="org-label">${t('org_scope')}</label>
           <textarea class="input" id="orgScope" rows="3" style="resize:vertical">${escHtml(s.ismsScope||'')}</textarea>
         </div>
@@ -4330,6 +4354,56 @@ async function renderAdminOrgTab() {
       if (banner && st.envOverride) banner.style.display = 'block'
     }
   } catch {}
+}
+
+function orgLogoBoxHtml(logo) {
+  logo = logo || { set: false }
+  const preview = logo.set
+    ? `<img src="/branding/logo?v=${encodeURIComponent(logo.updatedAt || '')}" alt="" style="max-height:56px;max-width:220px;background:#fff;padding:6px;border-radius:6px;border:1px solid var(--border)">`
+    : ''
+  const note = !logo.set
+    ? `<div style="color:var(--warning-text,#f59e0b);font-size:13px;margin:6px 0"><i class="ph ph-warning"></i> ${t(logo.required ? 'org_logoRequired' : 'org_logoNone')}</div>`
+    : (logo.demo ? `<div style="color:var(--text-subtle);font-size:13px;margin:6px 0">${t('org_logoDemo')}</div>` : '')
+  return `${preview}${note}
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">
+      <input type="file" id="orgLogoFile" accept="image/png,image/jpeg" style="max-width:260px" onchange="uploadOrgLogo(this)">
+      ${logo.set ? `<button class="btn btn-secondary btn-sm" onclick="removeOrgLogo()"><i class="ph ph-trash"></i> ${t('org_logoRemove')}</button>` : ''}
+    </div>
+    <div style="font-size:12px;color:var(--text-subtle);margin-top:4px">${t('org_logoHelp')}</div>`
+}
+
+async function uploadOrgLogo(input) {
+  const file = input.files && input.files[0]
+  if (!file) return
+  if (file.size > 512 * 1024) { showToast(t('org_logoTooBig'), 'error'); input.value = ''; return }
+  const data = await new Promise((resolve, reject) => {
+    const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = reject; r.readAsDataURL(file)
+  })
+  const res = await fetch('/admin/logo', { method: 'PUT', headers: apiHeaders('admin'), body: JSON.stringify({ data }) })
+  const out = await res.json().catch(() => ({}))
+  if (!res.ok) { showToast(out.error || t('error'), 'error'); input.value = ''; return }
+  document.getElementById('orgLogoBox').innerHTML = orgLogoBoxHtml(out)
+  showToast(t('org_logoSaved'), 'success')
+}
+
+async function removeOrgLogo() {
+  const res = await fetch('/admin/logo', { method: 'DELETE', headers: apiHeaders('admin') })
+  if (res.ok) document.getElementById('orgLogoBox').innerHTML = orgLogoBoxHtml(await res.json())
+}
+
+// Nach dem Wechsel in den Produktivbetrieb: Administratoren sehen oben im Dashboard, dass das Firmenlogo noch fehlt
+async function showLogoRequiredNotice(container) {
+  if (!userCanTransition('admin')) return
+  try {
+    const r = await fetch('/admin/logo', { headers: apiHeaders('reader') })
+    const logo = r.ok ? await r.json() : null
+    if (!logo || logo.set || !logo.required) return
+    const bar = document.createElement('div')
+    bar.className = 'dashboard-error'
+    bar.style.cssText = 'margin-bottom:12px'
+    bar.innerHTML = `<i class="ph ph-warning"></i> ${t('org_logoRequired')}`
+    container.prepend(bar)
+  } catch { /* Hinweis ist optional */ }
 }
 
 async function saveOrgSettings() {
@@ -5220,6 +5294,7 @@ async function triggerDemoReset() {
     }
     const restartRequired = res.headers.get('X-Restart-Required') === '1'
     const envSwitched     = res.headers.get('X-Env-Switched') === '1'
+    const logoRequired    = res.headers.get('X-Logo-Required') === '1'
 
     // Trigger bundle file download
     const blob = await res.blob()
@@ -5238,6 +5313,7 @@ async function triggerDemoReset() {
       msg.innerHTML = `
         <strong>${t('admin_demoResetDone')}</strong><br>
         ${envSwitched ? t('admin_envSwitched') : ''}<br>
+        ${logoRequired ? `<strong>${t('org_logoRequired')}</strong><br>` : ''}
         <strong style="color:#e74c3c">⚠️ ${t('admin_restartTitle')}</strong> ${t('admin_restartRest')}<br>
         <code style="font-size:11px">npm start</code> &nbsp;${t('ui_or')}&nbsp; <code style="font-size:11px">docker compose restart</code>
       `
@@ -7565,7 +7641,7 @@ function _printTemplates(docs, name) {
       <div class="doc-body">${renderMarkdownSafe(d.content)}</div>
     </section>`).join('<div class="page-break"></div>')
 
-  const win = window.open('', '_blank')
+  const win = openPrintWindow()
   if (!win) return alert(t('err_popupBlocked'))
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <title>${escHtml(name || 'documents')}</title>
@@ -8486,7 +8562,7 @@ function _printGuidanceDocs(docs) {
     </section>`
   }).join('<div class="page-break"></div>')
 
-  const win = window.open('', '_blank')
+  const win = openPrintWindow()
   if (!win) return alert(t('err_popupBlocked'))
   win.document.write(`<!DOCTYPE html><html><head>
     <meta charset="UTF-8">
@@ -9192,7 +9268,7 @@ function exportMeasuresCsv() {
 function exportMeasuresPdf() {
   const rows = _measureExportRows()
   const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const win = window.open('', '_blank')
+  const win = openPrintWindow()
   if (!win) return alert(t('err_popupBlocked'))
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(t('measures_title'))} — ${new Date().toLocaleDateString()}</title>
     <style>
@@ -9664,7 +9740,7 @@ function exportRisksCsv() {
 function exportRisksPdf() {
   const rows = _riskExportRows(_riskRegisterList)
   const esc  = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-  const win  = window.open('', '_blank')
+  const win  = openPrintWindow()
   if (!win) return alert(t('err_popupBlocked'))
   win.document.write(`<!DOCTYPE html><html><head>
     <meta charset="UTF-8">
@@ -17532,7 +17608,7 @@ function auDownloadCsv(name, head, rows) {
 }
 
 function auPrint(title, bodyHtml) {
-  const win = window.open('', '_blank')
+  const win = openPrintWindow()
   if (!win) return alert(t('err_popupBlocked'))
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escHtml(title)}</title>
     <style>

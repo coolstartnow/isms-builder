@@ -20,6 +20,7 @@
  */
 
 const PDFDocument = require('pdfkit')
+const orgLogo = require('./orgLogo')
 const { marked } = require('../ui/vendor/marked.min.js')
 const { versionTable } = require('./db/templateVersioning')
 const i18n = require('./i18n')
@@ -262,6 +263,17 @@ async function renderTemplateToPdf(doc) {
     pdf.on('error', reject)
 
     try {
+      // Firmenlogo oben rechts (falls gesetzt); der Titel beginnt darunter
+      const logo = orgLogo.read()
+      if (logo) {
+        try {
+          const img = pdf.openImage(logo.buffer)
+          const scale = Math.min(180 / img.width, 48 / img.height, 1)
+          const w = img.width * scale, h = img.height * scale
+          pdf.image(img, pdf.page.width - PAGE_MARGIN - w, PAGE_MARGIN, { width: w, height: h })
+          pdf.y = PAGE_MARGIN + h + 10
+        } catch { /* defektes Logo: PDF ohne Logo */ }
+      }
       pdf.font(FONT_BOLD).fontSize(18).fillColor(COLOR_TEXT).text(doc.title || '')
       const metaParts = [
         doc.type ? `${T('col_type')}: ${doc.type}` : null,

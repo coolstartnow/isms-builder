@@ -16,6 +16,12 @@ const SUPPORTED = ['de', 'en', 'fr', 'nl', 'hu']
 const IDX = { en: 0, de: 1, fr: 2, nl: 3, hu: 4 }
 
 const MESSAGES = [
+  ['Empty file', 'Leere Datei', 'Fichier vide', 'Leeg bestand', 'Üres fájl'],
+  ['Logo too large (max 512 kB)', 'Logo zu groß (höchstens 512 kB)', 'Logo trop volumineux (512 ko maximum)', 'Logo te groot (maximaal 512 kB)', 'A logó túl nagy (legfeljebb 512 kB)'],
+  ['Only PNG and JPEG images are accepted', 'Nur PNG- und JPEG-Bilder werden angenommen', 'Seules les images PNG et JPEG sont acceptées', 'Alleen PNG- en JPEG-afbeeldingen worden geaccepteerd', 'Csak PNG és JPEG képek fogadhatók el'],
+  ['Image dimensions invalid (max 4000 px)', 'Bildmaße ungültig (höchstens 4000 px)', 'Dimensions de l’image invalides (4000 px maximum)', 'Afbeeldingsafmetingen ongeldig (maximaal 4000 px)', 'Érvénytelen képméret (legfeljebb 4000 px)'],
+  ['No logo set', 'Kein Logo gesetzt', 'Aucun logo défini', 'Geen logo ingesteld', 'Nincs logó beállítva'],
+  ['Invalid image data', 'Ungültige Bilddaten', 'Données d’image invalides', 'Ongeldige afbeeldingsgegevens', 'Érvénytelen képadatok'],
   ['Not found', 'Nicht gefunden', 'Introuvable', 'Niet gevonden', 'Nem található'],
   ['Invalid collection', 'Ungültige Sammlung', 'Collection invalide', 'Ongeldige verzameling', 'Érvénytelen gyűjtemény'],
   ['No file uploaded', 'Keine Datei hochgeladen', 'Aucun fichier téléversé', 'Geen bestand geüpload', 'Nincs feltöltött fájl'],

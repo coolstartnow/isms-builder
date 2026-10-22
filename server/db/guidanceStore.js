@@ -386,6 +386,14 @@ const ARCH_SEED = [
     minRole:       null,
   },
   {
+    seedId:        'seed_module_organisation',
+    title:         { de: "Modul: Organisation & Firmenlogo", en: "Module: Organisation & Company Logo", fr: "Module: Organisation et logo de l'entreprise", nl: "Module: Organisatie & bedrijfslogo", hu: "Modul: Szervezet és céglogó" },
+    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-organisation.md'), en: path.join(PROJECT_ROOT, 'docs/module-organisation.en.md'), fr: path.join(PROJECT_ROOT, 'docs/module-organisation.fr.md'), nl: path.join(PROJECT_ROOT, 'docs/module-organisation.nl.md'), hu: path.join(PROJECT_ROOT, 'docs/module-organisation.hu.md') },
+    refreshContent: true,
+    category:      'systemhandbuch',
+    minRole:       null,
+  },
+  {
     seedId:        'seed_changelog',
     title:         'ISMS Builder – Changelog',
     srcFile:       path.join(PROJECT_ROOT, 'CHANGELOG.md'),

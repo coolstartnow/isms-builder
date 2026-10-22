@@ -4220,6 +4220,54 @@ paths:
         '200':
           description: Updated
 
+  /branding/logo:
+    get:
+      tags: [admin]
+      summary: Company logo image (public; used by the login page)
+      responses:
+        '200':
+          description: PNG or JPEG image
+        '404':
+          description: No logo set
+
+  /admin/logo:
+    get:
+      tags: [admin]
+      summary: Company logo description (set, demo, size, required notice)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Logo info without image data
+    put:
+      tags: [admin]
+      summary: Set the company logo (admin; PNG or JPEG, max 512 kB, type checked from the bytes)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: string
+                  description: Base64 image data, optionally as data URL
+      responses:
+        '200':
+          description: Logo saved
+        '400':
+          description: Not a PNG/JPEG image, too large or invalid
+    delete:
+      tags: [admin]
+      summary: Remove the company logo (admin)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Logo removed
+
   /admin/modules:
     get:
       tags: [admin]

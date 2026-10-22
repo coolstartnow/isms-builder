@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.82.0] — 2026-10-22
+
+> Firmenlogo: hochladbar in den Firmeneinstellungen, sichtbar auf der Anmeldeseite, in Richtlinien-PDFs und Druckansichten. Das ISMS-Builder-Logo gehört zum Demoset.
+
+### Hinzugefügt
+- **Firmenlogo** — Administratoren laden in *Admin → Organisation → Allgemeine Informationen → Firmenlogo* ein PNG oder JPEG hoch (höchstens 512 kB, 4000 px). Typ und Größe werden aus den Bytes geprüft; SVG wird bewusst nicht angenommen (kann Skripte enthalten, pdfkit zeichnet es nicht). Das Logo liegt als Datei im Datenverzeichnis (`org-logo.png|jpg`, `org-logo.json`) und ist damit unabhängig vom Speicher-Backend. Neue Endpunkte: `GET /branding/logo` (öffentlich), `GET/PUT/DELETE /admin/logo` (Schreiben nur Admin, mit Audit-Eintrag).
+- **Anzeige:** Anmeldeseite, Kopf der Richtlinien-PDFs (Server) und alle Druckansichten der Oberfläche (über `openPrintWindow()`; Berichte, Risiko-, Feststellungs-, Maßnahmen-, Audit- und Dokumentenausgabe).
+- **ISMS-Builder-Logo im Demoset** — `data/demo-bundles/isms-builder-logo.png` (Quelle `.svg`); wird mit dem Demo-Bundle geladen, ein eigenes Logo wird nicht überschrieben.
+- **Hinweis beim Wechsel in den Produktivbetrieb** — Der Demo-Reset entfernt das Demo-Logo und weist darauf hin, dass das Firmenlogo gesetzt werden muss: im Ergebnis des Resets, im Banner der Anmeldeseite, im Dashboard (Administratoren) und in den Einstellungen, bis ein Logo hochgeladen ist.
+- Tests `tests/orgLogo.test.js`; OpenAPI und ISMS-Dokumentation (Kapitel 59) ergänzt. Texte in fünf Sprachen.
+- **Integrierte Dokumentation:** neuer Leitfaden „Modul: Organisation & Firmenlogo“ (`docs/module-organisation*.md`, fünf Sprachen) im Systemhandbuch; er beschreibt die Abschnitte von *Admin → Organisation* und das Firmenlogo (Hochladen, Formate, Anzeige, Demo/Produktiv, Sicherung).
+
 ## [1.81.0] — 2026-10-21
 
 ### Geändert

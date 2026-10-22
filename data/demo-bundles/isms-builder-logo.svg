@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="200" viewBox="0 0 420 200">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0052CC"/>
+      <stop offset="1" stop-color="#1FB8A6"/>
+    </linearGradient>
+  </defs>
+  <!-- Schild -->
+  <path d="M100 14 L176 40 V98 C176 144 144 172 100 188 C56 172 24 144 24 98 V40 Z" fill="url(#g)"/>
+  <path d="M100 26 L166 48 V98 C166 138 139 162 100 177 C61 162 34 138 34 98 V48 Z" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2"/>
+  <!-- Bausteine -->
+  <rect x="58" y="108" width="36" height="32" rx="6" fill="#ffffff"/>
+  <rect x="106" y="108" width="36" height="32" rx="6" fill="#ffffff" fill-opacity="0.85"/>
+  <rect x="82" y="66" width="36" height="32" rx="6" fill="#ffffff" fill-opacity="0.95"/>
+  <path d="M91 82 l7 7 l12 -14" fill="none" stroke="#0052CC" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Wortmarke -->
+  <text x="206" y="104" font-family="DejaVu Sans, Arial, sans-serif" font-weight="700" font-size="64" fill="#0B2545">ISMS</text>
+  <text x="206" y="160" font-family="DejaVu Sans, Arial, sans-serif" font-weight="400" font-size="52" fill="#1FA596">Builder</text>
+</svg>

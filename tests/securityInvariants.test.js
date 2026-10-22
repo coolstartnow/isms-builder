@@ -76,7 +76,7 @@ describe('Bestätigungs-Links (GHSA-vf3w-pmvj-x8mc)', () => {
 describe('Auch Administratoren kennen keine Passwörter', () => {
   test('Organisations-Einstellungen: Ausgabe ohne Geheimnisse, Speichern mit „leer = unverändert“', () => {
     const admin = read('server/routes/admin.js')
-    expect(admin).toMatch(/res\.json\(redactOrgSettings\(await orgSettingsStore\.get\(\)\)\)/)
+    expect(admin).toMatch(/res\.json\(\{ \.\.\.redactOrgSettings\(await orgSettingsStore\.get\(\)\), logo: orgLogo\.info\(\) \}\)/)
     expect(admin).toMatch(/orgSettingsStore\.update\(prepareOrgPatch\(req\.body\)\)/)
   })
   test('Datenexport: beide Stellen bereinigen Nutzer und Einstellungen; Export liest aus DATA_DIR', () => {

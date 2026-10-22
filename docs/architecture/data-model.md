@@ -338,6 +338,8 @@ Top-level keys: `orgName`, `orgShort`, `ismsScope`, `logoText`, `require2FA`,
 `modules` (object, all boolean), `soaFrameworks` (object, all boolean),
 `cisoSettings`, `gdpoSettings`, `icsSettings`, `revisionSettings`, `qmSettings`
 
+Das Firmenlogo (ab 1.82.0) liegt nicht in `org-settings.json`, sondern als Datei im Datenverzeichnis: `org-logo.png` oder `org-logo.jpg` plus `org-logo.json` (Typ, Größe in Pixeln, `demo`, `updatedAt`); `.logo_required` ist der Hinweis-Marker nach dem Wechsel in den Produktivbetrieb. Die Einstellungs-Ausgabe nennt es nur als schreibgeschütztes Feld `logo`.
+
 ---
 
 ## ID Format

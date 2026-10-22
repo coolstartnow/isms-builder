@@ -27,6 +27,7 @@ function redactOrgSettings(settings) {
 // Löschen-Kennzeichen = leeren; die Nur-Lese-Kennzeichen werden nie gespeichert.
 function prepareOrgPatch(patch) {
   const out = { ...(patch || {}) }
+  delete out.logo   // Das Logo hat eigene Endpunkte (/admin/logo); nur lesend in den Einstellungen
   for (const [group, field, setFlag, clearFlag] of SECRETS) {
     if (!out[group] || typeof out[group] !== 'object' || Array.isArray(out[group])) continue
     const g = { ...out[group] }
