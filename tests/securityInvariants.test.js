@@ -11,7 +11,7 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8')
 const exists = f => fs.existsSync(path.join(ROOT, f))
 
 describe('Die Einzeltests der Sicherheitskorrekturen sind vorhanden', () => {
-  test.each(['secretCheck', 'secureToken', 'loginTiming', 'passwordChange', 'guidanceXss'])('tests/%s.test.js', name => {
+  test.each(['secretCheck', 'secureToken', 'loginTiming', 'passwordChange', 'guidanceXss', 'xssSinks'])('tests/%s.test.js', name => {
     expect(exists(`tests/${name}.test.js`)).toBe(true)
   })
 })

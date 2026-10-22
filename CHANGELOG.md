@@ -10,6 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.81.1] — 2026-10-22
+
+### Sicherheit
+- **Gespeichertes XSS in der Oberfläche (GHSA-m8g6-pq5j-2r9r, weitere Stellen)** — Texte, die ein Konto mit Schreibrecht speichert, wurden an mehreren Stellen ohne Maskierung in HTML eingesetzt und wirkten dort im Browser anderer Konten (z. B. des Administrators) als Skript. Gemeldet wurde der Pfad „Berichte → Dokumentenübersicht“ (Dokumenttitel, Typ); bei der Prüfung kamen weitere Stellen hinzu: globale Suche (Titel), Anhangsname bei Dokumenten, CVE-Kennungen und Titel in den Risikolisten, SoA (Verantwortliche/r und Begründung im Attribut `value`, Titel und Thema eigener Controls, verknüpfte Dokumente), Brotkrumen, Auswahllisten (Ziele, Entitäten, Controls), Entitätsnamen, Statusangaben, Datumsfelder und die Fragekennung auf der öffentlichen Bewertungsseite. Alle diese Werte werden jetzt mit `escHtml` bzw. `escapeHtml` ausgegeben (insgesamt 170 Stellen in 142 Zeilen von `ui/app.js`). Die Rollenrechte und die Datenhaltung sind unverändert.
+  Betroffen sind **alle veröffentlichten Versionen bis einschließlich 1.80.1.1** (die Stellen stehen seit dem ersten öffentlichen Release). Voraussetzung für einen Angriff ist ein Konto mit Schreibrecht (z. B. Editor); das Opfer ist ein anderes Konto, das die Ansicht öffnet.
+  Tests: `tests/xssSinks.test.js` (statischer Wächter über `ui/app.js` und die öffentliche Bewertungsseite; Browsertest im echten Chrome, der Nutzlasten in Dokumenttitel, Anhangsnamen, CVE-Kennungen und SoA-Felder speichert und als Administrator Bericht, Suche, Risiken, SoA und Dokument öffnet) — vor der Korrektur rot, danach grün; aufgenommen in `tests/securityInvariants.test.js`.
+  Dank an den Melder für die genaue Reproduktion.
+
 ## [1.81.0] — 2026-10-21
 
 ### Geändert

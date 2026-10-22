@@ -292,7 +292,7 @@ function _initSemanticSearch() {
       const data = await res.json()
       _results = data.results || []
       if (!_results.length) {
-        _open(`<div class="search-no-results">${t('search_noResultsFor')} <strong>${q}</strong></div>`)
+        _open(`<div class="search-no-results">${t('search_noResultsFor')} <strong>${escHtml(q)}</strong></div>`)
         return
       }
       const mode = data.mode || 'keyword'
@@ -301,12 +301,12 @@ function _initSemanticSearch() {
         : `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(255,255,255,.08);color:var(--text-subtle);font-weight:600;margin-left:6px;">${t('search_keyword')}</span>`
       const rows = _results.map((r, i) => {
         const icon = TYPE_ICONS[r.type] || 'ph-magnifying-glass'
-        return `<div class="search-result-item" data-idx="${i}" onclick="_searchNavigate('${r.url}')">
+        return `<div class="search-result-item" data-idx="${i}" onclick="_searchNavigate('${escHtml(r.url)}')">
           <div class="search-result-icon"><i class="ph ${icon}"></i></div>
           <div class="search-result-body">
-            <div class="search-result-title">${r.title}</div>
+            <div class="search-result-title">${escHtml(r.title)}</div>
             <div class="search-result-meta">
-              <span class="search-result-badge">${r.type}</span>
+              <span class="search-result-badge">${escHtml(r.type)}</span>
               <span class="search-result-score">${r.score}% match</span>
             </div>
           </div>
@@ -534,7 +534,7 @@ async function loadLinkedRisks(containerId, query) {
         return `<div class="rl-row">
           <span class="risk-badge ${lv.cls}">${lv.label}</span>
           <span class="rl-title">${escHtml(r.title)}</span>
-          <span class="risk-status-badge risk-st-${r.status}">${escHtml(RISK_STATUSES.find(x => x.id === r.status)?.label || r.status)}</span>
+          <span class="risk-status-badge risk-st-${escHtml(r.status)}">${escHtml(RISK_STATUSES.find(x => x.id === r.status)?.label || r.status)}</span>
           ${via ? `<small>${escHtml(t('risk_linkedViaType'))}</small>` : ''}
         </div>`
       }).join('')}</div>`
@@ -983,8 +983,8 @@ function refreshSidebarTree(type, treeData) {
       const li = document.createElement('li')
       const paddingLeft = depth * 12
       li.innerHTML = `<button class="sidebar-tree-child" data-id="${t.id}" style="padding-left:${8 + paddingLeft}px">
-        <span class="status-dot ${t.status || 'draft'}"></span>
-        <span>${t.title}</span>
+        <span class="status-dot ${escHtml(t.status || 'draft')}"></span>
+        <span>${escHtml(t.title)}</span>
       </button>`
       // #74: selectType() lädt den Baum asynchron nach und räumt danach den
       // Editor leer (Wechsel auf einen anderen Dokumententyp). Wurde
@@ -1281,11 +1281,11 @@ async function runReport(type) {
 
   try {
     const res = await fetch(url, { headers: apiHeaders('reader') })
-    if (!res.ok) { resultEl.innerHTML = `<p class="report-error">${t('error')}: ${res.status}</p>`; return }
+    if (!res.ok) { resultEl.innerHTML = `<p class="report-error">${t('error')}: ${escHtml(res.status)}</p>`; return }
     _lastReportData = await res.json()
     renderReportResult(type, _lastReportData, resultEl)
   } catch (e) {
-    resultEl.innerHTML = `<p class="report-error">${t('err_network')}: ${e.message}</p>`
+    resultEl.innerHTML = `<p class="report-error">${t('err_network')}: ${escHtml(e.message)}</p>`
   }
 }
 
@@ -1304,7 +1304,7 @@ function renderReportResult(type, data, el) {
     el.innerHTML = `<h3 class="report-result-title">${t('reports_compliance')}</h3>` +
       (Array.isArray(data) ? data : [data]).map(row => `
         <div class="report-compliance-card">
-          <h4>${row.entity?.name || t('reports_allEntities')} <span class="picker-id">${row.entity?.shortCode || ''}</span></h4>
+          <h4>${escHtml(row.entity?.name || t('reports_allEntities'))} <span class="picker-id">${escHtml(row.entity?.shortCode || '')}</span></h4>
           <div class="report-kpi-row">
             <div class="report-kpi"><span class="report-kpi-val">${row.totalApplicable}</span><span class="report-kpi-label">${t('soa_applicable')}</span></div>
             <div class="report-kpi"><span class="report-kpi-val">${row.totalImplemented}</span><span class="report-kpi-label">${t('soa_implemented')}</span></div>
@@ -1337,8 +1337,8 @@ function renderReportResult(type, data, el) {
       <table class="report-table">
         <thead><tr><th>${t('reports_colControlId')}</th><th>${t('reports_framework')}</th><th>${t('col_title')}</th><th>${t('col_status')}</th><th>${t('col_owner')}</th></tr></thead>
         <tbody>${(data.gaps || []).map(g => `
-          <tr><td class="picker-id">${g.id}</td><td>${g.framework}</td><td>${g.title}</td>
-              <td>${g.status || '—'}</td><td>${g.owner || '—'}</td></tr>`).join('')}
+          <tr><td class="picker-id">${g.id}</td><td>${escHtml(g.framework)}</td><td>${escHtml(g.title)}</td>
+              <td>${escHtml(g.status || '—')}</td><td>${escHtml(g.owner || '—')}</td></tr>`).join('')}
         </tbody>
       </table>`
   } else if (type === 'templates') {
@@ -1349,16 +1349,16 @@ function renderReportResult(type, data, el) {
       <table class="report-table">
         <thead><tr><th>${t('col_type')}</th><th>${t('col_title')}</th><th>${t('col_status')}</th><th>${t('col_version')}</th><th>${t('reports_colControls')}</th></tr></thead>
         <tbody>${(data.templates||[]).map(tpl=>`
-          <tr><td>${tpl.type}</td><td>${tpl.title}</td>
-              <td><span class="status-badge status-${tpl.status}">${_docStatusLabel(tpl.status)}</span></td>
-              <td>v${tpl.version}</td><td>${tpl.linkedControls.length}</td></tr>`).join('')}
+          <tr><td>${escHtml(tpl.type)}</td><td>${escHtml(tpl.title)}</td>
+              <td><span class="status-badge status-${escHtml(tpl.status)}">${_docStatusLabel(tpl.status)}</span></td>
+              <td>v${escHtml(tpl.version)}</td><td>${tpl.linkedControls.length}</td></tr>`).join('')}
         </tbody>
       </table>`
   } else if (type === 'reviews') {
     const fmtDate = d => d ? new Date(d).toLocaleDateString('en-GB') : '—'
     const reviewRow = (row, cls) =>
-      `<tr class="${cls}"><td>${fmtDate(row.nextReviewDate)}</td><td>${row.type}</td>
-       <td>${escHtml(row.title)}</td><td><span class="status-badge status-${row.status}">${_docStatusLabel(row.status)}</span></td>
+      `<tr class="${cls}"><td>${fmtDate(row.nextReviewDate)}</td><td>${escHtml(row.type)}</td>
+       <td>${escHtml(row.title)}</td><td><span class="status-badge status-${escHtml(row.status)}">${_docStatusLabel(row.status)}</span></td>
        <td>${escHtml(row.owner||'—')}</td>
        <td>${row.daysUntil !== null ? (row.daysUntil < 0 ? `<span style="color:var(--color-danger)">${row.daysUntil} ${t('reports_days')}</span>` : `${row.daysUntil} ${t('reports_days')}`) : '—'}</td></tr>`
     el.innerHTML = `
@@ -1386,7 +1386,7 @@ function renderReportResult(type, data, el) {
         <tbody>${(data.controls||[]).map(ctrl=>`
           <tr>
             <td class="picker-id">${ctrl.id}</td>
-            <td>${ctrl.framework}</td>
+            <td>${escHtml(ctrl.framework)}</td>
             <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(ctrl.title)}">${escHtml(ctrl.title)}</td>
             ${(data.entities||[]).map(e=>{
               const s = ctrl[e.id] || 'n/a'
@@ -1403,8 +1403,8 @@ function renderReportResult(type, data, el) {
         <thead><tr><th>${t('col_date')}</th><th>${t('reports_colTemplate')}</th><th>${t('col_type')}</th><th>${t('col_status')}</th><th>${t('reports_changedBy')}</th></tr></thead>
         <tbody>${(data.entries||[]).map(e=>`
           <tr><td>${new Date(e.changedAt).toLocaleString('en-GB')}</td>
-              <td>${e.templateTitle}</td><td>${e.type}</td>
-              <td><span class="status-badge status-${e.status}">${_docStatusLabel(e.status)}</span></td>
+              <td>${escHtml(e.templateTitle)}</td><td>${escHtml(e.type)}</td>
+              <td><span class="status-badge status-${escHtml(e.status)}">${_docStatusLabel(e.status)}</span></td>
               <td>${e.changedBy}</td></tr>`).join('')}
         </tbody>
       </table>`
@@ -1428,10 +1428,10 @@ function renderReportResult(type, data, el) {
         <tbody>${(data.findings||[]).map(f => {
           const openActs = (f.actions||[]).filter(a => a.status !== 'done').length
           return `<tr>
-            <td class="picker-id">${f.ref}</td>
+            <td class="picker-id">${escHtml(f.ref)}</td>
             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(f.title)}">${escHtml(f.title)}</td>
-            <td><span style="color:${sevColor[f.severity]||'#888'};font-weight:600">${FINDING_SEVERITY_LABELS[f.severity]||f.severity}</span></td>
-            <td><span style="color:${stColor[f.status]||'#888'}">${FINDING_STATUS_LABELS[f.status]||f.status}</span></td>
+            <td><span style="color:${sevColor[f.severity]||'#888'};font-weight:600">${escHtml(FINDING_SEVERITY_LABELS[f.severity]||f.severity)}</span></td>
+            <td><span style="color:${stColor[f.status]||'#888'}">${escHtml(FINDING_STATUS_LABELS[f.status]||f.status)}</span></td>
             <td>${escHtml(f.auditor||'—')}</td>
             <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(f.auditedArea||'—')}</td>
             <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(f.observation||'')}">${escHtml(f.observation||'—')}</td>
@@ -1462,9 +1462,9 @@ function renderReportResult(type, data, el) {
             <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.title)}">${escHtml(r.title)}</td>
             <td>${escHtml(r.category||'—')}</td>
             <td><span style="color:${lvColor[r.level]||'#888'};font-weight:600">${_riskLevelLabel(r.level)}</span></td>
-            <td><span class="status-badge status-${r.status}">${_riskStatusLabel(r.status)}</span></td>
+            <td><span class="status-badge status-${escHtml(r.status)}">${_riskStatusLabel(r.status)}</span></td>
             <td>${cvssVal ? `<span class="cvss-badge ${cvssData?.cls||''}" style="font-size:.75rem">${cvssVal}</span>` : '—'}</td>
-            <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(r.cveIds||[]).join(', ')||'—'}</td>
+            <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((r.cveIds||[]).join(', ')||'—')}</td>
             <td style="text-align:center">${r.score != null ? r.score : '—'}</td>
             <td>${escHtml(r.owner||'—')}</td>
             <td>${r.source === 'greenbone-scan' ? `<span class="badge-review-pending" style="background:#3b82f6;color:#fff;font-size:.7rem">${t('reports_scanBadge')}</span>` : t('reports_manual')}</td>
@@ -1834,7 +1834,7 @@ async function printFindingDetail(findingId) {
       <h2>${t('findings_singular')}</h2>
       <div class="grid2">
         <div><span style="color:#555">${t('findings_period')}:</span> ${esc(f.auditPeriodFrom||'—')}${f.auditPeriodTo?' – '+esc(f.auditPeriodTo):''}</div>
-        <div><span style="color:#555">${t('findings_linkedControls')}:</span> ${(f.linkedControls||[]).join(', ')||'—'}</div>
+        <div><span style="color:#555">${t('findings_linkedControls')}:</span> ${escHtml((f.linkedControls||[]).join(', ')||'—')}</div>
       </div>
       <div class="field"><div class="label">${t('findings_observationFull')}</div><div class="value">${esc(f.observation)}</div></div>
       <div class="field"><div class="label">${t('findings_requirementFull')}</div><div class="value">${esc(f.requirement)}</div></div>
@@ -1963,7 +1963,7 @@ function _renderActionsList(actions, findingId, canEdit) {
           <button class="btn btn-sm" style="color:var(--danger)" title="${t('delete')}"
             onclick="deleteAction('${findingId}','${a.id}')">
             <i class="ph ph-trash-simple"></i>
-          </button>` : `<span style="color:${colAct};font-size:12px">${FINDING_ACT_STATUS_LABELS[a.status]||a.status}</span>`}
+          </button>` : `<span style="color:${colAct};font-size:12px">${escHtml(FINDING_ACT_STATUS_LABELS[a.status]||a.status)}</span>`}
         </div>
       </div>
     </div>`
@@ -2420,7 +2420,7 @@ async function loadIncidents() {
             <td style="white-space:nowrap">${new Date(i.createdAt).toLocaleDateString('en-GB')}</td>
             <td>${escHtml(i.entityName || '—')}</td>
             <td style="font-size:.78rem">${escHtml(INC_TYPE_LABELS[i.incidentType] || i.incidentType)}</td>
-            <td><span class="${INC_STATUS_CLS[i.status] || 'risk-badge'}">${INC_STATUS_LABELS[i.status] || i.status}</span></td>
+            <td><span class="${INC_STATUS_CLS[i.status] || 'risk-badge'}">${escHtml(INC_STATUS_LABELS[i.status] || i.status)}</span></td>
           </tr>`).join('')}
       </tbody>
     </table>`
@@ -2445,7 +2445,7 @@ async function openIncidentDetail(id) {
       <div class="incident-detail-topbar">
         <div>
           <span class="incident-ref">${escHtml(i.refNumber)}</span>
-          <span class="${INC_STATUS_CLS[i.status] || 'risk-badge'}" style="margin-left:8px">${INC_STATUS_LABELS[i.status] || i.status}</span>
+          <span class="${INC_STATUS_CLS[i.status] || 'risk-badge'}" style="margin-left:8px">${escHtml(INC_STATUS_LABELS[i.status] || i.status)}</span>
         </div>
         <span style="font-size:.78rem;color:var(--text-subtle)">${new Date(i.createdAt).toLocaleString('en-GB')}</span>
       </div>
@@ -2548,7 +2548,7 @@ function renderUnderConstruction(sectionId) {
     <div class="uc-card">
       <div class="uc-icon"><i class="ph ${m.icon}"></i></div>
       <h2 class="uc-title">${m.label}</h2>
-      <p class="uc-desc">${m.desc}</p>
+      <p class="uc-desc">${escHtml(m.desc)}</p>
       <div class="uc-badge"><i class="ph ph-wrench"></i> ${t('underConstruction')}</div>
       <p class="uc-hint">${t('underConstructionHint')}</p>
     </div>
@@ -2735,8 +2735,8 @@ function soaRow(c, canEdit) {
         <button class="soa-expand-btn" data-id="${c.id}" title="${t('soa_showDetails')}">&#9656;</button>
         ${c.id}
       </td>
-      <td><span class="soa-theme-badge" style="border-color:${color};color:${color}">${c.theme}</span></td>
-      <td class="soa-ctrl-title">${c.title} ${linkedBadge}</td>
+      <td><span class="soa-theme-badge" style="border-color:${color};color:${color}">${escHtml(c.theme)}</span></td>
+      <td class="soa-ctrl-title">${escHtml(c.title)} ${linkedBadge}</td>
       <td class="soa-center">
         ${canEdit
           ? `<input type="checkbox" class="soa-applicable" data-id="${c.id}" ${c.applicable ? 'checked' : ''}>`
@@ -2749,16 +2749,16 @@ function soaRow(c, canEdit) {
                 `<option value="${v}" ${c.status===v?'selected':''}>${l}</option>`
               ).join('')}
             </select>`
-          : `<span class="soa-status-label soa-status-${c.status}">${STATUS_LABELS[c.status]||c.status}</span>`}
+          : `<span class="soa-status-label soa-status-${escHtml(c.status)}">${escHtml(STATUS_LABELS[c.status]||c.status)}</span>`}
       </td>
       <td>
         ${canEdit
-          ? `<input class="soa-owner-input" data-id="${c.id}" value="${c.owner||''}" placeholder="${t('col_name')}…">`
+          ? `<input class="soa-owner-input" data-id="${c.id}" value="${escHtml(c.owner||'')}" placeholder="${t('col_name')}…">`
           : (c.owner || '—')}
       </td>
       <td>
         ${canEdit
-          ? `<input class="soa-just-input" data-id="${c.id}" value="${c.justification||''}" placeholder="${t('soa_justification')}…">`
+          ? `<input class="soa-just-input" data-id="${c.id}" value="${escHtml(c.justification||'')}" placeholder="${t('soa_justification')}…">`
           : (c.justification || '')}
       </td>
       ${canEdit ? `<td style="white-space:nowrap">
@@ -2827,8 +2827,8 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
       ).join(' ')
       return `
         <div class="soa-crossmap-group">
-          <span class="soa-crossmap-topic">${g.topic}</span>
-          <span class="soa-crossmap-desc">${g.description}</span>
+          <span class="soa-crossmap-topic">${escHtml(g.topic)}</span>
+          <span class="soa-crossmap-desc">${escHtml(g.description)}</span>
           <div class="soa-crossmap-pills">${pills}</div>
         </div>
       `
@@ -2839,7 +2839,7 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
   const linkedTmplHtml = linked.length > 0
     ? linked.map(tid => {
         const tmpl = allTemplates.find(t => t.id === tid)
-        const label = tmpl ? `${tmpl.title} (${tmpl.type})` : tid
+        const label = tmpl ? `${escHtml(tmpl.title)} (${escHtml(tmpl.type)})` : tid
         return canEdit
           ? `<span class="soa-tmpl-tag">${label}<button class="soa-tmpl-remove" data-tid="${tid}" title="${escHtml(t('remove'))}">&times;</button></span>`
           : `<span class="soa-tmpl-tag">${label}</span>`
@@ -3237,7 +3237,7 @@ async function renderDashboard() {
     if (alerts.length === 0) return '<p class="dash-empty" style="color:var(--success-text)"><i class="ph ph-check-circle"></i> ' + t('dash_noIssues') + '</p>'
     return alerts.map(a => `<div class="dash-alert dash-link" data-nav="${a.nav}" style="border-left:3px solid ${a.color};padding:6px 10px;margin-bottom:6px;background:var(--surface);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px">
       <i class="ph ${a.icon}" style="color:${a.color};font-size:1rem"></i>
-      <span style="font-size:.85rem">${a.text}</span>
+      <span style="font-size:.85rem">${escHtml(a.text)}</span>
     </div>`).join('')
   })()
 
@@ -3527,7 +3527,7 @@ async function renderDashboard() {
       <div class="dash-section-title"><i class="ph ph-check-square"></i> ${t('dash_fwCompliance')}</div>
       <div class="fw-summary-grid">
         ${Object.values(soaSummary).map(fw => `
-          <div class="fw-summary-item dash-link" data-nav="soa" data-fw="${fw.framework}" title="${t('risk_openBtn')} ${fw.label}" style="cursor:pointer">
+          <div class="fw-summary-item dash-link" data-nav="soa" data-fw="${escHtml(fw.framework)}" title="${t('risk_openBtn')} ${escHtml(fw.label)}" style="cursor:pointer">
             <span class="fw-label" style="color:${fw.color}">${fw.label}</span>
             <div class="fw-bar-track">
               <div class="fw-bar-fill" style="width:${fw.implementationRate}%; background:${fw.color}"></div>
@@ -3563,7 +3563,7 @@ async function renderDashboard() {
         <ul style="list-style:none;padding:0;margin:0;font-size:.8rem">
           ${upcoming.map(ev => `
             <li style="padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
-              <span class="cal-chip ${ev.type}" style="font-size:.7rem;padding:1px 5px;border-radius:3px">${ev.type.replace(/_/g,' ')}</span>
+              <span class="cal-chip ${escHtml(ev.type)}" style="font-size:.7rem;padding:1px 5px;border-radius:3px">${escHtml(ev.type.replace(/_/g,' '))}</span>
               <span>${escHtml(ev.title)}</span>
               <span style="margin-left:auto;color:var(--text-subtle)">${new Date(ev.date).toLocaleDateString('en-GB')}</span>
             </li>`).join('')}
@@ -3578,10 +3578,10 @@ async function renderDashboard() {
         ? `<p class="dash-empty">${t('dash_noActivity')}</p>`
         : `<ul class="activity-list">
             ${data.recentActivity.map(a => `
-              <li class="dash-link" data-nav-type="${a.type}" data-tmpl-id="${a.templateId}" data-tmpl-type="${a.type}" style="cursor:pointer">
-                <span class="status-dot ${a.status}"></span>
+              <li class="dash-link" data-nav-type="${escHtml(a.type)}" data-tmpl-id="${a.templateId}" data-tmpl-type="${escHtml(a.type)}" style="cursor:pointer">
+                <span class="status-dot ${escHtml(a.status)}"></span>
                 <span class="act-title">${escHtml(a.title)}</span>
-                <span class="act-status">${statusLabels[a.status] || a.status}</span>
+                <span class="act-status">${escHtml(statusLabels[a.status] || a.status)}</span>
                 <span class="act-by">by ${escHtml(a.changedBy)}</span>
                 <span class="act-date">${new Date(a.changedAt).toLocaleString('en-GB')}</span>
               </li>
@@ -3737,9 +3737,9 @@ async function renderAdminTemplatesTab() {
           <tr>
             <td>${escHtml(tpl.title || '—')}</td>
             <td><span class="badge">${escHtml(tpl.type || '—')}</span></td>
-            <td><span class="badge status-badge ${STATUS_CLS[tpl.status] || ''}">${tpl.status || 'draft'}</span></td>
+            <td><span class="badge status-badge ${STATUS_CLS[tpl.status] || ''}">${escHtml(tpl.status || 'draft')}</span></td>
             <td>${escHtml(tpl.language || '—')}</td>
-            <td>${tpl.version || 1}</td>
+            <td>${escHtml(tpl.version || 1)}</td>
             <td style="color:var(--text-subtle);font-size:12px;">${tpl.updatedAt ? new Date(tpl.updatedAt).toLocaleDateString('en-GB') : '—'}</td>
             <td>
               <button class="btn btn-sm" style="color:var(--danger-text);" title="${t('delete')}"
@@ -4116,7 +4116,7 @@ async function renderAdminOrgTab() {
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px">
           ${[{code:'de',label:'🇩🇪 Deutsch'},{code:'en',label:'🇬🇧 English'},{code:'fr',label:'🇫🇷 Français'},{code:'nl',label:'🇳🇱 Nederlands'},{code:'hu',label:'🇭🇺 Magyar'}].map(l => `
             <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer">
-              <input type="checkbox" id="langAvail_${l.code}" ${(_langConfig?.available||['de','en','fr','nl','hu']).includes(l.code)?'checked':''}>
+              <input type="checkbox" id="langAvail_${escHtml(l.code)}" ${(_langConfig?.available||['de','en','fr','nl','hu']).includes(l.code)?'checked':''}>
               <span style="font-size:.9rem">${l.label}</span>
             </label>`).join('')}
         </div>
@@ -4124,7 +4124,7 @@ async function renderAdminOrgTab() {
           <label style="font-size:.85rem;color:var(--text-muted);flex-shrink:0">${t('admin_langDefault')}:</label>
           <select id="langDefault" style="padding:5px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem">
             ${[{code:'de',label:'Deutsch'},{code:'en',label:'English'},{code:'fr',label:'Français'},{code:'nl',label:'Nederlands'},{code:'hu',label:'Magyar'}].map(l =>
-              `<option value="${l.code}" ${(_langConfig?.default||'en')===l.code?'selected':''}>${l.label}</option>`
+              `<option value="${escHtml(l.code)}" ${(_langConfig?.default||'en')===l.code?'selected':''}>${l.label}</option>`
             ).join('')}
           </select>
         </div>
@@ -5341,7 +5341,7 @@ async function renderAdminTrashTab() {
 async function restoreTrashItem(module, id, meta) {
   if (!confirm(t('trash_restoreItemConfirm'))) return
   let url
-  if (module === 'template') url = `/template/${meta.type}/${id}/restore`
+  if (module === 'template') url = `/template/${encodeURIComponent(meta.type)}/${id}/restore`
   else if (module === 'risk') url = `/risks/${id}/restore`
   else if (module === 'goal') url = `/goals/${id}/restore`
   else if (module === 'measure') url = `/measures/${id}/restore`
@@ -5370,7 +5370,7 @@ async function restoreTrashItem(module, id, meta) {
 async function permanentDeleteTrashItem(module, id, meta) {
   if (!confirm(t('trash_permanentDeleteConfirm'))) return
   let url
-  if (module === 'template') url = `/template/${meta.type}/${id}/permanent`
+  if (module === 'template') url = `/template/${encodeURIComponent(meta.type)}/${id}/permanent`
   else if (module === 'risk') url = `/risks/${id}/permanent`
   else if (module === 'goal') url = `/goals/${id}/permanent`
   else if (module === 'measure') url = `/measures/${id}/permanent`
@@ -5529,7 +5529,7 @@ async function renderAdminModulesTab() {
                 <span class="module-toggle-slider"></span>
               </label>
             </div>
-            <p class="module-card-desc">${m.desc}</p>
+            <p class="module-card-desc">${escHtml(m.desc)}</p>
             ${m.norms.length ? `<div class="module-card-norms">${m.norms.map(n => `<span class="module-norm-badge">${n}</span>`).join('')}</div>` : ''}
             <div class="module-card-status">
               <span class="module-status-dot ${enabled ? 'active' : 'inactive'}"></span>
@@ -5563,7 +5563,7 @@ async function renderAdminModulesTab() {
                 <span class="module-toggle-slider"></span>
               </label>
             </div>
-            <p class="module-card-desc">${fw.desc}</p>
+            <p class="module-card-desc">${escHtml(fw.desc)}</p>
             <div class="module-card-norms">${fw.norms.map(n => `<span class="module-norm-badge" style="border-color:${fw.color};color:${fw.color}">${n}</span>`).join('')}</div>
             <div class="module-card-status">
               <span class="module-status-dot ${enabled ? 'active' : 'inactive'}"></span>
@@ -5843,7 +5843,7 @@ async function adminLoadUsers() {
           <tr>
             <td><strong>${escHtml(u.username)}</strong></td>
             <td>${escHtml(u.email || '—')}</td>
-            <td><span class="badge role-badge-${u.role}">${u.role}</span></td>
+            <td><span class="badge role-badge-${escHtml(u.role)}">${escHtml(u.role)}</span></td>
             <td style="max-width:220px;">${fns}</td>
             <td>${escHtml(u.domain || '—')}</td>
             <td class="admin-user-actions">
@@ -6229,7 +6229,7 @@ async function adminLoadEntities() {
     tree.innerHTML = ''
     roots.forEach(e => tree.appendChild(renderEntityNode(e)))
   } catch (err) {
-    tree.innerHTML = `<p class="report-error">${t('error')}: ${err.message}</p>`
+    tree.innerHTML = `<p class="report-error">${t('error')}: ${escHtml(err.message)}</p>`
   }
 }
 
@@ -6239,8 +6239,8 @@ function renderEntityNode(e) {
   li.innerHTML = `
     <div class="admin-entity-row">
       <i class="ph ${e.type === 'holding' ? 'ph-building' : 'ph-office-chair'}"></i>
-      <span class="admin-entity-name">${e.name}</span>
-      <span class="admin-entity-code picker-id">${e.shortCode || ''}</span>
+      <span class="admin-entity-name">${escHtml(e.name)}</span>
+      <span class="admin-entity-code picker-id">${escHtml(e.shortCode || '')}</span>
       <div class="admin-entity-actions">
         <button class="btn btn-secondary btn-sm" onclick='adminEditEntity(${JSON.stringify(e)})' title="${t('edit')}"><i class="ph ph-pencil"></i></button>
         ${e.type !== 'holding' ? `<button class="btn btn-sm" style="color:#ef4444;" onclick="adminDeleteEntity('${e.id}','${e.name}')" title="${t('delete')}"><i class="ph ph-trash"></i></button>` : ''}
@@ -6450,8 +6450,8 @@ async function renderGoals() {
                 <strong>${escHtml(g.title)}</strong>
               </div>
               <div class="goals-card-badges">
-                <span class="goals-badge" style="background:${st?.color||'#888'}22;color:${st?.color||'#888'};border:1px solid ${st?.color||'#888'}44">${st?.label||g.status}</span>
-                <span class="goals-badge goals-badge-cat">${cat?.label||g.category}</span>
+                <span class="goals-badge" style="background:${st?.color||'#888'}22;color:${st?.color||'#888'};border:1px solid ${st?.color||'#888'}44">${escHtml(st?.label||g.status)}</span>
+                <span class="goals-badge goals-badge-cat">${escHtml(cat?.label||g.category)}</span>
               </div>
             </div>
             ${g.description ? `<p class="goals-card-desc">${escHtml(g.description.slice(0,120))}${g.description.length>120?'…':''}</p>` : ''}
@@ -6554,7 +6554,7 @@ async function openGoalForm(id = null) {
           <div class="form-group"><label class="form-label">${t('goals_targetDate')}</label>
             <input id="goalTargetDate" type="date" class="form-input" value="${g.targetDate||''}"></div>
           <div class="form-group"><label class="form-label">${t('goals_reviewDate')}</label>
-            <input id="goalReviewDate" type="date" class="form-input" value="${g.reviewDate||''}"></div>
+            <input id="goalReviewDate" type="date" class="form-input" value="${escHtml(g.reviewDate||'')}"></div>
           <div class="form-group"><label class="form-label">${t('goals_manualProgress')}</label>
             <input id="goalProgress" type="number" class="form-input" min="0" max="100" value="${g.progress||0}" placeholder="0-100" title="${t('goals_progressHint')}"></div>
         </div>
@@ -6878,7 +6878,7 @@ async function renderSettingsPanel() {
               {code:'nl', key:'settings_langNl'},
               {code:'hu', key:'settings_langHu'},
             ].filter(l => (_langConfig?.available||['de','en','fr','nl','hu']).includes(l.code)).map(l =>
-              `<button class="btn ${(window.LANG||'en')===l.code ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="switchAppLang('${l.code}')">
+              `<button class="btn ${(window.LANG||'en')===l.code ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="switchAppLang('${escHtml(l.code)}')">
                 <i class="ph ph-flag"></i> ${t(l.key)}
               </button>`
             ).join('')}
@@ -6979,8 +6979,8 @@ async function loadTmplManagement() {
       return `<tr>
         <td style="color:var(--text-subtle);font-size:.8rem"><i class="ph ${typeIcon}"></i> ${escHtml(t.type)}</td>
         <td>${escHtml(t.title)}</td>
-        <td><span class="status-badge ${statusCls[t.status]||''}">${t.status}</span></td>
-        <td style="color:var(--text-subtle)">v${t.version}</td>
+        <td><span class="status-badge ${statusCls[t.status]||''}">${escHtml(t.status)}</span></td>
+        <td style="color:var(--text-subtle)">v${escHtml(t.version)}</td>
         <td style="white-space:nowrap;text-align:right">
           <button class="btn btn-secondary btn-xs" title="${escHtml(window.t('edit'))}" onclick="tmplMgmtEdit('${escHtml(t.type)}','${t.id}')">
             <i class="ph ph-pencil"></i>
@@ -7634,8 +7634,8 @@ async function renderBreadcrumb(t) {
     if (crumbs.length <= 1) { nav.style.display = 'none'; return }
     nav.style.display = 'flex'
     nav.innerHTML = crumbs.map((c, i) => {
-      if (i === crumbs.length - 1) return `<span class="tmpl-breadcrumb-current">${c.title}</span>`
-      return `<span class="tmpl-breadcrumb-item" onclick="loadTemplateById('${c.type}','${c.id}')">${c.title}</span><span class="tmpl-breadcrumb-sep">›</span>`
+      if (i === crumbs.length - 1) return `<span class="tmpl-breadcrumb-current">${escHtml(c.title)}</span>`
+      return `<span class="tmpl-breadcrumb-item" onclick="loadTemplateById('${escHtml(c.type)}','${c.id}')">${escHtml(c.title)}</span><span class="tmpl-breadcrumb-sep">›</span>`
     }).join('')
   } catch { nav.style.display = 'none' }
 }
@@ -7678,7 +7678,7 @@ function renderAttachmentsBar(t) {
     atts.map(a => {
       const sizeKB = Math.round((a.size || 0) / 1024)
       return `<span class="tmpl-att-chip">
-        <a href="/template/${t.type}/${t.id}/attachments/${a.id}/file" target="_blank" title="${a.originalName}">${a.originalName}</a>
+        <a href="/template/${escHtml(t.type)}/${t.id}/attachments/${a.id}/file" target="_blank" title="${escHtml(a.originalName)}">${escHtml(a.originalName)}</a>
         <span class="tmpl-att-size">(${sizeKB} KB)</span>
         ${canEdit ? `<button class="tmpl-att-del" title="${escHtml(window.t('delete'))}" onclick="deleteAttachment('${t.type}','${t.id}','${a.id}')"><i class="ph ph-x"></i></button>` : ''}
       </span>`
@@ -7899,7 +7899,7 @@ function renderPickerList() {
     return `<label class="picker-row${checked ? ' checked' : ''}">
       <input type="checkbox" ${checked ? 'checked' : ''} onchange="togglePickerControl('${c.id}', this.checked)" />
       <span class="picker-id">${c.id}</span>
-      <span class="picker-title">${c.title}</span>
+      <span class="picker-title">${escHtml(c.title)}</span>
     </label>`
   }).join('')
 }
@@ -8035,7 +8035,7 @@ function _renderEntityPickerModal() {
     return `<label class="picker-row${checked ? ' checked' : ''}">
       <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleEntityPicker('${e.id}', this.checked)" />
       <span class="picker-id">${e.shortCode || e.id}</span>
-      <span class="picker-title">${e.name}</span>
+      <span class="picker-title">${escHtml(e.name)}</span>
     </label>`
   }).join('')
 
@@ -8443,7 +8443,7 @@ function renderGuidanceDoc(doc) {
     <div class="guidance-viewer-toolbar">
       <span class="guidance-viewer-title">${escHtml(doc.title)}</span>
       <span class="badge" style="background:var(--surface-raised);color:var(--text-subtle);font-size:11px;">
-        v${doc.version || 1}
+        v${escHtml(doc.version || 1)}
       </span>
       ${doc.type === 'markdown' || doc.type === 'html' ? `
         <button class="btn btn-secondary btn-sm" onclick="printGuidanceDoc('${doc.id}')" title="${t('guidance_printDocTitle')}">
@@ -9338,7 +9338,7 @@ function _renderCalUpcoming() {
     const soon = ev.date <= in30
     return `
       <div class="cal-agenda-row ${ev.date < today ? 'cal-agenda-overdue' : soon ? 'cal-agenda-soon' : ''}"
-           onclick="selectCalDay('${ev.date}')">
+           onclick="selectCalDay('${escHtml(ev.date)}')">
         <div class="cal-agenda-date">${d}</div>
         <div class="cal-chip ${cfg.cls} cal-chip-sm" title="${escHtml(cfg.label||ev.type)}">
           <i class="ph ${cfg.icon||'ph-dot'}"></i>
@@ -9394,7 +9394,7 @@ function _renderCalDayDetail(dateStr) {
         return `
           <div class="cal-detail-card ${overdue ? 'cal-detail-overdue' : ''}">
             <div class="cal-detail-header">
-              <span class="cal-chip ${cfg.cls}"><i class="ph ${cfg.icon||'ph-dot'}"></i> ${cfg.label||ev.type}</span>
+              <span class="cal-chip ${cfg.cls}"><i class="ph ${cfg.icon||'ph-dot'}"></i> ${escHtml(cfg.label||ev.type)}</span>
               ${overdue ? '<span class="cal-overdue-badge">' + t('dash_overdue') + '</span>' : ''}
             </div>
             <div class="cal-detail-label">${escHtml(ev.label)}</div>
@@ -9621,7 +9621,7 @@ async function renderRiskRegister(el) {
             <td>${escHtml(riskCatLabel(cat) || r.category)}</td>
             <td class="risk-score-cell">${r.probability} × ${r.impact} = <strong>${r.score}</strong></td>
             <td>${escHtml(riskTreatmentLabel(tr) || r.treatmentOption)}</td>
-            <td><span class="risk-status-badge risk-st-${r.status}">${st?.label || r.status}</span></td>
+            <td><span class="risk-status-badge risk-st-${escHtml(r.status)}">${escHtml(st?.label || r.status)}</span></td>
             <td>${escHtml(r.owner || '—')}</td>
             <td onclick="event.stopPropagation()" class="risk-actions">
               ${canEditRisk(r) ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openRiskModal('${r.id}')"><i class="ph ph-pencil"></i></button>` : ''}
@@ -9829,7 +9829,7 @@ async function renderRiskTreatments(el) {
             <td>${escHtml(tp.responsible || '—')}</td>
             <td>${escHtml(ouName)}</td>
             <td class="${overdue ? 'risk-overdue' : ''}">${tp.dueDate ? new Date(tp.dueDate).toLocaleDateString('en-GB') : '—'}</td>
-            <td><span class="risk-tp-status risk-tp-${tp.status}">${statusLabel[tp.status] || tp.status}</span></td>
+            <td><span class="risk-tp-status risk-tp-${escHtml(tp.status)}">${escHtml(statusLabel[tp.status] || tp.status)}</span></td>
             ${canManageRisks() ? `<td>
               <button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openTreatmentModal('${tp.riskId}','${tp.id}')">
                 <i class="ph ph-pencil"></i>
@@ -9876,7 +9876,7 @@ async function renderRiskCalendar(el) {
           <div class="cal-event ${past ? 'cal-past' : soon ? 'cal-soon' : ''}">
             <div class="cal-date">${new Date(ev.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
             <div class="cal-body">
-              <span class="cal-type-badge ${typeCls[ev.type] || ''}">${typeLabel[ev.type] || ev.type}</span>
+              <span class="cal-type-badge ${typeCls[ev.type] || ''}">${escHtml(typeLabel[ev.type] || ev.type)}</span>
               <span class="cal-label">${escHtml(ev.label)}</span>
             </div>
             <div class="cal-state">
@@ -9971,7 +9971,7 @@ async function renderRiskReports(el) {
             <td>${r.cvssScore != null ? cvssBadgeHtml(r.cvssScore) : '—'}</td>
             <td><span class="risk-badge ${RISK_LEVEL_CFG[r.riskLevel]?.cls||''}">${RISK_LEVEL_CFG[r.riskLevel]?.label||r.riskLevel||'—'}</span></td>
             <td style="font-size:.8rem;color:var(--text-muted)">${escHtml(r.scanRef||'')}</td>
-            <td style="font-size:.8rem">${(r.cveIds||[]).join(', ')||'—'}</td>
+            <td style="font-size:.8rem">${escHtml((r.cveIds||[]).join(', ')||'—')}</td>
             <td><button class="btn btn-primary btn-sm" onclick="approveRisk('${r.id}')"><i class="ph ph-check"></i> ${t('risk_approve')}</button></td>
           </tr>`).join('')}
           </tbody>
@@ -9986,9 +9986,9 @@ async function renderRiskReports(el) {
             <td>${escHtml(r.title)}</td>
             <td>${r.cvssScore != null ? cvssBadgeHtml(r.cvssScore) : '—'}</td>
             <td><span class="risk-badge ${RISK_LEVEL_CFG[r.riskLevel]?.cls||''}">${RISK_LEVEL_CFG[r.riskLevel]?.label||r.riskLevel||'—'}</span></td>
-            <td style="font-size:.8rem">${(r.cveIds||[]).join(', ')||'—'}</td>
+            <td style="font-size:.8rem">${escHtml((r.cveIds||[]).join(', ')||'—')}</td>
             <td style="text-align:center">${r.score ?? '—'}</td>
-            <td><span class="risk-status-badge risk-st-${r.status}">${RISK_STATUSES.find(x=>x.id===r.status)?.label||r.status}</span></td>
+            <td><span class="risk-status-badge risk-st-${escHtml(r.status)}">${escHtml(RISK_STATUSES.find(x=>x.id===r.status)?.label||r.status)}</span></td>
             <td style="font-size:.8rem;color:var(--text-muted)">${escHtml(r.approvedBy||'—')}</td>
           </tr>`).join('')}
           </tbody>
@@ -10087,7 +10087,7 @@ async function openRiskDetail(id) {
           <div class="risk-detail-row"><label>${t('risk_inherentShort')}</label><span>${riskRatingHtml(riskRatingOf(r.inherentProbability, r.inherentImpact))}</span></div>
           <div class="risk-detail-row"><label>${t('risk_targetShort')}</label><span>${riskRatingHtml(riskRatingOf(r.targetProbability, r.targetImpact))}</span></div>` : ''}
           <div class="risk-detail-row"><label>${t('risk_treatmentOpt')}</label><span>${escHtml(riskTreatmentLabel(tr)||r.treatmentOption)}</span></div>
-          <div class="risk-detail-row"><label>${t('col_status')}</label><span class="risk-status-badge risk-st-${r.status}">${st?.label||r.status}</span></div>
+          <div class="risk-detail-row"><label>${t('col_status')}</label><span class="risk-status-badge risk-st-${escHtml(r.status)}">${escHtml(st?.label||r.status)}</span></div>
           <div class="risk-detail-row"><label>${t('ui_owner')}</label><span>${escHtml(r.owner||'—')}</span></div>
           <div class="risk-detail-row"><label>${t('col_dueDate')}</label><span>${r.dueDate ? new Date(r.dueDate).toLocaleDateString() : '—'}</span></div>
           <div class="risk-detail-row"><label>${t('ui_review')}</label><span>${r.reviewDate ? new Date(r.reviewDate).toLocaleDateString('de-DE') : '—'}</span></div>
@@ -10109,7 +10109,7 @@ async function openRiskDetail(id) {
                 return `<div class="risk-tp-card">
                   <div class="risk-tp-header">
                     <strong>${escHtml(tp.title)}</strong>
-                    <span class="risk-tp-status risk-tp-${tp.status}">${tpStatusLabel[tp.status]||tp.status}</span>
+                    <span class="risk-tp-status risk-tp-${escHtml(tp.status)}">${escHtml(tpStatusLabel[tp.status]||tp.status)}</span>
                     ${canManageRisks() ? `
                       <button class="btn btn-secondary btn-sm" onclick="openTreatmentModal('${r.id}','${tp.id}')"><i class="ph ph-pencil"></i></button>
                       <button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteTreatment('${r.id}','${tp.id}')"><i class="ph ph-trash"></i></button>
@@ -10251,7 +10251,7 @@ async function openRiskModal(id) {
       const icon = n.type === 'holding' ? 'ph-building' : 'ph-office-chair'
       const children = (n.children||[]).length ? `<div class="ent-tree-children">${buildEntityTree(n.children, depth+1)}</div>` : ''
       return `
-        <div class="ent-tree-node" data-id="${n.id}" data-type="${n.type}">
+        <div class="ent-tree-node" data-id="${n.id}" data-type="${escHtml(n.type)}">
           <label class="ent-tree-label ${n.type === 'holding' ? 'ent-tree-holding' : ''}">
             <input type="checkbox" class="ent-tree-cb" value="${n.id}"
               data-children='${JSON.stringify(childIds)}'
@@ -10385,11 +10385,11 @@ async function openRiskModal(id) {
             <div class="risk-form-row" style="margin-top:10px;">
               <div class="risk-form-field">
                 <label class="form-label">${t('col_dueDate')}</label>
-                <input id="rModalDue" class="form-input" type="date" value="${risk?.dueDate||''}" />
+                <input id="rModalDue" class="form-input" type="date" value="${escHtml(risk?.dueDate||'')}" />
               </div>
               <div class="risk-form-field">
                 <label class="form-label">${t('risk_reviewDate')}</label>
-                <input id="rModalReview" class="form-input" type="date" value="${risk?.reviewDate||''}" />
+                <input id="rModalReview" class="form-input" type="date" value="${escHtml(risk?.reviewDate||'')}" />
               </div>
             </div>
           </div>
@@ -10607,7 +10607,7 @@ async function openTreatmentModal(riskId, tpOrId) {
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
               <label class="form-label">${t('col_dueDate')}</label>
-              <input id="tpDue" class="form-input" type="date" value="${tp?.dueDate||''}" />
+              <input id="tpDue" class="form-input" type="date" value="${escHtml(tp?.dueDate||'')}" />
             </div>
             <div>
               <label class="form-label">${t('col_status')}</label>
@@ -10874,7 +10874,7 @@ async function switchGdprTab(tab) {
     if (tab === 'dsb')       await renderGdprDsb(content)
   } catch (e) {
     if (content.isConnected)
-      content.innerHTML = `<p style="color:var(--danger-text);padding:16px"><i class="ph ph-warning"></i> Error loading tab: ${e.message}</p>`
+      content.innerHTML = `<p style="color:var(--danger-text);padding:16px"><i class="ph ph-warning"></i> Error loading tab: ${escHtml(e.message)}</p>`
   }
 }
 
@@ -10933,7 +10933,7 @@ async function renderGdprVvt(el) {
             <td style="font-size:.78rem">${escHtml(lb?.label || v.legalBasis)}</td>
             <td style="font-size:.78rem">${escHtml(cats || '—')}</td>
             <td>${v.isHighRisk ? '<span class="gdpr-highrisk-badge"><i class="ph ph-warning"></i> ' + t('gdpr_highRisk') + '</span>' : '<span style="color:var(--text-subtle);font-size:.78rem">—</span>'}</td>
-            <td><span class="gdpr-status gdpr-st-${v.status}">${GDPR_VVT_STATUSES.find(s=>s.id===v.status)?.label || v.status}</span></td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(v.status)}">${escHtml(GDPR_VVT_STATUSES.find(s=>s.id===v.status)?.label || v.status)}</span></td>
             <td style="font-size:.78rem">${escHtml(v.owner || '—')}</td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
               ${gdprCanEdit() ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openVvtForm('${v.id}')"><i class="ph ph-pencil"></i></button>` : ''}
@@ -11092,10 +11092,10 @@ async function renderGdprAv(el) {
           const st = GDPR_AV_STATUSES.find(s => s.id === a.status)
           return `<tr class="gdpr-row" onclick="openAvForm('${a.id}')">
             <td><strong>${escHtml(a.processorName)}</strong><br><small style="color:var(--text-subtle)">${escHtml(a.title)}</small></td>
-            <td><span class="gdpr-status gdpr-st-${a.status}">${st?.label || a.status}</span></td>
-            <td style="font-size:.78rem">${a.signatureDate || '—'}</td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(a.status)}">${escHtml(st?.label || a.status)}</span></td>
+            <td style="font-size:.78rem">${escHtml(a.signatureDate || '—')}</td>
             <td><span style="font-size:.78rem">${cl}/8</span> ${cl === 8 ? '<i class="ph ph-check-circle" style="color:#4ade80"></i>' : ''}</td>
-            <td style="font-size:.78rem">${a.effectiveUntil || '—'}</td>
+            <td style="font-size:.78rem">${escHtml(a.effectiveUntil || '—')}</td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
               ${a.filePath ? `<a href="/gdpr/av/${a.id}/file" target="_blank" class="btn btn-secondary btn-sm" title="${escHtml(t('ui_openDocument'))}"><i class="ph ph-file-pdf"></i></a>` : ''}
               ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openAvForm('${a.id}')"><i class="ph ph-pencil"></i></button>` : ''}
@@ -11151,9 +11151,9 @@ async function openAvForm(id = null) {
         <div class="form-group"><label class="form-label">${t('col_status')}</label>
           <select id="avStatus" class="select">${stOpts}</select></div>
         <div class="form-group"><label class="form-label">${t('ui_signedOn')}</label>
-          <input id="avSignDate" type="date" class="form-input" value="${a.signatureDate||''}"></div>
+          <input id="avSignDate" type="date" class="form-input" value="${escHtml(a.signatureDate||'')}"></div>
         <div class="form-group"><label class="form-label">${t('ui_validUntil')}</label>
-          <input id="avEffUntil" type="date" class="form-input" value="${a.effectiveUntil||''}"></div>
+          <input id="avEffUntil" type="date" class="form-input" value="${escHtml(a.effectiveUntil||'')}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_art28Para3Checklist')}</label>
           <div class="gdpr-checklist">${checklistHtml}</div></div>
         <div class="form-group"><label class="form-label">${t('ui_notes')}</label>
@@ -11243,7 +11243,7 @@ async function renderGdprDsfa(el) {
             <td style="font-size:.78rem">${escHtml(d.linkedVvtId || '—')}</td>
             <td><span class="gdpr-risk gdpr-risk-${d.residualRisk}">${GDPR_RISK_LEVELS.find(l=>l.id===d.residualRisk)?.label || d.residualRisk}</span></td>
             <td>${d.dpoConsulted ? '<i class="ph ph-check-circle" style="color:#4ade80"></i>' : '<i class="ph ph-x-circle" style="color:#f87171"></i>'}</td>
-            <td><span class="gdpr-status gdpr-st-${d.status}">${st?.label || d.status}</span></td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(d.status)}">${escHtml(st?.label || d.status)}</span></td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
               ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" onclick="openDsfaForm('${d.id}')"><i class="ph ph-pencil"></i></button>` : ''}
               ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('dsfa','${d.id}')"><i class="ph ph-trash"></i></button>` : ''}
@@ -11440,7 +11440,7 @@ async function renderGdprIncidents(el) {
             <td>${i.saNotificationRequired && !i.saNotifiedAt ? gdprTimerHtml(i.discoveredAt) : '—'}</td>
             <td><span class="gdpr-risk gdpr-risk-${i.riskLevel}">${GDPR_RISK_LEVELS.find(l=>l.id===i.riskLevel)?.label || i.riskLevel}</span></td>
             <td>${i.saNotifiedAt ? `<i class="ph ph-check-circle" style="color:#4ade80"></i> ${new Date(i.saNotifiedAt).toLocaleDateString('en-GB')}` : (i.saNotificationRequired ? '<i class="ph ph-x-circle" style="color:#f87171"></i> ' + t('gdpr_pending') : '—')}</td>
-            <td><span class="gdpr-status gdpr-st-${i.status}">${st?.label || i.status}</span></td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(i.status)}">${escHtml(st?.label || i.status)}</span></td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
               ${gdprCanAudit() ? `<button class="btn btn-secondary btn-sm" onclick="openIncidentForm('${i.id}')"><i class="ph ph-pencil"></i></button>` : ''}
               ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('incidents','${i.id}')"><i class="ph ph-trash"></i></button>` : ''}
@@ -11585,7 +11585,7 @@ async function renderGdprDsar(el) {
             <td>${escHtml(d.dataSubjectName)}<br><small style="color:var(--text-subtle)">${escHtml(d.dataSubjectEmail)}</small></td>
             <td style="font-size:.78rem">${d.receivedAt ? new Date(d.receivedAt).toLocaleDateString('en-GB') : '—'}</td>
             <td style="font-size:.78rem;${isOver ? 'color:#f87171;font-weight:600' : ''}">${deadline ? new Date(deadline).toLocaleDateString('en-GB') : '—'}${isOver ? ' <i class="ph ph-warning" style="color:#f87171"></i>' : ''}</td>
-            <td><span class="gdpr-status gdpr-st-${d.status}">${st?.label || d.status}</span></td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(d.status)}">${escHtml(st?.label || d.status)}</span></td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
               ${gdprCanEdit() ? `<button class="btn btn-secondary btn-sm" onclick="openDsarForm('${d.id}')"><i class="ph ph-pencil"></i></button>` : ''}
               ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('dsar','${d.id}')"><i class="ph ph-trash"></i></button>` : ''}
@@ -11703,9 +11703,9 @@ async function renderGdprToms(el) {
           return `<tr class="gdpr-row" onclick="openTomForm('${t.id}')">
             <td><strong>${escHtml(t.title)}</strong><br><small style="color:var(--text-subtle)">${escHtml(t.description?.slice(0,60) || '')}</small></td>
             <td style="font-size:.78rem">${escHtml(cat?.label || t.category)}</td>
-            <td><span class="gdpr-status gdpr-st-${t.status}">${st?.label || t.status}</span></td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(t.status)}">${escHtml(st?.label || t.status)}</span></td>
             <td style="font-size:.78rem">${escHtml(t.owner || '—')}</td>
-            <td style="font-size:.78rem">${t.reviewDate || '—'}</td>
+            <td style="font-size:.78rem">${escHtml(t.reviewDate || '—')}</td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
               ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" onclick="openTomForm('${t.id}')"><i class="ph ph-pencil"></i></button>` : ''}
               ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('toms','${t.id}')"><i class="ph ph-trash"></i></button>` : ''}
@@ -11759,7 +11759,7 @@ async function openTomForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_retentionRule')}</label>
           <input id="tomRetention" class="form-input" value="${escHtml(tom.retentionRule||'')}" placeholder="${escHtml(t('ph_retentionEg'))}"></div>
         <div class="form-group"><label class="form-label">${t('ui_reviewDate')}</label>
-          <input id="tomReview" type="date" class="form-input" value="${tom.reviewDate||''}"></div>
+          <input id="tomReview" type="date" class="form-input" value="${escHtml(tom.reviewDate||'')}"></div>
         ${_gdprEntities.length ? `<div class="form-group"><label class="form-label">${t('ui_applicableEntities')}</label>
           <div>${entityChecks}</div></div>` : ''}
         ${renderLinksBlock('tom', tom.linkedControls||[], tom.linkedPolicies||[])}
@@ -12048,7 +12048,7 @@ async function switchTrainingTab(tab) {
     if (tab === 'plan')      await renderTrainingPlan(el)
     if (tab === 'evidence')  await renderTrainingEvidence(el)
   } catch(e) {
-    el.innerHTML = `<p style="color:var(--danger-text);padding:24px"><i class="ph ph-warning"></i> ${t('err_load')}: ${e.message}. ${t('err_restartServer')}</p>`
+    el.innerHTML = `<p style="color:var(--danger-text);padding:24px"><i class="ph ph-warning"></i> ${t('err_load')}: ${escHtml(e.message)}. ${t('err_restartServer')}</p>`
   }
 }
 
@@ -12081,9 +12081,9 @@ async function renderTrainingOverview(el) {
           const diff = i.dueDate ? Math.ceil((new Date(i.dueDate)-new Date())/86400000) : null
           const urgency = i.overdue ? 'overdue' : diff !== null && diff <= 7 ? 'due-soon' : ''
           return `<div class="training-overview-item ${urgency}">
-            <span class="badge ${TRAINING_STATUS_CLS[i.status]||''}">${TRAINING_STATUS_LABELS[i.status]||i.status}</span>
+            <span class="badge ${TRAINING_STATUS_CLS[i.status]||''}">${escHtml(TRAINING_STATUS_LABELS[i.status]||i.status)}</span>
             <strong>${escHtml(i.title)}</strong>
-            <span style="color:var(--text-subtle);font-size:.78rem">${TRAINING_CAT_LABELS[i.category]||i.category}</span>
+            <span style="color:var(--text-subtle);font-size:.78rem">${escHtml(TRAINING_CAT_LABELS[i.category]||i.category)}</span>
             <span class="training-due ${urgency}">${i.dueDate ? (i.overdue ? `${t('training_overdueSince')} ${i.dueDate}` : `${t('trn_dueLabel')}: ${i.dueDate}`) : '—'}</span>
             <span style="color:var(--text-subtle);font-size:.78rem">${escHtml(i.assignees||'—')}</span>
           </div>`
@@ -12132,9 +12132,9 @@ function renderTrainingTable(list, isAdmin, canEdit) {
         ${list.map(i => `
           <tr class="${i.overdue?'training-row-overdue':''}">
             <td><strong>${escHtml(i.title)}</strong></td>
-            <td><span class="training-cat-chip">${TRAINING_CAT_LABELS[i.category]||i.category}</span></td>
-            <td><span class="badge ${TRAINING_STATUS_CLS[i.status]||''}">${TRAINING_STATUS_LABELS[i.status]||i.status}</span></td>
-            <td class="${i.overdue?'training-overdue-text':''}">${i.dueDate||'—'}</td>
+            <td><span class="training-cat-chip">${escHtml(TRAINING_CAT_LABELS[i.category]||i.category)}</span></td>
+            <td><span class="badge ${TRAINING_STATUS_CLS[i.status]||''}">${escHtml(TRAINING_STATUS_LABELS[i.status]||i.status)}</span></td>
+            <td class="${i.overdue?'training-overdue-text':''}">${escHtml(i.dueDate||'—')}</td>
             <td>${i.mandatory?'<i class="ph ph-check-circle" style="color:var(--success-text)"></i>':'—'}</td>
             <td style="font-size:.78rem;color:var(--text-subtle)">${escHtml(i.assignees||'—')}</td>
             ${canEdit ? `<td>
@@ -12171,8 +12171,8 @@ async function renderTrainingEvidence(el) {
         <div class="training-evidence-card">
           <div class="training-evidence-header">
             <strong>${escHtml(i.title)}</strong>
-            <span class="training-cat-chip">${TRAINING_CAT_LABELS[i.category]||i.category}</span>
-            <span style="color:var(--text-subtle);font-size:.78rem">${t('ack_statusCompleted')}: ${i.completedDate||'—'}</span>
+            <span class="training-cat-chip">${escHtml(TRAINING_CAT_LABELS[i.category]||i.category)}</span>
+            <span style="color:var(--text-subtle);font-size:.78rem">${t('ack_statusCompleted')}: ${escHtml(i.completedDate||'—')}</span>
           </div>
           <div class="training-evidence-meta">
             <span><i class="ph ph-user"></i> ${escHtml(i.instructor||'—')}</span>
@@ -12237,11 +12237,11 @@ async function openTrainingForm(id) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('col_dueDate')}</label>
-              <input id="tmDue" type="date" class="form-input" value="${item?.dueDate||''}" style="color-scheme:dark">
+              <input id="tmDue" type="date" class="form-input" value="${escHtml(item?.dueDate||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('trn_completedOn')}</label>
-              <input id="tmDone" type="date" class="form-input" value="${item?.completedDate||''}" style="color-scheme:dark">
+              <input id="tmDone" type="date" class="form-input" value="${escHtml(item?.completedDate||'')}" style="color-scheme:dark">
             </div>
           </div>
           <div class="form-row">
@@ -12390,7 +12390,7 @@ async function switchLegalTab(tab) {
     if (tab === 'ndas')      await renderLegalNdas(content)
     if (tab === 'policies')  await renderLegalPolicies(content)
   } catch (e) {
-    content.innerHTML = `<p style="color:var(--danger-text);padding:16px">Error: ${e.message}</p>`
+    content.innerHTML = `<p style="color:var(--danger-text);padding:16px">Error: ${escHtml(e.message)}</p>`
   }
 }
 
@@ -12414,7 +12414,7 @@ async function renderLegalContracts(el) {
           <td><strong>${escHtml(c.title)}</strong></td>
           <td>${LEGAL_CONTRACT_TYPE_LABELS[c.contractType]||c.contractType}</td>
           <td>${escHtml(c.counterparty)}</td>
-          <td><span class="status-badge status-${c.status}">${LEGAL_CONTRACT_STATUS_LABELS[c.status]||c.status}</span></td>
+          <td><span class="status-badge status-${escHtml(c.status)}">${escHtml(LEGAL_CONTRACT_STATUS_LABELS[c.status]||c.status)}</span></td>
           <td class="${c.endDate && new Date(c.endDate) < new Date(Date.now()+60*86400000) ? 'text-warning' : ''}">${fmtDate(c.endDate)}</td>
           <td>${escHtml(c.owner||'—')}</td>
           <td style="text-align:center">${c.attachments?.length ? `<span class="gdpr-filter-count" style="font-size:.75rem">${c.attachments.length}</span>` : '—'}</td>
@@ -12448,7 +12448,7 @@ async function renderLegalNdas(el) {
           <td><strong>${escHtml(n.title)}</strong></td>
           <td>${LEGAL_NDA_TYPE_LABELS[n.ndaType]||n.ndaType}</td>
           <td>${escHtml(n.counterparty)}</td>
-          <td><span class="status-badge status-${n.status}">${LEGAL_NDA_STATUS_LABELS[n.status]||n.status}</span></td>
+          <td><span class="status-badge status-${escHtml(n.status)}">${escHtml(LEGAL_NDA_STATUS_LABELS[n.status]||n.status)}</span></td>
           <td>${fmtDate(n.signingDate)}</td>
           <td class="${n.expiryDate && new Date(n.expiryDate) < new Date(Date.now()+30*86400000) ? 'text-warning' : ''}">${fmtDate(n.expiryDate)}</td>
           <td style="text-align:center">${n.attachments?.length ? `<span class="gdpr-filter-count" style="font-size:.75rem">${n.attachments.length}</span>` : '—'}</td>
@@ -12481,8 +12481,8 @@ async function renderLegalPolicies(el) {
         <tr>
           <td><strong>${escHtml(p.title)}</strong>${p.url ? ` <a href="${escHtml(p.url)}" target="_blank" style="font-size:.8rem"><i class="ph ph-link"></i></a>` : ''}</td>
           <td>${LEGAL_POLICY_TYPE_LABELS[p.policyType]||p.policyType}</td>
-          <td><span class="status-badge status-${p.status}">${LEGAL_POLICY_STATUS_LABELS[p.status]||p.status}</span></td>
-          <td>v${p.version}</td>
+          <td><span class="status-badge status-${escHtml(p.status)}">${escHtml(LEGAL_POLICY_STATUS_LABELS[p.status]||p.status)}</span></td>
+          <td>v${escHtml(p.version)}</td>
           <td>${fmtDate(p.publishedAt)}</td>
           <td class="${p.nextReviewDate && new Date(p.nextReviewDate) < new Date() ? 'text-danger' : ''}">${fmtDate(p.nextReviewDate)}</td>
           <td style="text-align:center">${p.attachments?.length ? `<span class="gdpr-filter-count" style="font-size:.75rem">${p.attachments.length}</span>` : '—'}</td>
@@ -12654,7 +12654,7 @@ async function openLegalForm(type, id) {
           <div class="form-group"><label class="form-label">${t('legal_publishedOn')}</label>
             <input id="lp_pub" type="date" class="form-input" value="${item?.publishedAt||''}" style="color-scheme:dark"></div>
           <div class="form-group"><label class="form-label">${t('legal_nextReview')}</label>
-            <input id="lp_review" type="date" class="form-input" value="${item?.nextReviewDate||''}" style="color-scheme:dark"></div>
+            <input id="lp_review" type="date" class="form-input" value="${escHtml(item?.nextReviewDate||'')}" style="color-scheme:dark"></div>
         </div>
         <div class="form-group"><label class="form-label">${t('ui_ownerResp')}</label>
           <input id="lp_owner" class="form-input" value="${escHtml(item?.owner||'')}" placeholder="${t('ui_ownerRespPh')}"></div>
@@ -12978,7 +12978,7 @@ async function switchAssetsTab(tab) {
     if (tab === 'by-class')     await renderAssetsByClass(el)
     if (tab === 'dependencies') await renderAssetsGraph(el)
   } catch(e) {
-    el.innerHTML = `<p style="color:var(--danger-text);padding:24px"><i class="ph ph-warning"></i> Error: ${e.message}</p>`
+    el.innerHTML = `<p style="color:var(--danger-text);padding:24px"><i class="ph ph-warning"></i> Error: ${escHtml(e.message)}</p>`
   }
 }
 
@@ -13054,7 +13054,7 @@ function _renderAssetsTable(list, canEdit, isAdmin, entMap) {
       <tbody>
         ${list.map(a => {
           const eolDays = a.endOfLifeDate ? Math.ceil((new Date(a.endOfLifeDate) - now) / 86400000) : null
-          const eolStr  = a.endOfLifeDate ? (eolDays < 0 ? `<span style="color:#f87171">${t('ack_statusExpired')}</span>` : eolDays <= 90 ? `<span style="color:#f0b429">${a.endOfLifeDate}</span>` : a.endOfLifeDate) : '—'
+          const eolStr  = a.endOfLifeDate ? (eolDays < 0 ? `<span style="color:#f87171">${t('ack_statusExpired')}</span>` : eolDays <= 90 ? `<span style="color:#f0b429">${escHtml(a.endOfLifeDate)}</span>` : escHtml(a.endOfLifeDate)) : '—'
           return `<tr>
             <td><strong>${escHtml(a.name)}</strong><br><span style="font-size:.75rem;color:var(--text-subtle)">${escHtml(assetCatLabel(a.category))}</span></td>
             <td style="font-size:.78rem;color:var(--text-subtle)">${escHtml(a.type ? assetTypeLabel(a.type) : '—')}</td>
@@ -13581,7 +13581,7 @@ async function openAssetForm(id) {
             </div>
             <div class="form-group">
               <label class="form-label">${t('asset_eolDate')}</label>
-              <input id="asEol" type="date" class="form-input" value="${item?.endOfLifeDate||''}" style="color-scheme:dark">
+              <input id="asEol" type="date" class="form-input" value="${escHtml(item?.endOfLifeDate||'')}" style="color-scheme:dark">
             </div>
           </div>
         </div>
@@ -14408,11 +14408,11 @@ async function openNis2IncidentForm(id) {
       </p>
       <div class="form-group">
         <label class="form-label">${escHtml(t('nis2_reportContent'))}</label>
-        <textarea id="nis2Report_${p.phase}" class="form-input" rows="4"
+        <textarea id="nis2Report_${escHtml(p.phase)}" class="form-input" rows="4"
           ${canEdit ? '' : 'readonly'}>${escHtml(report.content || '')}</textarea>
       </div>
       ${canEdit ? `<div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" onclick="saveNis2Report('${incident.id}','${p.phase}')">
+        <button class="btn btn-secondary btn-sm" onclick="saveNis2Report('${incident.id}','${escHtml(p.phase)}')">
           <i class="ph ph-floppy-disk"></i> ${escHtml(t('nis2_saveReport'))}
         </button>
         ${!p.submittedAt ? `<button class="btn btn-primary btn-sm" onclick="submitNis2Phase('${incident.id}','${p.phase}')">
@@ -14765,11 +14765,11 @@ async function openGovReviewForm(id = null) {
           </div>
           <div>
             <label class="form-label">${t('ui_date')}</label>
-            <input id="grDate" type="date" class="input" value="${review.date||''}">
+            <input id="grDate" type="date" class="input" value="${escHtml(review.date||'')}">
           </div>
           <div>
             <label class="form-label">${t('gov_nextReview')}</label>
-            <input id="grNextDate" type="date" class="input" value="${review.nextReviewDate||''}">
+            <input id="grNextDate" type="date" class="input" value="${escHtml(review.nextReviewDate||'')}">
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
@@ -14925,11 +14925,11 @@ async function openGovActionForm(id = null) {
           </div>
           <div>
             <label class="form-label">${t('ui_dueDate')}</label>
-            <input id="gaDue" type="date" class="input" value="${action.dueDate||''}">
+            <input id="gaDue" type="date" class="input" value="${escHtml(action.dueDate||'')}">
           </div>
           <div>
             <label class="form-label">${t('ui_completedOn')}</label>
-            <input id="gaCompleted" type="date" class="input" value="${action.completedDate||''}">
+            <input id="gaCompleted" type="date" class="input" value="${escHtml(action.completedDate||'')}">
           </div>
         </div>
         <label class="form-label" style="margin-top:8px">${t('gov_progress')}</label>
@@ -15018,7 +15018,7 @@ async function openGovMeetingForm(id = null) {
           </div>
           <div>
             <label class="form-label">${t('ui_date')}</label>
-            <input id="gmDate" type="date" class="input" value="${meeting.date||''}">
+            <input id="gmDate" type="date" class="input" value="${escHtml(meeting.date||'')}">
           </div>
           <div>
             <label class="form-label">${t('gov_nextMeeting')}</label>
@@ -15455,12 +15455,12 @@ async function renderBcmPlans(el) {
           ${rows.length ? rows.map(p => {
             const overdue = p.nextTest && p.nextTest < today
             return `<tr class="${overdue?'overdue':''}">
-              <td><strong>${escHtml(p.title)}</strong><br><small style="color:var(--text-subtle)">${BCM_PLAN_TYPE_LABELS[p.type]||p.type} · v${escHtml(p.version||'1.0')}</small></td>
-              <td>${BCM_PLAN_TYPE_LABELS[p.type]||p.type}</td>
+              <td><strong>${escHtml(p.title)}</strong><br><small style="color:var(--text-subtle)">${escHtml(BCM_PLAN_TYPE_LABELS[p.type]||p.type)} · v${escHtml(p.version||'1.0')}</small></td>
+              <td>${escHtml(BCM_PLAN_TYPE_LABELS[p.type]||p.type)}</td>
               <td>${escHtml(p.planOwner)}</td>
               <td>${bcmStatusBadge(p.status)}</td>
-              <td>${p.lastTested||'—'}</td>
-              <td class="${overdue?'bcm-overdue':''}">${p.nextTest||'—'}${overdue?` <i class="ph ph-warning-circle" title="${escHtml(t('bcm_overdue'))}"></i>`:''}</td>
+              <td>${escHtml(p.lastTested||'—')}</td>
+              <td class="${overdue?'bcm-overdue':''}">${escHtml(p.nextTest||'—')}${overdue?` <i class="ph ph-warning-circle" title="${escHtml(t('bcm_overdue'))}"></i>`:''}</td>
               <td>${bcmResultBadge(p.testResult)}</td>
               <td style="white-space:nowrap">
                 ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openPlanForm('${p.id}')"><i class="ph ph-pencil"></i></button>` : ''}
@@ -15564,11 +15564,11 @@ async function openPlanForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('bcm_lastTest')}</label>
-              <input id="planLastTested" type="date" class="form-input" value="${item?.lastTested||''}" style="color-scheme:dark">
+              <input id="planLastTested" type="date" class="form-input" value="${escHtml(item?.lastTested||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('bcm_nextTest')}</label>
-              <input id="planNextTest" type="date" class="form-input" value="${item?.nextTest||''}" style="color-scheme:dark">
+              <input id="planNextTest" type="date" class="form-input" value="${escHtml(item?.nextTest||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('bcm_testResult')}</label>
@@ -15674,8 +15674,8 @@ async function renderBcmExercises(el) {
         ${list.length ? list.map(e => `
           <tr>
             <td><strong>${escHtml(e.title)}</strong></td>
-            <td>${BCM_EXERCISE_TYPE_LABELS[e.type]||e.type}</td>
-            <td>${e.date||'—'}</td>
+            <td>${escHtml(BCM_EXERCISE_TYPE_LABELS[e.type]||e.type)}</td>
+            <td>${escHtml(e.date||'—')}</td>
             <td>${escHtml(e.conductor)}</td>
             <td>${bcmResultBadge(e.result)}</td>
             <td>${e.linkedPlanId ? escHtml(planMap[e.linkedPlanId]||e.linkedPlanId) : '—'}</td>
@@ -15730,7 +15730,7 @@ async function openExerciseForm(id = null) {
             </div>
             <div class="form-group">
               <label class="form-label">${t('ui_date')}</label>
-              <input id="exDate" type="date" class="form-input" value="${item?.date||''}" style="color-scheme:dark">
+              <input id="exDate" type="date" class="form-input" value="${escHtml(item?.date||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('bcm_result')}</label>
@@ -16017,7 +16017,7 @@ async function switchSuppliersTab(tab) {
               <td>${supStatusBadge(s.status)}</td>
               <td>${supTriageBadge(s.triageResult)}</td>
               <td>${escHtml(s.country || '—')}</td>
-              <td class="${overdue ? 'bcm-overdue' : ''}">${s.nextAuditDate || '—'}${overdue ? ' <i class="ph ph-warning-circle" title="' + escHtml(t('bcm_overdue')) + '"></i>' : ''}</td>
+              <td class="${overdue ? 'bcm-overdue' : ''}">${escHtml(s.nextAuditDate || '—')}${overdue ? ' <i class="ph ph-warning-circle" title="' + escHtml(t('bcm_overdue')) + '"></i>' : ''}</td>
               <td>${escHtml(SUP_AUDIT_LABELS[s.auditResult] || s.auditResult || '—')}</td>
               <td style="white-space:nowrap">
                 <button class="btn btn-secondary btn-xs" title="${escHtml(t('sup_selfAssessments'))}" onclick="openSupplierAssessments('${s.id}')"><i class="ph ph-clipboard-text"></i></button>
@@ -16195,7 +16195,7 @@ async function openSupplierForm(id = null) {
             </div>
             <div class="form-group">
               <label class="form-label">${t('sup_nextAudit')}</label>
-              <input id="supNextAudit" type="date" class="form-input" value="${item?.nextAuditDate || ''}" style="color-scheme:dark">
+              <input id="supNextAudit" type="date" class="form-input" value="${escHtml(item?.nextAuditDate || '')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('sup_auditResult')}</label>
@@ -16372,7 +16372,7 @@ async function openSupplierAssessments(supplierId) {
       <td>${langFlag} ${escHtml(a.title)}</td>
       <td>${STATUS_BADGE[a.status] || escHtml(a.status)}</td>
       <td>${scoreHtml}</td>
-      <td>${a.dueDate || '—'}</td>
+      <td>${escHtml(a.dueDate || '—')}</td>
       <td>${a.submittedAt ? new Date(a.submittedAt).toLocaleDateString('de-DE') : '—'}</td>
       <td style="white-space:nowrap">
         ${a.status === 'pending' ? `<button class="btn btn-secondary btn-xs" title="${escHtml(t('sup_copyLink'))}" data-token="${a.token}" onclick="copyAssessmentLink(this)"><i class="ph ph-link"></i></button>` : ''}
@@ -16689,7 +16689,7 @@ async function _renderDistributionList(container, mode) {
             <td>${escHtml(d.targetGroup || '–')}</td>
             <td>${d.dueDate ? new Date(d.dueDate).toLocaleDateString('de-DE') : '–'}</td>
             <td style="min-width:140px">${progressHtml}</td>
-            <td><span class="status-badge" style="background:${statusColor[d.status]||'#666'}20;color:${statusColor[d.status]||'#666'};border:1px solid ${statusColor[d.status]||'#666'}40">${statusLabel[d.status]||d.status}</span></td>
+            <td><span class="status-badge" style="background:${statusColor[d.status]||'#666'}20;color:${statusColor[d.status]||'#666'};border:1px solid ${statusColor[d.status]||'#666'}40">${escHtml(statusLabel[d.status]||d.status)}</span></td>
             <td style="font-size:12px;color:var(--text-muted)">${new Date(d.createdAt).toLocaleDateString('de-DE')}</td>
             <td style="white-space:nowrap">
               <button class="btn btn-secondary btn-sm" onclick="openDistributionDetail('${d.id}')"><i class="ph ph-eye"></i></button>
@@ -16985,8 +16985,8 @@ async function renderPolicyAckSettings() {
           <label style="display:flex;align-items:flex-start;gap:14px;padding:16px;border:2px solid ${current===opt.val?'var(--brand-color)':'var(--border-color)'};border-radius:8px;cursor:pointer;background:${current===opt.val?'var(--brand-color)18':'transparent'}">
             <input type="radio" name="ackMode" value="${opt.val}" ${current===opt.val?'checked':''} style="margin-top:3px;accent-color:var(--brand-color)"/>
             <div>
-              <div style="font-weight:600"><i class="ph ${opt.icon}"></i> ${opt.title}</div>
-              <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${opt.desc}</div>
+              <div style="font-weight:600"><i class="ph ${opt.icon}"></i> ${escHtml(opt.title)}</div>
+              <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${escHtml(opt.desc)}</div>
             </div>
           </label>
         `).join('')}

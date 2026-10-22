@@ -170,11 +170,11 @@ router.get('/supplier-assessment/:token', (req, res) => {
             <label class="q-text">${escapeHtml(q.text)}</label>
             <div class="q-yesno">
               <label class="radio-opt">
-                <input type="radio" name="${q.id}" value="yes" required />
+                <input type="radio" name="${escapeHtml(q.id)}" value="yes" required />
                 <span>${u.yes}</span>
               </label>
               <label class="radio-opt">
-                <input type="radio" name="${q.id}" value="no" />
+                <input type="radio" name="${escapeHtml(q.id)}" value="no" />
                 <span>${u.no}</span>
               </label>
             </div>
@@ -183,14 +183,14 @@ router.get('/supplier-assessment/:token', (req, res) => {
       if (q.type === 'textarea') {
         return `
           <div class="question">
-            <label class="q-text" for="${q.id}">${escapeHtml(q.text)}</label>
-            <textarea id="${q.id}" name="${q.id}" rows="4" class="q-textarea"></textarea>
+            <label class="q-text" for="${escapeHtml(q.id)}">${escapeHtml(q.text)}</label>
+            <textarea id="${escapeHtml(q.id)}" name="${escapeHtml(q.id)}" rows="4" class="q-textarea"></textarea>
           </div>`
       }
       return `
         <div class="question">
-          <label class="q-text" for="${q.id}">${escapeHtml(q.text)}</label>
-          <input type="text" id="${q.id}" name="${q.id}" class="q-input" />
+          <label class="q-text" for="${escapeHtml(q.id)}">${escapeHtml(q.text)}</label>
+          <input type="text" id="${escapeHtml(q.id)}" name="${escapeHtml(q.id)}" class="q-input" />
         </div>`
     }).join('')
 
