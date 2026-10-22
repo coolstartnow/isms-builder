@@ -7410,74 +7410,108 @@ function loadTemplate(t) {
   if (btnChild) btnChild.style.display = canMove ? '' : 'none'
   const btnMove = dom('btnMovePage')
   if (btnMove) btnMove.style.display = canMove ? '' : 'none'
-  setupAiDraftControls(canMove, t.language)
+  setupAiDraftControls(canMove)
 }
 
 // ── AI Policy Assistant (Discussion #87) ─────────────────────────────────────
 //
-// Sprachauswahl bewusst NICHT als feste DE/EN/FR/NL-Liste: die bei der
-// Installation gesetzte Sprache ist die Hauptsprache der Organisation
-// (_langConfig.default, dasselbe Feld wie bei der Login-Sprachauswahl).
-// Als einzige Zusatzoption gibt es Englisch, falls die Hauptsprache nicht
-// bereits Englisch ist — keine große Sprachliste nötig. Sind beide identisch
-// (Hauptsprache = Englisch), gibt es nur eine Option und das Dropdown bleibt
-// versteckt (nichts zum Auswählen).
-function setupAiDraftControls(canEditDoc, docLanguage) {
+// Sichere KI-Entwürfe: Der Nutzer wählt ein Dokument aus einer festen Titelliste und die Sprache, optional einen kurzen
+// Hinweis. Der Dialog zeigt vorab genau, was gesendet wird und wohin; ein Filter blockiert personenbezogene und technische
+// Angaben im Hinweis. Firmen-/Personendaten gehen nie hinaus — das Modell schreibt mit Platzhaltern, der Server füllt sie
+// nach der Antwort aus den Organisationsdaten (server/ai/safeDraft.js).
+function setupAiDraftControls(canEditDoc) {
   const btn = dom('btnAiDraft')
-  const sel = dom('aiDraftLang')
-  if (!btn || !sel) return
-
-  if (!canEditDoc) {
-    btn.style.display = 'none'
-    sel.style.display = 'none'
-    return
-  }
-
-  const primaryLang = _langConfig?.default || 'de'
-  const langs = primaryLang === 'en' ? ['en'] : [primaryLang, 'en']
-
-  sel.innerHTML = langs.map(l => `<option value="${l}">${l.toUpperCase()}</option>`).join('')
-  sel.value = langs.includes(docLanguage) ? docLanguage : primaryLang
-  sel.style.display = langs.length > 1 ? '' : 'none'
-  btn.style.display = ''
+  if (!btn) return
+  btn.style.display = canEditDoc ? '' : 'none'
 }
 
+let _aiDraftCatalog = null
+let _aiDraftTimer = null
+
 async function aiDraftPolicy() {
-  const title = dom('inputTitle').value.trim()
-  if (!title) { alert(t('tmpl_aiDraftTitleRequired')); return }
-
-  if (dom('contentEditor').value.trim() && !confirm(t('tmpl_aiDraftConfirmOverwrite'))) return
-
-  const btn  = dom('btnAiDraft')
-  const sel  = dom('aiDraftLang')
-  const editor = dom('contentEditor')
-  const language = sel.style.display === 'none' ? (_langConfig?.default || 'de') : sel.value
+  if (!_aiDraftCatalog) {
+    const r = await fetch('/api/ai/draft-catalog', { headers: apiHeaders('contentowner') })
+    if (!r.ok) { alert(t('tmpl_aiDraftError')); return }
+    _aiDraftCatalog = await r.json()
+  }
+  const cat = _aiDraftCatalog
+  if (!cat.enabled) { alert(t('tmpl_aiDraftDisabled')); return }
   const type = currentTemplate ? currentTemplate.type : currentType
+  const entries = cat.entries.filter(e => e.type === type)
+  if (!entries.length) { alert(t('tmpl_aiDraftNoTitles')); return }
+  const uiLang = window.LANG || 'en'
+  const avail = (_langConfig?.available || cat.languages).filter(l => cat.languages.includes(l))
+  const defLang = avail.includes(currentTemplate?.language) ? currentTemplate.language : (avail.includes(_langConfig?.default) ? _langConfig.default : avail[0] || 'en')
 
-  const originalLabel = btn.innerHTML
-  btn.disabled = true
-  sel.disabled = true
-  editor.disabled = true
-  btn.innerHTML = `<i class="ph ph-circle-notch"></i> ${t('tmpl_aiDraftGenerating')}`
+  showModal('aiDraftModal', `
+    <h3 style="margin:0 0 8px"><i class="ph ph-sparkle"></i> ${t('tmpl_aiDraft')}</h3>
+    <p style="font-size:13px;color:var(--text-subtle);margin:0 0 12px">${t('tmpl_aiDraftIntro')}</p>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center">
+      <label for="aiDraftEntry">${t('tmpl_aiDraftDocument')}</label>
+      <select id="aiDraftEntry" class="input">${entries.map(e => `<option value="${e.id}">${escHtml(e.title[uiLang] || e.title.en)}</option>`).join('')}</select>
+      <label for="aiDraftLangSel">${t('tmpl_aiDraftLanguage')}</label>
+      <select id="aiDraftLangSel" class="input">${avail.map(l => `<option value="${l}"${l === defLang ? ' selected' : ''}>${l.toUpperCase()}</option>`).join('')}</select>
+      <label for="aiDraftHint">${t('tmpl_aiDraftHint')}</label>
+      <input id="aiDraftHint" class="input" maxlength="${cat.maxHint}" placeholder="${escHtml(t('tmpl_aiDraftHintPh'))}">
+    </div>
+    <div id="aiDraftWarn" style="display:none;color:var(--danger-text,#e74c3c);font-size:13px;margin-top:10px"></div>
+    <div style="margin-top:12px">
+      <strong style="font-size:13px">${t('tmpl_aiDraftSent')}</strong>
+      <pre id="aiDraftPrompt" style="white-space:pre-wrap;font-size:12px;max-height:180px;overflow:auto;background:var(--surface-2,#0002);padding:8px;border-radius:6px;margin:4px 0"></pre>
+      <div style="font-size:12px;color:var(--text-subtle)">${t('tmpl_aiDraftTarget')} <code>${escHtml(cat.destination || '?')}</code></div>
+      <div style="font-size:12px;color:var(--text-subtle);margin-top:4px">${t('tmpl_aiDraftPlaceholders')} <code>${cat.placeholders.map(p => '{{' + p + '}}').join(' ')}</code></div>
+      <div style="font-size:12px;color:var(--text-subtle);margin-top:4px">${t('tmpl_aiDraftLimit')}</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('aiDraftModal').remove()">${t('cancel')}</button>
+      <button class="btn btn-primary btn-sm" id="aiDraftGo" onclick="aiDraftRun()"><i class="ph ph-sparkle"></i> ${t('tmpl_aiDraftGenerate')}</button>
+    </div>`)
+  for (const id of ['aiDraftEntry', 'aiDraftLangSel']) dom(id).addEventListener('change', aiDraftPreview)
+  dom('aiDraftHint').addEventListener('input', () => { clearTimeout(_aiDraftTimer); _aiDraftTimer = setTimeout(aiDraftPreview, 250) })
+  aiDraftPreview()
+}
 
+function aiDraftBody() {
+  return { entry: dom('aiDraftEntry').value, language: dom('aiDraftLangSel').value, hint: dom('aiDraftHint').value }
+}
+
+// Zeigt den Prompt, der gesendet würde; bei Funden im Hinweis wird gesperrt
+async function aiDraftPreview() {
+  const warn = dom('aiDraftWarn'), pre = dom('aiDraftPrompt'), go = dom('aiDraftGo')
+  if (!warn || !pre) return
+  const r = await fetch('/api/ai/draft-preview', { method: 'POST', headers: apiHeaders('contentowner'), body: JSON.stringify(aiDraftBody()) })
+  const d = await r.json().catch(() => ({}))
+  if (r.ok) {
+    warn.style.display = 'none'; pre.textContent = d.prompt; go.disabled = false
+    return
+  }
+  go.disabled = true; pre.textContent = ''
+  const kinds = (d.findings || []).map(f => `${t('tmpl_aiDraftKind_' + f.kind)}: „${f.match}“`).join('; ')
+  warn.style.display = ''
+  warn.textContent = d.code === 'pii' ? `${t('tmpl_aiDraftBlocked')} ${kinds}` : (d.code === 'hint_chars' ? t('tmpl_aiDraftBadChars') : (d.error || t('tmpl_aiDraftError')))
+}
+
+async function aiDraftRun() {
+  const editor = dom('contentEditor')
+  if (editor.value.trim() && !confirm(t('tmpl_aiDraftConfirmOverwrite'))) return
+  const go = dom('aiDraftGo')
+  const label = go.innerHTML
+  go.disabled = true
+  go.innerHTML = `<i class="ph ph-circle-notch"></i> ${t('tmpl_aiDraftGenerating')}`
   try {
-    const res = await fetch('/api/ai/generate-policy', {
-      method: 'POST',
-      headers: apiHeaders('contentowner'),
-      body: JSON.stringify({ title, type, language }),
-    })
-    const data = await res.json()
+    const res = await fetch('/api/ai/generate-policy', { method: 'POST', headers: apiHeaders('contentowner'), body: JSON.stringify(aiDraftBody()) })
+    const data = await res.json().catch(() => ({}))
     if (!res.ok) { alert(data.error || t('tmpl_aiDraftError')); return }
     editor.value = data.content
+    if (!dom('inputTitle').value.trim()) dom('inputTitle').value = data.title
     if (_tmplPreviewOn) applyTemplateViewMode(currentTemplate)
-    alert(t('tmpl_aiDraftSuccess'))
+    dom('aiDraftModal')?.remove()
+    alert(t('tmpl_aiDraftSuccess') + (data.unresolved && data.unresolved.length ? '\n\n' + t('tmpl_aiDraftUnresolved') + ' ' + data.unresolved.map(p => '{{' + p + '}}').join(', ') : ''))
   } catch {
     alert(t('tmpl_aiDraftError'))
   } finally {
-    btn.disabled = false
-    sel.disabled = false
-    editor.disabled = false
-    btn.innerHTML = originalLabel
+    go.disabled = false
+    go.innerHTML = label
   }
 }
 

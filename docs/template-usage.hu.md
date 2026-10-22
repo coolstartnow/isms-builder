@@ -64,6 +64,17 @@ megjelenítve jelennek meg. Strukturált szabályzatokhoz az alábbi vázlat aj�
 A sablon `draft` (tervezet) státusszal kerül mentésre, és csak a `reader` vagy magasabb
 szerepkörrel rendelkező, bejelentkezett felhasználók számára látható.
 
+
+## Vázlat AI-val (nem kötelező)
+
+A szerkesztő eszköztárában (Content Owner szerepkörtől, csak bekapcsolt AI-integráció esetén) a **„Vázlat készítése AI-val”** szövegvázlatot készít. A vázlatot Ön mindig maga ellenőrzi és menti.
+
+- **Válassza ki a dokumentumot a listából** (pl. jelszószabályzat, javításkezelési eljárás) és a **nyelvet**. Szándékosan nincs szabad címmező, hogy ne kerüljön név vagy cégadat a kérésbe.
+- **Megjegyzés (nem kötelező):** legfeljebb 200 karakter, pl. „NIS2, távmunka”. Az e-mail-címeket, telefonszámokat, IBAN-okat, IP-címeket, webcímeket, azonosítókat, kulcsokat, cégmegnevezéseket és a szervezeti adatokban szereplő neveket a rendszer felismeri, és **blokkolja** a küldést. A szűrő tetszőleges személyneveket nem tud megbízhatóan felismerni, ezért ne írjon be ilyet.
+- **A párbeszédablak pontosan megmutatja, mi kerül elküldésre és hová,** mielőtt bármi elmenne. Csak a kiválasztott dokumentum, a nyelv és a megjegyzés kerül elküldésre.
+- **Helyőrzők:** a modell `{{COMPANY_NAME}}`, `{{ISMS_OWNER}}`, `{{DATA_PROTECTION_OFFICER}}` és `{{ISMS_SCOPE}}` értékeket ír. A válasz után ezeket **helyben** cseréljük le az *Admin → Szervezet* adataiból. Ha ott egy érték üres, a helyőrző megmarad, és erről értesítést kap.
+- A szerkesztőben lévő szöveg csak megerősítés után íródik felül.
+
 ---
 
 ## Életciklus (státuszfolyamat)

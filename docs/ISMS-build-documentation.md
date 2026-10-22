@@ -1962,6 +1962,8 @@ Alle KI-generierten Inhalte (Risiken, Lücken-Hinweise) erhalten `status: "draft
 
 ### AI Policy Assistant (implementiert, V 1.60.0)
 
+> **Seit V 1.83.0 abgelöst:** Die Schnittstelle sendet nur noch ein Dokument aus einer festen Titelliste, die Sprache und einen gefilterten Hinweis (`{ entry, language, hint? }`), siehe Kapitel 60. Die folgenden Absätze beschreiben den Stand 1.60.0.
+
 Anders als die übrigen Punkte in diesem Abschnitt ist dies **nicht mehr geplant, sondern umgesetzt** — angeregt durch [Discussion #87](https://github.com/coolstartnow/isms-builder/discussions/87) (@carlnes), war aber schon zuvor als Roadmap-Punkt in README.md angekündigt.
 
 **Endpunkt:** `POST /api/ai/generate-policy` (`server/routes/ai.js`), Rolle mind. `contentowner` (dieselbe Berechtigung wie `POST /template`). Request: `{ title, type, language, frameworkHint? }`. Generierungslogik in `server/ai/policyGenerator.js`, Ollama-Konfiguration (URL, aktiviert/deaktiviert) zentral in `server/ai/ollamaConfig.js` — dieselbe Quelle, die auch die semantische Suche nutzt (vorher war das in `ai.js` dupliziert). Modell konfigurierbar über neues Feld `aiGenModel` (Admin → Wartung → KI-Integration, Default `llama3.2:3b`), unabhängig vom Embedding-Modell.
@@ -3613,3 +3615,25 @@ Maßnahmen- und Auditausgaben, Dokumentenexport). Nicht in der Kopfzeile der App
 installiert, aber nur, wenn kein eigenes Logo vorliegt. Beim Wechsel in den Produktivbetrieb (`POST /admin/demo-reset`) wird das Demo-Logo entfernt (ein eigenes bleibt)
 und der Hinweis **„Firmenlogo setzen“** aktiviert: im Ergebnistext des Resets, im Banner der Anmeldeseite, im Dashboard für Administratoren und in den Einstellungen, bis ein Logo
 hochgeladen ist. Das Logo ist nicht Teil des JSON-Datenexports (Backup des Datenverzeichnisses sichert es mit).
+
+## 60. Sichere KI-Entwürfe (V 1.83.0)
+
+Der AI Policy Assistant (siehe Abschnitt „AI Policy Assistant“, V 1.60.0) sendet seit 1.83.0 **nur noch**: ein Dokument aus einer festen Titelliste, die Sprache und optional einen kurzen, gefilterten Hinweis. Ein freier Titel wird nicht mehr angenommen. Dies ersetzt die dort beschriebene Schnittstelle `{ title, type, language, frameworkHint }`.
+
+| Baustein | Datei | Aufgabe |
+|---|---|---|
+| Gemeinsames Modul | `server/ai/safeDraft.js` | Reine Funktionen ohne Datei- und Netzzugriff (Server und Mobile App): Titelliste (`CATALOG`, 21 Einträge, Typ + Titel in fünf Sprachen), `findPii`, `buildPrompt`, `fillPlaceholders`, `stripCodeFences` |
+| Ollama-Aufruf | `server/ai/policyGenerator.js` | `generateFromPrompt(prompt)`: sendet einen bereits geprüften Prompt, Fehler → 502 ohne stillen Fallback |
+| Endpunkte | `server/routes/ai.js` | `GET /api/ai/draft-catalog`, `POST /api/ai/draft-preview` (zeigt Prompt und Ziel, sendet nichts), `POST /api/ai/generate-policy`; Rolle `contentowner` |
+| Oberfläche | `aiDraftPolicy()` u. a. in `ui/app.js` | Dialog: Dokument, Sprache, Hinweis, gesendeter Prompt, Ziel, Platzhalter; Sperre bei Funden |
+| Tests | `tests/safeDraft.test.js`, `tests/aiPolicyGenerator.test.js` | Filter, Prompt, Platzhalter; der an Ollama gesendete Text enthält keine Organisationsdaten |
+
+**Prompt:** feste englische Anweisung, Dokumenttyp und Titel aus der Liste, Gliederungsvorgabe je Typ, Zielsprache, Pflicht zu Platzhaltern statt erfundener Angaben, optional `Pay particular attention to: <Hinweis>`. Der Hinweis darf höchstens 200 Zeichen haben und nur Buchstaben, Ziffern, Leerzeichen und `, . ; : ( ) / & + - –` enthalten (keine Zeilenumbrüche, Anführungszeichen oder Klammerzeichen für Anweisungen).
+
+**Filter (`findPii`):** E-Mail, URL, IP (v4/v6), MAC, IBAN, Telefonnummer, Domainname, UUID, Schlüssel/Token (Präfixe und lange Zeichenketten), Zahl mit mindestens sechs Ziffern, Dateipfad, @Name, Firmenbezeichnung (GmbH, AG, KG, UG, e.V., Ltd, Inc, LLC, SARL, BV, Kft, Zrt, Co., Corp) und die **bekannten Organisationswerte** (Firmenname, Kürzel, Namen von CISO und DSB, jeweils ab drei Zeichen). Treffer **blockieren** (400, `code: pii`, `findings`). **Grenze:** beliebige Personen- oder Firmennamen erkennt der Filter nicht; deshalb gibt es kein freies Titelfeld und einen kurzen Hinweis.
+
+**Platzhalter:** `{{COMPANY_NAME}}` → `orgName`, `{{ISMS_OWNER}}` → `cisoName`, `{{DATA_PROTECTION_OFFICER}}` → `gdpoName`, `{{ISMS_SCOPE}}` → `ismsScope`. Ersetzt wird nach der Antwort (auch bei Schreibweisen wie `{{ company name }}` oder `[ISMS_OWNER]`); leere Werte bleiben stehen und kommen als `unresolved` zurück.
+
+**Audit:** `ai_generate_policy` mit Kennung und Sprache, `, mit Hinweis` wenn ein Hinweis gesendet wurde; der Hinweistext wird nicht protokolliert.
+
+**Nicht Teil davon:** die KI-Suche und der Scan-Import (senden weiterhin Inhalte an Ollama) sowie die Mobile App (Weitergabe an eine KI-App über das Android-Teilen-Menü folgt in App 1.6.0, mit demselben Modul).

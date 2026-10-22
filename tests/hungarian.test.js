@@ -26,7 +26,7 @@ describe('Ungarisch – Sprachlisten', () => {
     ['server/routes/guidance.js',     /SUPPORTED_LANGS = \['de', 'en', 'fr', 'nl', 'hu'\]/],
     ['server/db/guidanceStore.js',    /\['de', 'en', 'fr', 'nl', 'hu'\]\.includes\(l\)/],
     ['server/db/assessmentStore.js',  /SUPPORTED_LANGS\s+= \['de', 'en', 'fr', 'nl', 'hu'\]/],
-    ['server/ai/policyGenerator.js',  /hu: 'Ungarisch'/],
+    ['server/ai/safeDraft.js',        /hu: 'Hungarian'/],
     ['server/routes/assessmentPublic.js', /hu-HU/],
     ['ui/login.html',                 /loadDemoBundle\('hu'\)/],
     ['ui/app.js',                     /hu: '🇭🇺'/],

@@ -79,28 +79,74 @@ router.get('/api/ai/status', requireAuth, async (req, res) => {
   })
 })
 
-// ── POST /api/ai/generate-policy  (AI Policy Assistant, Discussion #87) ───────
-// Erzeugt einen Markdown-Entwurf für ein neues Dokument (Titel + Typ + Sprache).
-// Rolle contentowner, weil das dieselbe Berechtigung ist, die zum Anlegen/
-// Speichern eines Dokuments nötig ist (POST /template) — wer den Text nicht
-// speichern darf, braucht ihn auch nicht zu erzeugen.
+// ── KI-Entwürfe (AI Policy Assistant, Discussion #87) ────────────────────────
+// Der Prompt wird ausschließlich aus server/ai/safeDraft.js gebaut: Dokument aus der festen Titelliste, Sprache und ein
+// kurzer, gefilterter Hinweis. Rolle contentowner, weil das dieselbe Berechtigung ist, die zum Anlegen/Speichern eines
+// Dokuments nötig ist (POST /template) — wer den Text nicht speichern darf, braucht ihn auch nicht zu erzeugen.
+const safeDraft = require('../ai/safeDraft')
+
+const DRAFT_ERRORS = {
+  unknown_entry: 'Unknown document selection.',
+  bad_language: 'Unsupported language.',
+  hint_too_long: 'The hint is too long (max 200 characters).',
+  hint_chars: 'The hint contains characters that are not allowed.',
+  pii: 'The hint contains personal or technical data and is not sent.',
+}
+
+function orgValues() {
+  try { return require('../db/orgSettingsStore').get() } catch { return {} }
+}
+// Werte, die nie im Hinweis stehen dürfen
+function knownValues(org) { return [org.orgName, org.orgShort, org.cisoName, org.gdpoName].filter(Boolean) }
+
+function destination() {
+  try { return new URL(require('../ai/ollamaConfig').ollamaUrl()).origin } catch { return '' }
+}
+
+function buildChecked(body) {
+  const { entry, language, hint } = body || {}
+  return safeDraft.buildPrompt({ entry, language, hint, known: knownValues(orgValues()) })
+}
+
+function sendBuildError(res, r) {
+  return res.status(400).json({ error: DRAFT_ERRORS[r.code] || 'Invalid request.', code: r.code, findings: r.findings })
+}
+
+// Titelliste für den Dialog
+router.get('/api/ai/draft-catalog', requireAuth, authorize('contentowner'), (req, res) => {
+  res.json({
+    enabled: aiEnabled(),
+    languages: safeDraft.LANGUAGES,
+    maxHint: safeDraft.MAX_HINT,
+    placeholders: Object.keys(safeDraft.PLACEHOLDERS),
+    destination: destination(),
+    entries: safeDraft.CATALOG.map(e => ({ id: e.id, type: e.type, title: e.title })),
+  })
+})
+
+// Zeigt, was gesendet würde (Prompt und Ziel), ohne etwas zu senden
+router.post('/api/ai/draft-preview', requireAuth, authorize('contentowner'), (req, res) => {
+  const r = buildChecked(req.body)
+  if (!r.ok) return sendBuildError(res, r)
+  res.json({ prompt: r.prompt, destination: destination(), title: r.entry.title[r.language], type: r.entry.type })
+})
+
 router.post('/api/ai/generate-policy', requireAuth, authorize('contentowner'), async (req, res) => {
   if (!aiEnabled()) return res.status(503).json({ error: 'KI-Integration ist deaktiviert (Admin-Einstellung).' })
 
-  const { title, type, language, frameworkHint } = req.body || {}
-  if (!title || !type || !language) {
-    return res.status(400).json({ error: 'title, type und language sind erforderlich.' })
-  }
+  const r = buildChecked(req.body)
+  if (!r.ok) return sendBuildError(res, r)
 
   try {
-    const content = await policyGenerator.generatePolicyContent({ title, type, language, frameworkHint })
+    const raw = await policyGenerator.generateFromPrompt(r.prompt)
+    const filled = safeDraft.fillPlaceholders(raw, orgValues())
     await auditStore.append({
       user:     req.user,
       action:   'ai_generate_policy',
       resource: 'ai',
-      detail:   `${type} "${title}" (${language})`,
+      detail:   `${r.entry.id} (${r.language})${r.hint ? ', mit Hinweis' : ''}`,   // der Hinweistext selbst wird nicht protokolliert
     })
-    res.json({ content })
+    res.json({ content: filled.text, unresolved: filled.unresolved, title: r.entry.title[r.language], type: r.entry.type })
   } catch (e) {
     // Kein interner Serverfehler, sondern ein externer Dienst der nicht
     // erreichbar/verfügbar war — 502, nicht 500.

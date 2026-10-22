@@ -35,9 +35,10 @@ Deleting must never destroy evidence. Planned as its own release:
 
 ---
 
-## Safe AI drafts (planned)
+## Safe AI drafts — mobile app (planned)
 
-- **AI policy drafts without internal data:** one shared, pure module in the main project (like the measures access rules) used by the server and the mobile app: the prompt is built from a document type chosen from a list, the title chosen from a list and the language only; a PII filter blocks anything personal (e-mail, phone, IBAN, IP address, URL, identifiers); the model writes with placeholders (company name, ISMS owner) that are filled in locally afterwards. The dialog shows what is sent and where. Mobile app: hand the filtered prompt over to an AI app through the Android share menu and paste the answer back. The AI search is not part of this.
+- **Done in 1.83.0 (main project):** title list, PII filter, placeholders filled locally, dialog that shows what is sent. The shared pure module `server/ai/safeDraft.js` is written for reuse.
+- **Mobile app 1.6.0:** hand the filtered prompt over to an AI app through the Android share menu and paste the answer back; restore the AI button in the app (hidden since 1.5.2). The AI search is not part of this.
 
 ---
 

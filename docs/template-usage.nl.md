@@ -64,6 +64,17 @@ de volgende indeling aanbevolen:
 Het sjabloon wordt opgeslagen met status `draft` en is alleen zichtbaar voor
 ingelogde gebruikers met de rol `reader` of hoger.
 
+
+## Concept met AI (optioneel)
+
+In de werkbalk van de editor (vanaf de rol Content Owner, alleen als de AI-integratie is ingeschakeld) maakt **“Concept met AI”** een tekstconcept. U controleert en bewaart het altijd zelf.
+
+- **Kies het document uit de lijst** (bijv. wachtwoordbeleid, procedure voor patchbeheer) en de **taal**. Er is bewust geen vrij titelveld, zodat er geen namen of bedrijfsgegevens in het verzoek terechtkomen.
+- **Aanwijzing (optioneel):** maximaal 200 tekens, bijv. “NIS2, werken op afstand”. E-mailadressen, telefoonnummers, IBAN’s, IP-adressen, webadressen, identificaties, sleutels, bedrijfsaanduidingen en de namen uit de organisatiegegevens worden herkend en **blokkeren** het verzenden. Het filter kan willekeurige persoonsnamen niet betrouwbaar herkennen; zet er dus geen in.
+- **Het dialoogvenster toont precies wat wordt verzonden en waarheen**, voordat er iets vertrekt. Alleen het gekozen document, de taal en de aanwijzing worden verzonden.
+- **Plaatshouders:** het model schrijft `{{COMPANY_NAME}}`, `{{ISMS_OWNER}}`, `{{DATA_PROTECTION_OFFICER}}` en `{{ISMS_SCOPE}}`. Na het antwoord worden ze **lokaal** vervangen uit *Beheer → Organisatie*. Is daar een waarde leeg, dan blijft de plaatshouder staan en krijgt u een melding.
+- Bestaande tekst in de editor wordt pas na bevestiging overschreven.
+
 ---
 
 ## Levenscyclus (statusworkflow)

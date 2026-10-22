@@ -442,6 +442,8 @@ components:
           type: integer
 
 tags:
+  - name: ai
+    description: Safe AI drafts for documents — title list, preview of what is sent, generation (V 1.83)
   - name: auth
     description: Authentication, session management, 2FA
   - name: templates
@@ -4195,6 +4197,80 @@ paths:
       responses:
         '200':
           description: List reset to defaults
+
+  /api/ai/draft-catalog:
+    get:
+      tags: [ai]
+      summary: Title list and limits for safe AI drafts (contentowner)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Entries (id, type, titles in five languages), languages, max hint length, placeholders, destination
+
+  /api/ai/draft-preview:
+    post:
+      tags: [ai]
+      summary: Show the prompt that would be sent, and where, without sending anything (contentowner)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entry, language]
+              properties:
+                entry:
+                  type: string
+                  description: Id from the title list
+                language:
+                  type: string
+                  enum: [de, en, fr, nl, hu]
+                hint:
+                  type: string
+                  maxLength: 200
+      responses:
+        '200':
+          description: Prompt and destination
+        '400':
+          description: Unknown entry or language, invalid hint, or personal/technical data found (code pii, findings)
+
+  /api/ai/generate-policy:
+    post:
+      tags: [ai]
+      summary: Generate a document draft with the configured AI (Ollama) from a title-list entry (contentowner)
+      description: >
+        Only the chosen entry, the language and an optional filtered hint are sent. The model writes with placeholders
+        that the server fills from the organisation data after the answer; unfilled ones are returned in `unresolved`.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entry, language]
+              properties:
+                entry:
+                  type: string
+                language:
+                  type: string
+                  enum: [de, en, fr, nl, hu]
+                hint:
+                  type: string
+                  maxLength: 200
+      responses:
+        '200':
+          description: Markdown content, title, type and unresolved placeholders
+        '400':
+          description: Invalid selection or hint blocked by the filter
+        '502':
+          description: AI service not reachable or answer empty
+        '503':
+          description: AI integration disabled
 
   /admin/org-settings:
     get:

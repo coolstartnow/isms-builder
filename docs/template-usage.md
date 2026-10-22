@@ -66,6 +66,17 @@ Codeblöcke werden gerendert. Für strukturierte Policies empfiehlt sich folgend
 Das Template wird mit Status `draft` gespeichert und ist nur für eingeloggte Nutzer
 ab `reader` sichtbar.
 
+
+## Entwurf mit KI (optional)
+
+In der Werkzeugleiste des Editors (ab Rolle Content Owner, nur wenn die KI-Integration eingeschaltet ist) erzeugt **„Mit KI entwerfen“** einen Textentwurf. Er wird immer geprüft und von Ihnen gespeichert.
+
+- **Dokument aus der Liste wählen** (z. B. Passwortrichtlinie, Patch-Management-Verfahren) und die **Sprache**. Es gibt bewusst kein freies Titelfeld, damit keine Namen oder Firmendaten in die Anfrage gelangen.
+- **Hinweis (optional):** höchstens 200 Zeichen, z. B. „NIS2, Remote-Arbeit“. E-Mail-Adressen, Telefonnummern, IBAN, IP-Adressen, Internetadressen, Kennungen, Schlüssel, Firmenbezeichnungen und die Namen aus den Organisationsdaten werden erkannt und **blockieren** das Senden. Beliebige Personennamen kann der Filter nicht sicher erkennen; schreiben Sie deshalb keine hinein.
+- **Der Dialog zeigt vorher genau, was gesendet wird und wohin.** Gesendet werden nur das gewählte Dokument, die Sprache und der Hinweis.
+- **Platzhalter:** Das Modell schreibt `{{COMPANY_NAME}}`, `{{ISMS_OWNER}}`, `{{DATA_PROTECTION_OFFICER}}` und `{{ISMS_SCOPE}}`. Nach der Antwort werden sie **lokal** aus *Admin → Organisation* ersetzt. Ist dort ein Wert leer, bleibt der Platzhalter stehen, und Sie werden darauf hingewiesen.
+- Ein vorhandener Text im Editor wird erst nach Rückfrage überschrieben.
+
 ---
 
 ## Lebenszyklus (Status-Workflow)

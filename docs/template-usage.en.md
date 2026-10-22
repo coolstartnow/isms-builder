@@ -64,6 +64,17 @@ rendered. For structured policies the following outline is recommended:
 The template is saved with status `draft` and is visible only to logged-in users
 with `reader` role or above.
 
+
+## Draft with AI (optional)
+
+In the editor toolbar (from role Content Owner, only if the AI integration is switched on) **“Draft with AI”** creates a text draft. You always review and save it yourself.
+
+- **Pick the document from the list** (e.g. Password Policy, Patch Management Procedure) and the **language**. There is deliberately no free title field, so that no names or company data get into the request.
+- **Hint (optional):** at most 200 characters, e.g. “NIS2, remote work”. E-mail addresses, phone numbers, IBANs, IP addresses, web addresses, identifiers, keys, company designations and the names from the organisation data are detected and **block** sending. The filter cannot reliably detect arbitrary personal names, so do not put any in.
+- **The dialog shows exactly what is sent and where** before anything leaves. Only the chosen document, the language and the hint are sent.
+- **Placeholders:** the model writes `{{COMPANY_NAME}}`, `{{ISMS_OWNER}}`, `{{DATA_PROTECTION_OFFICER}}` and `{{ISMS_SCOPE}}`. After the answer they are replaced **locally** from *Admin → Organisation*. If a value is empty there, the placeholder stays and you are told.
+- Existing text in the editor is only overwritten after confirmation.
+
 ---
 
 ## Lifecycle (Status Workflow)

@@ -64,6 +64,17 @@ la structure suivante est recommandée :
 Le modèle est enregistré avec le statut `draft` et n'est visible que par les
 utilisateurs connectés ayant le rôle `reader` ou supérieur.
 
+
+## Brouillon avec l’IA (facultatif)
+
+Dans la barre d’outils de l’éditeur (à partir du rôle Content Owner, seulement si l’intégration IA est activée), **« Rédiger avec l’IA »** crée un brouillon de texte. Vous le relisez et l’enregistrez toujours vous-même.
+
+- **Choisissez le document dans la liste** (p. ex. politique de mots de passe, procédure de gestion des correctifs) et la **langue**. Il n’y a volontairement pas de champ de titre libre, pour qu’aucun nom ni donnée d’entreprise n’entre dans la requête.
+- **Indice (facultatif) :** 200 caractères maximum, p. ex. « NIS2, télétravail ». Adresses e-mail, numéros de téléphone, IBAN, adresses IP, adresses web, identifiants, clés, désignations d’entreprise et noms issus des données de l’organisation sont détectés et **bloquent** l’envoi. Le filtre ne peut pas détecter de façon fiable des noms de personnes quelconques ; n’en saisissez donc pas.
+- **La boîte de dialogue montre exactement ce qui est envoyé et où** avant tout envoi. Seuls le document choisi, la langue et l’indice sont envoyés.
+- **Espaces réservés :** le modèle écrit `{{COMPANY_NAME}}`, `{{ISMS_OWNER}}`, `{{DATA_PROTECTION_OFFICER}}` et `{{ISMS_SCOPE}}`. Après la réponse, ils sont remplacés **localement** à partir de *Admin → Organisation*. Si une valeur y est vide, l’espace réservé reste et vous en êtes informé.
+- Un texte existant dans l’éditeur n’est écrasé qu’après confirmation.
+
 ---
 
 ## Cycle de vie (flux de statuts)

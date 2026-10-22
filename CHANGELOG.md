@@ -10,6 +10,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.83.0] — 2026-10-22
+
+> Sichere KI-Entwürfe: Die KI bekommt nur noch ein Dokument aus einer festen Titelliste, die Sprache und einen kurzen, gefilterten Hinweis. Firmen-, Personen- und Systemdaten gehen nie hinaus.
+
+### Geändert
+- **„Mit KI entwerfen“ ist ein Dialog statt direkter Erzeugung** — Dokument aus der Titelliste (21 Einträge, nach Dokumenttyp, fünf Sprachen), Sprache, optionaler Hinweis (höchstens 200 Zeichen, nur Buchstaben, Ziffern, Leerzeichen und `, . ; : ( ) / & + -`). Der Dialog zeigt vor dem Senden den vollständigen Prompt und das Ziel (Ollama-Adresse).
+- **API:** `POST /api/ai/generate-policy` nimmt jetzt `{ entry, language, hint? }` statt `{ title, type, language, frameworkHint? }`; ein freier Titel wird nicht mehr angenommen (400). Die Antwort enthält zusätzlich `title`, `type` und `unresolved`. Neu: `GET /api/ai/draft-catalog` (Titelliste, Grenzen, Ziel) und `POST /api/ai/draft-preview` (zeigt den Prompt, ohne etwas zu senden).
+
+### Hinzugefügt
+- **PII-Filter** (`server/ai/safeDraft.js`, reine Funktionen, auch für die Mobile App gedacht) — blockiert im Hinweis E-Mail, Internet- und Domainnamen, IP- und MAC-Adressen, IBAN, Telefonnummern, lange Zahlen, UUID, Schlüssel/Token, Dateipfade, @Namen, Firmenbezeichnungen (GmbH, AG, Ltd …) und die Werte der Organisationsdaten (Firmenname, Namen der Verantwortlichen). Der Filter erkennt keine beliebigen Personennamen; deshalb gibt es kein freies Titelfeld.
+- **Platzhalter statt Firmendaten** — Das Modell schreibt `{{COMPANY_NAME}}`, `{{ISMS_OWNER}}`, `{{DATA_PROTECTION_OFFICER}}`, `{{ISMS_SCOPE}}`; der Server ersetzt sie nach der Antwort lokal aus den Organisationsdaten. Leere Werte bleiben als Platzhalter stehen und werden gemeldet.
+- Audit-Eintrag nennt Auswahl und Sprache, nicht den Hinweistext.
+- Tests `tests/safeDraft.test.js` und erweiterte `tests/aiPolicyGenerator.test.js` (der an Ollama gesendete Prompt enthält keine Organisationsdaten; blockierte Hinweise lösen keinen Aufruf aus); Anwenderleitfaden `docs/template-usage*.md`, ISMS-Doku Kapitel 60, OpenAPI; Texte in fünf Sprachen.
+- Hinweis: Das Alt-Feld `frameworkHint` entfällt zugunsten von `hint`.
+
 ## [1.82.0] — 2026-10-22
 
 > Firmenlogo: hochladbar in den Firmeneinstellungen, sichtbar auf der Anmeldeseite, in Richtlinien-PDFs und Druckansichten. Das ISMS-Builder-Logo gehört zum Demoset.
