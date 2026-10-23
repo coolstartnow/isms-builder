@@ -21,6 +21,17 @@ describe('statischer Wächter', () => {
     ['SoA: Begründung', /value="\$\{c\.justification\|\|''\}"/],
     ['SoA: Titel und Thema', /\$\{c\.theme\}<\/span>|soa-ctrl-title">\$\{c\.title\}/],
     ['Brotkrumen', /tmpl-breadcrumb-current">\$\{c\.title\}/],
+    ['Dokumentleiste: verknüpfte Controls', /tmpl-bar-pill">\$\{cid\}</],
+    ['Dokumentleiste: Einheiten', /tmpl-bar-pill">\$\{eid\}</],
+    ['SoA-Detail: Einheiten', /tmpl-bar-pill">\$\{id\}</],
+    ['SoA lesend: Verantwortliche/r', /:\s*\(c\.owner\s*\|\|\s*'—'\)\}/],
+    ['SoA lesend: Begründung', /:\s*\(c\.justification\s*\|\|\s*''\)\}/],
+    ['SoA: verknüpfte Dokumente', /\)\}\)` : tid\b|data-tid="\$\{tid\}"/],
+    ['Auswahlliste Dokumente', /\$\{t\.title\} \(\$\{t\.type\}\)/],
+    ['Einheiten: Name und Kürzel', /<option value="\$\{e\.id\}">\$\{e\.name\}|<th title="\$\{e\.name\}"|picker-id">\$\{(e|n)\.shortCode/],
+    ['Framework-Namen', /<td>\$\{fw\}<\/td>|setPickerFw\('\$\{fw\}'\)|: data\.framework\}/],
+    ['DSGVO: Risikostufe', /gdpr-risk-\$\{(d\.residualRisk|i\.riskLevel)\}|\|\| (d\.residualRisk|i\.riskLevel)\}/],
+    ['Einheit löschen (Name im onclick)', /adminDeleteEntity\('\$\{e\.id\}','\$\{e\.name\}'\)/],
   ]
   test.each(unsafe)('%s steht nicht mehr ungeschützt in einer Vorlage', (name, re) => expect(re.test(APP)).toBe(false))
 
@@ -84,7 +95,7 @@ const CHROME = ['/usr/bin/google-chrome-stable', '/usr/bin/google-chrome', '/usr
     const admin = await loginAs(app, 'admin'), editor = await loginAs(app, 'editor'), co = await loginAs(app, 'contentowner')
     // Dokument: Titel wie im Fund des Melders (Editor ändert den Titel eines vorhandenen Dokuments)
     const doc = (await authedPost(app, admin, '/template', { type: 'Policy', language: 'de', title: 'Ausgangstitel', content: '# x' })).body
-    expect((await authedPut(app, editor, `/template/Policy/${doc.id}`, { title: P_IMG })).status).toBe(200)
+    expect((await authedPut(app, editor, `/template/Policy/${doc.id}`, { title: P_IMG, linkedControls: [P_IMG], applicableEntities: [P_IMG] })).status).toBe(200)
     // Anhang mit Nutzlast im Dateinamen
     const att = await request(app).post(`/template/Policy/${doc.id}/attachments`).set('Cookie', editor).attach('file', Buffer.from('%PDF-1.4\n%%EOF'), { filename: `${P_FILE}.pdf`, contentType: 'application/pdf' })
     expect([201, 400]).toContain(att.status)
@@ -94,7 +105,7 @@ const CHROME = ['/usr/bin/google-chrome-stable', '/usr/bin/google-chrome', '/usr
     const soa = (await request(app).get('/soa').set('Cookie', admin)).body
     const list = Array.isArray(soa) ? soa : soa.controls
     const ctrl = list.find(c => c.id === 'BSI-ISMS.1') || list[0]
-    expect((await authedPut(app, editor, `/soa/${encodeURIComponent(ctrl.id)}`, { owner: P_ATTR, justification: P_ATTR, applicable: false })).status).toBeLessThan(300)
+    expect((await authedPut(app, editor, `/soa/${encodeURIComponent(ctrl.id)}`, { owner: P_ATTR, justification: P_IMG, applicable: false, applicableEntities: [P_IMG], linkedTemplates: [P_IMG] })).status).toBeLessThan(300)
     info = { docType: 'Policy', docId: doc.id, soaFramework: ctrl.framework || 'BSI' }
     server = http.createServer(app)
     await new Promise(r => server.listen(0, '127.0.0.1', r))
@@ -103,14 +114,29 @@ const CHROME = ['/usr/bin/google-chrome-stable', '/usr/bin/google-chrome', '/usr
   afterAll(async () => { await new Promise(r => server.close(r)); removeTestDataDir(dataDir) })
 
   test('Administrator öffnet Bericht, Suche, Risiken, SoA, Anhänge: nichts wird ausgeführt oder eingeschleust', async () => {
-    const out = await new Promise(resolve => {
-      execFile(process.execPath, [path.join(__dirname, 'setup', 'xssSinksBrowser.js'), CHROME, base, 'admin@test.local', 'adminpass', JSON.stringify(info)], { encoding: 'utf8', timeout: 200000 }, (err, stdout, stderr) => {
+    const out = await runBrowser('admin@test.local', 'adminpass', info)
+    if (!out) return
+    await checkAdmin(out)
+  })
+
+  test('Leser (nur lesend) öffnet SoA samt Details: nichts wird ausgeführt oder eingeschleust', async () => {
+    const out = await runBrowser('reader@test.local', 'readerpass', { ...info, mode: 'soa' })
+    if (!out) return
+    expect(out.dialogs).toBe(0)
+    expect(out.soa).toEqual({ imgs: 0, handlers: 0, xss: 0, text: true })
+  })
+
+  function runBrowser(email, pw, data) {
+    return new Promise(resolve => {
+      execFile(process.execPath, [path.join(__dirname, 'setup', 'xssSinksBrowser.js'), CHROME, base, email, pw, JSON.stringify(data)], { encoding: 'utf8', timeout: 200000 }, (err, stdout, stderr) => {
         if (err && err.code === 3) return resolve(null)
         expect([err ? err.code : 0, stderr]).toEqual([0, ''])
         resolve(JSON.parse(stdout))
       })
     })
-    if (!out) return
+  }
+
+  async function checkAdmin(out) {
     if (process.env.XSS_DEBUG) console.log(JSON.stringify(out))
     expect(out.dialogs).toBe(0)   // kein alert() ausgelöst
     const { dialogs, ...areas } = out
@@ -119,5 +145,8 @@ const CHROME = ['/usr/bin/google-chrome-stable', '/usr/bin/google-chrome', '/usr
     expect(out.report.text).toBe(true)    // die Nutzlast ist als Text sichtbar (der Bericht wurde wirklich gerendert)
     expect(out.search.text).toBe(true)
     expect(out.attachments.text).toBe(true)
-  })
+    expect(out.controlsBar.text).toBe(true)   // verknüpfte Controls / Einheiten der Dokumentleiste
+    expect(out.entityBar.text).toBe(true)
+    expect(out.soa.text).toBe(true)
+  }
 })

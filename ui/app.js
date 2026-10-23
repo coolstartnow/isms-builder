@@ -209,7 +209,7 @@ function renderWebdavPublishBar(tmpl) {
   } else if (pub.ok) {
     const when = pub.publishedAt ? new Date(pub.publishedAt).toLocaleString('de-DE') : ''
     const linkHtml = pub.shareLink
-      ? ` <a href="${escHtml(pub.shareLink)}" target="_blank" rel="noopener noreferrer">${t('tmpl_webdavOpenLink')}</a>`
+      ? ` <a href="${escHtml(safeUrl(pub.shareLink))}" target="_blank" rel="noopener noreferrer">${t('tmpl_webdavOpenLink')}</a>`
       : ''
     statusHtml = `<span class="tmpl-review-hint" style="color:var(--success,#4ade80)"><i class="ph ph-check-circle"></i> ${t('tmpl_webdavPublished')} ${when}</span>${linkHtml}`
   } else {
@@ -301,7 +301,7 @@ function _initSemanticSearch() {
         : `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(255,255,255,.08);color:var(--text-subtle);font-weight:600;margin-left:6px;">${t('search_keyword')}</span>`
       const rows = _results.map((r, i) => {
         const icon = TYPE_ICONS[r.type] || 'ph-magnifying-glass'
-        return `<div class="search-result-item" data-idx="${i}" onclick="_searchNavigate('${escHtml(r.url)}')">
+        return `<div class="search-result-item" data-idx="${escVal(i)}" onclick="_searchNavigate('${escHtml(r.url)}')">
           <div class="search-result-icon"><i class="ph ${icon}"></i></div>
           <div class="search-result-body">
             <div class="search-result-title">${escHtml(r.title)}</div>
@@ -529,7 +529,7 @@ async function loadLinkedRisks(containerId, query) {
   el.innerHTML = list.length === 0
     ? `<p class="asset-prot-hint">${escHtml(t('risk_noLinkedRisks'))}</p>`
     : `<div class="rl-list">${list.map(r => {
-        const lv  = RISK_LEVEL_CFG[r.riskLevel] || { label: r.riskLevel, cls: '' }
+        const lv  = RISK_LEVEL_CFG[r.riskLevel] || { label: escVal(r.riskLevel), cls: '' }
         const via = query.asset && !(r.linkedAssets || []).includes(query.asset)
         return `<div class="rl-row">
           <span class="risk-badge ${lv.cls}">${lv.label}</span>
@@ -551,7 +551,7 @@ function renderFunctionBadges(functions) {
   if (!functions || !functions.length) { container.innerHTML = ''; return }
   const FN_ABBR = { ciso:'CISO', dso:'DSB', qmb:'QMB', bcm_manager:'BCM', dept_head:'AL', auditor:'Aud.', admin_notify:'Admin' }
   container.innerHTML = functions.map(f =>
-    `<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:var(--color-P75,#e3d9ff);color:var(--color-P400,#5243aa);font-weight:600;">${FN_ABBR[f]||f}</span>`
+    `<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:var(--color-P75,#e3d9ff);color:var(--color-P400,#5243aa);font-weight:600;">${FN_ABBR[f]||escVal(f)}</span>`
   ).join('')
 }
 
@@ -676,14 +676,14 @@ async function init() {
     li.className = 'sidebar-tree-item'
     li.innerHTML = `
       <div class="sidebar-tree-row">
-        <button class="sidebar-nav-item sidebar-tree-parent" data-type="${t}">
-          <i class="ph ${icon}"></i><span>${t}</span>
+        <button class="sidebar-nav-item sidebar-tree-parent" data-type="${escVal(t)}">
+          <i class="ph ${icon}"></i><span>${escVal(t)}</span>
         </button>
-        <button class="sidebar-tree-toggle" data-type="${t}" title="${escHtml(window.t('ui_expand'))}">
+        <button class="sidebar-tree-toggle" data-type="${escVal(t)}" title="${escHtml(window.t('ui_expand'))}">
           <i class="ph ph-caret-right"></i>
         </button>
       </div>
-      <ul class="sidebar-tree-children" id="tree-${t}" style="display:none;"></ul>
+      <ul class="sidebar-tree-children" id="tree-${escVal(t)}" style="display:none;"></ul>
     `
     li.querySelector('.sidebar-tree-parent').onclick = () => selectType(t)
     li.querySelector('.sidebar-tree-toggle').onclick = () => toggleTypeTree(t)
@@ -1002,7 +1002,7 @@ function refreshSidebarTree(type, treeData) {
 
 async function toggleTypeTree(type) {
   const ul = document.getElementById(`tree-${type}`)
-  const icon = document.querySelector(`.sidebar-tree-toggle[data-type="${type}"] i`)
+  const icon = document.querySelector(`.sidebar-tree-toggle[data-type="${escVal(type)}"] i`)
   if (!ul) return
 
   const isOpen = ul.style.display !== 'none'
@@ -1202,7 +1202,7 @@ function renderReportsTabContent(container) {
         <label class="form-label">${t('reports_entity')}</label>
         <select id="reportEntitySel" class="select report-sel">
           <option value="">${t('filter_allEntities')}</option>
-          ${_reportEntities.map(e => `<option value="${e.id}">${e.name} (${e.shortCode || e.id})</option>`).join('')}
+          ${_reportEntities.map(e => `<option value="${e.id}">${escHtml(e.name)} (${escHtml(e.shortCode || e.id)})</option>`).join('')}
         </select>
       </div>
       <label class="form-label">${t('reports_framework')}</label>
@@ -1290,13 +1290,13 @@ async function runReport(type) {
 }
 
 function _docStatusLabel(s) {
-  return { draft: t('status_draft'), review: t('status_review'), approved: t('status_approved'), archived: t('status_archived') }[s] || s
+  return { draft: t('status_draft'), review: t('status_review'), approved: t('status_approved'), archived: t('status_archived') }[s] || escVal(s)
 }
 function _riskLevelLabel(s) {
-  return { critical: t('riskl_critical'), high: t('riskl_high'), medium: t('riskl_medium'), low: t('riskl_low') }[s] || s || '—'
+  return { critical: t('riskl_critical'), high: t('riskl_high'), medium: t('riskl_medium'), low: t('riskl_low') }[s] || escVal(s) || '—'
 }
 function _riskStatusLabel(s) {
-  return (RISK_STATUSES.find(x => x.id === s) || {}).label || s || '—'
+  return (RISK_STATUSES.find(x => x.id === s) || {}).label || escVal(s) || '—'
 }
 
 function renderReportResult(type, data, el) {
@@ -1313,7 +1313,7 @@ function renderReportResult(type, data, el) {
           <table class="report-table">
             <thead><tr><th>${t('reports_framework')}</th><th>${t('soa_applicable')}</th><th>${t('soa_implemented')}</th><th>${t('reports_rate')}</th></tr></thead>
             <tbody>${Object.entries(row.byFramework || {}).map(([fw, v]) =>
-              `<tr><td>${fw}</td><td>${v.applicable}</td><td>${v.implemented}</td>
+              `<tr><td>${escHtml(fw)}</td><td>${v.applicable}</td><td>${v.implemented}</td>
                <td>${v.applicable > 0 ? Math.round(v.implemented/v.applicable*100) : 0}%</td></tr>`
             ).join('')}</tbody>
           </table>
@@ -1325,7 +1325,7 @@ function renderReportResult(type, data, el) {
         <thead><tr><th>${t('reports_framework')}</th><th>${t('reports_colControls')}</th><th>${t('soa_applicable')}</th><th>${t('reports_colNA')}</th><th>${t('soa_implemented')}</th><th>${t('reports_rate')}</th></tr></thead>
         <tbody>${(Array.isArray(data) ? data : [data]).map(fw => `
           <tr>
-            <td><span class="fw-dot" style="background:${fw.color}"></span>${fw.label}</td>
+            <td><span class="fw-dot" style="background:${escVal(fw.color)}"></span>${escVal(fw.label)}</td>
             <td>${fw.total}</td><td>${fw.applicable}</td><td>${fw.notApplicable}</td>
             <td>${(fw.byStatus?.implemented||0) + (fw.byStatus?.optimized||0)}</td>
             <td>${fw.implementationRate}%</td>
@@ -1379,13 +1379,13 @@ function renderReportResult(type, data, el) {
       partial:'var(--color-warning)', not_started:'var(--color-danger)', 'n/a':'var(--color-muted)' })[s] || '#888'
     const statusEmoji = s => ({ implemented:'✓', optimized:'★', partial:'◑', not_started:'✗', 'n/a':'—' })[s] || '?'
     el.innerHTML = `
-      <h3 class="report-result-title">${t('reports_matrix')} — ${data.framework === 'all' ? t('reports_allFw') : data.framework}</h3>
+      <h3 class="report-result-title">${t('reports_matrix')} — ${data.framework === 'all' ? t('reports_allFw') : escHtml(data.framework)}</h3>
       <div style="overflow-x:auto">
       <table class="report-table matrix-table">
-        <thead><tr><th>${t('soa_control')}</th><th>${t('reports_framework')}</th><th>${t('col_title')}</th>${(data.entities||[]).map(e=>`<th title="${e.name}">${e.shortCode||e.name}</th>`).join('')}</tr></thead>
+        <thead><tr><th>${t('soa_control')}</th><th>${t('reports_framework')}</th><th>${t('col_title')}</th>${(data.entities||[]).map(e=>`<th title="${escHtml(e.name)}">${escHtml(e.shortCode||e.name)}</th>`).join('')}</tr></thead>
         <tbody>${(data.controls||[]).map(ctrl=>`
           <tr>
-            <td class="picker-id">${ctrl.id}</td>
+            <td class="picker-id">${escVal(ctrl.id)}</td>
             <td>${escHtml(ctrl.framework)}</td>
             <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(ctrl.title)}">${escHtml(ctrl.title)}</td>
             ${(data.entities||[]).map(e=>{
@@ -1405,7 +1405,7 @@ function renderReportResult(type, data, el) {
           <tr><td>${new Date(e.changedAt).toLocaleString('en-GB')}</td>
               <td>${escHtml(e.templateTitle)}</td><td>${escHtml(e.type)}</td>
               <td><span class="status-badge status-${escHtml(e.status)}">${_docStatusLabel(e.status)}</span></td>
-              <td>${e.changedBy}</td></tr>`).join('')}
+              <td>${escVal(e.changedBy)}</td></tr>`).join('')}
         </tbody>
       </table>`
   } else if (type === 'findings') {
@@ -1540,13 +1540,13 @@ function exportReportPdf() {
 // ── Findings UI ───────────────────────────────────────────────────────────────
 
 function _findingSeverityBadge(sev) {
-  const label = FINDING_SEVERITY_LABELS[sev] || sev
+  const label = FINDING_SEVERITY_LABELS[sev] || escVal(sev)
   const color = FINDING_SEVERITY_COLOR[sev]  || '#888'
   return `<span class="soa-status-badge" style="background:${color}22;color:${color};border-color:${color}44">${label}</span>`
 }
 
 function _findingStatusBadge(st) {
-  const label = FINDING_STATUS_LABELS[st] || st
+  const label = FINDING_STATUS_LABELS[st] || escVal(st)
   const color = FINDING_STATUS_COLOR[st]  || '#888'
   return `<span class="soa-status-badge" style="background:${color}22;color:${color};border-color:${color}44">${label}</span>`
 }
@@ -1596,7 +1596,7 @@ async function renderFindingsTab() {
         { label:t('findings_actionsOverdueShort'), value: sum.overdueActions||0,   color: sum.overdueActions > 0 ? FINDING_SEVERITY_COLOR.critical:'#4ade80' },
       ].map(k => `
         <div class="dash-card kpi" style="flex:1;min-width:100px;padding:10px 14px;text-align:center">
-          <div style="font-size:1.4rem;font-weight:700;color:${k.color}">${k.value}</div>
+          <div style="font-size:1.4rem;font-weight:700;color:${escVal(k.color)}">${k.value}</div>
           <div style="font-size:.72rem;color:var(--text-subtle)">${k.label}</div>
         </div>
       `).join('')}
@@ -1660,7 +1660,7 @@ function _renderFindingsList(all, list) {
           <div style="font-weight:600;color:var(--text-inv);margin-bottom:2px">${escHtml(f.title)}</div>
           <div style="font-size:12px;color:var(--text-subtle)">${escHtml(f.auditedArea || '')}
             ${f.auditor ? `· ${t('findings_auditor')}: ${escHtml(f.auditor)}` : ''}
-            ${f.auditPeriodFrom ? `· ${f.auditPeriodFrom}${f.auditPeriodTo?' – '+f.auditPeriodTo:''}` : ''}
+            ${f.auditPeriodFrom ? `· ${escVal(f.auditPeriodFrom)}${f.auditPeriodTo?' – '+escVal(f.auditPeriodTo):''}` : ''}
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
@@ -1951,14 +1951,14 @@ function _renderActionsList(actions, findingId, canEdit) {
           <div style="font-weight:600;font-size:13px;margin-bottom:3px">${escHtml(a.description)}</div>
           <div style="font-size:12px;color:var(--text-subtle)">
             ${t('col_responsible')}: <b>${escHtml(a.responsible||'—')}</b>
-            ${a.dueDate ? `· ${t('col_due')} <span style="color:${overdue?'#f87171':'inherit'}">${a.dueDate}${overdue?' ⚠':''}</span>` : ''}
+            ${a.dueDate ? `· ${t('col_due')} <span style="color:${overdue?'#f87171':'inherit'}">${escVal(a.dueDate)}${overdue?' ⚠':''}</span>` : ''}
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           ${canEdit ? `<select class="select" style="font-size:11px;padding:2px 6px"
             onchange="updateActionStatus('${findingId}','${a.id}',this.value)">
             ${Object.entries(FINDING_ACT_STATUS_LABELS).map(([v,l]) =>
-              `<option value="${v}"${a.status===v?' selected':''}>${l}</option>`).join('')}
+              `<option value="${escVal(v)}"${a.status===v?' selected':''}>${l}</option>`).join('')}
           </select>
           <button class="btn btn-sm" style="color:var(--danger)" title="${t('delete')}"
             onclick="deleteAction('${findingId}','${a.id}')">
@@ -2076,14 +2076,14 @@ async function openFindingForm(id = null) {
               <label class="form-label">${t('findings_severity')}</label>
               <select id="fndSeverity" class="select">
                 ${Object.entries(FINDING_SEVERITY_LABELS).map(([v,l]) =>
-                  `<option value="${v}"${(f?.severity||'medium')===v?' selected':''}>${l}</option>`).join('')}
+                  `<option value="${escVal(v)}"${(f?.severity||'medium')===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_status')}</label>
               <select id="fndStatus" class="select">
                 ${Object.entries(FINDING_STATUS_LABELS).map(([v,l]) =>
-                  `<option value="${v}"${(f?.status||'open')===v?' selected':''}>${l}</option>`).join('')}
+                  `<option value="${escVal(v)}"${(f?.status||'open')===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -2107,11 +2107,11 @@ async function openFindingForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('findings_periodFrom')}</label>
-              <input id="fndPeriodFrom" class="form-input" type="date" value="${f?.auditPeriodFrom||''}">
+              <input id="fndPeriodFrom" class="form-input" type="date" value="${escVal(f?.auditPeriodFrom||'')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('reports_to')}</label>
-              <input id="fndPeriodTo" class="form-input" type="date" value="${f?.auditPeriodTo||''}">
+              <input id="fndPeriodTo" class="form-input" type="date" value="${escVal(f?.auditPeriodTo||'')}">
             </div>
           </div>
         </div>
@@ -2467,7 +2467,7 @@ async function openIncidentDetail(id) {
             <div class="inc-field-label">${t('inc_setStatus')}</div>
             <select class="select" id="incEditStatus" style="font-size:.82rem">
               ${Object.entries(INC_STATUS_LABELS).map(([v,l]) =>
-                `<option value="${v}" ${i.status === v ? 'selected' : ''}>${l}</option>`).join('')}
+                `<option value="${escVal(v)}" ${i.status === v ? 'selected' : ''}>${l}</option>`).join('')}
             </select>
           </div>
           <div class="inc-field">
@@ -2641,8 +2641,8 @@ function renderSoaContent(container) {
   const tabsHtml = soaFrameworks.map(fw => `
     <button class="soa-fw-tab ${fw.id === soaActiveFramework ? 'active' : ''}"
             data-fw="${fw.id}"
-            style="--fw-color:${fw.color}">
-      ${fw.label}
+            style="--fw-color:${escVal(fw.color)}">
+      ${escVal(fw.label)}
     </button>
   `).join('')
 
@@ -2663,11 +2663,11 @@ function renderSoaContent(container) {
       <div class="soa-filters">
         <select id="soaFilterTheme" class="soa-select">
           <option value="">${t('soa_allThemes')}</option>
-          ${themes.map(t => `<option value="${t}" ${soaFilters.theme===t?'selected':''}>${t}</option>`).join('')}
+          ${themes.map(t => `<option value="${escVal(t)}" ${soaFilters.theme===t?'selected':''}>${escVal(t)}</option>`).join('')}
         </select>
         <select id="soaFilterStatus" class="soa-select">
           <option value="">${t('filter_allStatuses')}</option>
-          ${Object.entries(STATUS_LABELS).map(([v,l]) => `<option value="${v}" ${soaFilters.status===v?'selected':''}>${l}</option>`).join('')}
+          ${Object.entries(STATUS_LABELS).map(([v,l]) => `<option value="${escVal(v)}" ${soaFilters.status===v?'selected':''}>${l}</option>`).join('')}
         </select>
         <select id="soaFilterApplicable" class="soa-select">
           <option value="">${t('filter_allStatuses')}</option>
@@ -2746,7 +2746,7 @@ function soaRow(c, canEdit) {
         ${canEdit
           ? `<select class="soa-status-sel" data-id="${c.id}">
               ${Object.entries(STATUS_LABELS).map(([v,l]) =>
-                `<option value="${v}" ${c.status===v?'selected':''}>${l}</option>`
+                `<option value="${escVal(v)}" ${c.status===v?'selected':''}>${l}</option>`
               ).join('')}
             </select>`
           : `<span class="soa-status-label soa-status-${escHtml(c.status)}">${escHtml(STATUS_LABELS[c.status]||c.status)}</span>`}
@@ -2754,12 +2754,12 @@ function soaRow(c, canEdit) {
       <td>
         ${canEdit
           ? `<input class="soa-owner-input" data-id="${c.id}" value="${escHtml(c.owner||'')}" placeholder="${t('col_name')}…">`
-          : (c.owner || '—')}
+          : escHtml(c.owner || '—')}
       </td>
       <td>
         ${canEdit
           ? `<input class="soa-just-input" data-id="${c.id}" value="${escHtml(c.justification||'')}" placeholder="${t('soa_justification')}…">`
-          : (c.justification || '')}
+          : escHtml(c.justification || '')}
       </td>
       ${canEdit ? `<td style="white-space:nowrap">
         <button class="btn-soa-save soa-save-btn" data-id="${c.id}">${t('save')}</button>
@@ -2780,8 +2780,8 @@ function soaRow(c, canEdit) {
 }
 
 async function toggleSoaDetail(id, container) {
-  const detailRow = container.querySelector(`.soa-detail-row[data-for="${id}"]`)
-  const btn = container.querySelector(`.soa-expand-btn[data-id="${id}"]`)
+  const detailRow = container.querySelector(`.soa-detail-row[data-for="${escVal(id)}"]`)
+  const btn = container.querySelector(`.soa-expand-btn[data-id="${escVal(id)}"]`)
   if (!detailRow) return
 
   const isOpen = detailRow.style.display !== 'none'
@@ -2823,7 +2823,7 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
   } else {
     crossHtml = crossGroups.map(g => {
       const pills = g.related.map(cid =>
-        `<span class="soa-crossmap-pill">${cid}</span>`
+        `<span class="soa-crossmap-pill">${escHtml(cid)}</span>`
       ).join(' ')
       return `
         <div class="soa-crossmap-group">
@@ -2839,9 +2839,9 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
   const linkedTmplHtml = linked.length > 0
     ? linked.map(tid => {
         const tmpl = allTemplates.find(t => t.id === tid)
-        const label = tmpl ? `${escHtml(tmpl.title)} (${escHtml(tmpl.type)})` : tid
+        const label = tmpl ? `${escHtml(tmpl.title)} (${escHtml(tmpl.type)})` : escHtml(tid)
         return canEdit
-          ? `<span class="soa-tmpl-tag">${label}<button class="soa-tmpl-remove" data-tid="${tid}" title="${escHtml(t('remove'))}">&times;</button></span>`
+          ? `<span class="soa-tmpl-tag">${label}<button class="soa-tmpl-remove" data-tid="${escHtml(tid)}" title="${escHtml(t('remove'))}">&times;</button></span>`
           : `<span class="soa-tmpl-tag">${label}</span>`
       }).join('')
     : `<span class="soa-detail-none">${t('soa_noTemplatesLinked')}</span>`
@@ -2851,18 +2851,18 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
   const pickerHtml = canEdit && unlinked.length > 0
     ? `<select id="soa-tmpl-picker-${id}" class="soa-tmpl-picker">
         <option value="">${t('soa_linkTemplate')}</option>
-        ${unlinked.map(t => `<option value="${t.id}">${t.title} (${t.type})</option>`).join('')}
+        ${unlinked.map(t => `<option value="${t.id}">${escHtml(t.title)} (${escHtml(t.type)})</option>`).join('')}
        </select>
-       <button class="soa-tmpl-add-btn" data-id="${id}">${t('soa_link')}</button>`
+       <button class="soa-tmpl-add-btn" data-id="${escVal(id)}">${t('soa_link')}</button>`
     : ''
 
   // ── Entity-Applicability ──
   const applicableEnts = control.applicableEntities || []
   const entLabel = applicableEnts.length === 0
     ? t('filter_allEntities')
-    : applicableEnts.map(id => `<span class="tmpl-bar-pill">${id}</span>`).join('')
+    : applicableEnts.map(id => `<span class="tmpl-bar-pill">${escHtml(id)}</span>`).join('')
   const entEditorHtml = canEdit
-    ? `<button class="btn btn-secondary btn-sm soa-ent-edit" data-id="${id}" style="margin-left:6px;" title="${t('soa_editApplicability')}"><i class="ph ph-pencil-simple"></i></button>`
+    ? `<button class="btn btn-secondary btn-sm soa-ent-edit" data-id="${escVal(id)}" style="margin-left:6px;" title="${t('soa_editApplicability')}"><i class="ph ph-pencil-simple"></i></button>`
     : ''
 
   el.innerHTML = `
@@ -2904,7 +2904,7 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
         await saveSoaLinkedTemplates(id, newLinked, el, container)
       }
     })
-    const addBtn = el.querySelector(`.soa-tmpl-add-btn[data-id="${id}"]`)
+    const addBtn = el.querySelector(`.soa-tmpl-add-btn[data-id="${escVal(id)}"]`)
     if (addBtn) {
       addBtn.onclick = async () => {
         const picker = document.getElementById(`soa-tmpl-picker-${id}`)
@@ -2938,7 +2938,7 @@ async function saveSoaLinkedTemplates(id, linkedTemplates, detailEl, tableContai
   if (idx >= 0) soaData[idx] = updated
 
   // Badge in Hauptzeile aktualisieren
-  const titleCell = tableContainer.querySelector(`tr[data-id="${id}"] .soa-ctrl-title`)
+  const titleCell = tableContainer.querySelector(`tr[data-id="${escVal(id)}"] .soa-ctrl-title`)
   if (titleCell) {
     titleCell.querySelector('.soa-linked-badge')?.remove()
     if (linkedTemplates.length > 0) {
@@ -3087,13 +3087,13 @@ async function deleteCustomControl(id, title) {
 }
 
 async function saveSoaRow(id, container) {
-  const row = container.querySelector(`tr[data-id="${id}"]`)
+  const row = container.querySelector(`tr[data-id="${escVal(id)}"]`)
   if (!row) return
 
-  const applicable = row.querySelector(`.soa-applicable[data-id="${id}"]`)?.checked ?? true
-  const status      = row.querySelector(`.soa-status-sel[data-id="${id}"]`)?.value || 'not_started'
-  const owner       = row.querySelector(`.soa-owner-input[data-id="${id}"]`)?.value || ''
-  const justification = row.querySelector(`.soa-just-input[data-id="${id}"]`)?.value || ''
+  const applicable = row.querySelector(`.soa-applicable[data-id="${escVal(id)}"]`)?.checked ?? true
+  const status      = row.querySelector(`.soa-status-sel[data-id="${escVal(id)}"]`)?.value || 'not_started'
+  const owner       = row.querySelector(`.soa-owner-input[data-id="${escVal(id)}"]`)?.value || ''
+  const justification = row.querySelector(`.soa-just-input[data-id="${escVal(id)}"]`)?.value || ''
 
   const res = await fetch(`/soa/${encodeURIComponent(id)}`, {
     method: 'PUT',
@@ -3235,7 +3235,7 @@ async function renderDashboard() {
     if (reviewPending?.length > 0)
       alerts.push({ color: '#f59e0b', icon: 'ph-shield-warning', text: t('dash_scanRisksPending', { count: reviewPending.length }), nav: 'risk' })
     if (alerts.length === 0) return '<p class="dash-empty" style="color:var(--success-text)"><i class="ph ph-check-circle"></i> ' + t('dash_noIssues') + '</p>'
-    return alerts.map(a => `<div class="dash-alert dash-link" data-nav="${a.nav}" style="border-left:3px solid ${a.color};padding:6px 10px;margin-bottom:6px;background:var(--surface);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px">
+    return alerts.map(a => `<div class="dash-alert dash-link" data-nav="${escVal(a.nav)}" style="border-left:3px solid ${a.color};padding:6px 10px;margin-bottom:6px;background:var(--surface);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px">
       <i class="ph ${a.icon}" style="color:${a.color};font-size:1rem"></i>
       <span style="font-size:.85rem">${escHtml(a.text)}</span>
     </div>`).join('')
@@ -3528,9 +3528,9 @@ async function renderDashboard() {
       <div class="fw-summary-grid">
         ${Object.values(soaSummary).map(fw => `
           <div class="fw-summary-item dash-link" data-nav="soa" data-fw="${escHtml(fw.framework)}" title="${t('risk_openBtn')} ${escHtml(fw.label)}" style="cursor:pointer">
-            <span class="fw-label" style="color:${fw.color}">${fw.label}</span>
+            <span class="fw-label" style="color:${escVal(fw.color)}">${escVal(fw.label)}</span>
             <div class="fw-bar-track">
-              <div class="fw-bar-fill" style="width:${fw.implementationRate}%; background:${fw.color}"></div>
+              <div class="fw-bar-fill" style="width:${fw.implementationRate}%; background:${escVal(fw.color)}"></div>
             </div>
             <span class="fw-rate">${fw.implementationRate}%</span>
           </div>
@@ -3578,7 +3578,7 @@ async function renderDashboard() {
         ? `<p class="dash-empty">${t('dash_noActivity')}</p>`
         : `<ul class="activity-list">
             ${data.recentActivity.map(a => `
-              <li class="dash-link" data-nav-type="${escHtml(a.type)}" data-tmpl-id="${a.templateId}" data-tmpl-type="${escHtml(a.type)}" style="cursor:pointer">
+              <li class="dash-link" data-nav-type="${escHtml(a.type)}" data-tmpl-id="${escVal(a.templateId)}" data-tmpl-type="${escHtml(a.type)}" style="cursor:pointer">
                 <span class="status-dot ${escHtml(a.status)}"></span>
                 <span class="act-title">${escHtml(a.title)}</span>
                 <span class="act-status">${escHtml(statusLabels[a.status] || a.status)}</span>
@@ -3905,7 +3905,7 @@ function _protGoalSelects(idx, item) {
       <span>${escHtml(letter)}</span>
       <select class="input" onchange="_adminListUpdateProtection(${idx},'${g}',this.value)">
         <option value="">–</option>
-        ${lvl.map(l => `<option value="${l}"${String(cur) === String(l) ? ' selected' : ''}>${l}</option>`).join('')}
+        ${lvl.map(l => `<option value="${escVal(l)}"${String(cur) === String(l) ? ' selected' : ''}>${l}</option>`).join('')}
       </select>
     </label>`
   }).join('')
@@ -4192,7 +4192,7 @@ async function renderAdminOrgTab() {
           <label class="org-label">${t('org_smtpHost')}</label>
           <input class="input" id="smtpHost" value="${escHtml(smtp.host||'')}" placeholder="smtp.example.com">
           <label class="org-label">${t('org_smtpPort')}</label>
-          <input class="input" id="smtpPort" value="${smtp.port||587}" type="number" style="max-width:120px">
+          <input class="input" id="smtpPort" value="${escVal(smtp.port||587)}" type="number" style="max-width:120px">
           <label class="org-label">${t('org_smtpEncryption')}</label>
           <div style="display:flex;align-items:center;gap:16px;padding:4px 0">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -4716,11 +4716,11 @@ async function renderAdminAuditTab() {
                oninput="loadAuditLog()">
         <select class="select" id="auditFilterAction" onchange="loadAuditLog()" style="width:140px">
           <option value="">${t('auditLog_allActions')}</option>
-          ${Object.entries(AUDIT_ACTION_LABELS).map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}
+          ${Object.entries(AUDIT_ACTION_LABELS).map(([v,l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
         </select>
         <select class="select" id="auditFilterResource" onchange="loadAuditLog()" style="width:140px">
           <option value="">${t('auditLog_allRes')}</option>
-          ${Object.entries(AUDIT_RESOURCE_LABELS).map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}
+          ${Object.entries(AUDIT_RESOURCE_LABELS).map(([v,l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
         </select>
         <input class="input" id="auditFilterFrom" type="date" title="${t('reports_from')}" onchange="loadAuditLog()" style="width:140px">
         <input class="input" id="auditFilterTo"   type="date" title="${t('reports_to')}" onchange="loadAuditLog()" style="width:140px">
@@ -4773,7 +4773,7 @@ async function loadAuditLog() {
               <td style="font-size:12px;white-space:nowrap;color:var(--text-subtle)">
                 ${new Date(e.ts).toLocaleString('en-GB')}</td>
               <td style="font-size:12px">${escHtml(e.user)}</td>
-              <td><span class="badge audit-action-${e.action}">${escHtml(AUDIT_ACTION_LABELS[e.action]||e.action)}</span></td>
+              <td><span class="badge audit-action-${escVal(e.action)}">${escHtml(AUDIT_ACTION_LABELS[e.action]||e.action)}</span></td>
               <td><span class="badge">${escHtml(AUDIT_RESOURCE_LABELS[e.resource]||e.resource)}</span></td>
               <td style="font-size:12px;color:var(--text-subtle)">${escHtml(e.detail||e.resourceId||'')}</td>
             </tr>`).join('')}
@@ -4787,7 +4787,7 @@ async function loadAuditLog() {
     const curPage  = Math.floor(_auditOffset / _AUDIT_LIMIT) + 1
     const totPages = Math.max(1, Math.ceil(total / _AUDIT_LIMIT))
     pager.innerHTML = `
-      <span style="font-size:12px;color:var(--text-subtle)">${total} ${t('auditLog_total')}</span>
+      <span style="font-size:12px;color:var(--text-subtle)">${escVal(total)} ${t('auditLog_total')}</span>
       <button class="btn btn-sm" onclick="_auditOffset=Math.max(0,_auditOffset-${_AUDIT_LIMIT});loadAuditLog()"
               ${_auditOffset === 0 ? 'disabled' : ''}><i class="ph ph-caret-left"></i></button>
       <span style="font-size:12px">${curPage} / ${totPages}</span>
@@ -5056,7 +5056,7 @@ async function runUpdateCheck(force = true) {
     if (!res.ok || !data.ok) {
       box.innerHTML = `<span style="color:var(--danger-text,#f87171)"><i class="ph ph-warning-circle"></i> ${t('maint_updateCheckFailed')}${data.error ? ': ' + escHtml(data.error) : ''}</span>`
     } else if (data.updateAvailable) {
-      box.innerHTML = `<span style="color:var(--warning-text,#f0b429)"><i class="ph ph-arrow-circle-up"></i> ${t('maint_updateAvailable')} <strong>${escHtml(data.latestVersion)}</strong> (${t('maint_currentVersion')}: ${escHtml(data.currentVersion)}) — <a href="${escHtml(data.releaseUrl)}" target="_blank" rel="noopener noreferrer">${t('maint_updateViewRelease')}</a></span>`
+      box.innerHTML = `<span style="color:var(--warning-text,#f0b429)"><i class="ph ph-arrow-circle-up"></i> ${t('maint_updateAvailable')} <strong>${escHtml(data.latestVersion)}</strong> (${t('maint_currentVersion')}: ${escHtml(data.currentVersion)}) — <a href="${escHtml(safeUrl(data.releaseUrl))}" target="_blank" rel="noopener noreferrer">${t('maint_updateViewRelease')}</a></span>`
     } else {
       box.innerHTML = `<span style="color:var(--success,#4ade80)"><i class="ph ph-check-circle"></i> ${t('maint_updateUpToDate')} (${escHtml(data.currentVersion)})</span>`
     }
@@ -5143,7 +5143,7 @@ async function refreshAiStatus() {
     const modeBadge = st.mode === 'semantic'
       ? `<span style="background:rgba(168,85,247,.15);color:#a855f7;border:1px solid rgba(168,85,247,.3);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:8px;">${t('ai_semanticActive')}</span>`
       : `<span style="background:rgba(255,255,255,.06);color:var(--text-subtle);border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:8px;">${t('ai_keywordFallback')}</span>`
-    const indexBadge = `<span style="color:var(--text-subtle);font-size:12px;margin-left:10px;">${st.indexed ?? 0} ${t('ai_docsIndexed')} ${st.model || 'nomic-embed-text'}</span>`
+    const indexBadge = `<span style="color:var(--text-subtle);font-size:12px;margin-left:10px;">${st.indexed ?? 0} ${t('ai_docsIndexed')} ${escVal(st.model || 'nomic-embed-text')}</span>`
 
     badge.innerHTML = enabledBadge + (cfg.aiEnabled !== false ? ollamaBadge + modeBadge + indexBadge : '')
   } catch {
@@ -5322,10 +5322,10 @@ async function renderAdminTrashTab() {
                 <td style="white-space:nowrap">${new Date(item.deletedAt).toLocaleDateString('en-GB')}</td>
                 <td style="color:${daysLeft < 7 ? '#f87171' : 'inherit'}">${daysLeft} ${t('reports_days')}</td>
                 <td style="display:flex;gap:6px">
-                  <button class="btn btn-secondary btn-sm" onclick="restoreTrashItem('${escHtml(item.module)}','${escHtml(item.id)}',${JSON.stringify(item.meta||{})})">
+                  <button class="btn btn-secondary btn-sm" onclick="restoreTrashItem('${escHtml(item.module)}','${escHtml(item.id)}',${escHtml(JSON.stringify(item.meta||{}))})">
                     <i class="ph ph-arrow-counter-clockwise"></i> ${t('restore')}
                   </button>
-                  <button class="btn btn-danger btn-sm" onclick="permanentDeleteTrashItem('${escHtml(item.module)}','${escHtml(item.id)}',${JSON.stringify(item.meta||{})})">
+                  <button class="btn btn-danger btn-sm" onclick="permanentDeleteTrashItem('${escHtml(item.module)}','${escHtml(item.id)}',${escHtml(JSON.stringify(item.meta||{}))})">
                     <i class="ph ph-trash"></i> ${t('trash_deletePermanent')}
                   </button>
                 </td>
@@ -5556,15 +5556,15 @@ async function renderAdminModulesTab() {
           return `
           <div class="module-card ${enabled ? 'module-card-active' : 'module-card-inactive'}">
             <div class="module-card-header">
-              <i class="ph ph-shield module-card-icon" style="color:${fw.color}"></i>
-              <div class="module-card-title" style="color:${fw.color}">${fw.label}</div>
+              <i class="ph ph-shield module-card-icon" style="color:${escVal(fw.color)}"></i>
+              <div class="module-card-title" style="color:${escVal(fw.color)}">${escVal(fw.label)}</div>
               <label class="module-toggle">
                 <input type="checkbox" data-fw="${fw.id}" ${enabled ? 'checked' : ''} onchange="fwToggleChange(this)">
                 <span class="module-toggle-slider"></span>
               </label>
             </div>
             <p class="module-card-desc">${escHtml(fw.desc)}</p>
-            <div class="module-card-norms">${fw.norms.map(n => `<span class="module-norm-badge" style="border-color:${fw.color};color:${fw.color}">${n}</span>`).join('')}</div>
+            <div class="module-card-norms">${fw.norms.map(n => `<span class="module-norm-badge" style="border-color:${escVal(fw.color)};color:${escVal(fw.color)}">${n}</span>`).join('')}</div>
             <div class="module-card-status">
               <span class="module-status-dot ${enabled ? 'active' : 'inactive'}"></span>
               ${enabled ? t('modules_active') : t('modules_disabled')}
@@ -5688,7 +5688,7 @@ async function openOrgUnitModal(id) {
             <div>
               <label class="form-label">${t('col_type')}</label>
               <select id="ouType" class="select">
-                ${typeOpts.map(t => `<option value="${t.v}" ${unit?.type===t.v?'selected':''}>${t.l}</option>`).join('')}
+                ${typeOpts.map(t => `<option value="${escVal(t.v)}" ${unit?.type===t.v?'selected':''}>${t.l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -5848,11 +5848,11 @@ async function adminLoadUsers() {
             <td>${escHtml(u.domain || '—')}</td>
             <td class="admin-user-actions">
               <button class="btn btn-secondary btn-sm" title="${t('edit')}"
-                onclick='openUserModal(${JSON.stringify(u)})'>
+                onclick="openUserModal(${escHtml(JSON.stringify(u))})">
                 <i class="ph ph-pencil"></i>
               </button>
               <button class="btn btn-sm" style="color:var(--danger-text);" title="${t('delete')}"
-                onclick="adminDeleteUser('${escHtml(u.username)}')">
+                onclick="adminDeleteUser(${escHtml(JSON.stringify(String(u.username)))})">
                 <i class="ph ph-trash"></i>
               </button>
             </td>
@@ -5939,7 +5939,7 @@ async function renderAdminSyncAccounts() {
           const cur = (editing && editing.permissions[m.id]) || 'none'
           const levels = m.readOnly ? ['none', 'read'] : ['none', 'read', 'write']
           return `<span>${t(m.key)}</span>
-            <select class="form-input" data-sync-module="${m.id}">${levels.map(l => `<option value="${l}" ${cur === l ? 'selected' : ''}>${escHtml(syncLevelLabel(l))}</option>`).join('')}</select>`
+            <select class="form-input" data-sync-module="${m.id}">${levels.map(l => `<option value="${escVal(l)}" ${cur === l ? 'selected' : ''}>${escHtml(syncLevelLabel(l))}</option>`).join('')}</select>`
         }).join('')}
       </div>
       <div id="syncFormMsg" class="report-error" style="margin-top:10px;"></div>
@@ -6146,7 +6146,7 @@ function openUserModal(user) {
         <div class="modal-footer">
           <button class="btn btn-secondary"
             onclick="document.getElementById('userEditModal').remove()">${t('cancel')}</button>
-          <button class="btn btn-primary" onclick="submitUserModal('${isEdit ? user.username : ''}')">
+          <button class="btn btn-primary" onclick="submitUserModal(${escHtml(JSON.stringify(isEdit ? String(user.username) : ''))})">
             <i class="ph ph-floppy-disk"></i> ${t('save')}
           </button>
         </div>
@@ -6242,8 +6242,8 @@ function renderEntityNode(e) {
       <span class="admin-entity-name">${escHtml(e.name)}</span>
       <span class="admin-entity-code picker-id">${escHtml(e.shortCode || '')}</span>
       <div class="admin-entity-actions">
-        <button class="btn btn-secondary btn-sm" onclick='adminEditEntity(${JSON.stringify(e)})' title="${t('edit')}"><i class="ph ph-pencil"></i></button>
-        ${e.type !== 'holding' ? `<button class="btn btn-sm" style="color:#ef4444;" onclick="adminDeleteEntity('${e.id}','${e.name}')" title="${t('delete')}"><i class="ph ph-trash"></i></button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="adminEditEntity(${escHtml(JSON.stringify(e))})" title="${t('edit')}"><i class="ph ph-pencil"></i></button>
+        ${e.type !== 'holding' ? `<button class="btn btn-sm" style="color:#ef4444;" data-id="${escHtml(e.id)}" data-name="${escHtml(e.name)}" onclick="adminDeleteEntity(this.dataset.id, this.dataset.name)" title="${t('delete')}"><i class="ph ph-trash"></i></button>` : ''}
       </div>
     </div>
     ${e.children && e.children.length > 0 ? `<div class="admin-entity-children">${e.children.map(c => renderEntityNode(c).outerHTML).join('')}</div>` : ''}
@@ -6482,8 +6482,8 @@ async function renderGoals() {
 function goalKpiRow(kpi = {}) {
   return `<div class="goal-kpi-row">
     <input class="form-input" placeholder="${t('goals_metricKpi')}" style="flex:2" value="${escHtml(kpi.metric||'')}">
-    <input type="number" class="form-input" placeholder="${t('goals_target')}" style="width:90px" value="${kpi.targetValue||''}">
-    <input type="number" class="form-input" placeholder="${t('goals_current')}" style="width:90px" value="${kpi.currentValue||''}">
+    <input type="number" class="form-input" placeholder="${t('goals_target')}" style="width:90px" value="${escVal(kpi.targetValue||'')}">
+    <input type="number" class="form-input" placeholder="${t('goals_current')}" style="width:90px" value="${escVal(kpi.currentValue||'')}">
     <input class="form-input" placeholder="${t('goals_unit')}" style="width:80px" value="${escHtml(kpi.unit||'')}" title="${t('goals_unitHint')}">
     <button class="btn btn-sm" style="color:var(--danger-text)" onclick="this.closest('.goal-kpi-row').remove();updateGoalProgress()"><i class="ph ph-trash"></i></button>
   </div>`
@@ -6552,11 +6552,11 @@ async function openGoalForm(id = null) {
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">${t('goals_targetDate')}</label>
-            <input id="goalTargetDate" type="date" class="form-input" value="${g.targetDate||''}"></div>
+            <input id="goalTargetDate" type="date" class="form-input" value="${escVal(g.targetDate||'')}"></div>
           <div class="form-group"><label class="form-label">${t('goals_reviewDate')}</label>
             <input id="goalReviewDate" type="date" class="form-input" value="${escHtml(g.reviewDate||'')}"></div>
           <div class="form-group"><label class="form-label">${t('goals_manualProgress')}</label>
-            <input id="goalProgress" type="number" class="form-input" min="0" max="100" value="${g.progress||0}" placeholder="0-100" title="${t('goals_progressHint')}"></div>
+            <input id="goalProgress" type="number" class="form-input" min="0" max="100" value="${escVal(g.progress||0)}" placeholder="0-100" title="${t('goals_progressHint')}"></div>
         </div>
 
         <div class="legal-form-section">
@@ -6671,7 +6671,7 @@ async function renderSettingsPanel() {
   const qs = roleSettings.qmSettings       || {}
 
   const incTypeOpts = Object.entries(INC_TYPE_LABELS).map(([v,l]) =>
-    `<option value="${v}" ${(cs.reportableTypes||[]).includes(v)?'selected':''}>${l}</option>`).join('')
+    `<option value="${escVal(v)}" ${(cs.reportableTypes||[]).includes(v)?'selected':''}>${escVal(l)}</option>`).join('')
 
   const cisoSection = showCiso ? `
     <div class="settings-section">
@@ -6681,7 +6681,7 @@ async function renderSettingsPanel() {
         <label class="org-label">${t('set_escalationEmail')}</label>
         <input class="input" id="cisoEscalationEmail" value="${escHtml(cs.escalationEmail||'')}" type="email" placeholder="ciso@company.com">
         <label class="org-label">${t('set_incidentSla')}</label>
-        <input class="input" id="cisoSLA" value="${cs.incidentResponseSLA||24}" type="number" min="1" max="168" style="width:100px">
+        <input class="input" id="cisoSLA" value="${escVal(cs.incidentResponseSLA||24)}" type="number" min="1" max="168" style="width:100px">
         <label class="org-label">${t('set_reportableFrom')}</label>
         <select class="select" id="cisoThreshold">
           <option value="low"      ${cs.reportableThreshold==='low'      ?'selected':''}>${t('riskl_low')}</option>
@@ -6706,9 +6706,9 @@ async function renderSettingsPanel() {
       <p class="settings-desc">${t('gdpr_cfgIntro')}</p>
       <div class="org-grid" style="max-width:600px">
         <label class="org-label">${t('set_dsarDeadline')}</label>
-        <input class="input" id="gdpoDsar" value="${gs.dsarDeadlineDays||30}" type="number" min="1" max="90" style="width:100px">
+        <input class="input" id="gdpoDsar" value="${escVal(gs.dsarDeadlineDays||30)}" type="number" min="1" max="90" style="width:100px">
         <label class="org-label">${t('set_dsarDeadlineExt')}</label>
-        <input class="input" id="gdpoDsarExt" value="${gs.dsarExtendedDays||90}" type="number" min="1" max="180" style="width:100px">
+        <input class="input" id="gdpoDsarExt" value="${escVal(gs.dsarExtendedDays||90)}" type="number" min="1" max="180" style="width:100px">
         <label class="org-label">${t('gdpr_72hActive')}</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px">
           <input type="checkbox" id="gdpo72h" ${gs.timer72hEnabled!==false?'checked':''}> ${t('ui_enabled')}
@@ -6770,7 +6770,7 @@ async function renderSettingsPanel() {
           <option value="planned"     ${is.otNetworkSegmentation==='planned'    ?'selected':''}>${t('ui_planned')}</option>
         </select>
         <label class="org-label">${t('set_patchCycle')}</label>
-        <input class="input" id="icsPatchCycle" value="${is.otPatchCycleWeeks||12}" type="number" min="1" max="52" style="width:100px">
+        <input class="input" id="icsPatchCycle" value="${escVal(is.otPatchCycleWeeks||12)}" type="number" min="1" max="52" style="width:100px">
         <label class="org-label">${t('set_maintenanceWindow')}</label>
         <input class="input" id="icsMaintenanceWindow" value="${escHtml(is.otMaintenanceWindow||'')}" placeholder="${escHtml(t('ph_maintWindowEg'))}">
         <label class="org-label">${t('set_emergencyContact')}</label>
@@ -6803,11 +6803,11 @@ async function renderSettingsPanel() {
           <option value="prüfungsausschuss"  ${rs.revReportsTo==='prüfungsausschuss'        ?'selected':''}>${t('set_auditCommittee')}</option>
         </select>
         <label class="org-label">${t('set_auditCycle')}</label>
-        <input class="input" id="revCycle" value="${rs.revCycleMonths||12}" type="number" min="1" max="36" style="width:100px">
+        <input class="input" id="revCycle" value="${escVal(rs.revCycleMonths||12)}" type="number" min="1" max="36" style="width:100px">
         <label class="org-label">${t('set_lastInternalAudit')}</label>
-        <input class="input" id="revLastAudit" type="date" value="${rs.revLastAuditDate||''}">
+        <input class="input" id="revLastAudit" type="date" value="${escVal(rs.revLastAuditDate||'')}">
         <label class="org-label">${t('set_nextPlannedAudit')}</label>
-        <input class="input" id="revNextAudit" type="date" value="${rs.revNextAuditDate||''}">
+        <input class="input" id="revNextAudit" type="date" value="${escVal(rs.revNextAuditDate||'')}">
         <label class="org-label">${t('set_externalAuditor')}</label>
         <input class="input" id="revExternal" value="${escHtml(rs.revExternalSupport||'')}" placeholder="${escHtml(t('ph_auditFirmEg'))}">
       </div>
@@ -6843,13 +6843,13 @@ async function renderSettingsPanel() {
         <label class="org-label">${t('set_certBody')}</label>
         <input class="input" id="qmCertBody" value="${escHtml(qs.qmCertBody||'')}" placeholder="${escHtml(t('ph_certBodyEg'))}">
         <label class="org-label">${t('set_certValidUntil')}</label>
-        <input class="input" id="qmCertValid" type="date" value="${qs.qmCertValidUntil||''}">
+        <input class="input" id="qmCertValid" type="date" value="${escVal(qs.qmCertValidUntil||'')}">
         <label class="org-label">${t('set_lastSurveillance')}</label>
-        <input class="input" id="qmLastAudit" type="date" value="${qs.qmLastAuditDate||''}">
+        <input class="input" id="qmLastAudit" type="date" value="${escVal(qs.qmLastAuditDate||'')}">
         <label class="org-label">${t('set_nextSurveillance')}</label>
-        <input class="input" id="qmNextAudit" type="date" value="${qs.qmNextAuditDate||''}">
+        <input class="input" id="qmNextAudit" type="date" value="${escVal(qs.qmNextAuditDate||'')}">
         <label class="org-label">${t('set_nextRecert')}</label>
-        <input class="input" id="qmRecert" type="date" value="${qs.qmRecertDate||''}">
+        <input class="input" id="qmRecert" type="date" value="${escVal(qs.qmRecertDate||'')}">
       </div>
       <div class="settings-actions" style="margin-top:10px">
         <button class="btn btn-primary btn-sm" onclick="saveQmSettings()">
@@ -7360,7 +7360,7 @@ function setupAiDraftControls(canEditDoc, docLanguage) {
   const primaryLang = _langConfig?.default || 'de'
   const langs = primaryLang === 'en' ? ['en'] : [primaryLang, 'en']
 
-  sel.innerHTML = langs.map(l => `<option value="${l}">${l.toUpperCase()}</option>`).join('')
+  sel.innerHTML = langs.map(l => `<option value="${escVal(l)}">${l.toUpperCase()}</option>`).join('')
   sel.value = langs.includes(docLanguage) ? docLanguage : primaryLang
   sel.style.display = langs.length > 1 ? '' : 'none'
   btn.style.display = ''
@@ -7821,7 +7821,7 @@ function renderTmplControlsBar(t) {
   }
   bar.style.display = 'flex'
   bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-link"></i> ${window.t('findings_linkedControls')}</span>` +
-    linked.map(cid => `<span class="tmpl-bar-pill">${cid}</span>`).join('') +
+    linked.map(cid => `<span class="tmpl-bar-pill">${escHtml(cid)}</span>`).join('') +
     `<button class="tmpl-bar-edit btn btn-secondary btn-sm" onclick="openControlPicker()"><i class="ph ph-pencil"></i></button>`
 }
 
@@ -7836,7 +7836,7 @@ function renderTmplEntityBar(t) {
   }
   bar.style.display = 'flex'
   bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-buildings"></i> ${window.t('tmpl_appliesTo')}</span>` +
-    ents.map(eid => `<span class="tmpl-bar-pill">${eid}</span>`).join('')
+    ents.map(eid => `<span class="tmpl-bar-pill">${escHtml(eid)}</span>`).join('')
 }
 
 async function openControlPicker() {
@@ -7857,7 +7857,7 @@ async function openControlPicker() {
   const fwSet = [...new Set(_pickerAllControls.map(c => c.framework))]
   const fwTabsEl = dom('controlPickerFwTabs')
   fwTabsEl.innerHTML = `<button class="picker-fw-tab${_pickerSelectedFw === null ? ' active' : ''}" onclick="setPickerFw(null)">${t('findings_tabList')}</button>` +
-    fwSet.map(fw => `<button class="picker-fw-tab" onclick="setPickerFw('${fw}')">${fw}</button>`).join('')
+    fwSet.map(fw => `<button class="picker-fw-tab" data-fw="${escHtml(fw)}" onclick="setPickerFw(this.dataset.fw)">${escHtml(fw)}</button>`).join('')
 
   renderPickerList()
   updatePickerCount()
@@ -8034,7 +8034,7 @@ function _renderEntityPickerModal() {
     const checked = _entityPickerSelected.has(e.id)
     return `<label class="picker-row${checked ? ' checked' : ''}">
       <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleEntityPicker('${e.id}', this.checked)" />
-      <span class="picker-id">${e.shortCode || e.id}</span>
+      <span class="picker-id">${escHtml(e.shortCode || e.id)}</span>
       <span class="picker-title">${escHtml(e.name)}</span>
     </label>`
   }).join('')
@@ -8396,7 +8396,7 @@ function renderGuidanceList() {
     const icon = d.type === 'pdf' ? 'ph-file-pdf' : d.type === 'docx' ? 'ph-file-doc' : 'ph-file-text'
     const active = d.id === _guidanceDocId ? 'active' : ''
     return `
-      <li class="guidance-doc-item ${active}" data-id="${d.id}" onclick="renderGuidanceDoc(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+      <li class="guidance-doc-item ${active}" data-id="${d.id}" onclick="renderGuidanceDoc(${escHtml(JSON.stringify(d))})">
         <i class="ph ${icon} guidance-doc-icon"></i>
         <span class="guidance-doc-title">${escHtml(d.title)}</span>
       </li>
@@ -8559,7 +8559,7 @@ function renderGuidanceSearchResults(results, query) {
     const catLabel = catMeta ? catMeta.label : d.category
     return `
       <li class="guidance-doc-item ${d.id === _guidanceDocId ? 'active' : ''}" data-id="${d.id}"
-        onclick="renderGuidanceDoc(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+        onclick="renderGuidanceDoc(${escHtml(JSON.stringify(d))})">
         <i class="ph ${icon} guidance-doc-icon"></i>
         <div style="min-width:0">
           <span class="guidance-doc-title">${escHtml(d.title)}</span>
@@ -8859,7 +8859,7 @@ async function renderMeasures() {
   dom('editor').appendChild(container)
   const f = _measuresFilter
   const statusOpts = `<option value="">${escHtml(t('filter_allStatuses'))}</option>` +
-    Object.keys(MEASURE_STATUS_COLOR).map(s => `<option value="${s}" ${f.status === s ? 'selected' : ''}>${escHtml(t('measures_status_' + s))}</option>`).join('')
+    Object.keys(MEASURE_STATUS_COLOR).map(s => `<option value="${escVal(s)}" ${f.status === s ? 'selected' : ''}>${escHtml(t('measures_status_' + s))}</option>`).join('')
   container.innerHTML = `
     <div class="admin-fullpage">
       <div class="admin-fullpage-header">
@@ -8877,7 +8877,7 @@ async function renderMeasures() {
         <input class="form-input" style="max-width:170px;font-size:.82rem" placeholder="${escHtml(t('measures_fResponsible'))}" value="${escHtml(f.responsible)}" oninput="_measuresRespInput(this.value)">
         <select class="select" style="font-size:.82rem;width:auto;min-width:150px" onchange="_measuresFilter.origin=this.value;loadMeasuresList()">
           ${[['', 'measures_filterOriginAll'], ['tom', 'measures_originTom'], ['governance', 'measures_originGovernance'], ['risk', 'measures_originRisk'], ['finding', 'measures_originFinding']]
-            .map(([v, k]) => `<option value="${v}" ${f.origin === v ? 'selected' : ''}>${escHtml(t(k))}</option>`).join('')}
+            .map(([v, k]) => `<option value="${escVal(v)}" ${f.origin === v ? 'selected' : ''}>${escHtml(t(k))}</option>`).join('')}
         </select>
         <label class="measure-check"><input type="checkbox" ${f.overdue ? 'checked' : ''} onchange="_measuresFilter.overdue=this.checked;loadMeasuresList()"> ${t('measures_onlyOverdue')}</label>
         <span id="measuresChips"></span>
@@ -9012,7 +9012,7 @@ async function openMeasureForm(id = null, prefill = null) {
     risks: new Set(m ? (m.linkedRisks || []) : (prefill && prefill.kind === 'risk' ? [prefill.id] : [])),
   }
   const dis = readOnly ? 'disabled' : ''
-  const statusOpts = Object.keys(MEASURE_STATUS_COLOR).map(s => `<option value="${s}" ${(m ? m.status : 'planned') === s ? 'selected' : ''}>${escHtml(t('measures_status_' + s))}</option>`).join('')
+  const statusOpts = Object.keys(MEASURE_STATUS_COLOR).map(s => `<option value="${escVal(s)}" ${(m ? m.status : 'planned') === s ? 'selected' : ''}>${escHtml(t('measures_status_' + s))}</option>`).join('')
   container.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
@@ -9066,13 +9066,13 @@ async function openMeasureForm(id = null, prefill = null) {
           <div id="msGovFields" style="display:${m && m.governance ? 'block' : 'none'}">
             <div class="form-row">
               <div class="form-group"><label class="form-label">${t('measures_fSource')}</label>
-                <select id="msSource" class="select" ${dis}>${['management_review', 'internal_audit', 'external_audit', 'incident', 'other'].map(c => `<option value="${c}" ${(m && m.source ? m.source : 'management_review') === c ? 'selected' : ''}>${escHtml(t('measures_source_' + c))}</option>`).join('')}</select></div>
+                <select id="msSource" class="select" ${dis}>${['management_review', 'internal_audit', 'external_audit', 'incident', 'other'].map(c => `<option value="${escVal(c)}" ${(m && m.source ? m.source : 'management_review') === c ? 'selected' : ''}>${escHtml(t('measures_source_' + c))}</option>`).join('')}</select></div>
               <div class="form-group"><label class="form-label">${t('measures_fSourceRef')}</label>
                 <input id="msSourceRef" class="form-input" ${dis} value="${escHtml(m ? m.sourceRef : '')}"></div>
               <div class="form-group"><label class="form-label">${t('measures_fPriority')}</label>
-                <select id="msPriority" class="select" ${dis}>${['low', 'medium', 'high', 'critical'].map(c => `<option value="${c}" ${(m && m.priority ? m.priority : 'medium') === c ? 'selected' : ''}>${escHtml(t('measures_priority_' + c))}</option>`).join('')}</select></div>
+                <select id="msPriority" class="select" ${dis}>${['low', 'medium', 'high', 'critical'].map(c => `<option value="${escVal(c)}" ${(m && m.priority ? m.priority : 'medium') === c ? 'selected' : ''}>${escHtml(t('measures_priority_' + c))}</option>`).join('')}</select></div>
               <div class="form-group"><label class="form-label">${t('measures_fProgress')}</label>
-                <input id="msProgress" type="number" min="0" max="100" class="form-input" ${dis} value="${m ? m.progress || 0 : 0}"></div>
+                <input id="msProgress" type="number" min="0" max="100" class="form-input" ${dis} value="${escVal(m ? m.progress || 0 : 0)}"></div>
             </div>
             <div class="form-row">
               <div class="form-group"><label class="form-label">${t('measures_fOwnerEmail')}</label>
@@ -9338,7 +9338,7 @@ function _renderCalUpcoming() {
     const soon = ev.date <= in30
     return `
       <div class="cal-agenda-row ${ev.date < today ? 'cal-agenda-overdue' : soon ? 'cal-agenda-soon' : ''}"
-           onclick="selectCalDay('${escHtml(ev.date)}')">
+           onclick="selectCalDay(${escHtml(JSON.stringify(String(ev.date)))})">
         <div class="cal-agenda-date">${d}</div>
         <div class="cal-chip ${cfg.cls} cal-chip-sm" title="${escHtml(cfg.label||ev.type)}">
           <i class="ph ${cfg.icon||'ph-dot'}"></i>
@@ -9399,7 +9399,7 @@ function _renderCalDayDetail(dateStr) {
             </div>
             <div class="cal-detail-label">${escHtml(ev.label)}</div>
             ${ev.riskId ? `<button class="btn btn-secondary btn-sm" style="margin-top:6px;"
-              onclick="loadSection('risk');renderRisk().then(()=>openRiskDetail('${ev.riskId}'))">
+              onclick="loadSection('risk');renderRisk().then(()=>openRiskDetail(${escHtml(JSON.stringify(String(ev.riskId)))}))">
               <i class="ph ph-arrow-square-out"></i> ${t('cal_openRisk')}
             </button>` : ''}
           </div>`
@@ -9467,8 +9467,8 @@ const CVSS_BANDS = [
   { min: 0.0, max:  0.0, get label() { return t('assets_lvlNone') }, cls: 'cvss-none',     color: '#6b7280',
     descKey: 'cvss_descNone' },
 ]
-function riskCatLabel(cat) { return cat ? t(cat.labelKey) : '' }
-function riskTreatmentLabel(treatment) { return treatment ? t(treatment.labelKey) : '' }
+function riskCatLabel(cat) { return cat ? (cat.labelKey ? t(cat.labelKey) : escVal(cat.label || cat.id)) : '' }
+function riskTreatmentLabel(treatment) { return treatment ? (treatment.labelKey ? t(treatment.labelKey) : escVal(treatment.label || treatment.id)) : '' }
 function cvssDesc(info) { return info?.descKey ? t(info.descKey) : '' }
 
 function cvssInfo(score) {
@@ -9491,9 +9491,9 @@ function cvssBarHtml(score) {
   return `
     <div class="cvss-bar-wrap" title="CVSS ${parseFloat(score).toFixed(1)} / 10">
       <div class="cvss-bar-track">
-        <div class="cvss-bar-fill" style="width:${pct}%;background:${info.color}"></div>
+        <div class="cvss-bar-fill" style="width:${pct}%;background:${escVal(info.color)}"></div>
       </div>
-      <span class="cvss-bar-label" style="color:${info.color}">${parseFloat(score).toFixed(1)}</span>
+      <span class="cvss-bar-label" style="color:${escVal(info.color)}">${parseFloat(score).toFixed(1)}</span>
     </div>`
 }
 
@@ -9587,7 +9587,7 @@ async function renderRiskRegister(el) {
   const lvOpts = [{ id:'', label:t('filter_allLevels') }, ...Object.keys(RISK_LEVEL_CFG).reverse().map(id => ({ id, label: RISK_LEVEL_CFG[id].label }))].map(l =>
     `<option value="${l.id}" ${_riskFilterLevel === l.id ? 'selected':''}>${l.label}</option>`).join('')
   const catOpts = [{ id:'', label:t('filter_allCats') }, ...RISK_CATS].map(c =>
-    `<option value="${c.id}" ${_riskFilterCat === c.id ? 'selected':''}>${c.label || riskCatLabel(c)}</option>`).join('')
+    `<option value="${escVal(c.id)}" ${_riskFilterCat === c.id ? 'selected':''}>${c.label ? escVal(c.label) : riskCatLabel(c)}</option>`).join('')
   const stOpts = [{ id:'', label:t('filter_allStatuses') }, ...RISK_STATUSES].map(s =>
     `<option value="${s.id}" ${_riskFilterStatus === s.id ? 'selected':''}>${s.label}</option>`).join('')
 
@@ -9608,7 +9608,7 @@ async function renderRiskRegister(el) {
       </tr></thead>
       <tbody>
         ${risks.map(r => {
-          const lv = RISK_LEVEL_CFG[r.riskLevel] || { label: r.riskLevel, cls: '' }
+          const lv = RISK_LEVEL_CFG[r.riskLevel] || { label: escVal(r.riskLevel), cls: '' }
           const cat = RISK_CATS.find(c => c.id === r.category)
           const st  = RISK_STATUSES.find(s => s.id === r.status)
           const tr  = RISK_TREATMENTS.find(t => t.id === r.treatmentOption)
@@ -9619,7 +9619,7 @@ async function renderRiskRegister(el) {
             </td>
             <td class="risk-title-cell">${escHtml(r.title)}${r.needsReview ? ` <span class="badge-review-pending" title="${t('risk_approvalRequired')}">&#9888; ${t('ui_review')}</span>` : ''}</td>
             <td>${escHtml(riskCatLabel(cat) || r.category)}</td>
-            <td class="risk-score-cell">${r.probability} × ${r.impact} = <strong>${r.score}</strong></td>
+            <td class="risk-score-cell">${escVal(r.probability)} × ${escVal(r.impact)} = <strong>${escVal(r.score)}</strong></td>
             <td>${escHtml(riskTreatmentLabel(tr) || r.treatmentOption)}</td>
             <td><span class="risk-status-badge risk-st-${escHtml(r.status)}">${escHtml(st?.label || r.status)}</span></td>
             <td>${escHtml(r.owner || '—')}</td>
@@ -9909,7 +9909,7 @@ async function renderRiskReports(el) {
     </div>`
 
   const top5rows = s.top5.map(r => {
-    const lv = RISK_LEVEL_CFG[r.riskLevel] || { label: r.riskLevel, cls: '' }
+    const lv = RISK_LEVEL_CFG[r.riskLevel] || { label: escVal(r.riskLevel), cls: '' }
     return `<tr>
       <td>${escHtml(r.title)}</td>
       <td><span class="risk-badge ${lv.cls}">${lv.label}</span></td>
@@ -9934,7 +9934,7 @@ async function renderRiskReports(el) {
         <h4>${t('risk_byLevel')}</h4>
         ${Object.entries(s.byLevel).map(([k,v]) => `
           <div class="risk-report-row">
-            <span class="risk-badge ${RISK_LEVEL_CFG[k]?.cls}" style="width:80px;">${RISK_LEVEL_CFG[k]?.label||k}</span>
+            <span class="risk-badge ${RISK_LEVEL_CFG[k]?.cls}" style="width:80px;">${RISK_LEVEL_CFG[k]?.label||escVal(k)}</span>
             ${bar(v, s.total, RISK_LEVEL_CFG[k]?.cls+'-bar')}
           </div>`).join('')}
       </div>
@@ -9969,7 +9969,7 @@ async function renderRiskReports(el) {
           <tbody>${pending.map(r => `<tr>
             <td>${escHtml(r.title)}</td>
             <td>${r.cvssScore != null ? cvssBadgeHtml(r.cvssScore) : '—'}</td>
-            <td><span class="risk-badge ${RISK_LEVEL_CFG[r.riskLevel]?.cls||''}">${RISK_LEVEL_CFG[r.riskLevel]?.label||r.riskLevel||'—'}</span></td>
+            <td><span class="risk-badge ${RISK_LEVEL_CFG[r.riskLevel]?.cls||''}">${RISK_LEVEL_CFG[r.riskLevel]?.label||escVal(r.riskLevel)||'—'}</span></td>
             <td style="font-size:.8rem;color:var(--text-muted)">${escHtml(r.scanRef||'')}</td>
             <td style="font-size:.8rem">${escHtml((r.cveIds||[]).join(', ')||'—')}</td>
             <td><button class="btn btn-primary btn-sm" onclick="approveRisk('${r.id}')"><i class="ph ph-check"></i> ${t('risk_approve')}</button></td>
@@ -9985,7 +9985,7 @@ async function renderRiskReports(el) {
           <tbody>${scanRisks.map(r => `<tr onclick="openRiskDetail('${r.id}')" style="cursor:pointer">
             <td>${escHtml(r.title)}</td>
             <td>${r.cvssScore != null ? cvssBadgeHtml(r.cvssScore) : '—'}</td>
-            <td><span class="risk-badge ${RISK_LEVEL_CFG[r.riskLevel]?.cls||''}">${RISK_LEVEL_CFG[r.riskLevel]?.label||r.riskLevel||'—'}</span></td>
+            <td><span class="risk-badge ${RISK_LEVEL_CFG[r.riskLevel]?.cls||''}">${RISK_LEVEL_CFG[r.riskLevel]?.label||escVal(r.riskLevel)||'—'}</span></td>
             <td style="font-size:.8rem">${escHtml((r.cveIds||[]).join(', ')||'—')}</td>
             <td style="text-align:center">${r.score ?? '—'}</td>
             <td><span class="risk-status-badge risk-st-${escHtml(r.status)}">${escHtml(RISK_STATUSES.find(x=>x.id===r.status)?.label||r.status)}</span></td>
@@ -10014,7 +10014,7 @@ async function openRiskDetail(id) {
   const supplierNames = Object.fromEntries((await asList(supRes)).map(x => [x.id, x.name]))
   const typeNames     = Object.fromEntries(ASSET_TYPES.map(at => [at.id, assetTypeLabel(at)]))
   const entityMap = Object.fromEntries(entities.map(e => [e.id, e.name]))
-  const lv  = RISK_LEVEL_CFG[r.riskLevel] || { label: r.riskLevel, cls: '' }
+  const lv  = RISK_LEVEL_CFG[r.riskLevel] || { label: escVal(r.riskLevel), cls: '' }
   const cat = RISK_CATS.find(c => c.id === r.category)
   const tr  = RISK_TREATMENTS.find(t => t.id === r.treatmentOption)
   const st  = RISK_STATUSES.find(s => s.id === r.status)
@@ -10080,8 +10080,8 @@ async function openRiskDetail(id) {
         <div class="risk-detail-section">
           <h4>${t('risk_assessment')}</h4>
           <div class="risk-detail-row"><label>${t('col_category')}</label><span>${escHtml(riskCatLabel(cat)||r.category)}</span></div>
-          <div class="risk-detail-row"><label>${t('risk_probability')}</label><span>${r.probability} / 5</span></div>
-          <div class="risk-detail-row"><label>${t('risk_impact')}</label><span>${r.impact} / 5</span></div>
+          <div class="risk-detail-row"><label>${t('risk_probability')}</label><span>${escVal(r.probability)} / 5</span></div>
+          <div class="risk-detail-row"><label>${t('risk_impact')}</label><span>${escVal(r.impact)} / 5</span></div>
           <div class="risk-detail-row"><label>${t('risk_scoreCol')}</label><span><strong>${r.score}</strong> — <span class="risk-badge ${lv.cls}">${lv.label}</span></span></div>
           ${(r.inherentScore != null || r.targetScore != null) ? `
           <div class="risk-detail-row"><label>${t('risk_inherentShort')}</label><span>${riskRatingHtml(riskRatingOf(r.inherentProbability, r.inherentImpact))}</span></div>
@@ -10235,9 +10235,9 @@ async function openRiskModal(id) {
   ;(function flatten(nodes) { for (const n of nodes) { entities.push(n); flatten(n.children||[]) } })(entityTree)
 
   const catOpts = RISK_CATS.map(c =>
-    `<option value="${c.id}" ${risk?.category===c.id?'selected':''}>${c.label}</option>`).join('')
+    `<option value="${escVal(c.id)}" ${risk?.category===c.id?'selected':''}>${escVal(c.label)}</option>`).join('')
   const trOpts = RISK_TREATMENTS.map(t =>
-    `<option value="${t.id}" ${risk?.treatmentOption===t.id?'selected':''}>${t.label}</option>`).join('')
+    `<option value="${escVal(t.id)}" ${risk?.treatmentOption===t.id?'selected':''}>${escVal(t.label)}</option>`).join('')
   const stOpts = RISK_STATUSES.map(s =>
     `<option value="${s.id}" ${risk?.status===s.id?'selected':''}>${s.label}</option>`).join('')
   const selected = new Set(risk?.applicableEntities || [])
@@ -10259,7 +10259,7 @@ async function openRiskModal(id) {
               onchange="riskEntityCascade(this)">
             <i class="ph ${icon}"></i>
             <span>${escHtml(n.name)}</span>
-            ${n.shortCode ? `<span class="picker-id">${n.shortCode}</span>` : ''}
+            ${n.shortCode ? `<span class="picker-id">${escHtml(n.shortCode)}</span>` : ''}
           </label>
           ${children}
         </div>`
@@ -10272,7 +10272,7 @@ async function openRiskModal(id) {
   }
   const entTreeHtml = entityTree.length ? buildEntityTree(entityTree, 0) : ''
   const scaleOpts = n => [1,2,3,4,5].map(v =>
-    `<option value="${v}" ${risk?.[n]===v?'selected':''}>${v}</option>`).join('')
+    `<option value="${escVal(v)}" ${risk?.[n]===v?'selected':''}>${v}</option>`).join('')
   // Optionale Skala (Inherent / Ziel, #94): leere Auswahl = nicht bewertet
   const optScaleOpts = n => `<option value="">—</option>` + scaleOpts(n)
 
@@ -10443,7 +10443,7 @@ function riskEntityCascade(cb) {
   // Cascade down: check/uncheck all children
   const childIds = JSON.parse(cb.dataset.children || '[]')
   childIds.forEach(id => {
-    const child = document.querySelector(`.ent-tree-cb[value="${id}"]`)
+    const child = document.querySelector(`.ent-tree-cb[value="${escVal(id)}"]`)
     if (child) child.checked = cb.checked
   })
   // Update indeterminate state on all parent checkboxes
@@ -10451,7 +10451,7 @@ function riskEntityCascade(cb) {
     const kids = JSON.parse(el.dataset.children || '[]')
     if (!kids.length) return
     const checkedCount = kids.filter(id => {
-      const c = document.querySelector(`.ent-tree-cb[value="${id}"]`)
+      const c = document.querySelector(`.ent-tree-cb[value="${escVal(id)}"]`)
       return c && c.checked
     }).length
     el.indeterminate = checkedCount > 0 && checkedCount < kids.length
@@ -10675,6 +10675,17 @@ function showToast(message, type = 'info') {
 
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+// Wert für ein HTML-Attribut oder Text: auch 0/false bleiben erhalten, null/undefined werden leer
+function escVal(v) {
+  return escHtml(String(v ?? ''))
+}
+
+// Verweise aus gespeicherten Daten dürfen nur http(s) oder ein Pfad der eigenen Seite sein (kein javascript:, data:)
+function safeUrl(u) {
+  const s = String(u || '').trim()
+  return /^(https?:\/\/|\/(?!\/))/i.test(s) ? s : ''
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -10963,12 +10974,12 @@ async function openVvtForm(id = null) {
 
   const catChecks = GDPR_DATA_CATS.map(c =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
-       <input type="checkbox" value="${c}" ${(v.dataCategories||[]).includes(c)?'checked':''}> ${c}
-     </label>`).join('')
+       <input type="checkbox" value="${escVal(c)}" ${(v.dataCategories||[]).includes(c)?'checked':''}> ${escVal(c)}
+$1</label>`).join('')
   const subChecks = GDPR_SUBJECT_TYPES.map(s =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
-       <input type="checkbox" value="${s.id}" ${(v.dataSubjectTypes||[]).includes(s.id)?'checked':''}> ${s.label}
-     </label>`).join('')
+       <input type="checkbox" value="${escVal(s.id)}" ${(v.dataSubjectTypes||[]).includes(s.id)?'checked':''}> ${escVal(s.label)}
+$1</label>`).join('')
   const entityChecks = _gdprEntities.map(e =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
        <input type="checkbox" value="${e.id}" ${(v.applicableEntities||[]).includes(e.id)?'checked':''}> ${escHtml(e.name)}
@@ -11004,7 +11015,7 @@ async function openVvtForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_retentionPeriodText')}</label>
           <input id="vvtRetention" class="form-input" value="${escHtml(v.retentionPeriod||'')}" placeholder="${escHtml(t('ph_retentionLawEg'))}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_retentionPeriodMonths')}</label>
-          <input id="vvtRetentionMonths" type="number" class="form-input" value="${v.retentionMonths||''}" placeholder="e.g. 84"></div>
+          <input id="vvtRetentionMonths" type="number" class="form-input" value="${escVal(v.retentionMonths||'')}" placeholder="e.g. 84"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_deletionProcedure')}</label>
           <textarea id="vvtDeletion" class="form-input" rows="2">${escHtml(v.deletionProcedure||'')}</textarea></div>
         <div class="form-group" style="display:flex;gap:20px">
@@ -11241,7 +11252,7 @@ async function renderGdprDsfa(el) {
           return `<tr class="gdpr-row" onclick="openDsfaForm('${d.id}')">
             <td><strong>${escHtml(d.title)}</strong></td>
             <td style="font-size:.78rem">${escHtml(d.linkedVvtId || '—')}</td>
-            <td><span class="gdpr-risk gdpr-risk-${d.residualRisk}">${GDPR_RISK_LEVELS.find(l=>l.id===d.residualRisk)?.label || d.residualRisk}</span></td>
+            <td><span class="gdpr-risk gdpr-risk-${escHtml(d.residualRisk)}">${GDPR_RISK_LEVELS.find(l=>l.id===d.residualRisk)?.label || escHtml(d.residualRisk)}</span></td>
             <td>${d.dpoConsulted ? '<i class="ph ph-check-circle" style="color:#4ade80"></i>' : '<i class="ph ph-x-circle" style="color:#f87171"></i>'}</td>
             <td><span class="gdpr-status gdpr-st-${escHtml(d.status)}">${escHtml(st?.label || d.status)}</span></td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
@@ -11336,8 +11347,8 @@ async function openDsfaForm(id = null) {
 function dsfaRiskRow(rk = {}, idx) {
   return `<div class="dsfa-risk-row" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:8px;padding:8px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)">
     <input class="form-input" placeholder="${escHtml(t('gdpr_riskDescPh'))}" style="font-size:.8rem" value="${escHtml(rk.description||'')}">
-    <input type="number" class="form-input" placeholder="${escHtml(t('gdpr_likelihoodPh'))}" min="1" max="5" style="font-size:.8rem" value="${rk.likelihood||1}" title="${escHtml(t('gdpr_likelihoodTitle'))}">
-    <input type="number" class="form-input" placeholder="${escHtml(t('gdpr_impactPh'))}" min="1" max="5" style="font-size:.8rem" value="${rk.impact||1}" title="${escHtml(t('gdpr_impactTitle'))}">
+    <input type="number" class="form-input" placeholder="${escHtml(t('gdpr_likelihoodPh'))}" min="1" max="5" style="font-size:.8rem" value="${escVal(rk.likelihood||1)}" title="${escHtml(t('gdpr_likelihoodTitle'))}">
+    <input type="number" class="form-input" placeholder="${escHtml(t('gdpr_impactPh'))}" min="1" max="5" style="font-size:.8rem" value="${escVal(rk.impact||1)}" title="${escHtml(t('gdpr_impactTitle'))}">
     <span style="font-size:.78rem;color:var(--text-subtle)">${t('ui_score')} <strong>${(rk.likelihood||1)*(rk.impact||1)}</strong></span>
     <button class="btn btn-sm" style="color:var(--danger-text)" onclick="this.closest('.dsfa-risk-row').remove()"><i class="ph ph-trash"></i></button>
   </div>`
@@ -11438,7 +11449,7 @@ async function renderGdprIncidents(el) {
             <td style="font-size:.78rem">${escHtml(typ?.label || i.incidentType)}</td>
             <td style="font-size:.78rem">${i.discoveredAt ? new Date(i.discoveredAt).toLocaleDateString('en-GB') : '—'}</td>
             <td>${i.saNotificationRequired && !i.saNotifiedAt ? gdprTimerHtml(i.discoveredAt) : '—'}</td>
-            <td><span class="gdpr-risk gdpr-risk-${i.riskLevel}">${GDPR_RISK_LEVELS.find(l=>l.id===i.riskLevel)?.label || i.riskLevel}</span></td>
+            <td><span class="gdpr-risk gdpr-risk-${escHtml(i.riskLevel)}">${GDPR_RISK_LEVELS.find(l=>l.id===i.riskLevel)?.label || escHtml(i.riskLevel)}</span></td>
             <td>${i.saNotifiedAt ? `<i class="ph ph-check-circle" style="color:#4ade80"></i> ${new Date(i.saNotifiedAt).toLocaleDateString('en-GB')}` : (i.saNotificationRequired ? '<i class="ph ph-x-circle" style="color:#f87171"></i> ' + t('gdpr_pending') : '—')}</td>
             <td><span class="gdpr-status gdpr-st-${escHtml(i.status)}">${escHtml(st?.label || i.status)}</span></td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
@@ -11465,8 +11476,8 @@ async function openIncidentForm(id = null) {
   const rlOpts   = GDPR_RISK_LEVELS.map(l => `<option value="${l.id}" ${inc.riskLevel === l.id ? 'selected':''}>${l.label}</option>`).join('')
   const catChecks = GDPR_DATA_CATS.map(c =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
-       <input type="checkbox" value="${c}" class="inc-cat-cb" ${(inc.dataCategories||[]).includes(c)?'checked':''}> ${c}
-     </label>`).join('')
+       <input type="checkbox" value="${escVal(c)}" class="inc-cat-cb" ${(inc.dataCategories||[]).includes(c)?'checked':''}> ${escVal(c)}
+$1</label>`).join('')
   const entityChecks = _gdprEntities.map(e =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
        <input type="checkbox" value="${e.id}" class="inc-entity-cb" ${(inc.applicableEntities||[]).includes(e.id)?'checked':''}> ${escHtml(e.name)}
@@ -11484,11 +11495,11 @@ async function openIncidentForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_breachType')}</label>
           <select id="incType" class="select">${typeOpts}</select></div>
         <div class="form-group"><label class="form-label">${t('gdpr_discoveredOn')}</label>
-          <input id="incDiscovered" type="datetime-local" class="form-input" value="${inc.discoveredAt ? inc.discoveredAt.slice(0,16) : ''}"></div>
+          <input id="incDiscovered" type="datetime-local" class="form-input" value="${escVal(inc.discoveredAt ? inc.discoveredAt.slice(0,16) : '')}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_affectedDataCategories')}</label>
           <div>${catChecks}</div></div>
         <div class="form-group"><label class="form-label">${t('gdpr_estimatedSubjects')}</label>
-          <input id="incAffected" type="number" class="form-input" value="${inc.estimatedAffected||''}"></div>
+          <input id="incAffected" type="number" class="form-input" value="${escVal(inc.estimatedAffected||'')}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_riskAssessment')}</label>
           <select id="incRiskLevel" class="select">${rlOpts}</select></div>
         <div class="form-group">
@@ -11498,7 +11509,7 @@ async function openIncidentForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_saRefNumber')}</label>
           <input id="incSaRef" class="form-input" value="${escHtml(inc.saReference||'')}" placeholder="${escHtml(t('gdpr_ifNotifiedPh'))}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_saNotifiedOn')}</label>
-          <input id="incSaNotified" type="datetime-local" class="form-input" value="${inc.saNotifiedAt ? inc.saNotifiedAt.slice(0,16) : ''}"></div>
+          <input id="incSaNotified" type="datetime-local" class="form-input" value="${escVal(inc.saNotifiedAt ? inc.saNotifiedAt.slice(0,16) : '')}"></div>
         <div class="form-group">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="checkbox" id="incDsRequired" ${inc.dsNotificationRequired?'checked':''}> ${t('gdpr_dsNotifyRequired')}
@@ -11626,7 +11637,7 @@ async function openDsarForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_dataSubjectEmail')}</label>
           <input id="dsarEmail" class="form-input" value="${escHtml(d.dataSubjectEmail||'')}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_receivedOnDeadline')}</label>
-          <input id="dsarReceived" type="date" class="form-input" value="${d.receivedAt ? d.receivedAt.slice(0,10) : new Date().toISOString().slice(0,10)}"></div>
+          <input id="dsarReceived" type="date" class="form-input" value="${escVal(d.receivedAt ? d.receivedAt.slice(0,10) : new Date().toISOString().slice(0,10))}"></div>
         <div class="form-group">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="checkbox" id="dsarVerified" ${d.identityVerified?'checked':''}> ${t('gdpr_identityVerified')}
@@ -11907,10 +11918,10 @@ async function renderGdprDsb(el) {
         <div class="form-group"><label class="form-label">${t('ui_phone')}</label>
           <input id="dsbPhone" class="form-input" value="${escHtml(d.phone||'')}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_appointedOn')}</label>
-          <input id="dsbApptDate" type="date" class="form-input" value="${d.appointmentDate||''}"></div>
+          <input id="dsbApptDate" type="date" class="form-input" value="${escVal(d.appointmentDate||'')}"></div>
       </div>
       <div class="form-group"><label class="form-label">${t('gdpr_contractUntilExternal')}</label>
-        <input id="dsbContractEnd" type="date" class="form-input" value="${d.contractEnd||''}"></div>
+        <input id="dsbContractEnd" type="date" class="form-input" value="${escVal(d.contractEnd||'')}"></div>
       <div class="form-group"><label class="form-label">${t('ui_notes')}</label>
         <textarea id="dsbNotes" class="form-input" rows="3">${escHtml(d.notes||'')}</textarea></div>
 
@@ -12084,7 +12095,7 @@ async function renderTrainingOverview(el) {
             <span class="badge ${TRAINING_STATUS_CLS[i.status]||''}">${escHtml(TRAINING_STATUS_LABELS[i.status]||i.status)}</span>
             <strong>${escHtml(i.title)}</strong>
             <span style="color:var(--text-subtle);font-size:.78rem">${escHtml(TRAINING_CAT_LABELS[i.category]||i.category)}</span>
-            <span class="training-due ${urgency}">${i.dueDate ? (i.overdue ? `${t('training_overdueSince')} ${i.dueDate}` : `${t('trn_dueLabel')}: ${i.dueDate}`) : '—'}</span>
+            <span class="training-due ${urgency}">${i.dueDate ? (i.overdue ? `${t('training_overdueSince')} ${escVal(i.dueDate)}` : `${t('trn_dueLabel')}: ${escVal(i.dueDate)}`) : '—'}</span>
             <span style="color:var(--text-subtle);font-size:.78rem">${escHtml(i.assignees||'—')}</span>
           </div>`
         }).join('') || `<p style="color:var(--text-subtle)">${t('training_noUrgent')}</p>`}
@@ -12107,11 +12118,11 @@ async function renderTrainingPlan(el) {
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openTrainingForm()"><i class="ph ph-plus"></i> ${t('trn_newTraining')}</button>` : ''}
       <select id="trainingFilterStatus" class="select select-sm" onchange="filterTrainingPlan()">
         <option value="">${t('filter_allStatuses')}</option>
-        ${Object.entries(TRAINING_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(TRAINING_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="trainingFilterCat" class="select select-sm" onchange="filterTrainingPlan()">
         <option value="">${t('filter_allCats')}</option>
-        ${Object.entries(TRAINING_CAT_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(TRAINING_CAT_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
     </div>
     <div id="trainingPlanTable"></div>
@@ -12217,13 +12228,13 @@ async function openTrainingForm(id) {
             <div class="form-group">
               <label class="form-label">${t('col_category')}</label>
               <select id="tmCat" class="select">
-                ${Object.entries(TRAINING_CAT_LABELS).map(([v,l])=>`<option value="${v}"${item?.category===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(TRAINING_CAT_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.category===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_status')}</label>
               <select id="tmStatus" class="select">
-                ${Object.entries(TRAINING_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(TRAINING_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -12412,7 +12423,7 @@ async function renderLegalContracts(el) {
       <tbody>${list.map(c => `
         <tr>
           <td><strong>${escHtml(c.title)}</strong></td>
-          <td>${LEGAL_CONTRACT_TYPE_LABELS[c.contractType]||c.contractType}</td>
+          <td>${LEGAL_CONTRACT_TYPE_LABELS[c.contractType]||escVal(c.contractType)}</td>
           <td>${escHtml(c.counterparty)}</td>
           <td><span class="status-badge status-${escHtml(c.status)}">${escHtml(LEGAL_CONTRACT_STATUS_LABELS[c.status]||c.status)}</span></td>
           <td class="${c.endDate && new Date(c.endDate) < new Date(Date.now()+60*86400000) ? 'text-warning' : ''}">${fmtDate(c.endDate)}</td>
@@ -12446,7 +12457,7 @@ async function renderLegalNdas(el) {
       <tbody>${list.map(n => `
         <tr>
           <td><strong>${escHtml(n.title)}</strong></td>
-          <td>${LEGAL_NDA_TYPE_LABELS[n.ndaType]||n.ndaType}</td>
+          <td>${LEGAL_NDA_TYPE_LABELS[n.ndaType]||escVal(n.ndaType)}</td>
           <td>${escHtml(n.counterparty)}</td>
           <td><span class="status-badge status-${escHtml(n.status)}">${escHtml(LEGAL_NDA_STATUS_LABELS[n.status]||n.status)}</span></td>
           <td>${fmtDate(n.signingDate)}</td>
@@ -12479,8 +12490,8 @@ async function renderLegalPolicies(el) {
       <thead><tr><th>${t('col_title')}</th><th>${t('col_type')}</th><th>${t('col_status')}</th><th>${t('col_version')}</th><th>${t('col_published')}</th><th>${t('legal_nextReview')}</th><th><i class="ph ph-paperclip"></i></th><th>${t('admin_actions')}</th></tr></thead>
       <tbody>${list.map(p => `
         <tr>
-          <td><strong>${escHtml(p.title)}</strong>${p.url ? ` <a href="${escHtml(p.url)}" target="_blank" style="font-size:.8rem"><i class="ph ph-link"></i></a>` : ''}</td>
-          <td>${LEGAL_POLICY_TYPE_LABELS[p.policyType]||p.policyType}</td>
+          <td><strong>${escHtml(p.title)}</strong>${safeUrl(p.url) ? ` <a href="${escHtml(safeUrl(p.url))}" target="_blank" style="font-size:.8rem"><i class="ph ph-link"></i></a>` : ''}</td>
+          <td>${LEGAL_POLICY_TYPE_LABELS[p.policyType]||escVal(p.policyType)}</td>
           <td><span class="status-badge status-${escHtml(p.status)}">${escHtml(LEGAL_POLICY_STATUS_LABELS[p.status]||p.status)}</span></td>
           <td>v${escHtml(p.version)}</td>
           <td>${fmtDate(p.publishedAt)}</td>
@@ -12546,7 +12557,7 @@ async function openLegalForm(type, id) {
           <div class="form-group">
             <label class="form-label">${t('col_type')}</label>
             <select id="lc_type" class="select">
-              ${Object.entries(LEGAL_CONTRACT_TYPE_LABELS).map(([v,l])=>`<option value="${v}"${item?.contractType===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_CONTRACT_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.contractType===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -12558,14 +12569,14 @@ async function openLegalForm(type, id) {
           <div class="form-group">
             <label class="form-label">${t('col_status')}</label>
             <select id="lc_status" class="select">
-              ${Object.entries(LEGAL_CONTRACT_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_CONTRACT_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">${t('legal_start')}</label><input id="lc_start" type="date" class="form-input" value="${item?.startDate||''}" style="color-scheme:dark"></div>
-          <div class="form-group"><label class="form-label">${t('legal_end')}</label><input id="lc_end" type="date" class="form-input" value="${item?.endDate||''}" style="color-scheme:dark"></div>
-          <div class="form-group"><label class="form-label">${t('legal_noticePeriod')}</label><input id="lc_notice" type="number" class="form-input" value="${item?.noticePeriodDays||''}" placeholder="e.g. 30"></div>
+          <div class="form-group"><label class="form-label">${t('legal_start')}</label><input id="lc_start" type="date" class="form-input" value="${escVal(item?.startDate||'')}" style="color-scheme:dark"></div>
+          <div class="form-group"><label class="form-label">${t('legal_end')}</label><input id="lc_end" type="date" class="form-input" value="${escVal(item?.endDate||'')}" style="color-scheme:dark"></div>
+          <div class="form-group"><label class="form-label">${t('legal_noticePeriod')}</label><input id="lc_notice" type="number" class="form-input" value="${escVal(item?.noticePeriodDays||'')}" placeholder="e.g. 30"></div>
           <div class="form-group"><label class="form-label">${t('legal_contractValue')}</label><input id="lc_value" class="form-input" value="${escHtml(item?.value||'')}" placeholder="${escHtml(t('ph_costEg'))}"></div>
         </div>
         <div class="form-row">
@@ -12596,13 +12607,13 @@ async function openLegalForm(type, id) {
           <div class="form-group">
             <label class="form-label">${t('col_type')}</label>
             <select id="ln_type" class="select">
-              ${Object.entries(LEGAL_NDA_TYPE_LABELS).map(([v,l])=>`<option value="${v}"${item?.ndaType===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_NDA_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.ndaType===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">${t('col_status')}</label>
             <select id="ln_status" class="select">
-              ${Object.entries(LEGAL_NDA_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_NDA_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -12612,9 +12623,9 @@ async function openLegalForm(type, id) {
             <input id="ln_party" class="form-input" value="${escHtml(item?.counterparty||'')}" placeholder="${t('legal_companyPersonPh')}">
           </div>
           <div class="form-group"><label class="form-label">${t('legal_signedOn')}</label>
-            <input id="ln_signed" type="date" class="form-input" value="${item?.signingDate||''}" style="color-scheme:dark"></div>
+            <input id="ln_signed" type="date" class="form-input" value="${escVal(item?.signingDate||'')}" style="color-scheme:dark"></div>
           <div class="form-group"><label class="form-label">${t('legal_expiresOn')}</label>
-            <input id="ln_expiry" type="date" class="form-input" value="${item?.expiryDate||''}" style="color-scheme:dark"></div>
+            <input id="ln_expiry" type="date" class="form-input" value="${escVal(item?.expiryDate||'')}" style="color-scheme:dark"></div>
         </div>
         <div class="form-group"><label class="form-label">${t('ui_ownerResp')}</label>
           <input id="ln_owner" class="form-input" value="${escHtml(item?.owner||'')}" placeholder="${t('ui_ownerRespPh')}"></div>
@@ -12636,13 +12647,13 @@ async function openLegalForm(type, id) {
           <div class="form-group">
             <label class="form-label">${t('col_type')}</label>
             <select id="lp_type" class="select">
-              ${Object.entries(LEGAL_POLICY_TYPE_LABELS).map(([v,l])=>`<option value="${v}"${item?.policyType===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_POLICY_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.policyType===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">${t('col_status')}</label>
             <select id="lp_status" class="select">
-              ${Object.entries(LEGAL_POLICY_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_POLICY_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -12652,7 +12663,7 @@ async function openLegalForm(type, id) {
             <input id="lp_url" class="form-input" value="${escHtml(item?.url||'')}" placeholder="${escHtml(t('ui_urlPh'))}">
           </div>
           <div class="form-group"><label class="form-label">${t('legal_publishedOn')}</label>
-            <input id="lp_pub" type="date" class="form-input" value="${item?.publishedAt||''}" style="color-scheme:dark"></div>
+            <input id="lp_pub" type="date" class="form-input" value="${escVal(item?.publishedAt||'')}" style="color-scheme:dark"></div>
           <div class="form-group"><label class="form-label">${t('legal_nextReview')}</label>
             <input id="lp_review" type="date" class="form-input" value="${escHtml(item?.nextReviewDate||'')}" style="color-scheme:dark"></div>
         </div>
@@ -12882,13 +12893,13 @@ const ASSET_CRIT = {
 const ASSET_STATUS_LABELS = { get active() { return t('assl_stActive') }, get planned() { return t('assl_stPlanned') }, get decommissioned() { return t('assl_stDecommissioned') } }
 
 function assetClassBadge(cls) {
-  const c = ASSET_CLASS[cls] || { label: cls || '—', color: '#8C9BAB' }
-  return `<span class="asset-badge" style="color:${c.color};border-color:${c.color}">${c.label}</span>`
+  const c = ASSET_CLASS[cls] || { label: escVal(cls) || '—', color: '#8C9BAB' }
+  return `<span class="asset-badge" style="color:${escVal(c.color)};border-color:${escVal(c.color)}">${c.label}</span>`
 }
 
 function assetCritBadge(crit) {
-  const c = ASSET_CRIT[crit] || { label: crit || '—', color: '#8C9BAB' }
-  return `<span class="asset-badge" style="color:${c.color};border-color:${c.color}">${c.label}</span>`
+  const c = ASSET_CRIT[crit] || { label: escVal(crit) || '—', color: '#8C9BAB' }
+  return `<span class="asset-badge" style="color:${escVal(c.color)};border-color:${escVal(c.color)}">${c.label}</span>`
 }
 
 // ── Schutzziele (CIA + Authentizität) — Issue #29 ─────────────
@@ -13005,26 +13016,26 @@ async function renderAssetsList(el) {
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openAssetForm()"><i class="ph ph-plus"></i> ${t('assets_new')}</button>` : ''}
       <select id="assetFilterCat" onchange="_filterAssets()" title="${t('ui_category')}">
         <option value="">${t('filter_allCats')}</option>
-        ${Object.keys(ASSET_CAT_LABELS).map(v=>`<option value="${v}">${escHtml(assetCatLabel(v))}</option>`).join('')}
+        ${Object.keys(ASSET_CAT_LABELS).map(v=>`<option value="${escVal(v)}">${escHtml(assetCatLabel(v))}</option>`).join('')}
       </select>
       <select id="assetFilterClass" onchange="_filterAssets()" title="${t('assets_classification')}">
         <option value="">${t('assets_allClass')}</option>
-        ${Object.entries(ASSET_CLASS).map(([v,c])=>`<option value="${v}">${c.label}</option>`).join('')}
+        ${Object.entries(ASSET_CLASS).map(([v,c])=>`<option value="${escVal(v)}">${c.label}</option>`).join('')}
       </select>
       <select id="assetFilterCrit" onchange="_filterAssets()" title="${t('assets_criticality')}">
         <option value="">${t('assets_allCrit')}</option>
-        ${Object.entries(ASSET_CRIT).map(([v,c])=>`<option value="${v}">${c.label}</option>`).join('')}
+        ${Object.entries(ASSET_CRIT).map(([v,c])=>`<option value="${escVal(v)}">${c.label}</option>`).join('')}
       </select>
       <select id="assetFilterStatus" onchange="_filterAssets()" title="${t('col_status')}">
         <option value="">${t('filter_allStatuses')}</option>
-        ${Object.entries(ASSET_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(ASSET_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="assetFilterProtGoal" onchange="_filterAssets()" title="${escHtml(t('assets_protection'))}">
-        ${ASSET_PROT_GOALS.map(g=>`<option value="${g.key}">${escHtml(t(g.i18n))}</option>`).join('')}
+        ${ASSET_PROT_GOALS.map(g=>`<option value="${escVal(g.key)}">${escHtml(t(g.i18n))}</option>`).join('')}
       </select>
       <select id="assetFilterProtMin" onchange="_filterAssets()" title="${escHtml(t('assets_effective'))}">
         <option value="">${escHtml(t('assets_lvlNone'))}</option>
-        ${[1,2,3,4].map(v=>`<option value="${v}">≥ ${v}</option>`).join('')}
+        ${[1,2,3,4].map(v=>`<option value="${escVal(v)}">≥ ${v}</option>`).join('')}
       </select>
       <input id="assetSearch" placeholder="${t('ui_searchPh')}" oninput="_filterAssets()" style="flex:1;min-width:140px">
     </div>
@@ -13163,7 +13174,7 @@ async function renderAssetsByClass(el) {
     <div class="asset-summary-grid">
       ${Object.entries(ASSET_CLASS).map(([k, c]) => `
         <div class="asset-summary-card">
-          <div class="assc-value" style="color:${c.color}">${summary.byClassification?.[k] || 0}</div>
+          <div class="assc-value" style="color:${escVal(c.color)}">${summary.byClassification?.[k] || 0}</div>
           <div class="assc-label">${c.label}</div>
         </div>
       `).join('')}
@@ -13246,7 +13257,7 @@ function _assetProtFields(item) {
 
     const opts = (optional ? `<option value=""${cur == null ? ' selected' : ''}>${escHtml(t('assets_lvlNone'))}</option>` : '')
       + [1, 2, 3, 4].map(v =>
-          `<option value="${v}"${cur === v ? ' selected' : ''}>${escHtml(ASSET_PROT_LEVELS[v].label)}</option>`
+          `<option value="${escVal(v)}"${cur === v ? ' selected' : ''}>${escHtml(ASSET_PROT_LEVELS[v].label)}</option>`
         ).join('')
 
     const from = (item && org[g.key] && org[g.key] !== item.id) ? org[g.key] : null
@@ -13348,7 +13359,7 @@ function _toggleAssetDep(assetId) {
 
 function _removeAssetDep(assetId) {
   _assetFormDeps.delete(assetId)
-  const cb = document.querySelector(`#asDepList input[value="${assetId}"]`)
+  const cb = document.querySelector(`#asDepList input[value="${escVal(assetId)}"]`)
   if (cb) cb.checked = false
   _renderAssetDepTags()
 }
@@ -13402,7 +13413,7 @@ async function openAssetForm(id) {
   document.querySelectorAll('.training-tab').forEach(b => b.classList.remove('active'))
 
   const catOptions = Object.keys(ASSET_CAT_LABELS).map(v => [v, assetCatLabel(v)]).map(([v,l]) =>
-    `<option value="${v}"${item?.category===v?' selected':''}>${l}</option>`
+    `<option value="${escVal(v)}"${item?.category===v?' selected':''}>${l}</option>`
   ).join('')
 
   // Nach Kategorie gruppiert — die Zuordnung liefert der Server mit dem Typ.
@@ -13423,15 +13434,15 @@ async function openAssetForm(id) {
   })()
 
   const classOptions = Object.entries(ASSET_CLASS).map(([v,c]) =>
-    `<option value="${v}"${item?.classification===v?' selected':''}>${c.label}</option>`
+    `<option value="${escVal(v)}"${item?.classification===v?' selected':''}>${c.label}</option>`
   ).join('')
 
   const critOptions = Object.entries(ASSET_CRIT).map(([v,c]) =>
-    `<option value="${v}"${item?.criticality===v?' selected':''}>${c.label}</option>`
+    `<option value="${escVal(v)}"${item?.criticality===v?' selected':''}>${c.label}</option>`
   ).join('')
 
   const statusOptions = Object.entries(ASSET_STATUS_LABELS).map(([v,l]) =>
-    `<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`
+    `<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`
   ).join('')
 
   const entityOptions = `<option value="">${t('ui_noEntity')}</option>` +
@@ -13577,7 +13588,7 @@ async function openAssetForm(id) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('ui_purchaseDate')}</label>
-              <input id="asPurchase" type="date" class="form-input" value="${item?.purchaseDate||''}" style="color-scheme:dark">
+              <input id="asPurchase" type="date" class="form-input" value="${escVal(item?.purchaseDate||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('asset_eolDate')}</label>
@@ -14063,15 +14074,15 @@ async function renderNis2Governance(el) {
     <div class="asset-filter-bar">
       <select id="nis2FilterPrio" onchange="_filterNis2()">
         <option value="">${escHtml(t('nis2_allPriorities'))}</option>
-        ${Object.keys(NIS2_PRIO).map(p => `<option value="${p}">${_nis2PrioLabel(p)}</option>`).join('')}
+        ${Object.keys(NIS2_PRIO).map(p => `<option value="${escVal(p)}">${_nis2PrioLabel(p)}</option>`).join('')}
       </select>
       <select id="nis2FilterStatus" onchange="_filterNis2()">
         <option value="">${escHtml(t('nis2_allStatuses'))}</option>
-        ${Object.entries(NIS2_STATUS).map(([v, s]) => `<option value="${v}">${escHtml(t(s.i18n))}</option>`).join('')}
+        ${Object.entries(NIS2_STATUS).map(([v, s]) => `<option value="${escVal(v)}">${escHtml(t(s.i18n))}</option>`).join('')}
       </select>
       <select id="nis2FilterSub" onchange="_filterNis2()">
         <option value="">${escHtml(t('nis2_allSubs'))}</option>
-        ${'abcdefghij'.split('').map(c => `<option value="${c}">${c})</option>`).join('')}
+        ${'abcdefghij'.split('').map(c => `<option value="${escVal(c)}">${c})</option>`).join('')}
       </select>
       <input id="nis2Search" placeholder="${t('ui_searchPh')}" oninput="_filterNis2()" style="flex:1;min-width:140px">
     </div>
@@ -14156,7 +14167,7 @@ async function openNis2ItemForm(id) {
   if (!el) return
 
   const statusOptions = Object.entries(NIS2_STATUS)
-    .map(([v, s]) => `<option value="${v}"${item.status === v ? ' selected' : ''}>${escHtml(t(s.i18n))}</option>`).join('')
+    .map(([v, s]) => `<option value="${escVal(v)}"${item.status === v ? ' selected' : ''}>${escHtml(t(s.i18n))}</option>`).join('')
 
   el.innerHTML = `
     <div class="training-form-page">
@@ -14626,15 +14637,15 @@ async function renderGovActions(el) {
     <div class="gov-filter-bar">
       <select id="govActStatusFilter" onchange="filterGovActions()">
         <option value="">${t('nis2_allStatuses')}</option>
-        ${Object.entries(GOV_ACTION_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(GOV_ACTION_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="govActPrioFilter" onchange="filterGovActions()">
         <option value="">${t('nis2_allPriorities')}</option>
-        ${Object.entries(GOV_PRIORITY_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(GOV_PRIORITY_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="govActSourceFilter" onchange="filterGovActions()">
         <option value="">${t('gov_allSources')}</option>
-        ${Object.entries(GOV_SOURCE_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(GOV_SOURCE_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <input id="govActSearch" type="text" placeholder="${t('ui_searchPh')}" oninput="filterGovActions()" style="flex:1;min-width:120px">
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openGovActionForm()"><i class="ph ph-plus"></i> ${t('gov_newAction')}</button>` : ''}
@@ -14894,19 +14905,19 @@ async function openGovActionForm(id = null) {
           <div>
             <label class="form-label">${t('ui_source')}</label>
             <select id="gaSource" class="select">
-              ${Object.entries(GOV_SOURCE_LABELS).map(([v,l])=>`<option value="${v}" ${action.source===v?'selected':''}>${l}</option>`).join('')}
+              ${Object.entries(GOV_SOURCE_LABELS).map(([v,l])=>`<option value="${escVal(v)}" ${action.source===v?'selected':''}>${l}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="form-label">${t('ui_priority')}</label>
             <select id="gaPrio" class="select">
-              ${Object.entries(GOV_PRIORITY_LABELS).map(([v,l])=>`<option value="${v}" ${action.priority===v?'selected':''}>${l}</option>`).join('')}
+              ${Object.entries(GOV_PRIORITY_LABELS).map(([v,l])=>`<option value="${escVal(v)}" ${action.priority===v?'selected':''}>${l}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="form-label">${t('col_status')}</label>
             <select id="gaStatus" class="select">
-              ${Object.entries(GOV_ACTION_STATUS_LABELS).map(([v,l])=>`<option value="${v}" ${action.status===v?'selected':''}>${l}</option>`).join('')}
+              ${Object.entries(GOV_ACTION_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}" ${action.status===v?'selected':''}>${l}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -14933,7 +14944,7 @@ async function openGovActionForm(id = null) {
           </div>
         </div>
         <label class="form-label" style="margin-top:8px">${t('gov_progress')}</label>
-        <input id="gaProgress" type="number" min="0" max="100" class="input" value="${action.progress||0}" style="width:120px">
+        <input id="gaProgress" type="number" min="0" max="100" class="input" value="${escVal(action.progress||0)}" style="width:120px">
 
         <div class="gov-section-title">${t('ui_notes')}</div>
         <textarea id="gaNotes" class="input" rows="3">${escHtml(action.notes||'')}</textarea>
@@ -15013,7 +15024,7 @@ async function openGovMeetingForm(id = null) {
           <div>
             <label class="form-label">${t('gov_committee')}</label>
             <select id="gmCommittee" class="select">
-              ${Object.entries(GOV_COMMITTEE_LABELS).map(([v,l])=>`<option value="${v}" ${meeting.committee===v?'selected':''}>${l}</option>`).join('')}
+              ${Object.entries(GOV_COMMITTEE_LABELS).map(([v,l])=>`<option value="${escVal(v)}" ${meeting.committee===v?'selected':''}>${l}</option>`).join('')}
             </select>
           </div>
           <div>
@@ -15022,7 +15033,7 @@ async function openGovMeetingForm(id = null) {
           </div>
           <div>
             <label class="form-label">${t('gov_nextMeeting')}</label>
-            <input id="gmNextDate" type="date" class="input" value="${meeting.nextMeetingDate||''}">
+            <input id="gmNextDate" type="date" class="input" value="${escVal(meeting.nextMeetingDate||'')}">
           </div>
         </div>
         <label class="form-label" style="margin-top:8px">${t('ui_location')}</label>
@@ -15126,13 +15137,13 @@ const BCM_RESULT_LABELS = { get pass() { return t('bcml_resPass') }, get fail() 
 const BCM_EXERCISE_TYPE_LABELS = { get tabletop() { return t('bcml_exTabletop') }, get simulation() { return t('bcml_exSimulation') }, get full_drill() { return t('bcml_exFullDrill') }, get walkthrough() { return t('bcml_exWalkthrough') } }
 
 function bcmCritBadge(v) {
-  return `<span class="bcm-badge ${v}">${BCM_CRIT_LABELS[v] || v}</span>`
+  return `<span class="bcm-badge ${escVal(v)}">${BCM_CRIT_LABELS[v] || escVal(v)}</span>`
 }
 function bcmStatusBadge(v) {
-  return `<span class="bcm-badge ${v}">${BCM_STATUS_LABELS[v] || v}</span>`
+  return `<span class="bcm-badge ${escVal(v)}">${BCM_STATUS_LABELS[v] || escVal(v)}</span>`
 }
 function bcmResultBadge(v) {
-  return `<span class="bcm-badge ${v||'not_tested'}">${BCM_RESULT_LABELS[v] || v || t('bcml_resNotTested')}</span>`
+  return `<span class="bcm-badge ${escVal(v) || 'not_tested'}">${BCM_RESULT_LABELS[v] || escVal(v) || t('bcml_resNotTested')}</span>`
 }
 
 async function renderBcm() {
@@ -15225,8 +15236,8 @@ async function renderBcmBia(el) {
               <td>${escHtml(b.processOwner)}</td>
               <td>${escHtml(b.department)}</td>
               <td>${bcmCritBadge(b.criticality)}</td>
-              <td>${b.rto}</td>
-              <td>${b.rpo}</td>
+              <td>${escVal(b.rto)}</td>
+              <td>${escVal(b.rpo)}</td>
               <td>${bcmStatusBadge(b.status)}</td>
               <td style="white-space:nowrap">
                 ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openBiaForm('${b.id}')"><i class="ph ph-pencil"></i></button>` : ''}
@@ -15243,11 +15254,11 @@ async function renderBcmBia(el) {
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openBiaForm()"><i class="ph ph-plus"></i> ${t('bcm_newBia')}</button>` : ''}
       <select id="bcmBiaCrit" class="select" style="max-width:150px">
         <option value="">${t('assets_allCrit')}</option>
-        ${Object.entries(BCM_CRIT_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(BCM_CRIT_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="bcmBiaStatus" class="select" style="max-width:150px">
         <option value="">${t('filter_allStatuses')}</option>
-        ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
     </div>
     <div id="bcmBiaTable">${renderTable()}</div>
@@ -15309,13 +15320,13 @@ async function openBiaForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('assets_criticality')}</label>
               <select id="biaCrit" class="select">
-                ${Object.entries(BCM_CRIT_LABELS).map(([v,l])=>`<option value="${v}"${item?.criticality===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_CRIT_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.criticality===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_status')}</label>
               <select id="biaStatus" class="select">
-                ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -15325,15 +15336,15 @@ async function openBiaForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('bcm_rtoFull')}</label>
-              <input id="biaRto" type="number" min="0" class="form-input" value="${item?.rto??''}" placeholder="${t('bcm_rtoPh')}">
+              <input id="biaRto" type="number" min="0" class="form-input" value="${escVal(item?.rto??'')}" placeholder="${t('bcm_rtoPh')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('bcm_rpoFull')}</label>
-              <input id="biaRpo" type="number" min="0" class="form-input" value="${item?.rpo??''}" placeholder="${t('bcm_rpoPh')}">
+              <input id="biaRpo" type="number" min="0" class="form-input" value="${escVal(item?.rpo??'')}" placeholder="${t('bcm_rpoPh')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('bcm_mtpdFull')}</label>
-              <input id="biaMtpd" type="number" min="0" class="form-input" value="${item?.mtpd??''}" placeholder="${t('bcm_mtpdPh')}">
+              <input id="biaMtpd" type="number" min="0" class="form-input" value="${escVal(item?.mtpd??'')}" placeholder="${t('bcm_mtpdPh')}">
             </div>
           </div>
         </div>
@@ -15353,7 +15364,7 @@ async function openBiaForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('ui_lastReview')}</label>
-              <input id="biaReview" type="date" class="form-input" value="${item?.lastReviewDate||''}" style="color-scheme:dark">
+              <input id="biaReview" type="date" class="form-input" value="${escVal(item?.lastReviewDate||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('ui_entity')}</label>
@@ -15478,11 +15489,11 @@ async function renderBcmPlans(el) {
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openPlanForm()"><i class="ph ph-plus"></i> ${t('bcm_newPlan')}</button>` : ''}
       <select id="bcmPlanType" class="select" style="max-width:180px">
         <option value="">${t('ui_allTypes')}</option>
-        ${Object.entries(BCM_PLAN_TYPE_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(BCM_PLAN_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="bcmPlanStatus" class="select" style="max-width:160px">
         <option value="">${t('filter_allStatuses')}</option>
-        ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
     </div>
     <div id="bcmPlansTable">${renderTable()}</div>
@@ -15534,13 +15545,13 @@ async function openPlanForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('col_type')}</label>
               <select id="planType" class="select">
-                ${Object.entries(BCM_PLAN_TYPE_LABELS).map(([v,l])=>`<option value="${v}"${item?.type===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_PLAN_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.type===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_status')}</label>
               <select id="planStatus" class="select">
-                ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -15573,7 +15584,7 @@ async function openPlanForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('bcm_testResult')}</label>
               <select id="planTestResult" class="select">
-                ${Object.entries(BCM_RESULT_LABELS).map(([v,l])=>`<option value="${v}"${item?.testResult===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_RESULT_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.testResult===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -15725,7 +15736,7 @@ async function openExerciseForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('bcm_exerciseType')}</label>
               <select id="exType" class="select">
-                ${Object.entries(BCM_EXERCISE_TYPE_LABELS).map(([v,l])=>`<option value="${v}"${item?.type===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_EXERCISE_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.type===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -15735,7 +15746,7 @@ async function openExerciseForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('bcm_result')}</label>
               <select id="exResult" class="select">
-                ${Object.entries(BCM_RESULT_LABELS).map(([v,l])=>`<option value="${v}"${item?.result===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_RESULT_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.result===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -15769,7 +15780,7 @@ async function openExerciseForm(id = null) {
           </div>
           <div class="form-group">
             <label class="form-label">${t('bcm_nextExercise')}</label>
-            <input id="exNext" type="date" class="form-input" value="${item?.nextExercise||''}" style="color-scheme:dark">
+            <input id="exNext" type="date" class="form-input" value="${escVal(item?.nextExercise||'')}" style="color-scheme:dark">
           </div>
           ${renderLinksBlock('ex', item?.linkedControls||[], item?.linkedPolicies||[])}
         </div>
@@ -15856,11 +15867,11 @@ function _supplierCritColor(c) {
 }
 
 function supCritBadge(v) {
-  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:700;background:${_supplierCritColor(v)}22;color:${_supplierCritColor(v)};border:1px solid ${_supplierCritColor(v)}44">${SUP_CRIT_LABELS[v] || v}</span>`
+  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:700;background:${_supplierCritColor(v)}22;color:${_supplierCritColor(v)};border:1px solid ${_supplierCritColor(v)}44">${SUP_CRIT_LABELS[v] || escVal(v)}</span>`
 }
 function supStatusBadge(v) {
   const cls = { active: 'var(--success-text,#4ade80)', under_review: 'var(--warning-text,#f0b429)', inactive: 'var(--text-subtle)', terminated: 'var(--danger-text,#f87171)' }
-  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:600;color:${cls[v]||'var(--text-subtle)'};">${SUP_STATUS_LABELS[v] || v}</span>`
+  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:600;color:${cls[v]||'var(--text-subtle)'};">${SUP_STATUS_LABELS[v] || escVal(v)}</span>`
 }
 
 // ── Lieferanten-Schnelltriage (#63) ──
@@ -15894,11 +15905,11 @@ function _supplierTriageColor(level) {
 function supTriageBadge(triageResult) {
   const level = triageResult?.level || 'unassessed'
   const color = _supplierTriageColor(level)
-  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:700;background:${color}22;color:${color};border:1px solid ${color}44">${SUP_TRIAGE_LEVEL_LABELS[level] || level}</span>`
+  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:700;background:${color}22;color:${color};border:1px solid ${color}44">${SUP_TRIAGE_LEVEL_LABELS[level] || escVal(level)}</span>`
 }
 function _triageSelectOptions(labels, current) {
   return `<option value="">${t('supl_triageNotAnswered')}</option>` +
-    Object.entries(labels).map(([v, l]) => `<option value="${v}"${current === v ? ' selected' : ''}>${l}</option>`).join('')
+    Object.entries(labels).map(([v, l]) => `<option value="${escVal(v)}"${current === v ? ' selected' : ''}>${l}</option>`).join('')
 }
 
 async function renderSuppliers() {
@@ -15950,7 +15961,7 @@ async function renderSuppliers() {
           { label: t('dash_withDataAccess'), value: s.withDataAccess, color: 'var(--warning-text,#f0b429)' },
         ].map(k => `
           <div class="dash-card kpi" style="flex:1;min-width:120px;padding:12px 16px;text-align:center">
-            <div style="font-size:1.5rem;font-weight:700;color:${k.color}">${k.value}</div>
+            <div style="font-size:1.5rem;font-weight:700;color:${escVal(k.color)}">${k.value}</div>
             <div style="font-size:.75rem;color:var(--text-subtle)">${k.label}</div>
           </div>
         `).join('')
@@ -16036,19 +16047,19 @@ async function switchSuppliersTab(tab) {
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openSupplierForm()"><i class="ph ph-plus"></i> ${t('sup_newSupplier')}</button>` : ''}
       <select id="supFilterType" class="select" style="max-width:160px">
         <option value="">${t('ui_allTypes')}</option>
-        ${Object.entries(SUP_TYPE_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(SUP_TYPE_LABELS).map(([v, l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="supFilterCrit" class="select" style="max-width:160px">
         <option value="">${t('assets_allCrit')}</option>
-        ${Object.entries(SUP_CRIT_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(SUP_CRIT_LABELS).map(([v, l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="supFilterStatus" class="select" style="max-width:160px">
         <option value="">${t('filter_allStatuses')}</option>
-        ${Object.entries(SUP_STATUS_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(SUP_STATUS_LABELS).map(([v, l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="supFilterTriage" class="select" style="max-width:180px">
         <option value="">${t('supl_triageAllLevels')}</option>
-        ${Object.entries(SUP_TRIAGE_LEVEL_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(SUP_TRIAGE_LEVEL_LABELS).map(([v, l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
     </div>
     <div id="suppliersTable">${renderTable()}</div>
@@ -16109,19 +16120,19 @@ async function openSupplierForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('col_type')}</label>
               <select id="supType" class="select">
-                ${Object.entries(SUP_TYPE_LABELS).map(([v, l]) => `<option value="${v}"${item?.type === v ? ' selected' : ''}>${l}</option>`).join('')}
+                ${Object.entries(SUP_TYPE_LABELS).map(([v, l]) => `<option value="${escVal(v)}"${item?.type === v ? ' selected' : ''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('assets_criticality')}</label>
               <select id="supCrit" class="select">
-                ${Object.entries(SUP_CRIT_LABELS).map(([v, l]) => `<option value="${v}"${item?.criticality === v ? ' selected' : ''}>${l}</option>`).join('')}
+                ${Object.entries(SUP_CRIT_LABELS).map(([v, l]) => `<option value="${escVal(v)}"${item?.criticality === v ? ' selected' : ''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_status')}</label>
               <select id="supStatus" class="select">
-                ${Object.entries(SUP_STATUS_LABELS).map(([v, l]) => `<option value="${v}"${item?.status === v ? ' selected' : ''}>${l}</option>`).join('')}
+                ${Object.entries(SUP_STATUS_LABELS).map(([v, l]) => `<option value="${escVal(v)}"${item?.status === v ? ' selected' : ''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -16191,7 +16202,7 @@ async function openSupplierForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('sup_lastAudit')}</label>
-              <input id="supLastAudit" type="date" class="form-input" value="${item?.lastAuditDate || ''}" style="color-scheme:dark">
+              <input id="supLastAudit" type="date" class="form-input" value="${escVal(item?.lastAuditDate || '')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('sup_nextAudit')}</label>
@@ -16200,13 +16211,13 @@ async function openSupplierForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('sup_auditResult')}</label>
               <select id="supAuditResult" class="select">
-                ${Object.entries(SUP_AUDIT_LABELS).map(([v, l]) => `<option value="${v}"${item?.auditResult === v ? ' selected' : ''}>${l}</option>`).join('')}
+                ${Object.entries(SUP_AUDIT_LABELS).map(([v, l]) => `<option value="${escVal(v)}"${item?.auditResult === v ? ' selected' : ''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">${t('sup_riskScore')}</label>
-            <input id="supRiskScore" type="number" min="0" max="25" class="form-input" value="${item?.riskScore ?? 0}" style="max-width:120px">
+            <input id="supRiskScore" type="number" min="0" max="25" class="form-input" value="${escVal(item?.riskScore ?? 0)}" style="max-width:120px">
           </div>
           <div class="form-group">
             <label class="form-label">${t('sup_secReqsCsv')}</label>
@@ -16375,7 +16386,7 @@ async function openSupplierAssessments(supplierId) {
       <td>${escHtml(a.dueDate || '—')}</td>
       <td>${a.submittedAt ? new Date(a.submittedAt).toLocaleDateString('de-DE') : '—'}</td>
       <td style="white-space:nowrap">
-        ${a.status === 'pending' ? `<button class="btn btn-secondary btn-xs" title="${escHtml(t('sup_copyLink'))}" data-token="${a.token}" onclick="copyAssessmentLink(this)"><i class="ph ph-link"></i></button>` : ''}
+        ${a.status === 'pending' ? `<button class="btn btn-secondary btn-xs" title="${escHtml(t('sup_copyLink'))}" data-token="${escVal(a.token)}" onclick="copyAssessmentLink(this)"><i class="ph ph-link"></i></button>` : ''}
         ${(canEdit && a.status === 'submitted') ? `<button class="btn btn-primary btn-xs" onclick="openAssessmentReview('${a.id}')"><i class="ph ph-check-circle"></i> ${t('ui_review')}</button>` : ''}
         ${(canEdit && a.status !== 'pending') ? `<button class="btn btn-secondary btn-xs" onclick="openAssessmentDetail('${a.id}')"><i class="ph ph-eye"></i></button>` : ''}
         ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteAssessment('${a.id}', '${supplierId}')"><i class="ph ph-trash"></i></button>` : ''}
@@ -16486,7 +16497,7 @@ async function createAssessment(supplierId) {
         <p style="margin:0 0 8px;font-weight:600">${t('sup_assessmentLinkFor', { supplier: escHtml(a.supplierName) })}</p>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="text" class="form-input" id="assessLinkInput" value="${escHtml(link)}" readonly style="font-family:monospace;font-size:13px;flex:1" />
-          <button class="btn btn-primary" data-token="${a.token}" onclick="copyAssessmentLink(this)">
+          <button class="btn btn-primary" data-token="${escVal(a.token)}" onclick="copyAssessmentLink(this)">
             <i class="ph ph-copy"></i> ${t('sup_copyLink')}
           </button>
         </div>
@@ -16632,7 +16643,7 @@ async function renderPolicyAcks() {
       <h2 class="reports-title"><i class="ph ph-check-circle"></i> ${t('nav_policyAcks')}</h2>
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted)">
         <i class="ph ${modeIcons[mode]}"></i>
-        ${t('ack_mode')}: <strong>${modeLabels[mode] || mode}</strong>
+        ${t('ack_mode')}: <strong>${modeLabels[mode] || escVal(mode)}</strong>
         ${getCurrentRole() === 'admin' ? `<button class="btn btn-secondary btn-sm" onclick="renderPolicyAckSettings()"><i class="ph ph-gear"></i> ${t('ack_changeMode')}</button>` : ''}
       </div>
     </div>
@@ -16716,7 +16727,7 @@ function _renderNewDistributionForm(container, mode) {
       <div class="form-section-header"><h3><i class="ph ph-plus-circle"></i> ${t('ack_newDistribution')}</h3></div>
 
       <div class="info-box" style="margin-bottom:20px">
-        <i class="ph ph-info"></i> <strong>${t('ack_activeMode')}:</strong> ${modeInfo[mode] || mode}
+        <i class="ph ph-info"></i> <strong>${t('ack_activeMode')}:</strong> ${modeInfo[mode] || escVal(mode)}
       </div>
 
       <label class="form-label">${t('ack_policyApprovedOnly')} <span style="color:#f87171">*</span></label>
@@ -16831,7 +16842,7 @@ async function openDistributionDetail(id) {
           <td>${escHtml(a.recipientEmail||'–')}</td>
           <td>${escHtml(a.recipientName||'–')}</td>
           <td>${a.acknowledgedAt ? new Date(a.acknowledgedAt).toLocaleString() : `<span style="color:#fbbf24">${t('ack_pending')}</span>`}</td>
-          <td style="font-size:12px;color:var(--text-muted)">${a.method||'–'}</td>
+          <td style="font-size:12px;color:var(--text-muted)">${escVal(a.method)||'–'}</td>
           ${getCurrentRole()==='admin'?`<td><button class="btn btn-danger btn-sm" onclick="deleteAck('${a.id}','${id}')"><i class="ph ph-trash"></i></button></td>`:''}
         </tr>`).join('')}</tbody>
       </table>`
@@ -16872,7 +16883,7 @@ async function openDistributionDetail(id) {
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px">
-        <div class="kpi-card"><div class="kpi-label">${t('ack_mode')}</div><div class="kpi-value">${modeLabels[dist.mode]||dist.mode}</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('ack_mode')}</div><div class="kpi-value">${modeLabels[dist.mode]||escVal(dist.mode)}</div></div>
         <div class="kpi-card"><div class="kpi-label">${t('ack_targetGroup')}</div><div class="kpi-value" style="font-size:14px">${escHtml(dist.targetGroup||'–')}</div></div>
         <div class="kpi-card"><div class="kpi-label">${t('ack_deadline')}</div><div class="kpi-value" style="font-size:14px">${dist.dueDate ? new Date(dist.dueDate).toLocaleDateString() : '–'}</div></div>
         ${dist.mode !== 'distribution_only' ? `
@@ -16983,7 +16994,7 @@ async function renderPolicyAckSettings() {
           { val:'distribution_only', icon:'ph-file-text',  title:t('ack_modeDistributionOnly'),    desc:t('ack_modeDistributionOnlyDesc') },
         ].map(opt => `
           <label style="display:flex;align-items:flex-start;gap:14px;padding:16px;border:2px solid ${current===opt.val?'var(--brand-color)':'var(--border-color)'};border-radius:8px;cursor:pointer;background:${current===opt.val?'var(--brand-color)18':'transparent'}">
-            <input type="radio" name="ackMode" value="${opt.val}" ${current===opt.val?'checked':''} style="margin-top:3px;accent-color:var(--brand-color)"/>
+            <input type="radio" name="ackMode" value="${escVal(opt.val)}" ${current===opt.val?'checked':''} style="margin-top:3px;accent-color:var(--brand-color)"/>
             <div>
               <div style="font-weight:600"><i class="ph ${opt.icon}"></i> ${escHtml(opt.title)}</div>
               <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${escHtml(opt.desc)}</div>
@@ -17102,7 +17113,7 @@ async function renderAudits() {
       { label: t('audit_kpiUpcoming'),   value: s.upcoming,   color: '#60a5fa' },
       { label: t('audit_kpiNonconform'), value: s.nonconform, color: s.nonconform > 0 ? '#f0b429' : 'var(--success-text)' },
     ].map(k => `<div class="dash-card kpi" style="flex:1;min-width:120px;padding:12px 16px;text-align:center">
-      <div style="font-size:1.5rem;font-weight:700;color:${k.color}">${k.value}</div>
+      <div style="font-size:1.5rem;font-weight:700;color:${escVal(k.color)}">${k.value}</div>
       <div style="font-size:.75rem;color:var(--text-subtle)">${escHtml(k.label)}</div></div>`).join('')
   }
 
@@ -17252,7 +17263,7 @@ function auItemRows(a, i, canWrite) {
   const editing = _auEditItem === i.id
   const resultCell = canWrite
     ? `<select class="select" style="min-width:140px" onchange="auSetResult('${a.id}','${i.id}',this.value)">
-        ${Object.entries(AU_RESULTS).map(([v, r]) => `<option value="${v}"${i.result === v ? ' selected' : ''}>${escHtml(r.label)}</option>`).join('')}</select>`
+        ${Object.entries(AU_RESULTS).map(([v, r]) => `<option value="${escVal(v)}"${i.result === v ? ' selected' : ''}>${escHtml(r.label)}</option>`).join('')}</select>`
     : auResultBadge(i.result)
   const finding = (a.findings || []).find(f => f.id === i.findingId)
   const findingCell = i.findingId
@@ -17420,7 +17431,7 @@ async function renderAuditPrograms(el) {
     <table class="bcm-table">
       <thead><tr><th>${t('audit_ref')}</th><th>${t('audit_year')}</th><th>${t('col_title')}</th><th>${t('col_status')}</th><th>${t('audit_tabAudits')}</th><th style="width:90px"></th></tr></thead>
       <tbody>${programs.length ? programs.map(p => `<tr class="risk-row" onclick="openAuditProgram('${p.id}')">
-        <td style="font-family:monospace">${escHtml(p.ref)}</td><td>${p.year}</td><td><strong>${escHtml(p.title)}</strong></td>
+        <td style="font-family:monospace">${escHtml(p.ref)}</td><td>${escVal(p.year)}</td><td><strong>${escHtml(p.title)}</strong></td>
         <td>${auBadge(p.status === 'approved' ? t('audit_programApproved') : t('audit_programDraft'), p.status === 'approved' ? '#4ade80' : '#f0b429')}</td>
         <td>${countBy[p.id] || 0}</td>
         <td onclick="event.stopPropagation()">${auCanWrite() ? `<button class="btn btn-danger btn-xs" onclick="deleteAuditProgram('${p.id}')"><i class="ph ph-trash"></i></button>` : ''}</td>
@@ -17494,7 +17505,7 @@ async function openAuditProgramForm(id = null) {
           <div class="form-group" style="flex:3"><label class="form-label">${t('col_title')} <span class="form-required">*</span></label>
             <input id="apTitle" class="form-input" value="${escHtml(p?.title || '')}"></div>
           <div class="form-group"><label class="form-label">${t('audit_year')}</label>
-            <input id="apYear" type="number" min="2000" max="2100" class="form-input" value="${p?.year || new Date().getFullYear()}"></div>
+            <input id="apYear" type="number" min="2000" max="2100" class="form-input" value="${escVal(p?.year || new Date().getFullYear())}"></div>
         </div>
         <div class="form-group"><label class="form-label">${t('audit_objectives')}</label><textarea id="apObjectives" class="form-textarea" rows="4">${escHtml(p?.objectives || '')}</textarea></div>
         <div class="form-group"><label class="form-label">${t('audit_scope')}</label><textarea id="apScope" class="form-textarea" rows="4">${escHtml(p?.scope || '')}</textarea></div>
@@ -17573,7 +17584,7 @@ function exportAuditsPdf() {
     <table><thead><tr><th>${t('audit_ref')}</th><th>${t('col_title')}</th><th>${t('audit_type')}</th><th>${t('audit_period')}</th>
       <th>${t('audit_leadAuditor')}</th><th>${t('col_status')}</th><th>${t('audit_kpiNonconform')}</th></tr></thead>
     <tbody>${rows.map(r => `<tr><td>${escHtml(r.ref)}</td><td>${escHtml(r.title)}</td><td>${escHtml(r.type)}</td>
-      <td>${escHtml(r.start)} – ${escHtml(r.end)}</td><td>${escHtml(r.lead)}</td><td>${escHtml(r.status)}</td><td>${r.nc}</td></tr>`).join('')}</tbody></table>`)
+      <td>${escHtml(r.start)} – ${escHtml(r.end)}</td><td>${escHtml(r.lead)}</td><td>${escHtml(r.status)}</td><td>${escVal(r.nc)}</td></tr>`).join('')}</tbody></table>`)
 }
 
 /** Auditbericht: Stammdaten, Prüfpunkte, zugeordnete Findings, Fazit. */

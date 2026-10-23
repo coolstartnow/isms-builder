@@ -9,6 +9,10 @@ const { tr, pageLang, fmtDate, fmtDateTime } = require('../i18n')
 const { isTokenFormat } = require('../secureToken')
 
 // ── GET /ack/:token — Bestätigungsseite anzeigen ──────────────────────────────
+// JSON für ein Inline-<script>: "<" (</script>), ">", "&" und die Zeilentrenner U+2028/2029 werden als \u-Folgen geschrieben,
+// damit Text aus dem Redaktionssystem das Skript nie verlassen kann.
+const jsonForScript = v => JSON.stringify(v).replace(/[<>&\u2028\u2029]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'))
+
 router.get('/ack/:token', async (req, res) => {
   // Nie aus dem Cache: Inhalt und Bestaetigungsstand koennen sich aendern.
   res.setHeader('Cache-Control', 'no-store')
@@ -115,7 +119,7 @@ router.get('/ack/:token', async (req, res) => {
     </div>
 
     <h1>${escapeHtml(policyTitle)}</h1>
-    <div class="meta">Version ${dist.templateVersion} &middot; Typ: ${escapeHtml(dist.templateType)}</div>
+    <div class="meta">Version ${escapeHtml(String(dist.templateVersion ?? ''))} &middot; Typ: ${escapeHtml(dist.templateType)}</div>
 
     ${dueDateHtml}
     ${confirmedHtml}
@@ -138,9 +142,9 @@ router.get('/ack/:token', async (req, res) => {
     // nachträglich entfernt: Diese Seite ist ohne Login erreichbar, der Inhalt
     // stammt aus dem Redaktionssystem.
     (function () {
-      var raw = ${JSON.stringify(policyContent || '')};
+      var raw = ${jsonForScript(policyContent || '')};
       var box = document.getElementById('policyContent');
-      if (!raw) { box.innerHTML = '<em>' + ${JSON.stringify(tr(L, 'srv_ackpub_noContent'))} + '</em>'; return; }
+      if (!raw) { box.innerHTML = '<em>' + ${jsonForScript(tr(L, 'srv_ackpub_noContent'))} + '</em>'; return; }
       if (typeof marked === 'undefined') {
         var pre = document.createElement('pre');
         pre.style.whiteSpace = 'pre-wrap';

@@ -27,6 +27,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms))
     const out = {}
     await page.evaluate(() => { window.__xss = 0 })
 
+    // Nur-Lese-Konto: SoA samt aufgeklappter Details (Einheiten, verknüpfte Dokumente, Verantwortliche/r, Begründung)
+    if (info.mode === 'soa') {
+      await page.evaluate(fw => { soaActiveFramework = fw; return renderSoa() }, info.soaFramework); await sleep(2500)
+      await page.evaluate(() => document.querySelectorAll('.soa-expand-btn').forEach(b => b.click())); await sleep(2500)
+      const soa = await injected('#soaContainer')
+      console.log(JSON.stringify({ soa, dialogs }))
+      return
+    }
+
     // 1) Berichte → Dokumentenübersicht
     await page.evaluate(() => renderReports()); await sleep(1200)
     await page.evaluate(() => runReport('templates')); await sleep(2500)
@@ -42,11 +51,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms))
 
     // 4) SoA (Verantwortliche/r, Begründung, Titel und Thema eigener Controls)
     await page.evaluate(fw => { soaActiveFramework = fw; return renderSoa() }, info.soaFramework); await sleep(2500)
+    await page.evaluate(() => document.querySelectorAll('.soa-expand-btn').forEach(b => b.click())); await sleep(2000)
     out.soa = await injected('#soaContainer')
 
     // 5) Anhangsleiste eines Dokuments
     await page.evaluate((type, id) => loadTemplateById(type, id), info.docType, info.docId); await sleep(2500)
     out.attachments = await injected('#tmplAttachmentsBar')
+    out.controlsBar = await injected('#tmplControlsBar')
+    out.entityBar = await injected('#tmplEntityBar')
     out.breadcrumb = await injected('#breadcrumb')
     out.page = await injected('body')
     out.dialogs = dialogs

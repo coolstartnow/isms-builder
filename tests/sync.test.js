@@ -65,6 +65,16 @@ describe('Mobile-Sync: Zugang', () => {
   })
 })
 
+describe('Mobile-Sync: Kennungen neuer Datensätze (GHSA-m8g6, Nachtrag 1.81.2)', () => {
+  test('Kennungen mit Sonderzeichen werden abgelehnt, normale Kennungen angenommen', async () => {
+    const evil = ["x');alert(1);//", '"><img src=x onerror=1>', 'a b', '<b>']
+    const res = await push(full, { risks: [...evil, 'ok-1.A_b:2'].map(id => ({ id, title: 'T', probability: 2, impact: 2 })) })
+    expect(res.status).toBe(200)
+    expect(res.body.rejected.map(r => r.id).sort()).toEqual([...evil].sort())
+    expect(res.body.accepted.risks.map(r => r.id)).toEqual(['ok-1.A_b:2'])
+  })
+})
+
 describe('Mobile-Sync: Pull', () => {
   test('liefert nur die erlaubten Module, mit Serverzeit', async () => {
     const res = await get(risksOnly, '/sync/pull')

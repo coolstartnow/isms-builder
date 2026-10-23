@@ -10,6 +10,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.81.2] — 2026-10-23
+
+> Korrektur-Release zu 1.81.1: Die Sicherheitskorrektur aus 1.81.1 war **unvollständig**. Dieses Release schließt die vom Melder genannten Stellen und alle weiteren, die bei einer vollständigen Durchsicht und einem automatisierten Browser-Durchlauf gefunden wurden.
+
+### Sicherheit
+- **Gespeichertes XSS, weitere Stellen (GHSA-m8g6-pq5j-2r9r, Nachtrag)** — Der Melder wies nach, dass 1.81.1 nicht alle Stellen erfasst hatte: die verknüpften Controls und die Einheiten in der Leiste eines Dokuments sowie Verantwortliche/r und Begründung einer Anforderung in der Statement of Applicability (SoA) für Konten **ohne Schreibrecht** (der Bearbeiten-Zweig war maskiert, der lesende nicht). Unsere Prüfung vor 1.81.1 war zu eng gefasst (nur bekannte Feldnamen); deshalb wurde diesmal die gesamte Oberfläche systematisch durchgegangen. Dabei fanden sich weitere Stellen derselben Art, die **ebenfalls in 1.81.1 und früher offen waren**:
+  - **Oberfläche, Text im HTML:** Einheiten und verknüpfte Dokumente im SoA-Detail, Auswahlliste der Dokumente, Einheitenname und -kürzel (Berichte, Auswahl), Framework-Namen, Risikostufe/Restrisiko in den DSGVO-Listen, Beschriftungen und Rückfallwerte der Statusanzeigen (Dokumente, Risiken, Feststellungen, Assets, BCM, Lieferanten), Auswahl- und Textlisten, die Administratoren pflegen (Risikokategorien, Behandlungen, DSGVO-Kategorien, Betroffene), Datums- und Zahlenfelder, Prüfzeitraum, Methode, Typen-Seitenleiste, Audit-Klassen, Vorfallstypen in den CISO-Einstellungen.
+  - **Oberfläche, Attribute:** rund 143 Attribute (`value`, `title`, `placeholder`, `alt`, `data-*`) mit eingesetzten Werten sind jetzt maskiert (neuer Helfer `escVal`, erhält 0 und `false`).
+  - **Ausbruch aus `onclick`:** Bearbeiten-Knopf der Benutzerverwaltung, Bearbeiten-Knopf der Einheiten, Wiederherstellen/Endgültig löschen im Papierkorb, Richtlinien-Liste der Guidance, Kalender (Tag, Risiko) und Benutzer löschen/speichern setzten Daten (Namen, E-Mail, Metadaten) in JavaScript-Zeichenketten bzw. Objekte im Attribut ein; ein Hochkomma oder Anführungszeichen im Wert genügte zum Ausbruch. Der Einheiten-Löschknopf nutzt jetzt `data`-Attribute, die übrigen maskieren das JSON.
+  - **Verweise:** Links aus Daten (Richtlinien-URL, Freigabelink, Release-URL) laufen über `safeUrl` und lassen nur `http(s)` und eigene Pfade zu (kein `javascript:`).
+  - **Öffentliche Bestätigungsseite `/ack/:token` (ohne Login):** Dokumentinhalt und Titel wurden als JSON in ein Inline-Skript geschrieben; `</script>` im Inhalt beendete das Skript und erlaubte Ausführung im Browser des Bestätigenden. Das JSON wird jetzt mit `<`, `>`, `&` und U+2028/2029 maskiert; die Vorlagenversion ist maskiert.
+  - **E-Mail-Zusammenfassung:** Überschriften, Bezeichnungen, Details und Organisationsname wurden unmaskiert in die HTML-Mail geschrieben; jetzt maskiert.
+  - **Mobile-Sync:** Ein Sync-Konto mit Schreibrecht konnte neue Datensätze mit beliebigen Kennungen (bis 200 Zeichen) anlegen, die später in `onclick` landen. Neue Kennungen dürfen nur noch aus `A–Z a–z 0–9 _ . : -` bestehen; unzulässige Datensätze werden abgelehnt (`rejected`). Bestehende Kennungen bleiben unverändert.
+  Betroffen sind **alle veröffentlichten Versionen bis einschließlich 1.81.1**. Voraussetzung ist ein Konto mit Schreibrecht auf das jeweilige Feld (bei der Bestätigungsseite: ein Dokument mit entsprechendem Inhalt). Die Rollenrechte und die Datenhaltung sind unverändert.
+  Tests: `tests/xssSinks.test.js` (neue statische Muster; Browsertest mit Nutzlast in Verknüpfungen, Einheiten und SoA, jetzt auch als Konto nur mit Leserecht), neu `tests/xssPublicPages.test.js` (Bestätigungsseite, Mail, statische Wächter für Inline-JSON, `onclick`, Verweise und Attribute), `tests/sync.test.js` (unzulässige Kennungen). Auf dem Stand 1.81.1 schlagen die neuen Tests fehl. Zusätzlich wurde die Oberfläche in einer Wegwerf-Instanz in einem echten Chrome mit präparierten Antworten durchlaufen (alle Bereiche, Reiter und Detailansichten); dabei sind keine unmaskierten Felder mehr aufgefallen. **Grenzen:** Das ist keine Garantie; die Oberfläche setzt HTML weiterhin aus Textbausteinen zusammen, die Maskierung erfolgt von Hand. Ein dauerhafter Schutz (sicherer Vorlagenweg, Content-Security-Policy, Security-Header) ist noch nicht umgesetzt.
+  Dank an den Melder für die Nachprüfung und die genauen Hinweise.
+
 ## [1.81.1] — 2026-10-22
 
 ### Sicherheit

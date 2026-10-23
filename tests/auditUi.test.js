@@ -22,6 +22,7 @@ function load(role = 'auditor') {
   }
   vm.createContext(ctx)
   vm.runInContext(fnSource('escHtml'), ctx)
+  vm.runInContext(fnSource('escVal'), ctx)
   vm.runInContext(slice, ctx)
   vm.runInContext(fnSource('auQuarters') + fnSource('auItemRows') + fnSource('auItemEditor'), ctx)
   return ctx

@@ -116,6 +116,10 @@ function changeTime(r) {
   return [r.updatedAt, r.deletedAt, r.createdAt].filter(x => typeof x === 'string').sort().pop() || ''
 }
 
+// Kennungen NEUER Datensätze: nur Buchstaben, Ziffern und _ . : - (die Oberfläche setzt Kennungen in Ereignis-Attribute ein; GHSA-m8g6-pq5j-2r9r, Nachtrag).
+// Bestehende Datensätze behalten ihre Kennung, auch wenn sie aus älteren Importen davon abweicht.
+const SAFE_NEW_ID = /^[A-Za-z0-9_.:-]+$/
+
 function validId(id) {
   return typeof id === 'string' && id.length > 0 && id.length <= 200 && !FORBIDDEN_IDS.has(id)
 }
@@ -141,6 +145,7 @@ function pushMeasures(incoming, acc, req, result) {
     // Geschützte bzw. abgeleitete Felder kommen nie aus der App
     delete fields.attachments
     const existing = index.has(rec.id) ? data[index.get(rec.id)] : undefined
+    if (!existing && !SAFE_NEW_ID.test(rec.id)) { reject(rec, 'invalid', 'ungültige ID (erlaubt: Buchstaben, Ziffern, _ . : -)'); continue }
 
     if (existing && !measureAccess.modulesOf(existing).length) { reject(rec, 'unlinked', 'Maßnahme ohne Verknüpfung wird nicht synchronisiert'); continue }
     const verdict = measureAccess.canWrite(existing || null, fields, acc.permissions)
@@ -276,6 +281,10 @@ router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ li
       const existing = def.kind === 'array'
         ? (index.has(rec.id) ? data[index.get(rec.id)] : undefined)
         : (Object.prototype.hasOwnProperty.call(data, rec.id) ? data[rec.id] : undefined)
+      if (!existing && !SAFE_NEW_ID.test(rec.id)) {
+        result.rejected.push({ module: mod, id: rec.id, reason: 'ungültige ID (erlaubt: Buchstaben, Ziffern, _ . : -)' })
+        continue
+      }
 
       if (existing && (typeof baseUpdatedAt !== 'string' || changeTime(existing) > baseUpdatedAt)) {
         conflicts.push({ id: rec.id, server: existing })
