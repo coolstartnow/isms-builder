@@ -34,7 +34,7 @@
   "devDependencies": {
     "jest": "^30.4.2",
     "puppeteer": "^25.9.0",
-    "supertest": "^7.2.2"
+    "supertest": "^7.3.1"
   },
   "overrides": {
     "body-parser": "^1.20.6",
