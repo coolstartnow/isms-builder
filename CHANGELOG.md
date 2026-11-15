@@ -24,6 +24,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - Die semantische Suche nutzt jetzt URL und Modell aus der Oberfläche (Umgebungsvariablen bleiben Rückfall).
 > - Datensicherung: Der Vollexport ist keine vollständige Sicherung; siehe Anleitung „Sichern und Wiederherstellen“.
 
+### CI und Tests (keine Änderung an der Anwendung)
+
+Die Anwendung 1.84.0 ist unverändert. Betroffen waren nur die automatischen Prüfungen auf GitHub:
+
+- **Testlauf beendete sich nicht.** `npm test` wartete am Ende auf offene Handles; die CI-Jobs liefen bis zum Zeitlimit von GitHub. Das Testskript nutzt jetzt `--forceExit`, alle Jobs in CI und Release haben ein eigenes Zeitlimit (`timeout-minutes`).
+- **Browsertests hingen von der Systemsprache ab.** Drei Browsertests erwarteten die deutsche Oberfläche; auf GitHub läuft Chrome mit englischer Systemsprache. Die Browsertests starten Chrome jetzt fest auf Deutsch (`--lang=de-DE`, `--accept-lang=de-DE,de`); die Prüfungen selbst sind unverändert.
+
 ### Hinzugefügt
 
 - **Anleitung „Sichern und Wiederherstellen“ (Beta 1.84.0-beta.49).** Die Administrations-Anleitung erklärt jetzt in allen sechs Sprachen, wie man das System sichert und zurückspielt: Datenverzeichnis samt `.env` (JSON und SQLite), Docker-Bind-Mount, bei MariaDB/PostgreSQL zusätzlich die Datenbank mit ihren eigenen Werkzeugen; Rücksicherung bei gestopptem Server, aktuelles Verzeichnis vorher umbenennen, danach Stichprobe. Der Text unter Admin → Wartung → „Datensicherung & Export“ stellt klar, dass der Vollexport keine vollständige Sicherung ist und sich nicht wieder einspielen lässt. Eine Rücksicherung per Kommandozeilenwerkzeug ist in der ROADMAP vorgemerkt. Fr, Nl, Hu, Et sind eigene Übersetzungen (Fachprüfung empfohlen).

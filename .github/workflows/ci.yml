@@ -10,6 +10,7 @@ jobs:
   test:
     name: Test (Node.js ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     strategy:
       matrix:
@@ -57,6 +58,7 @@ jobs:
   test-sqlite:
     name: Test (SQLite backend, #42 bootstrap gate)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Eigener, schlanker Job statt Teil der Matrix: die Suite ist ganz
     # überwiegend backend-neutral, jede Testdatei setzt STORAGE_BACKEND=json
     # selbst und würde einen Matrix-Wert wieder überschreiben. Dieser Job
@@ -84,6 +86,7 @@ jobs:
   security-scan:
     name: Dependency Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Läuft nur auf main, nicht bei jedem Feature-Branch-Push
     if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
 

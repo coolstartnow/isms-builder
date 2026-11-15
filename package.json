@@ -4,7 +4,7 @@
   "description": "ISMS Template Builder – Build Mode",
   "scripts": {
     "start": "node server/index.js",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --forceExit",
     "test:watch": "jest --watch --runInBand",
     "test:coverage": "jest --runInBand --coverage",
     "security:check": "bash scripts/security-check.sh",

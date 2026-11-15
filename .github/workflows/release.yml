@@ -9,6 +9,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     permissions:
       contents: write
 
@@ -80,6 +81,7 @@ jobs:
     name: Publish Docker image
     needs: release
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     permissions:
       contents: read
       packages: write        # Push in die Registry

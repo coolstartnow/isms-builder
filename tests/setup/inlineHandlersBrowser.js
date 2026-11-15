@@ -13,7 +13,7 @@ const H3 = `"); ${PWN};//`
 ;(async () => {
   let puppeteer
   try { const mod = await import('puppeteer-core'); puppeteer = mod.default || mod } catch (e) { console.error('puppeteer-core nicht ladbar: ' + e.message); process.exit(3) }
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-gpu'] })
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-gpu', '--lang=de-DE', '--accept-lang=de-DE,de'] })
   try {
     const page = await browser.newPage(); await page.setViewport({ width: 1500, height: 1000 })
     const pageErrors = []; page.on('pageerror', e => pageErrors.push(String(e.message).slice(0, 160)))
