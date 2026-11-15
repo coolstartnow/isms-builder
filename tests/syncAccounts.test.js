@@ -48,7 +48,7 @@ describe('Sync-Konten: Verwaltung', () => {
     expect(res.status).toBe(201)
     expect(res.body.token).toBeUndefined()
     expect(res.body.account.devices).toEqual([])
-    expect(res.body.account.permissions).toEqual({ templates: 'none', soa: 'read', risks: 'write', assets: 'none', findings: 'none', guidance: 'none' })
+    expect(res.body.account.permissions).toEqual({ templates: 'none', soa: 'read', risks: 'write', assets: 'none', findings: 'none', guidance: 'none', soaFrameworks: 'none' })
     expect(res.body.account.active).toBe(true)
   })
 

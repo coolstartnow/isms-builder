@@ -77,6 +77,19 @@ In the editor toolbar (from role Content Owner, only if the AI integration is sw
 
 ---
 
+In detail, with both ways (direct and copy/paste), set-up and troubleshooting: guide “Module: AI Drafts (Policy Assistant)” in the system handbook (`docs/module-ai-drafts.en.md`).
+
+## CSV export and import
+
+Above the document list (“Existing documents”):
+
+- **Export CSV** (all roles): writes **all documents of all types** to a file `documents-<date>.csv` (UTF-8, comma, opens in Excel and LibreOffice). Columns: `id, type, title, language, status, version, owner, nextReviewDate, parent, content`.
+- **Import CSV** (from Content Owner): reads such a file, also with a semicolon as separator (German Excel). Before anything is created, a dialog shows how many documents will be created, skipped or rejected as invalid, each with the reason.
+  - The import creates **new drafts only** (version 1, you are the owner). Same type, title and language as an existing document: skipped. **Existing documents are never changed**, not even approved ones; approval and versioning stay untouched.
+  - Required columns: `type`, `title`, `language`, `content`. `type` must be in your list of document types, `language` is `de`, `en`, `fr`, `nl` or `hu`. Optional: `nextReviewDate` (YYYY-MM-DD) and `parent` (title of the parent document). The columns `id`, `status`, `version` and `owner` are ignored.
+  - Limits: 500 rows and 5 MB per file.
+  - Best derive your own files from an export: delete or change rows, adjust titles, import.
+
 ## Lifecycle (Status Workflow)
 
 Each template passes through four status stages:

@@ -54,7 +54,47 @@ Felder: Dienstleistername, Zweck, Datenkategorien, Laufzeit, Vertragsanhang
 
 > **Mindestrolle für AV:** `contentowner`
 
+> **Ausführlich:** Vorlagen, Vorabprüfung, DSB-Prüfung und Ausdruck stehen im Leitfaden „Modul: Datenschutz-Folgenabschätzung (DSFA)“ (`docs/module-dsfa.md`).
+
 ---
+
+## Vorlagen für Einträge
+
+Zu jedem Reiter gibt es Vorlagen, die ein neues Formular mit einem praxisbezogenen Vorschlag vorbelegen: **Verarbeitungstätigkeiten (VVT)**, **AV-Verträge**, **Datenpannen**, **Betroffenenrechte** (Antwortschreiben) und **TOMs**. Für die **DSFA** gibt es eigene Vorlagen, siehe den Leitfaden „Modul: Datenschutz-Folgenabschätzung (DSFA)“.
+
+**So geht es:** Im jeweiligen Reiter auf **Vorlage verwenden** klicken, die Vorlage auswählen und **Vorlage übernehmen**. Das Formular öffnet sich mit dem Vorschlag. Sie prüfen, passen an und speichern. Erst mit dem Speichern entsteht ein Eintrag; die Vorlage selbst wird nie verändert.
+
+> **Wichtig:** Alle Vorlagen sind praxisbezogen, müssen aber **sorgfältig auf das eigene Unternehmen angepasst** werden. Sie sind **keine Rechtsberatung** und dürfen auch nicht als solche verstanden werden. Fristen, Rechtsgrundlagen und Aufbewahrungsdauern sind Vorschläge, die Sie nach dem für Sie geltenden Recht prüfen müssen. Namen, Anbieter, Zahlen und Zuständigkeiten tragen Sie selbst ein.
+
+### Verarbeitungstätigkeiten (VVT) (14)
+
+Vorbelegt werden Zweck, Rechtsgrundlage, Datenkategorien, Betroffene, Empfänger, Aufbewahrung und Löschverfahren; „Hohes Risiko“ ist nur dort gesetzt, wo es meist zutrifft. Die Aufbewahrungsmonate sind nur gesetzt, wo ein kurzer Richtwert üblich ist.
+
+Betrieb der Website und Webanalyse; Bewerbermanagement; Buchhaltung und Rechnungswesen; Hinweisgebersystem (Meldestelle); IT-Betrieb, Protokollierung und Informationssicherheit; Kontaktformular und allgemeine Anfragen; Kundensupport und Ticketsystem; Kundenverwaltung (CRM); Lieferanten- und Geschäftspartnerverwaltung; Newsletter und E-Mail-Marketing; Personalverwaltung und Entgeltabrechnung; Veranstaltungen und Schulungen; Videoüberwachung; Zeiterfassung und Zutrittskontrolle.
+
+### AV-Verträge (12)
+
+Vorbelegt werden Titel und Verarbeitungsumfang. Auftragsverarbeiter, Land, Vertragsdaten und die **Art.-28-Checkliste** bleiben leer; Sie haken nur ab, was der Vertrag tatsächlich enthält.
+
+Aktenvernichtung und Datenträgerentsorgung; Backup- und Archivdienst; Callcenter und Kundenservice-Dienstleister; Cloud-Hosting und Rechenzentrum; CRM- und Marketing-Software; E-Mail-, Kalender- und Kollaborationsdienst; HR- und Lohnabrechnungssoftware (SaaS); IT-Dienstleister, Wartung und Fernwartung; KI-Dienst (z. B. Assistent oder Textverarbeitung); Support- und Ticketsystem; Videoüberwachung und Sicherheitsdienst; Webhosting und Website-Agentur.
+
+### Datenpannen (10)
+
+Vorbelegt werden Typ, Datenkategorien, Betroffene, Sofortmaßnahmen, Folgemaßnahmen, Risiko und ein **Vorschlag**, ob die Aufsichtsbehörde und die Betroffenen zu benachrichtigen sind. Ob eine Meldung erforderlich ist, entscheiden Sie im Einzelfall.
+
+Diebstahl oder Verlust von Papierunterlagen; Fehlkonfiguration: Daten öffentlich oder zu weit freigegeben; Fehlversand einer E-Mail oder eines Dokuments; Missbrauch von Zugriffsrechten durch Beschäftigte; Phishing mit Preisgabe von Zugangsdaten; Ransomware-Angriff; Unbefugter Zugriff durch ein kompromittiertes Konto; Verlust oder Diebstahl eines Laptops, Smartphones oder Datenträgers; Versehentliche Löschung oder Veränderung von Daten; Versehentliche Veröffentlichung personenbezogener Daten.
+
+### Betroffenenrechte, Antwortschreiben (10)
+
+Vorbelegt wird der Antworttext mit Anfangs- und Schlusssatz. Die Platzhalter `{{COMPANY_NAME}}` und `{{DATA_PROTECTION_OFFICER}}` werden aus den Organisationsdaten gefüllt. Zusätzlich gibt es Texte für die Nachforderung eines Identitätsnachweises, die Fristverlängerung und die Ablehnung; offene Stellen stehen in Klammern.
+
+Ablehnung eines Antrags (Art. 12 Abs. 4 und 5); Antwort auf ein Auskunftsersuchen (Art. 15); Antwort auf ein Berichtigungsverlangen (Art. 16); Antwort auf ein Löschverlangen (Art. 17); Antwort auf ein Verlangen auf Datenübertragbarkeit (Art. 20); Antwort auf ein Verlangen auf Einschränkung der Verarbeitung (Art. 18); Antwort auf einen Widerspruch (Art. 21); Antwort zu automatisierten Entscheidungen (Art. 22); Mitteilung über die Fristverlängerung (Art. 12 Abs. 3); Nachforderung eines Identitätsnachweises (Art. 12 Abs. 6).
+
+### TOMs (24)
+
+Vorbelegt werden Titel, Kategorie, Beschreibung und Umsetzungshinweise; der Status ist „Geplant“. Was tatsächlich umgesetzt ist, tragen Sie selbst ein.
+
+Aufbewahrungsfristen und Archivierung; Auswahl und Kontrolle von Auftragsverarbeitern; Clean Desk und Bildschirmsperre; Datenschutz- und Awareness-Schulung; Datenschutzmanagement und Einbindung des DSB; Datensicherung und getestete Wiederherstellung; Eingabekontrolle (Nachvollziehbarkeit von Änderungen); Festplatten- und Geräteverschlüsselung; Firewall und Netzwerksegmentierung; Löschkonzept; Mehrfaktor-Authentifizierung; Notfall- und Wiederanlaufplanung; Patch- und Schwachstellenmanagement; Protokollierung und Auswertung; Prozess für Datenschutzverletzungen; Pseudonymisierung und Anonymisierung; Rollenbasiertes Berechtigungskonzept; Schutz vor Schadsoftware; Sichere Entwicklung und Schutz von Testdaten; Transportverschlüsselung (TLS) und gesicherte Fernzugänge; Trennungskontrolle und Zweckbindung; Verpflichtung zur Vertraulichkeit; Verschlüsselung von Datensicherungen und mobilen Datenträgern; Zutrittskontrolle zu Gebäuden und Serverräumen.
 
 ## Datenschutz-Folgenabschätzung (DSFA)
 

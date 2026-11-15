@@ -20,24 +20,31 @@ beforeAll(async () => {
 })
 afterAll(() => removeTestDataDir(dataDir))
 
-describe('Ungarisch – Sprachlisten', () => {
-  test.each([
-    ['server/routes/admin.js',        /const SUPPORTED = \['de', 'en', 'fr', 'nl', 'hu'\]/],
-    ['server/routes/guidance.js',     /SUPPORTED_LANGS = \['de', 'en', 'fr', 'nl', 'hu'\]/],
-    ['server/db/guidanceStore.js',    /\['de', 'en', 'fr', 'nl', 'hu'\]\.includes\(l\)/],
-    ['server/db/assessmentStore.js',  /SUPPORTED_LANGS\s+= \['de', 'en', 'fr', 'nl', 'hu'\]/],
-    ['server/ai/safeDraft.js',        /hu: 'Hungarian'/],
-    ['server/routes/assessmentPublic.js', /hu-HU/],
-    ['ui/login.html',                 /loadDemoBundle\('hu'\)/],
-    ['ui/app.js',                     /hu: '🇭🇺'/],
-  ])('%s kennt hu', (file, re) => {
-    expect(read(...file.split('/'))).toMatch(re)
+describe('Ungarisch – Sprachregister (statt fest eingetragener Listen)', () => {
+  const reg = require('../ui/i18n/languages.js')
+  test('hu ist im Register vollständig und auswählbar', () => {
+    expect(reg.get('hu')).toMatchObject({ name: 'Magyar', flag: '🇭🇺', locale: 'hu-HU', docSuffix: '.hu', aiName: 'Hungarian', browserPrefix: 'hu', status: 'complete', listed: true })
+    for (const list of [reg.codes(), reg.listedCodes(), reg.completeCodes()]) expect(list).toContain('hu')
   })
-
-  test('alle Sprachlisten in admin.js enthalten hu', () => {
-    const lists = read('server', 'routes', 'admin.js').match(/const SUPPORTED = \[[^\]]*\]/g)
-    expect(lists.length).toBeGreaterThanOrEqual(2)
-    for (const l of lists) expect(l).toMatch(/'hu'/)
+  test.each([
+    ['server/routes/admin.js',            /require\('\.\.\/languages'\)\.completeCodes\(\)/, 2],
+    ['server/routes/guidance.js',         /require\('\.\.\/languages'\)\.completeCodes\(\)/, 1],
+    ['server/db/guidanceStore.js',        /require\('\.\.\/languages'\)\.completeCodes\(\)\.includes\(l\)/, 1],
+    ['server/db/assessmentStore.js',      /require\('\.\.\/languages'\)\.completeCodes\(\)/, 1],
+    ['server/ai/safeDraft.js',            /reg\.aiName\(language\)/, 1],
+    ['server/routes/assessmentPublic.js', /require\('\.\.\/languages'\)\.locale\(a\.language\)/, 2],
+    ['server/i18n.js',                    /reg\.list\.map\(l => \[l\.code, l\.locale\]\)/, 1],
+    ['ui/login.html',                     /LANGUAGES\.listedCodes\(\)/, 2],
+    ['ui/app.js',                         /LANGUAGES\.listedCodes\(\)/, 4],
+  ])('%s bezieht die Sprachen aus dem Register', (file, re, min) => {
+    const src = read(...file.split('/'))
+    expect(src.match(new RegExp(re.source, 'g')).length).toBeGreaterThanOrEqual(min)
+  })
+  test('Ungarisch wirkt in den abgeleiteten Werten', () => {
+    const safeDraft = require('../server/ai/safeDraft')
+    expect(safeDraft.LANGUAGES).toContain('hu')
+    expect(require('../server/i18n').SUPPORTED).toContain('hu')
+    expect(require('../server/i18n').translateError('Internal server error', 'hu')).toBe('Belső kiszolgálóhiba')
   })
 })
 
@@ -85,17 +92,17 @@ describe('Ungarische Guidance-Seeds', () => {
 describe('Ungarisches Demo-Bundle', () => {
   const fs = require('fs'), path = require('path')
   const load = l => JSON.parse(fs.readFileSync(path.join(__dirname, '../data/demo-bundles', `${l}.json`), 'utf8'))
-  const de = load('de'), hu = load('hu')
+  const de = load('en'), hu = load('hu')   // seit beta.27: landesbezogenes Set im Umfang des englischen Sets
   const shape = v => Array.isArray(v) ? v.map(shape) : (v && typeof v === 'object')
     ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, shape(x)])) : typeof v
 
-  test('gleiche Struktur wie das deutsche Bundle (Dateien, Felder, Anzahl)', () => {
+  test('gleiche Struktur wie das englische Bundle (Dateien, Felder, Anzahl)', () => {
     expect(hu.lang).toBe('hu')
     expect(shape(hu)).toEqual(shape(de))
   })
 
   test('Texte sind übersetzt, IDs und Verweise bleiben konsistent', () => {
-    expect(hu.files['risks.json'][0].title).toBe('Zsarolóvírus-támadás a termelési rendszerek ellen')
+    expect(hu.files['risks.json'][0].title).toBe('Adatvesztés zsarolóvírus miatt')
     const ids = new Set()
     const collect = v => { if (Array.isArray(v)) v.forEach(collect); else if (v && typeof v === 'object') { if (typeof v.id === 'string') ids.add(v.id); Object.values(v).forEach(collect) } }
     collect(hu)
@@ -104,5 +111,16 @@ describe('Ungarisches Demo-Bundle', () => {
     // Enum-Werte unverändert
     expect(hu.files['risks.json'].map(r => r.category)).toEqual(de.files['risks.json'].map(r => r.category))
     expect(hu.files['risks.json'].map(r => r.status)).toEqual(de.files['risks.json'].map(r => r.status))
+  })
+
+  test('landesbezogen: ungarische Firmen, Orte, Behörden — keine deutschen Originale', () => {
+    const raw = JSON.stringify(hu)
+    for (const bad of ['DATEV', 'Hetzner', 'Telekom Security', 'TÜV', 'Lexware', 'Securelink', 'konzern.de', 'sample-gmbh', 'Musterstra', 'BDSG', 'HGB', 'Frankfurt am Main', 'Klaus Müller', 'Claudia Meier', 'Düsseldorf', 'Stuttgart', 'BayLDA'])
+      expect([bad, raw.includes(bad)]).toEqual([bad, false])
+    const names = hu.files['suppliers.json'].map(s => s.name)
+    expect(names).toEqual(expect.arrayContaining(['Bérfelhő Kft.', 'Tárhelypont Kft.', 'Védelemlánc Kft.', 'Tanúsítóközpont Zrt.']))
+    expect(hu.files['suppliers.json'].filter(s => s.country === 'HU').length).toBeGreaterThanOrEqual(5)
+    expect(raw).toMatch(/NAIH/)
+    expect(hu.files['suppliers.json'].map(s => s.id)).toEqual(de.files['suppliers.json'].map(s => s.id))
   })
 })

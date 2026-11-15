@@ -1,4 +1,5 @@
 'use strict'
+const LANG_REG = require('../ui/i18n/languages.js')
 // Vom Server erzeugte Texte in der Sprache der Organisation bzw. des Aufrufers:
 // Digest-Mails, Kalender, CSV-Köpfe, öffentliche Bestätigungsseite, Papierkorb, PDF-Kopf.
 const { createTestDataDir, removeTestDataDir } = require('./setup/testEnv')
@@ -106,7 +107,7 @@ describe('Öffentliche Bestätigungsseite', () => {
 describe('PDF-Export: Kopf in der Sprache des Dokuments', () => {
   test('liefert ein PDF je Sprache', async () => {
     const { renderTemplateToPdf } = require('../server/pdfExport')
-    for (const language of ['de', 'en', 'fr', 'nl', 'hu']) {
+    for (const language of LANG_REG.completeCodes()) {
       const buf = await renderTemplateToPdf({ title: 'Test', type: 'policy', status: 'approved', version: 2, owner: 'x', language,
         content: 'Text', versions: [{ version: 1, approvedBy: 'a', approvedAt: '2026-01-01T00:00:00Z', changes: '' }] })
       expect(buf.slice(0, 4).toString()).toBe('%PDF')

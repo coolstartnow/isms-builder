@@ -7,9 +7,101 @@ const path = require('path')
 const multer = require('multer')
 const { requireAuth, authorize } = require('../auth')
 const bcmStore = require('../db/bcmStore')
+const bcmRequirements = require('../bcmRequirements')
+const auditStore = require('../db/auditStore')
+const i18n = require('../i18n')
 
 router.get('/bcm/summary', requireAuth, authorize('reader'), async (req, res) => {
   res.json(await bcmStore.getSummary())
+})
+
+// ── Vorlagen für BIA, Pläne und Übungen (server/bcmTemplates.js): eigene Texte, vom Unternehmen anzupassen ──
+const bcmTemplates = require('../bcmTemplates')
+router.get('/bcm/templates/:kind', requireAuth, authorize('reader'), (req, res) => {
+  const l = bcmTemplates.list(req.params.kind, req.query.lang || i18n.langOf(req))
+  if (!l) return res.status(404).json({ error: 'Not found' })
+  res.json(l)
+})
+router.get('/bcm/templates/:kind/:id', requireAuth, authorize('editor'), async (req, res) => {
+  const org = await require('../db/orgSettingsStore').get()
+  const t = bcmTemplates.build(req.params.kind, req.params.id, req.query.lang || i18n.langOf(req), org)
+  if (!t) return res.status(404).json({ error: 'Not found' })
+  res.json(t)
+})
+
+// ── Register der Anforderungen (z. B. ISO 22301): Definitionen werden importiert, der Normtext wird nicht mitgeliefert ──
+const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: bcmRequirements.MAX_BYTES, files: 1 } })
+
+// Datei prüfen (ohne zu speichern) → { parsed, accepted, rejected, unknownColumns, added, updated }
+async function previewRequirementsImport(text, format) {
+  const parsed = bcmRequirements.parse(text, format)
+  if (parsed.code) return { code: parsed.code }
+  const v = bcmRequirements.validate(parsed.rows, parsed.header)
+  const existing = await bcmStore.getRequirements()
+  const existingKeys = new Set(existing.map(r => bcmRequirements.keyOf(r.framework, r.id)))
+  const rejected = [...v.rejected]
+  const accepted = bcmRequirements.checkParents(v.accepted, existingKeys, rejected)
+  const rejectedByReason = rejected.reduce((m, r) => (m[r.reason] = (m[r.reason] || 0) + 1, m), {})
+  return {
+    total: parsed.rows.length, accepted, unknownColumns: v.unknownColumns,
+    added: accepted.filter(a => !existingKeys.has(bcmRequirements.keyOf(a.framework, a.id))).length,
+    updated: accepted.filter(a => existingKeys.has(bcmRequirements.keyOf(a.framework, a.id))).length,
+    rejected: rejected.length, rejectedByReason, rejectedDetails: rejected.slice(0, 50),
+  }
+}
+
+router.post('/bcm/requirements/import', requireAuth, authorize('admin'), (req, res) => {
+  importUpload.single('file')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 2 MB)' : err.message })
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
+    const name = String(req.file.originalname || '').toLowerCase()
+    const format = name.endsWith('.json') ? 'json' : (name.endsWith('.csv') || name.endsWith('.txt') ? 'csv' : undefined)
+    const prev = await previewRequirementsImport(req.file.buffer.toString('utf8'), format)
+    if (prev.code) return res.status(400).json({ error: prev.code === 'too_large' ? 'File too large (max 2 MB)' : prev.code === 'too_many_rows' ? 'Too many rows (max 2000)' : 'The file could not be read', code: prev.code })
+    const { accepted, ...summary } = prev
+    const dry = req.query.dryRun === '1' || req.query.dryRun === 'true'
+    if (dry) return res.json({ dryRun: true, ...summary })
+    if (!accepted.length) return res.status(400).json({ error: 'No valid requirements found', ...summary })
+    const { added, updated } = await bcmStore.upsertRequirements(accepted, { importedBy: req.user })
+    await auditStore.append({ user: req.user, action: 'import', resource: 'bcm-requirements', detail: `Anforderungen importiert: ${added} neu, ${updated} aktualisiert, ${summary.rejected} abgelehnt` })
+    res.json({ dryRun: false, ...summary, added, updated })
+  })
+})
+
+router.get('/bcm/requirements', requireAuth, authorize('reader'), async (req, res) => {
+  const [requirements, assessments] = await Promise.all([bcmStore.getRequirements(), bcmStore.getAssessments()])
+  res.json({ requirements, assessments, summary: bcmRequirements.summarize(requirements, assessments), frameworks: bcmRequirements.FRAMEWORKS, statuses: bcmRequirements.STATUSES })
+})
+
+router.get('/bcm/requirements/template.csv', requireAuth, authorize('reader'), (req, res) => {
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+  res.setHeader('Content-Disposition', 'attachment; filename="bcm-requirements-template.csv"')
+  res.send(bcmRequirements.templateCsv())
+})
+
+router.get('/bcm/requirements/export.csv', requireAuth, authorize('reader'), async (req, res) => {
+  const [requirements, assessments] = await Promise.all([bcmStore.getRequirements(), bcmStore.getAssessments()])
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+  res.setHeader('Content-Disposition', `attachment; filename="bcm-requirements-${new Date().toISOString().slice(0, 10)}.csv"`)
+  res.send(bcmRequirements.exportCsv(requirements, assessments, i18n.pickLang(req.query.lang) || await i18n.orgLang()))
+})
+
+router.put('/bcm/requirements/:framework/:id/assessment', requireAuth, authorize('editor'), async (req, res) => {
+  const { framework, id } = req.params
+  const defs = await bcmStore.getRequirements()
+  if (!defs.some(r => r.framework === framework && r.id === id)) return res.status(404).json({ error: 'Not found' })
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  // verknüpfte BIA, Pläne und Übungen müssen es geben
+  const [bia, plans, exercises] = await Promise.all([bcmStore.getBia(), bcmStore.getPlans(), bcmStore.getExercises()])
+  for (const [field, list] of [['linkedBia', bia], ['linkedPlans', plans], ['linkedExercises', exercises]]) {
+    if (Array.isArray(body[field]) && body[field].some(x => !list.some(o => o.id === x))) return res.status(400).json({ error: 'Unknown link target', field })
+  }
+  const current = (await bcmStore.getAssessments()).find(a => a.framework === framework && a.id === id) || {}
+  const clean = bcmRequirements.cleanAssessment(body, current)
+  if (!clean.ok) return res.status(400).json({ error: clean.error, field: clean.field })
+  const rec = await bcmStore.setAssessment(framework, id, clean.value, { changedBy: req.user })
+  await auditStore.append({ user: req.user, action: 'update', resource: 'bcm-requirement', resourceId: `${framework}:${id}`, detail: `Status: ${rec.status}` })
+  res.json(rec)
 })
 
 // BIA
@@ -91,7 +183,7 @@ router.delete('/bcm/exercises/:id', requireAuth, authorize('admin'), async (req,
 })
 
 // ── BCM – Dokumenten-Upload ──
-const BCM_FILES_DIR = path.join(__dirname, '../../data/bcm-files')
+const BCM_FILES_DIR = require('../paths').dataPath('bcm-files')
 if (!fs.existsSync(BCM_FILES_DIR)) fs.mkdirSync(BCM_FILES_DIR, { recursive: true })
 
 const bcmUpload = multer({

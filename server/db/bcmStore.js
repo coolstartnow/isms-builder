@@ -21,8 +21,10 @@ function load() {
       bia:       Array.isArray(raw.bia)       ? raw.bia       : [],
       plans:     Array.isArray(raw.plans)     ? raw.plans     : [],
       exercises: Array.isArray(raw.exercises) ? raw.exercises : [],
+      requirements: Array.isArray(raw.requirements) ? raw.requirements : [],
+      assessments:  Array.isArray(raw.assessments)  ? raw.assessments  : [],
     }
-  } catch { return { bia: [], plans: [], exercises: [] } }
+  } catch { return { bia: [], plans: [], exercises: [], requirements: [], assessments: [] } }
 }
 
 function save(data) { fs.writeFileSync(FILE, JSON.stringify(data, null, 2)) }
@@ -175,6 +177,7 @@ function createExercise(fields, { createdBy } = {}) {
     participants:  Array.isArray(fields.participants) ? fields.participants : [],
     linkedPlanId:  fields.linkedPlanId  || '',
     result:        fields.result        || 'planned',
+    scenario:      String(fields.scenario || '').slice(0, 8000),
     findings:      fields.findings      || '',
     actions:       fields.actions       || '',
     nextExercise:  fields.nextExercise  || '',
@@ -195,9 +198,9 @@ function updateExercise(id, patch, { changedBy } = {}) {
   const idx  = data.exercises.findIndex(e => e.id === id && !e.deletedAt)
   if (idx < 0) return null
   const allowed = ['title','type','date','conductor','participants','linkedPlanId',
-    'result','findings','actions','nextExercise','linkedControls','linkedPolicies']
+    'result','scenario','findings','actions','nextExercise','linkedControls','linkedPolicies']
   for (const k of allowed) {
-    if (patch[k] !== undefined) data.exercises[idx][k] = patch[k]
+    if (patch[k] !== undefined) data.exercises[idx][k] = k === 'scenario' ? String(patch[k] || '').slice(0, 8000) : patch[k]
   }
   data.exercises[idx].updatedAt = nowISO()
   if (changedBy) data.exercises[idx].updatedBy = changedBy
@@ -261,10 +264,45 @@ function getSummary() {
       upcoming,
       lastResult,
     },
+    requirements: require('../bcmRequirements').summarize(data.requirements, data.assessments),
   }
 }
 
+// ─── Anforderungen (Register einer BCM-Norm, z. B. ISO 22301) ────────────────
+// Definitionen (importiert) und Bearbeitungsstand (je Anforderung) liegen getrennt: ein erneuter Import ändert den Stand nicht.
+const reqKey = (framework, id) => `${framework}:${id}`
+
+function getRequirements() { return load().requirements }
+
+// Legt Definitionen an oder aktualisiert sie (nichts wird gelöscht). → { added, updated }
+function upsertRequirements(rows, { importedBy } = {}) {
+  const data = load()
+  const index = new Map(data.requirements.map((r, i) => [reqKey(r.framework, r.id), i]))
+  let added = 0, updated = 0
+  const now = nowISO()
+  for (const row of rows) {
+    const k = reqKey(row.framework, row.id)
+    if (index.has(k)) { data.requirements[index.get(k)] = { ...data.requirements[index.get(k)], ...row, retired: false, updatedAt: now }; updated++ }
+    else { data.requirements.push({ ...row, retired: false, importedBy: importedBy || 'system', createdAt: now, updatedAt: now }); index.set(k, data.requirements.length - 1); added++ }
+  }
+  save(data)
+  return { added, updated }
+}
+
+function getAssessments() { return load().assessments }
+
+function setAssessment(framework, id, value, { changedBy } = {}) {
+  const data = load()
+  if (!data.requirements.some(r => r.framework === framework && r.id === id)) return null
+  const rec = { ...value, framework, id, updatedAt: nowISO(), updatedBy: changedBy || 'system' }
+  const i = data.assessments.findIndex(a => a.framework === framework && a.id === id)
+  if (i >= 0) data.assessments[i] = rec; else data.assessments.push(rec)
+  save(data)
+  return rec
+}
+
 const _jsonExports = {
+  getRequirements, upsertRequirements, getAssessments, setAssessment,
   getBia, getBiaById, createBia, updateBia, deleteBia,
   getPlans, getPlanById, createPlan, updatePlan, deletePlan,
   getExercises, getExerciseById, createExercise, updateExercise, deleteExercise,

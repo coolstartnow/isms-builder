@@ -20,6 +20,10 @@
 
 *Kockázatok a telefonon*
 
+![Egyéni SoA-csoport önálló lapként (kitalált példa)](images/mobile/soa-groups.png)
+
+*Egyéni SoA-csoport önálló lapként (kitalált példa)*
+
 ![Tablet fekvő tájolásban: menü és tartalom egymás mellett](images/mobile/tablet-risks.png)
 
 *Tablet fekvő tájolásban: menü és tartalom egymás mellett*
@@ -66,6 +70,10 @@ Az adminisztrátorok az *Adminisztráció → Felhasználók* alatt, a *Szinkron
 - **Jogosultságok modulonként:** *nincs hozzáférés*, *olvasás* vagy *olvasás és írás* (dokumentumok/sablonok, SoA, kockázatok, eszközök, megállapítások). Az útmutatók csak olvashatók. Példa: az auditor fiókja olvashatja és írhatja a kockázatokat és megállapításokat, mást nem.
 - **Érvényes eddig** (opcionális).
 - **Eszközök:** egy fióknak több eszköze lehet (pl. a CISO telefonja és tabletje). Minden eszköznek **saját kulcsa** van. A lista az eszköz nevét és az „utoljára használva” időpontot mutatja; az elveszett eszköz külön letiltható (✕), a többit nem érinti.
+
+### Egyéni SoA-csoportok
+
+Az egyéni SoA-csoportok (a szerveren rendszergazda által létrehozott keretrendszerek) szinkronizálódnak a SoA-val. **Megtekinteni** azok a fiókok tudják, amelyek olvashatják a SoA-t vagy az *Egyéni SoA-csoportokat*; csoportdefiníció nélkül az egyéni csoport kontrolljainak nem lenne neve és színe az alkalmazásban. **Létrehozás, átnevezés, színváltás és üres csoportok törlése** az *Egyéni SoA-csoportok (kezelés)* jogosultsághoz = *olvasás és írás* kötött — a szinkronfiókok nem rendszergazdák, ezt a hozzáférést a szerver rendszergazdája adja meg itt. Egyedül a SoA írási joga nem elég. A szerveroldali ellenőrzések változatlanok (azonosító, a beépített keretrendszerek fenntartott azonosítói, szín `#RRGGBB`, név legfeljebb 120 karakter); a kontrollokat tartalmazó csoport nem törölhető. Csoport fájlból való importálása kontrollokat is létrehoz, ezért a SoA írási joga is kell hozzá (az előnézethez elég a csoportjog). **A funkcióhoz szükséges minimális szerververzió: 1.84.0.**
 
 ### Eszköz beállítása (QR-kód)
 
@@ -158,7 +166,7 @@ Minden hívás, a `/sync/enroll` kivételével, tartalmazza az `Authorization: B
 | GET | `/sync/pull?since=<ISO>&modules=a,b` | Módosítások `since` óta, a törölt rekordokkal együtt, csak az olvasható modulokra (a kifejezetten kért, de nem engedélyezett modulok a `denied` alatt szerepelnek). A válasz tartalmazza a következő pullhoz szükséges `serverTime` értéket. |
 | POST | `/sync/push` | `{ protocolVersion, changes: { <modul>: [rekordok baseUpdatedAt értékkel] } }` — válasz: `accepted`, `conflicts`, `rejected`. |
 
-A szinkronfiókok kezelése (`/admin/sync-accounts`) csak adminisztrátoroknak szól. Modulok: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Leírása: `docs/architecture/openapi.yaml`.
+A szinkronfiókok kezelése (`/admin/sync-accounts`) csak adminisztrátoroknak szól. Modulok: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`, `soaFrameworks`. Leírása: `docs/architecture/openapi.yaml`.
 
 ## Biztonság
 
@@ -178,3 +186,23 @@ A szinkronfiókok kezelése (`/admin/sync-accounts`) csak adminisztrátoroknak s
 - A felület nem ismer modulonkénti jogosultságokat: csak azt különbözteti meg, hogy „írhat valahol” vagy „csak olvasható”. A pontos modulonkénti ellenőrzés mentéskor történik.
 - Az auditmegállapítások szinkronizálódnak, de az alkalmazásban még nincs saját nézetük.
 - Az alkalmazás annak a verziónak a szerverlogikáját tartalmazza, amellyel készült. Szerverfrissítés után az alkalmazást is újra kell építeni (`npm run build:android` az `isms-builder-mobile` projektben).
+
+## Gyakori kérdések (GYIK)
+
+**A szinkron „Sync complete”-et jelez, de hiányoznak adatok az eszközről (pl. dokumentumsablonok, intézkedések, kockázatok, eszközök).**
+A szinkron csak azokat a rekordokat tölti le, amelyek *az utolsó szinkron óta módosultak* (`updatedAt` időbélyeg). Ha **régi időbélyegű** adatok csak az utolsó szinkron *után* kerülnek a szerverre — demó-import, betöltött demócsomag, biztonsági mentésből való visszaállítás, kézzel cserélt fájlok —, az eszköz „változatlannak” tekinti őket, és sosem kapja meg. A 1.84-es főrendszerrel és az 1.6-os alkalmazással az alkalmazás ezt magától felismeri: a szerver közöl egy *adat-korszakot*, amely minden szerverindításkor és minden adatcsere után változik, és az alkalmazás ekkor egyszer **minden** adatot újratölt. Kézzel: a szinkronpanelen **Összes adat újratöltése** (1.6-os alkalmazás). Régebbi verziókkal az *Eszköz visszaállítása* és az új QR-kódos beállítás segít — az el nem küldött módosítások elvesznek, ezért előbb szinkronizáljon, vagy használja a *Csak a módosítások exportálása* funkciót.
+
+**Minden ütközést egyenként kell megerősítenem, és minden alkalommal meg kell adnom a PIN-kódot.**
+Az 1.6-os alkalmazástól az ütközések jelölőnégyzetes listaként jelennek meg: jelölje ki a bejegyzéseket (eleinte semmi sincs kijelölve), használja az *Összes kijelölése* gombot és a modulszűrőt, és **egyetlen** csoportos művelettel oldja fel őket — a PIN-kódot csak egyszer kéri.
+
+**A telefon elutasítja a szerverem tanúsítványát.**
+Egyetlen önaláírt szervertanúsítványt egyes eszközök nem fogadnak el (egy Android 16-os táblagépen észleltük). Megbízható megoldás: hozzon létre **saját CA-t**, írjon alá vele egy olyan szervertanúsítványt, amelynek `subjectAltName` mezőjében szerepel a cím (IP vagy név), és telepítse a **CA-t** a telefonra **„CA-tanúsítványként”** (nem „VPN- és alkalmazás-felhasználói tanúsítványként”). Ellenőrzés: szerepel-e a *Megbízható hitelesítő adatok → Felhasználó* alatt? A böngésző „nem biztonságos” jelzése nem mond semmit arról, hogy az alkalmazás megbízik-e a tanúsítványban. A csak teszteléshez létrehozott CA-t utána távolítsa el a telefonról.
+
+**Melyik portot használja a szinkron?**
+Nincs saját portja: ugyanazt a címet és portot, mint a webes felület (`https://gazda[:port]`). Egy tűzfalszabály és egy tanúsítvány elég.
+
+**A guidance-cikkekből hiányoznak a képek.**
+A mellékelt cikkek képeit az alkalmazás tartalmazza (az 1.6-os alkalmazástól). A felhasználók saját cikkeiben hivatkozott képeket az alkalmazás nem hozza magával — csak a szerveren vannak meg. Aki az alkalmazásban is szeretné őket, igazítsa az alkalmazás építését (`scripts/sync-ui.sh`).
+
+**A demócsomag egyik dokumentuma hiányzik (pl. „Szerepkörök és felelősségek”), miután guidance-cikkeket töröltem.**
+A demócsomag a dokumentumokat és adatokat teljesen hétköznapi rekordokként hozza — a *seed-cikkekkel* ellentétben (pl. a *Szerepkörök* alatti felhasználói útmutatók, a rendszerkézikönyv, az útmutatók), amelyeket a szerver minden indításkor újra létrehoz, ha hiányoznak. Egy törölt csomagdokumentum ezért **nem tér vissza magától**. Megelőzés: ne töröljön egész kategóriákat; a törölt cikkeket előbb **állítsa vissza** a *kukából*, amíg az nincs kiürítve. Végleges törlés után: hozza létre újra a dokumentumot (szövege a demócsomagban van, `data/demo-bundles/<nyelv>.json`), vagy töltse újra a demócsomagot — ez lecseréli a demóadatokat, és éles üzemben le van tiltva. Az eszközökön az újonnan létrehozott dokumentum a következő szinkronnál jelenik meg.

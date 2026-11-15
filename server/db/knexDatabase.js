@@ -18,6 +18,17 @@ function clientType() {
   return _knex ? _knex.client.config.client : null
 }
 
+// TLS-Optionen der Datenbankverbindung (MariaDB/MySQL und PostgreSQL). Mit DB_SSL=true wird das Zertifikat des Servers geprüft;
+// Abschalten nur ausdrücklich mit DB_SSL_REJECT_UNAUTHORIZED=false (schützt dann nicht mehr vor einem Mitleser im Netz).
+// DB_SSL_CA: Pfad zu einer PEM-Datei mit der eigenen Zertifizierungsstelle.
+function sslOptions(env = process.env) {
+  if (env.DB_SSL !== 'true') return undefined
+  const opts = { rejectUnauthorized: env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' }
+  if (!opts.rejectUnauthorized) console.warn('[knexDatabase] WARNUNG: DB_SSL_REJECT_UNAUTHORIZED=false — das Zertifikat des Datenbankservers wird NICHT geprüft.')
+  if (env.DB_SSL_CA) opts.ca = fs.readFileSync(env.DB_SSL_CA, 'utf8')
+  return opts
+}
+
 function _buildConfig() {
   const backend = (process.env.STORAGE_BACKEND || 'json').toLowerCase()
 
@@ -40,7 +51,7 @@ function _buildConfig() {
         user: process.env.DB_USER || 'isms',
         password: process.env.DB_PASS || '',
         database: process.env.DB_NAME || 'isms_builder',
-        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : undefined,
+        ssl: sslOptions(),
       },
       pool: { min: 0, max: 10 },
     }
@@ -55,7 +66,7 @@ function _buildConfig() {
         user: process.env.DB_USER || 'isms',
         password: process.env.DB_PASS || '',
         database: process.env.DB_NAME || 'isms_builder',
-        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+        ssl: sslOptions(),
       },
       pool: { min: 0, max: 10 },
     }
@@ -539,4 +550,4 @@ async function destroy() {
   _initPromise = null
 }
 
-module.exports = { getDb, init, destroy, clientType }
+module.exports = { getDb, init, destroy, clientType, sslOptions }

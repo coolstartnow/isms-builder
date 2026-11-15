@@ -19,6 +19,17 @@ Soft-delete: records are never physically removed — `deletedAt` marks them as 
 
 ---
 
+## Sessions (`data/sessions.json`)
+
+```json
+{ "<jti>": { "u": "admin", "exp": 1792000000 } }
+```
+
+Server-side session list: a login token (JWT cookie `sm_session`) is valid only while its `jti` is listed here. One concurrent
+session per account (a new sign-in ends the previous one); logout, password change, role/domain/function change, admin reset and
+account deletion remove sessions. File mode 0600; expired entries are pruned. Marker file `data/.production`: the instance is in
+production use (set by the demo reset); demo passwords are rejected from then on.
+
 ## Users (`data/rbac_users.json`)
 
 ```json

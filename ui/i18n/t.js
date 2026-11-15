@@ -6,16 +6,14 @@
 
   // ── Language storage ─────────────────────────────────────────────────────
   const STORAGE_KEY = 'isms_lang';
-  const SUPPORTED   = ['en', 'de', 'fr', 'nl', 'hu'];
-  const DEFAULT     = 'en';
+  // Die Sprachen kommen aus dem Register ui/i18n/languages.js (muss vorher geladen sein)
+  const REG = window.LANGUAGES;
+  if (!REG) throw new Error('ui/i18n/languages.js muss vor t.js geladen werden');
+  const SUPPORTED   = REG.codes();
+  const DEFAULT     = REG.DEFAULT;
 
   function detectBrowserLang() {
-    const nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
-    if (nav.startsWith('de')) return 'de';
-    if (nav.startsWith('fr')) return 'fr';
-    if (nav.startsWith('nl')) return 'nl';
-    if (nav.startsWith('hu')) return 'hu';
-    return 'en';
+    return REG.fromBrowser(navigator.language || navigator.userLanguage || DEFAULT);
   }
 
   function getLang() {

@@ -27,6 +27,29 @@ All licenses are compatible with the project's AGPL-3.0 license.
 
 ---
 
+## PDF fonts (bundled in `server/fonts/`)
+
+Embedded into generated PDF documents (see `server/pdfFonts.js`). Each font family is shipped with Regular, Bold and Italic and with its licence text next to the files. All three cover the alphabets of all 24 official EU languages (Latin, Greek, Cyrillic).
+
+### Liberation Sans 2.1.5
+- **Licence:** SIL Open Font License 1.1 — `server/fonts/LICENSE-LiberationSans.txt`
+- **Copyright:** Digitized data © 2010 Google Corporation; © 2012 Red Hat, Inc. (Reserved Font Names: Arimo, Tinos, Cousine, Liberation)
+- **Files:** `LiberationSans-Regular.ttf`, `LiberationSans-Bold.ttf`, `LiberationSans-Italic.ttf`
+
+### Noto Sans 2.015
+- **Licence:** SIL Open Font License 1.1 — `server/fonts/LICENSE-NotoSans.txt`
+- **Copyright:** © 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+- **Files:** `NotoSans-Regular.ttf`, `NotoSans-Bold.ttf`, `NotoSans-Italic.ttf`
+
+### DejaVu Sans 2.37
+- **Licence:** Bitstream Vera Fonts licence with public-domain DejaVu changes (and Arev glyphs, © Tavmjong Bah) — `server/fonts/LICENSE-DejaVuSans.txt`
+- **Files:** `DejaVuSans-Regular.ttf`, `DejaVuSans-Bold.ttf`, `DejaVuSans-Italic.ttf` (the latter is DejaVu Sans Oblique)
+
+### Nimbus Mono PS 1.00 (monospace, replaces Courier)
+- **Licence:** AGPL-3.0-only WITH PS-or-PDF-font-exception-20170817 — `server/fonts/LICENSE-NimbusMonoPS.txt` (the exception permits embedding the font into PostScript/PDF documents regardless of the licence of the document; the project itself is AGPL-3.0, see `LICENSE`)
+- **Copyright:** © 2014 (URW)++ Design & Development — part of the (URW)++ base 35 font set, https://github.com/ArtifexSoftware/urw-base35-fonts
+- **File:** `NimbusMonoPS-Regular.otf` (unmodified)
+
 ## Backend / Runtime Dependencies (npm)
 
 ### Express

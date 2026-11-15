@@ -20,6 +20,10 @@
 
 *Risks on the phone*
 
+![A custom SoA group as its own tab (invented example)](images/mobile/soa-groups.png)
+
+*A custom SoA group as its own tab (invented example)*
+
 ![Tablet in landscape: menu and content side by side](images/mobile/tablet-risks.png)
 
 *Tablet in landscape: menu and content side by side*
@@ -66,6 +70,10 @@ Administrators create sync accounts under *Administration → Users* in the sect
 - **Permissions per module:** *no access*, *read* or *read and write* (documents/templates, SoA, risks, assets, findings). Guidance is read-only. Example: the auditor's account may read and write risks and findings and nothing else.
 - **Valid until** (optional).
 - **Devices:** an account can have several devices (e.g. the CISO's phone and tablet). Each device has its **own key**. The list shows device name and “last used”; a lost device can be blocked individually (✕) without affecting the others.
+
+### Custom SoA groups
+
+Custom SoA groups (frameworks an administrator created on the server) are synchronised with the SoA. **Viewing** is allowed for accounts that can read SoA or *Custom SoA groups*; without the group definition the controls of a custom group would have no name or colour in the app. **Creating, renaming, recolouring and deleting empty groups** requires the permission *Custom SoA groups (management)* = *read and write* — sync accounts are not administrators, so the server administrator grants this access here. Write permission on SoA alone is not enough. The server checks apply unchanged (ID, reserved IDs of built-in frameworks, colour `#RRGGBB`, name up to 120 characters); a group that still contains controls cannot be deleted. Importing a group from a file also creates controls and therefore additionally needs write permission on SoA (the preview works with the group permission alone). **Minimum server version for this feature: 1.84.0.**
 
 ### Setting up a device (QR code)
 
@@ -158,7 +166,7 @@ All calls except `/sync/enroll` carry the header `Authorization: Bearer <device 
 | GET | `/sync/pull?since=<ISO>&modules=a,b` | Changes since `since`, including deleted records, for readable modules only (explicitly requested but not permitted ones are listed under `denied`). The response carries `serverTime` for the next pull. |
 | POST | `/sync/push` | `{ protocolVersion, changes: { <module>: [records with baseUpdatedAt] } }` — response: `accepted`, `conflicts`, `rejected`. |
 
-The administration of sync accounts (`/admin/sync-accounts`) is for administrators only. Modules: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Described in `docs/architecture/openapi.yaml`.
+The administration of sync accounts (`/admin/sync-accounts`) is for administrators only. Modules: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`, `soaFrameworks`. Described in `docs/architecture/openapi.yaml`.
 
 ## Security
 
@@ -178,3 +186,23 @@ The administration of sync accounts (`/admin/sync-accounts`) is for administrato
 - The interface has no permissions per module: it only distinguishes “may write somewhere” from “read-only”. The exact check per module happens when saving.
 - Audit findings are synchronised but have no view of their own in the app yet.
 - The app contains the server logic of the version it was built from. After a server update, rebuild the app too (`npm run build:android` in the `isms-builder-mobile` project).
+
+## Frequently asked questions (FAQ)
+
+**The sync says “Sync complete”, but data is missing on the device (e.g. document templates, measures, risks, assets).**
+The sync only fetches records that *changed since the last sync* (timestamp `updatedAt`). If data **with an old timestamp** reaches the server only *after* the last sync — demo import, a loaded demo bundle, a restore from backup, files replaced by hand — the device regards it as “unchanged” and never receives it. With main system 1.84 and app 1.6 the app detects this by itself: the server reports a *data epoch* that changes on every server start and after every data replacement, and the app then reloads **all** data once. By hand: **Reload all data** in the sync panel (app 1.6). With older versions use *Reset device* and set it up again via QR code — unsent changes are lost, so sync first or use *Export only changes*.
+
+**I have to confirm every conflict one by one and enter the PIN each time.**
+From app 1.6 conflicts appear as a checklist: tick the entries (nothing is selected at first), use *Select all* and the module filter, and resolve them with **one** bulk action — the PIN is asked only once.
+
+**The phone rejects my server's certificate.**
+A single self-signed server certificate is not accepted on some devices (observed on an Android 16 tablet). Reliable: create **your own CA**, sign a server certificate that lists the address (IP or name) in `subjectAltName`, and install the **CA** on the phone as a **“CA certificate”** (not as a “VPN and app user certificate”). Check: is it listed under *Trusted credentials → User*? A browser warning “not secure” says nothing about whether the app trusts the certificate. Remove a CA created only for testing from the phone afterwards.
+
+**Which port does the sync use?**
+None of its own: the same address and port as the web interface (`https://host[:port]`). One firewall rule and one certificate are enough.
+
+**Images are missing in the guidance articles.**
+The bundled articles include their images in the app (from app 1.6). Images that users link in their own articles are not shipped with the app — they exist only on the server. If you need them in the app, adapt the app build (`scripts/sync-ui.sh`).
+
+**A document from the demo package is missing (e.g. “Roles & Responsibilities”) after I deleted guidance articles.**
+The demo package brings documents and data as perfectly ordinary records — unlike the *seed articles* (e.g. the user guides under *Roles*, the system manual, the guides), which the server re-creates on every start if they are missing. A deleted package document therefore **does not come back by itself**. To prevent it: do not delete whole categories; **restore** deleted articles from the *recycle bin* first, as long as it has not been emptied. After permanent deletion: create the document again (its text is in the demo package, `data/demo-bundles/<language>.json`) or reload the demo package — this replaces the demo data and is locked in production. On the devices a newly created document appears with the next sync.

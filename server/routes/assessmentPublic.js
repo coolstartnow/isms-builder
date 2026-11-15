@@ -29,6 +29,10 @@ const UI = {
     errSubmittedMsg: 'Dieser Fragebogen wurde bereits eingereicht und kann nicht erneut ausgefüllt werden.',
     errSave:         'Fehler',
     errSaveMsg:      'Die Antworten konnten nicht gespeichert werden.',
+    requiredMark:    'Pflichtfeld',
+    commentLabel:    'Bemerkung oder Nachweis-Link (optional)',
+    errRequired:     'Pflichtfragen fehlen',
+    errRequiredMsg:  'Bitte beantworten Sie alle mit * gekennzeichneten Pflichtfragen.',
   },
   en: {
     pageTitle:       'Supplier Self-Assessment – ISMS Builder',
@@ -51,6 +55,10 @@ const UI = {
     errSubmittedMsg: 'This questionnaire has already been submitted and cannot be filled in again.',
     errSave:         'Error',
     errSaveMsg:      'Your answers could not be saved.',
+    requiredMark:    'Required',
+    commentLabel:    'Comment or evidence link (optional)',
+    errRequired:     'Required questions missing',
+    errRequiredMsg:  'Please answer all questions marked with *.',
   },
   fr: {
     pageTitle:       'Auto-évaluation fournisseur – ISMS Builder',
@@ -73,6 +81,10 @@ const UI = {
     errSubmittedMsg: 'Ce questionnaire a déjà été soumis et ne peut pas être rempli à nouveau.',
     errSave:         'Erreur',
     errSaveMsg:      'Vos réponses n\'ont pas pu être enregistrées.',
+    requiredMark:    'Obligatoire',
+    commentLabel:    'Remarque ou lien vers un justificatif (facultatif)',
+    errRequired:     'Questions obligatoires manquantes',
+    errRequiredMsg:  'Veuillez répondre à toutes les questions marquées d’un *.',
   },
   nl: {
     pageTitle:       'Leveranciers zelfevaluatie – ISMS Builder',
@@ -95,6 +107,10 @@ const UI = {
     errSubmittedMsg: 'Deze vragenlijst is al ingediend en kan niet opnieuw worden ingevuld.',
     errSave:         'Fout',
     errSaveMsg:      'Uw antwoorden konden niet worden opgeslagen.',
+    requiredMark:    'Verplicht',
+    commentLabel:    'Opmerking of link naar bewijs (optioneel)',
+    errRequired:     'Verplichte vragen ontbreken',
+    errRequiredMsg:  'Beantwoord alle met * gemarkeerde vragen.',
   },
   hu: {
     pageTitle:       'Szállítói önértékelés – ISMS Builder',
@@ -117,6 +133,36 @@ const UI = {
     errSubmittedMsg: 'Ezt a kérdőívet már beküldték, és nem tölthető ki újra.',
     errSave:         'Hiba',
     errSaveMsg:      'A válaszokat nem sikerült elmenteni.',
+    requiredMark:    'Kötelező',
+    commentLabel:    'Megjegyzés vagy igazoló hivatkozás (nem kötelező)',
+    errRequired:     'Hiányzó kötelező kérdések',
+    errRequiredMsg:  'Kérjük, válaszoljon minden *-gal jelölt kérdésre.',
+  },
+  et: {
+    pageTitle:       'Tarnija enesehindamine – ISMS Builder',
+    heading:         s => s,
+    supplier:        'Tarnija',
+    due:             'Palun esitage hiljemalt',
+    alreadyDone:     at => `See küsimustik esitati juba ${at}. Täname!`,
+    yes:             'Jah',
+    no:              'Ei',
+    submitHint:      'Esitamisega kinnitate oma vastuste õigsust.',
+    submitBtn:       '&#10003;&nbsp; Esita küsimustik',
+    footer:          'Tarnija enesehindamine &mdash; konfidentsiaalne',
+    thankYouTitle:   'Täname!',
+    thankYouBody:    (name, at) => `Teie enesehindamine tarnija <strong>${name}</strong> kohta on edukalt esitatud.<br>Esitatud: <strong>${at}</strong>.`,
+    thankYouNote:    'Vaatame teie vastused üle ja võtame vajaduse korral teiega ühendust.',
+    thankYouClose:   'Selle lehe võib sulgeda.',
+    errInvalid:      'Kehtetu link',
+    errInvalidMsg:   'See hindamislink ei ole kehtiv või on juba kustutatud.',
+    errSubmitted:    'Juba esitatud',
+    errSubmittedMsg: 'See küsimustik on juba esitatud ja seda ei saa uuesti täita.',
+    errSave:         'Viga',
+    errSaveMsg:      'Teie vastuseid ei õnnestunud salvestada.',
+    requiredMark:    'Kohustuslik',
+    commentLabel:    'Märkus või tõendi link (valikuline)',
+    errRequired:     'Kohustuslikud küsimused puuduvad',
+    errRequiredMsg:  'Palun vastake kõigile *-ga märgitud küsimustele.',
   },
 }
 
@@ -125,11 +171,12 @@ function ui(lang) { return UI[lang] || UI.en }
 // ── GET /supplier-assessment/:token — Fragebogen anzeigen ─────────────────────
 router.get('/supplier-assessment/:token', (req, res) => {
   const a = assessmentStore.getByToken(req.params.token)
-  if (!a) return res.status(404).send(errorPage('Invalid link',
+  // Fragebögen, die über den Briefkasten laufen, werden hier nicht ausgeliefert (der Builder soll dafür nicht erreichbar sein müssen)
+  if (!a || a.delivery === 'portal') return res.status(404).send(errorPage('Invalid link',
     'This assessment link is not valid or has already been deleted.'))
 
   const u = ui(a.language)
-  const locale = { de: 'de-DE', en: 'en-GB', fr: 'fr-FR', nl: 'nl-NL', hu: 'hu-HU' }[a.language] || 'en-GB'
+  const locale = require('../languages').locale(a.language)
 
   const alreadySubmitted = a.status !== 'pending'
   const dueDateHtml = a.dueDate
@@ -149,48 +196,58 @@ router.get('/supplier-assessment/:token', (req, res) => {
     </div>
     </form>`
 
+  // Pflicht: ausdrücklich gesetztes `required`; ältere Fragebögen ohne Angabe: Ja/Nein-Fragen sind Pflicht (wie bisher)
+  const isRequired = q => (q.required === undefined ? q.type === 'yesno' : q.required === true)
   const sectionsHtml = a.questions.map((section, si) => {
     const questionsHtml = section.questions.map(q => {
+      const req  = isRequired(q)
+      const star = req ? ` <span class="req" title="${escapeHtml(u.requiredMark)}">*</span>` : ''
+      const reqAttr = req ? ' required' : ''
+      const noteHtml = q.comment === true
+        ? `<input type="text" name="${escapeHtml(q.id)}__note" class="q-input q-note" maxlength="2000" placeholder="${escapeHtml(u.commentLabel)}" aria-label="${escapeHtml(u.commentLabel)}" />`
+        : ''
       if (alreadySubmitted) {
         const ans = (a.answers || []).find(x => x.id === q.id)
         const val = ans ? ans.value : '—'
         const displayVal = q.type === 'yesno'
           ? (val === 'yes' ? `✓ ${u.yes}` : val === 'no' ? `✗ ${u.no}` : '—')
           : escapeHtml(val)
+        const noteVal = ans && ans.note ? `<div class="q-notetext">${escapeHtml(ans.note)}</div>` : ''
         return `
           <div class="question readonly">
             <label class="q-text">${escapeHtml(q.text)}</label>
-            <div class="q-answer">${displayVal}</div>
+            <div class="q-answer">${displayVal}</div>${noteVal}
           </div>`
       }
 
       if (q.type === 'yesno') {
         return `
           <div class="question">
-            <label class="q-text">${escapeHtml(q.text)}</label>
+            <label class="q-text">${escapeHtml(q.text)}${star}</label>
             <div class="q-yesno">
               <label class="radio-opt">
-                <input type="radio" name="${q.id}" value="yes" required />
+                <input type="radio" name="${escapeHtml(q.id)}" value="yes"${reqAttr} />
                 <span>${u.yes}</span>
               </label>
               <label class="radio-opt">
-                <input type="radio" name="${q.id}" value="no" />
+                <input type="radio" name="${escapeHtml(q.id)}" value="no" />
                 <span>${u.no}</span>
               </label>
             </div>
+            ${noteHtml}
           </div>`
       }
       if (q.type === 'textarea') {
         return `
           <div class="question">
-            <label class="q-text" for="${q.id}">${escapeHtml(q.text)}</label>
-            <textarea id="${q.id}" name="${q.id}" rows="4" class="q-textarea"></textarea>
+            <label class="q-text" for="${escapeHtml(q.id)}">${escapeHtml(q.text)}${star}</label>
+            <textarea id="${escapeHtml(q.id)}" name="${escapeHtml(q.id)}" rows="4" class="q-textarea"${reqAttr}></textarea>
           </div>`
       }
       return `
         <div class="question">
-          <label class="q-text" for="${q.id}">${escapeHtml(q.text)}</label>
-          <input type="text" id="${q.id}" name="${q.id}" class="q-input" />
+          <label class="q-text" for="${escapeHtml(q.id)}">${escapeHtml(q.text)}${star}</label>
+          <input type="text" id="${escapeHtml(q.id)}" name="${escapeHtml(q.id)}" class="q-input"${reqAttr} />
         </div>`
     }).join('')
 
@@ -240,6 +297,9 @@ router.get('/supplier-assessment/:token', (req, res) => {
     .q-input { width: 100%; padding: 10px 12px; border: 2px solid #dfe1e6;
                border-radius: 4px; font-size: 14px; font-family: inherit; }
     .q-input:focus { outline: none; border-color: #0052cc; }
+    .req { color: #de350b; font-weight: 700; }
+    .q-note { margin-top: 10px; font-size: 13px; }
+    .q-notetext { margin-top: 6px; font-size: 13px; color: #5e6c84; white-space: pre-wrap; }
     .q-textarea { width: 100%; padding: 10px 12px; border: 2px solid #dfe1e6;
                   border-radius: 4px; font-size: 14px; font-family: inherit; resize: vertical; }
     .q-textarea:focus { outline: none; border-color: #0052cc; }
@@ -285,22 +345,30 @@ router.get('/supplier-assessment/:token', (req, res) => {
 // ── POST /supplier-assessment/:token — Antworten speichern ────────────────────
 router.post('/supplier-assessment/:token', express.urlencoded({ extended: true }), (req, res) => {
   const a = assessmentStore.getByToken(req.params.token)
-  if (!a) return res.status(404).send(errorPage('Invalid link', 'This link is no longer valid.'))
+  if (!a || a.delivery === 'portal') return res.status(404).send(errorPage('Invalid link', 'This link is no longer valid.'))
   const u = ui(a.language)
   if (a.status !== 'pending') {
     return res.status(400).send(errorPage(u.errSubmitted, u.errSubmittedMsg))
   }
 
   const allQs = a.questions.flatMap(s => s.questions)
-  const answers = allQs.map(q => ({
-    id:    q.id,
-    value: (req.body[q.id] || '').trim().slice(0, 2000),
-  }))
+  const str = v => (typeof v === 'string' ? v : '').trim().slice(0, 2000)
+  const answers = allQs.map(q => {
+    const ans = { id: q.id, value: str(req.body[q.id]) }
+    const note = q.comment === true ? str(req.body[q.id + '__note']) : ''
+    if (note) ans.note = note
+    return ans
+  })
+  // Ausdrücklich gesetzte Pflichtfragen auch serverseitig prüfen (die Browser-Prüfung lässt sich umgehen).
+  // Ältere Fragebögen ohne `required` verhalten sich wie bisher (nur Browser-Regel, keine Serverprüfung).
+  if (allQs.some((q, i) => q.required === true && !answers[i].value)) {
+    return res.status(400).send(errorPage(u.errRequired, u.errRequiredMsg))
+  }
 
   const updated = assessmentStore.submitAnswers(req.params.token, answers)
   if (!updated) return res.status(500).send(errorPage(u.errSave, u.errSaveMsg))
 
-  const locale = { de: 'de-DE', en: 'en-GB', fr: 'fr-FR', nl: 'nl-NL', hu: 'hu-HU' }[a.language] || 'en-GB'
+  const locale = require('../languages').locale(a.language)
 
   res.send(`<!DOCTYPE html>
 <html lang="${a.language || 'de'}">

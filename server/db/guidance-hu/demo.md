@@ -13,6 +13,8 @@ Ez a dokumentum bemutatja a demókörnyezetet, és végigvezeti az éles üzemre
 | admin | admin@example.com | adminpass | Admin | Globális | Teljes hozzáférés — minden modul |
 | alice | alice@it.example | alicepass | Osztályvezető | IT | Szabályzatok, kockázatok, útmutatók (olvasás+írás) |
 | bob | bob@hr.example | bobpass | Olvasó | HR | Csak olvasás |
+| carla | carla@security.example | carlapass | Content Owner | Security | CISO-funkció (nem admin): DPIA előkészítése és jóváhagyása |
+| dana | dana@privacy.example | danapass | Content Owner | Privacy | DPO-funkció (nem admin): DPIA-vélemény rögzítése |
 
 > **Biztonsági figyelmeztetés:** Ezek a jelszavak nyilvánosan ismertek. Élesítés előtt módosítsa az összes jelszót.
 
@@ -77,7 +79,7 @@ A rendszer újbóli bemutatásához:
 1. **Admin konzol → Karbantartás → „Demóadatok importálása”**
 2. Válassza ki a demó visszaállításkor letöltött JSON-fájlt
 3. Minden modul adata helyreáll
-4. Alice (alice@it.example / alicepass) és Bob (bob@hr.example / bobpass) 2FA nélkül újra létrejön
+4. Alice (alice@it.example / alicepass), Bob (bob@hr.example / bobpass), Carla (carla@security.example / carlapass) és Dana (dana@privacy.example / danapass) 2FA nélkül újra létrejön
 5. Az admin fiók változatlan marad
 
 ---

@@ -116,6 +116,12 @@ supprimés définitivement par les administrateurs.
 
 ---
 
+## Référentiels : ISO, NEN 7510, TISAX
+
+Un point de contrôle peut se rapporter à n'importe quel contrôle de la DdA — y compris aux contrôles de groupes personnalisés comme NEN 7510 ou TISAX (l'identifiant figure dans la liste de suggestions du champ « Contrôle »). Le module d'audit soutient la planification, la réalisation et le suivi des audits internes ; il ne remplace ni une certification ni une évaluation TISAX.
+
+> **Avis juridique:** Les textes normatifs d'ISO 27001/9000/9001, de NEN 7510 et des catalogues d'évaluation TISAX (VDA ISA) sont soumis aux droits de leurs éditeurs (droit d'auteur et droit des marques) et ne sont pas fournis avec ISMS Builder. Les contrôles d'exemple des données de démonstration sont nos propres textes fictifs, sans lien avec le libellé des normes — incomplets et utilisables ni pour des certifications ni pour des évaluations TISAX. N'importez que des textes que vous avez le droit d'utiliser. Ceci n'est pas un conseil juridique.
+
 ## Remarque d'audit
 
 Toutes les modifications sont consignées dans le journal d'audit. La gestion des audits ne remplace pas un rapport d'organisme de

@@ -22,6 +22,7 @@ function load(role = 'auditor') {
   }
   vm.createContext(ctx)
   vm.runInContext(fnSource('escHtml'), ctx)
+  vm.runInContext(fnSource('escVal') + fnSource('jsArg') + fnSource('jsNum'), ctx)
   vm.runInContext(slice, ctx)
   vm.runInContext(fnSource('auQuarters') + fnSource('auItemRows') + fnSource('auItemEditor'), ctx)
   return ctx
@@ -53,7 +54,7 @@ describe('Audit-UI: Hilfsfunktionen', () => {
     const html = c.auItemRows(audit, evil, true)
     expect(html).not.toMatch(/<img src=x/)
     expect(html).not.toMatch(/<script>/)
-    expect(html).toMatch(/auCreateFinding\('au1','i1'\)/)
+    expect(html).toMatch(/auCreateFinding\(&quot;au1&quot;,&quot;i1&quot;\)/)
 
     expect(c.auItemRows(audit, { ...evil, result: 'conform' }, true)).not.toMatch(/auCreateFinding/)
     expect(c.auItemRows({ ...audit, findings: [{ id: 'f1', ref: 'FIND-2026-0001' }] }, { ...evil, findingId: 'f1' }, true)).toMatch(/FIND-2026-0001/)
@@ -73,7 +74,7 @@ describe('Audit-UI: Hilfsfunktionen', () => {
     expect(c.auItemEditor('au1', null)).not.toMatch(/ui_cancel/)
     const edit = c.auItemEditor('au1', { id: 'i9', question: 'Frage' })
     expect(edit).toMatch(/id="auiQ_i9"/)
-    expect(edit).toMatch(/auSaveItem\('au1','i9'\)/)
+    expect(edit).toMatch(/auSaveItem\(&quot;au1&quot;,&quot;i9&quot;\)/)
     expect(edit).toMatch(/ui_cancel/)
   })
 })

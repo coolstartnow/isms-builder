@@ -249,6 +249,9 @@ const dsfa = {
       owner:                    fields.owner       || '',
       approvedBy:               fields.approvedBy  || null,
       approvedAt:               fields.approvedAt  || null,
+      dpoOpinionBy:             fields.dpoOpinionBy || null,
+      dpoOpinionAt:             fields.dpoOpinionAt || null,
+      precheck:                 fields.precheck || null,
       linkedControls:           Array.isArray(fields.linkedControls) ? fields.linkedControls : [],
       linkedPolicies:           Array.isArray(fields.linkedPolicies) ? fields.linkedPolicies : [],
       createdAt:                nowISO(),
@@ -268,6 +271,7 @@ const dsfa = {
                        'existingControls','residualRisk','dpoConsulted','dpoOpinion',
                        'saConsultationRequired','decision','decisionJustification',
                        'applicableEntities','status','owner','approvedBy','approvedAt',
+                       'dpoOpinionBy','dpoOpinionAt','precheck',
                        'linkedControls','linkedPolicies']
     for (const k of updatable) {
       if (fields[k] !== undefined) item[k] = fields[k]

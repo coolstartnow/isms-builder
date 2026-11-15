@@ -6,6 +6,8 @@ const fs = require('fs')
 const path = require('path')
 const { requireAuth, authorize, signToken, getSessionFromReq } = require('../auth')
 const loginThrottle = require('../loginThrottle')
+const productionState = require('../productionState')
+const sessionStore = require('../sessionStore')
 
 const DATA_DIR       = process.env.DATA_DIR || path.join(__dirname, '../../data')
 const FLAG_FILE      = path.join(DATA_DIR, '.demo_reset_done')
@@ -22,17 +24,22 @@ router.get('/auth/demo-reset-done', (req, res) => {
   res.json({ active, admin, logoRequired: require('../orgLogo').info().required })
 })
 
+// ── Sicherheitshinweis (öffentlich, ohne Kontonamen): trägt ein Konto im Produktivbetrieb noch ein Demo-Passwort? ──
+router.get('/auth/security-notice', async (req, res) => {
+  try { res.json({ seedPasswords: (await productionState.seedPasswordAccounts()).length > 0 }) } catch { res.json({ seedPasswords: false }) }
+})
+
 // ── Sprach-Konfiguration (öffentlich — wird von Login-Seite benötigt) ──
-router.get('/auth/language-config', (req, res) => {
+router.get('/auth/language-config', async (req, res) => {
   try {
-    const orgSettings = require('../db/orgSettingsStore').get()
+    const orgSettings = await require('../db/orgSettingsStore').get()   // await: unter den SQL-Speichern ein Promise
     const cfg = orgSettings.languageConfig || {}
     res.json({
-      available: Array.isArray(cfg.available) && cfg.available.length ? cfg.available : ['de', 'en', 'fr', 'nl', 'hu'],
+      available: Array.isArray(cfg.available) && cfg.available.length ? cfg.available : require('../languages').listedCodes(),
       default:   cfg.default || 'en',
     })
   } catch {
-    res.json({ available: ['de', 'en', 'fr', 'nl', 'hu'], default: 'en' })
+    res.json({ available: require('../languages').listedCodes(), default: 'en' })
   }
 })
 
@@ -44,6 +51,9 @@ router.get('/auth/demo-lang-needed', (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   const { email, username: usernameField, password, totp } = req.body || {}
+  // Nur Texte sind gültig (Zahl, Objekt oder Liste als Benutzername/Passwort ließ früher den Serverprozess abstürzen)
+  for (const v of [email, usernameField, password]) if (v !== undefined && v !== null && typeof v !== 'string') return res.status(400).json({ error: 'Invalid request.' })
+  if (totp !== undefined && totp !== null && typeof totp !== 'string' && typeof totp !== 'number') return res.status(400).json({ error: 'Invalid request.' })
   const rbac = require('../rbacStore')
 
   // Brute-Force-Schutz: Zaehler pro Kombination aus eingegebenem Identifier
@@ -80,6 +90,15 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' })
   }
 
+  // Seed-Passwörter (adminpass …) gelten nur in der Demo. Im Produktivbetrieb nur zur Übergabe direkt nach dem Wechsel
+  // (Konto mit mustChangePassword → Passwort muss sofort geändert werden); sonst abgelehnt.
+  if (productionState.isSeedPassword(password) && productionState.isProduction(rbac) && userRaw.mustChangePassword !== true) {
+    console.warn(`[security] Anmeldung von „${userRaw.username}“ mit einem Demo-Passwort im Produktivbetrieb abgelehnt. Neues Passwort: node scripts/set-password.js ${userRaw.username}`)
+    loginThrottle.recordFailure(throttleId, req.ip)
+    // Deutliche Rückmeldung: Wer das Demo-Passwort eintippt, kennt es ohnehin (öffentlich dokumentiert) — die Meldung verrät nichts Neues
+    return res.status(401).json({ error: 'Demo password blocked in production', code: 'SEED_PASSWORD_BLOCKED' })
+  }
+
   const secret = userRaw.totpSecret || ''
   const has2FA = secret.length > 0 && userRaw.totpVerified === true
   if (has2FA) {
@@ -102,7 +121,8 @@ router.post('/login', async (req, res) => {
       return res.status(500).json({ error: '2FA-Verifizierung fehlgeschlagen' })
     }
   } else {
-    const orgCfg = require('../db/orgSettingsStore').get()
+    // await: unter SQLite/MariaDB/PostgreSQL liefert get() ein Promise — ohne await wurde die 2FA-Pflicht dort nie durchgesetzt
+    const orgCfg = await require('../db/orgSettingsStore').get()
     if (orgCfg.require2FA) {
       return res.status(403).json({
         error: '2FA ist für alle Benutzer verpflichtend. Bitte kontaktiere den Administrator, um 2FA für deinen Account einzurichten.',
@@ -115,7 +135,7 @@ router.post('/login', async (req, res) => {
 
   const functions = userRaw.functions || []
   const token = signToken({ username: userRaw.username, role: userRaw.role, domain: userRaw.domain, functions })
-  res.cookie('sm_session', token, { httpOnly: true, sameSite: 'strict', path: '/' })
+  res.cookie('sm_session', token, { httpOnly: true, sameSite: 'strict', path: '/', secure: req.secure })
 
   // Nach Admin-Login: Demo-Reset-Flag löschen (Banner auf Login-Seite ausblenden)
   if (userRaw.role === 'admin' && fs.existsSync(FLAG_FILE)) {
@@ -140,13 +160,20 @@ router.get('/whoami', (req, res) => {
   res.json({ ...sess, functions, has2FA, mustChangePassword: rbac.isPasswordChangeRequired(sess.username) })
 })
 
+// Beendet die Sitzung des mitgeschickten Tokens serverseitig (ein kopiertes Token ist danach wertlos).
+function endSession(req) {
+  try { const s = getSessionFromReq(req); if (s && s.jti) sessionStore.revoke(s.jti) } catch { /* Abmelden gelingt immer */ }
+}
+
 // Logout — GET (Legacy) und POST (UI seit app.js fetch-Aufruf)
 // Die UI ruft fetch('/logout', { method: 'POST' }) auf. GET bleibt für Direktaufrufe.
 router.get('/logout', (req, res) => {
+  endSession(req)
   res.clearCookie('sm_session')
   res.json({ ok: true })
 })
 router.post('/logout', (req, res) => {
+  endSession(req)
   res.clearCookie('sm_session')
   res.json({ ok: true })
 })
@@ -154,8 +181,11 @@ router.post('/logout', (req, res) => {
 // ── Eigenes Passwort ändern ──
 router.put('/me/password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body || {}
-  if (!currentPassword || !newPassword || newPassword.length < 6) {
-    return res.status(400).json({ error: 'Aktuelles und neues Passwort erforderlich (min. 6 Zeichen).' })
+  if (!currentPassword || !newPassword || newPassword.length < 8) {
+    return res.status(400).json({ error: 'Aktuelles und neues Passwort erforderlich (min. 8 Zeichen).' })
+  }
+  if (productionState.isSeedPassword(newPassword) && productionState.isProduction()) {
+    return res.status(400).json({ error: 'Dieses Passwort ist ein bekanntes Demo-Passwort und im Produktivbetrieb nicht erlaubt.', code: 'PASSWORD_KNOWN_DEMO' })
   }
   const rbac = require('../rbacStore')
   const ok = await rbac.verifyPassword(req.user, currentPassword)
@@ -164,7 +194,7 @@ router.put('/me/password', requireAuth, async (req, res) => {
   if (rbac.isPasswordChangeRequired(req.user) && newPassword === currentPassword) {
     return res.status(400).json({ error: 'Das neue Passwort muss sich vom bisherigen unterscheiden.', code: 'PASSWORD_UNCHANGED' })
   }
-  await rbac.setPasswordHash(req.user, newPassword)   // hebt die Pflicht zum Wechsel auf
+  await rbac.setPasswordHash(req.user, newPassword, { keepJti: req.jti })   // hebt die Pflicht zum Wechsel auf; andere Sitzungen des Kontos enden
   res.json({ ok: true })
 })
 

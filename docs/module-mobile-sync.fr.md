@@ -20,6 +20,10 @@
 
 *Risques sur le téléphone*
 
+![Un groupe SoA personnalisé comme onglet distinct (exemple fictif)](images/mobile/soa-groups.png)
+
+*Un groupe SoA personnalisé comme onglet distinct (exemple fictif)*
+
 ![Tablette en paysage : menu et contenu côte à côte](images/mobile/tablet-risks.png)
 
 *Tablette en paysage : menu et contenu côte à côte*
@@ -66,6 +70,10 @@ Les administrateurs créent les comptes de synchronisation sous *Administration 
 - **Droits par module :** *aucun accès*, *lecture* ou *lecture et écriture* (documents/modèles, SoA, risques, actifs, constats). La guidance est en lecture seule. Exemple : le compte de l'auditrice peut lire et écrire les risques et les constats, et rien d'autre.
 - **Valable jusqu'au** (facultatif).
 - **Appareils :** un compte peut avoir plusieurs appareils (p. ex. téléphone et tablette du RSSI). Chaque appareil a **sa propre clé**. La liste affiche le nom de l'appareil et « dernière utilisation » ; un appareil perdu peut être bloqué individuellement (✕) sans toucher aux autres.
+
+### Groupes SoA personnalisés
+
+Les groupes SoA personnalisés (frameworks créés par un administrateur sur le serveur) sont synchronisés avec la SoA. **Afficher** est permis aux comptes qui peuvent lire la SoA ou *Groupes SoA personnalisés* ; sans la définition du groupe, les contrôles d'un groupe personnalisé n'auraient ni nom ni couleur dans l'application. **Créer, renommer, changer la couleur et supprimer des groupes vides** exige le droit *Groupes SoA personnalisés (gestion)* = *lecture et écriture* — les comptes de synchronisation ne sont pas des administrateurs ; l'administrateur du serveur accorde cet accès ici. Le droit d'écriture sur la SoA seul ne suffit pas. Les contrôles du serveur restent inchangés (identifiant, identifiants réservés des frameworks intégrés, couleur `#RRGGBB`, nom de 120 caractères au plus) ; un groupe contenant encore des contrôles ne peut pas être supprimé. L'import d'un groupe par fichier crée aussi des contrôles et exige donc en plus le droit d'écriture sur la SoA (l'aperçu fonctionne avec le seul droit de groupe). **Version minimale du serveur pour cette fonction : 1.84.0.**
 
 ### Configurer un appareil (code QR)
 
@@ -158,7 +166,7 @@ Tous les appels sauf `/sync/enroll` portent l'en-tête `Authorization: Bearer <c
 | GET | `/sync/pull?since=<ISO>&modules=a,b` | Modifications depuis `since`, y compris les enregistrements supprimés, pour les modules lisibles uniquement (ceux demandés explicitement mais non autorisés figurent sous `denied`). La réponse contient `serverTime` pour le pull suivant. |
 | POST | `/sync/push` | `{ protocolVersion, changes: { <module>: [enregistrements avec baseUpdatedAt] } }` — réponse : `accepted`, `conflicts`, `rejected`. |
 
-L'administration des comptes de synchronisation (`/admin/sync-accounts`) est réservée aux administrateurs. Modules : `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Décrit dans `docs/architecture/openapi.yaml`.
+L'administration des comptes de synchronisation (`/admin/sync-accounts`) est réservée aux administrateurs. Modules : `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`, `soaFrameworks`. Décrit dans `docs/architecture/openapi.yaml`.
 
 ## Sécurité
 
@@ -178,3 +186,23 @@ L'administration des comptes de synchronisation (`/admin/sync-accounts`) est ré
 - L'interface ne connaît pas de droits par module : elle distingue seulement « peut écrire quelque part » et « lecture seule ». Le contrôle exact par module a lieu à l'enregistrement.
 - Les constats d'audit sont synchronisés, mais n'ont pas encore de vue propre dans l'application.
 - L'application contient la logique serveur de la version avec laquelle elle a été construite. Après une mise à jour du serveur, reconstruire aussi l'application (`npm run build:android` dans le projet `isms-builder-mobile`).
+
+## Questions fréquentes (FAQ)
+
+**La synchronisation indique « Sync complete », mais des données manquent sur l'appareil (p. ex. modèles de documents, mesures, risques, actifs).**
+La synchronisation ne récupère que les enregistrements *modifiés depuis la dernière synchronisation* (horodatage `updatedAt`). Si des données **avec un ancien horodatage** n'arrivent sur le serveur qu'*après* la dernière synchronisation — import de démo, paquet de démo chargé, restauration d'une sauvegarde, fichiers remplacés à la main —, l'appareil les considère comme « inchangées » et ne les reçoit jamais. Avec le système principal 1.84 et l'application 1.6, l'application le détecte elle-même : le serveur indique une *époque des données* qui change à chaque démarrage du serveur et après chaque remplacement de données, et l'application recharge alors **toutes** les données une fois. À la main : **Recharger toutes les données** dans le panneau de synchronisation (application 1.6). Avec des versions plus anciennes, utilisez *Réinitialiser l'appareil* puis une nouvelle configuration par code QR — les modifications non envoyées sont perdues ; synchronisez donc d'abord ou utilisez *Exporter uniquement les modifications*.
+
+**Je dois confirmer chaque conflit un par un et saisir le code PIN à chaque fois.**
+À partir de l'application 1.6, les conflits apparaissent sous forme de liste à cocher : cochez les entrées (rien n'est sélectionné au départ), utilisez *Tout sélectionner* et le filtre de module, puis résolvez-les en **une seule** action groupée — le code PIN n'est demandé qu'une fois.
+
+**Le téléphone refuse le certificat de mon serveur.**
+Un simple certificat serveur auto-signé n'est pas accepté sur certains appareils (observé sur une tablette Android 16). Méthode fiable : créer **votre propre AC**, signer un certificat serveur qui indique l'adresse (IP ou nom) dans `subjectAltName`, et installer l'**AC** sur le téléphone comme **« certificat d'AC »** (pas comme « certificat utilisateur VPN et applications »). À vérifier : figure-t-elle sous *Identifiants approuvés → Utilisateur* ? Un avertissement du navigateur « non sécurisé » ne dit rien sur la confiance de l'application. Retirez du téléphone une AC créée uniquement pour des tests.
+
+**Quel port utilise la synchronisation ?**
+Aucun port propre : la même adresse et le même port que l'interface web (`https://hôte[:port]`). Une règle de pare-feu et un certificat suffisent.
+
+**Des images manquent dans les articles de guidage.**
+Les articles fournis contiennent leurs images dans l'application (à partir de l'application 1.6). Les images que les utilisateurs lient dans leurs propres articles ne sont pas incluses — elles n'existent que sur le serveur. Pour les avoir dans l'application, adaptez la construction de l'application (`scripts/sync-ui.sh`).
+
+**Un document du paquet de démo manque (p. ex. « Rôles & responsabilités ») après avoir supprimé des articles de guidage.**
+Le paquet de démo apporte documents et données comme des enregistrements tout à fait ordinaires — contrairement aux *articles d'amorce* (p. ex. les guides utilisateur sous *Rôles*, le manuel système, les guides), que le serveur recrée à chaque démarrage s'ils manquent. Un document du paquet supprimé **ne revient donc pas tout seul**. Pour l'éviter : ne supprimez pas des catégories entières ; **restaurez** d'abord les articles supprimés depuis la *corbeille*, tant qu'elle n'est pas vidée. Après suppression définitive : recréez le document (son texte se trouve dans le paquet de démo, `data/demo-bundles/<langue>.json`) ou rechargez le paquet de démo — cela remplace les données de démo et est verrouillé en production. Sur les appareils, un document nouvellement créé apparaît à la prochaine synchronisation.

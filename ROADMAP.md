@@ -13,6 +13,7 @@ It is maintained alongside the codebase and updated as priorities shift.
 - **Audit management and reports** — audits, findings with action plans, audit report PDF, programme planning.
 - **Measures register** — one data set for risk treatments, finding actions, governance measures and TOMs (see `docs/module-measures.md`).
 - **Company logo (1.82.0)** — upload in the organisation settings; shown on the login page, policy PDFs and print views; the ISMS Builder logo ships with the demo set and a notice asks for the company logo when switching to production.
+- **BCM requirements register (1.84.0)** — ISO 22301 requirements by clause with status, evidence and links; the text of the standard is imported by the company from its licensed edition (CSV/JSON with preview), never shipped.
 - **ISO control import hardening (#45)** — per-row validation, rejection reasons, no restart needed.
 
 ---
@@ -24,6 +25,13 @@ Deleting must never destroy evidence. Planned as its own release:
 1. Deleted records stay in the system for good: remove the 30-day autopurge and the "delete permanently" routes; the trash becomes a read-only archive with restore.
 2. GDPR deletions: anonymise personal fields (placeholder values) and keep the record and its metadata.
 3. Review the audit log for tamper resistance (chaining, protection against removal) and close any gaps found.
+
+---
+
+## BCM requirements register — follow-ups
+
+- Other frameworks through the same register (the `framework` field is prepared), for example a checklist for the ISO 22313 guidance.
+- Evidence choice from audits, management reviews and findings (chapters 9–10) instead of free text.
 
 ---
 
@@ -41,6 +49,34 @@ Deleting must never destroy evidence. Planned as its own release:
 - **Mobile app 1.6.0:** hand the filtered prompt over to an AI app through the Android share menu and paste the answer back; restore the AI button in the app (hidden since 1.5.2). The AI search is not part of this.
 
 ---
+
+## Document languages (planned)
+
+- **Goal:** each company chooses the languages it keeps its documents in; all 24 official languages of the EU (plus a few others such as Brazilian Portuguese) in one register. Example: a Dutch site is informed in Dutch, a site in Brazil in Portuguese, instead of English only.
+- **Document language is independent of the interface language** (five languages, translated by us). In storage `templates.language` is already free text; the checks that are hard-wired to five languages are `server/ai/safeDraft.js`, `server/templateCsv.js`, `server/i18n.js`, e-mails and assessments.
+- **PDF:** needs an embedded Unicode font (the PDF uses Helvetica so far, `server/pdfExport.js`). Right-to-left scripts and CJK are left out at first.
+- **AI drafts:** the prompt is English and only names the target language, so quality depends on the model; titles without a translation fall back to the English title. Until this is built, the dialog offers the installation's main language and English.
+- **Later:** link language variants of a document ("translation of", "outdated" notice after a change to the original).
+
+---
+
+## Two-factor authentication — follow-ups
+
+- **Planned (not started):** self-enrolment at sign-in while the 2FA requirement is on — an account without 2FA signs in with its password, gets a restricted session that can only reach the 2FA setup, and is fully signed in after the first valid code. This would replace the lock-out wall (`ENFORCE_2FA`) for users; the operator emergency path (`scripts/emergency-2fa.js`) stays.
+
+## Linked documents — follow-ups
+
+- Done in the next release (#110): linked documents in a SoA control open directly (same view with a way back, or a new tab).
+- **Planned (not started):** the same for linked documents in risks, assets, BCM and measures (risks currently show raw IDs), and an optional read-only preview inside the SoA control.
+
+## Network binding — follow-up
+
+- **Planned (not started):** an optional `HOST` (bind address) environment variable. Today the server listens on all interfaces (`app.listen(PORT)`), so a local test or demo instance is reachable from the local network. With `HOST=127.0.0.1` it would listen on the loopback interface only; the default stays unchanged so existing installations keep working. To do with it: tests (loopback only vs. all interfaces), the environment variable in `.env.example`, `docker-compose.yml` and the installation guides.
+
+## Backup and restore — follow-up
+
+- Done in the next release: the admin guide explains how to back up and restore (data directory, `.env`, database dumps for MariaDB/PostgreSQL), and the maintenance tab states that the full export is not a complete backup.
+- **Planned (not started):** a command-line restore tool (`scripts/restore.js`, modelled on `scripts/emergency-2fa.js`): runs only while the server is stopped, shows a preview, keeps a safety copy of the current data and writes an audit-log entry. A restore from the web interface is deliberately not planned, because it could overwrite users, roles and 2FA settings. Needs its own plan and tests before work starts.
 
 ## Related projects
 

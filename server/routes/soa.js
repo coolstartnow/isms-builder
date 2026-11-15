@@ -6,10 +6,19 @@ const path = require('path')
 const router = express.Router()
 const { requireAuth, authorize } = require('../auth')
 const soaStore = require('../db/soaStore')
+const soaFrameworkStore = require('../db/soaFrameworkStore')
+const soaFrameworkDefs = require('../soaFrameworkDefs')
 const crossmapStore = require('../db/crossmapStore')
 const orgSettingsStore = require('../db/orgSettingsStore')
 const auditStore = require('../db/auditStore')
 const storage = require('../storage')
+
+// Der Typ steckt in der Kennung nur als bereinigter Präfix (Leerzeichen → „-“): zuerst im Bestand nachsehen
+async function templateTypeOf(tid) {
+  const all = (await storage.getTemplates?.({})) || []
+  const hit = all.find(x => x.id === tid)
+  return hit ? hit.type : String(tid).split('_')[0]
+}
 const { localizeControls, localizeCrossmapGroup } = require('../i18n/catalog')
 const i18n = require('../i18n')
 
@@ -57,6 +66,96 @@ router.put('/admin/soa-frameworks', requireAuth, authorize('admin'), async (req,
   res.json(updated.soaFrameworks)
 })
 
+// ─────────────────────────────────────────────────────────────────
+// Eigene Gruppen (nutzerdefinierte Frameworks, z. B. NEN 7510, TISAX, Kundenanforderung)
+// Definition: data/soa-frameworks.json (db/soaFrameworkStore.js); Controls: wie alle anderen (soa.json / soa_controls).
+// Es werden keine Normtexte ausgeliefert; die Firma importiert, was sie verwenden darf. Anlegen/Ändern/Import nur Administratoren.
+// ─────────────────────────────────────────────────────────────────
+const FW_ERRORS = {
+  invalid_id: 'Invalid group ID (2–50 characters: A–Z, 0–9, "_" or "-")',
+  reserved_id: 'This group ID is reserved for a built-in framework',
+  invalid_label: 'Invalid group name (1–120 characters)',
+  invalid_color: 'Invalid color (use #RRGGBB)',
+}
+const isBuiltinFramework = id => soaFrameworkDefs.RESERVED_IDS.includes(id)
+
+// Verwaltung: alle eigenen Gruppen (auch ausgeblendete) mit der Zahl ihrer Controls
+router.get('/soa/frameworks/custom', requireAuth, authorize('admin'), async (req, res) => {
+  const out = []
+  for (const f of await soaFrameworkStore.getAll()) out.push({ ...f, custom: true, count: await soaStore.countControls(f.id) })
+  res.json(out)
+})
+
+router.post('/soa/frameworks', requireAuth, authorize('admin'), async (req, res) => {
+  const r = await soaFrameworkStore.create(req.body, { by: req.user })
+  if (r.code === 'exists') return res.status(409).json({ error: 'A group with this ID already exists', code: r.code })
+  if (r.code) return res.status(400).json({ error: FW_ERRORS[r.code], code: r.code })
+  await auditStore.append({ user: req.user, action: 'create', resource: 'soa-framework', detail: `${r.framework.id}: ${r.framework.label}` })
+  res.status(201).json({ ...r.framework, custom: true })
+})
+
+router.put('/soa/frameworks/:id', requireAuth, authorize('admin'), async (req, res) => {
+  const { id } = req.params
+  if (isBuiltinFramework(id)) return res.status(403).json({ error: 'Built-in frameworks cannot be changed' })
+  const r = await soaFrameworkStore.update(id, req.body || {}, { by: req.user })
+  if (r.code === 'not_found') return res.status(404).json({ error: 'Group not found' })
+  if (r.code) return res.status(400).json({ error: FW_ERRORS[r.code], code: r.code })
+  await auditStore.append({ user: req.user, action: 'update', resource: 'soa-framework', detail: `${id}: ${r.framework.label}` })
+  res.json({ ...r.framework, custom: true })
+})
+
+// Löschen nur, wenn die Gruppe keine Controls mehr hat (keine Kaskade, keine verwaisten Verknüpfungen)
+router.delete('/soa/frameworks/:id', requireAuth, authorize('admin'), async (req, res) => {
+  const { id } = req.params
+  if (isBuiltinFramework(id)) return res.status(403).json({ error: 'Built-in frameworks cannot be changed' })
+  if (!(await soaFrameworkStore.getById(id))) return res.status(404).json({ error: 'Group not found' })
+  const count = await soaStore.countControls(id)
+  if (count > 0) return res.status(409).json({ error: 'The group still contains controls — remove them first', count })
+  await soaFrameworkStore.remove(id, { by: req.user })
+  await auditStore.append({ user: req.user, action: 'delete', resource: 'soa-framework', detail: id })
+  res.json({ ok: true })
+})
+
+// Beispieldatei mit erfundenen Controls (kein Normtext)
+router.get('/soa/frameworks/import/example', requireAuth, authorize('admin'), (req, res) => {
+  res.setHeader('Content-Disposition', 'attachment; filename="soa-custom-framework.example.json"')
+  res.json(soaFrameworkDefs.exampleFile())
+})
+
+// Import { framework: { id, label, color }, controls: [...] } — mit ?dryRun=1 nur die Vorschau (nichts wird geschrieben).
+// Gruppe unbekannt → wird beim echten Import angelegt; Gruppe vorhanden → Bezeichnung/Farbe der Datei werden nicht übernommen.
+// Vorhandene Controls derselben Gruppe: nur Titel/Thema/Beschreibung; Status, Verantwortliche, Begründung, Verknüpfungen bleiben. Es wird nichts gelöscht.
+router.post('/soa/frameworks/import', requireAuth, authorize('admin'), async (req, res) => {
+  const body = req.body
+  if (!body || typeof body !== 'object' || Array.isArray(body) || !Array.isArray(body.controls)) return res.status(400).json({ error: 'Unexpected file format: expected an object with a "controls" list', code: 'invalid_format' })
+  if (body.controls.length > soaFrameworkDefs.MAX_ROWS) return res.status(400).json({ error: 'Too many rows (max 2000)', code: 'too_many_rows' })
+  const fwIn = body.framework && typeof body.framework === 'object' && !Array.isArray(body.framework) ? body.framework : {}
+  const known = await soaFrameworkStore.getById(typeof fwIn.id === 'string' ? fwIn.id.trim() : '')
+  let framework = known
+  if (!known) {
+    const v = soaFrameworkDefs.validateDefinition(fwIn)
+    if (v.code) return res.status(400).json({ error: FW_ERRORS[v.code], code: v.code })
+    framework = v.value
+  }
+  const existing = (await soaStore.getAll()).map(c => ({ id: c.id, framework: c.framework }))
+  const plan = soaFrameworkDefs.planImport(body.controls, framework.id, existing)
+  const summary = {
+    framework: { id: framework.id, label: framework.label, color: framework.color, exists: !!known },
+    total: body.controls.length, added: plan.added.length, updated: plan.updated.length,
+    rejected: plan.rejected.length, rejectedByReason: plan.rejectedByReason, rejectedDetails: plan.rejected.slice(0, 50),
+    preview: plan.accepted.slice(0, 50).map(c => ({ id: c.id, theme: c.theme, title: c.title, state: plan.updated.includes(c.id) ? 'updated' : 'added' })),
+  }
+  if (req.query.dryRun === '1' || req.query.dryRun === 'true') return res.json({ dryRun: true, ...summary })
+  if (!plan.accepted.length) return res.status(400).json({ error: 'No valid controls found', ...summary })
+  if (!known) {
+    const c = await soaFrameworkStore.create(framework, { by: req.user })
+    if (c.code && c.code !== 'exists') return res.status(400).json({ error: FW_ERRORS[c.code] || 'Request could not be processed', code: c.code })
+  }
+  const r = await soaStore.importControls(framework.id, plan.accepted, { changedBy: req.user })
+  await auditStore.append({ user: req.user, action: 'import', resource: 'soa-framework', detail: `${framework.id}: ${r.added} neu, ${r.updated} aktualisiert, ${plan.rejected.length} abgelehnt${known ? '' : ' (Gruppe angelegt)'}` })
+  res.json({ dryRun: false, ...summary, added: r.added, updated: r.updated })
+})
+
 // Einzelnen Control aktualisieren
 router.put('/soa/:id', requireAuth, authorize('editor'), async (req, res) => {
   const { id } = req.params
@@ -69,11 +168,11 @@ router.put('/soa/:id', requireAuth, authorize('editor'), async (req, res) => {
       const added   = linkedTemplates.filter(t => !prevTemplates.includes(t))
       const removed = prevTemplates.filter(t => !linkedTemplates.includes(t))
       for (const tid of added) {
-        const ttype = tid.split('_')[0]
+        const ttype = await templateTypeOf(tid)
         storage.addLinkedControl?.(ttype, tid, id)
       }
       for (const tid of removed) {
-        const ttype = tid.split('_')[0]
+        const ttype = await templateTypeOf(tid)
         storage.removeLinkedControl?.(ttype, tid, id)
       }
     }
@@ -104,7 +203,7 @@ router.get('/soa/export', requireAuth, authorize('reader'), async (req, res) => 
   const all = await soaStore.getAll()
   const summary = await soaStore.getSummary()
   res.setHeader('Content-Disposition', 'attachment; filename="soa-export.json"')
-  res.json({ exportedAt: new Date().toISOString(), summary, controls: localizeControls(all, i18n.langOf(req)) })
+  res.json({ exportedAt: new Date().toISOString(), frameworks: await soaStore.getFrameworks(), summary, controls: localizeControls(all, i18n.langOf(req)) })
 })
 
 // ─────────────────────────────────────────────────────────────────
@@ -171,7 +270,8 @@ router.post('/soa/custom', requireAuth, authorize('contentowner'), async (req, r
     await auditStore.append({ user: req.user, action: 'create', resource: 'custom-control', detail: ctrl.title })
     res.status(201).json(ctrl)
   } catch (e) {
-    res.status(400).json({ error: e.message })
+    const known = { invalid_framework: [400, 'Invalid framework group'], invalid_control_id: [400, 'Invalid control ID'], id_conflict: [409, 'A control with this ID already exists'] }[e.message]
+    res.status(known ? known[0] : 400).json({ error: known ? known[1] : e.message })
   }
 })
 

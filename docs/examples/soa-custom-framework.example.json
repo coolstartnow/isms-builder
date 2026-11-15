@@ -1,0 +1,25 @@
+{
+  "framework": {
+    "id": "KUNDE-A",
+    "label": "Kundenanforderung A",
+    "color": "#0ea5e9"
+  },
+  "controls": [
+    {
+      "id": "KA-1",
+      "theme": "Zugang",
+      "title": "Zugriffe werden nach Rollen vergeben",
+      "description": "Beispieltext — ersetzen Sie ihn durch Ihre eigene Anforderung."
+    },
+    {
+      "id": "KA-2",
+      "theme": "Zugang",
+      "title": "Privilegierte Konten werden regelmäßig überprüft"
+    },
+    {
+      "id": "KA-3",
+      "theme": "Betrieb",
+      "title": "Sicherungen werden getestet"
+    }
+  ]
+}

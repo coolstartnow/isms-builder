@@ -122,14 +122,14 @@ and that is not a reason to avoid the project, only a reason to plan realistical
 | Module | Description | Standards |
 |---|---|---|
 | **Policy Management** | Template CRUD, versioning, lifecycle (draft → review → approved → archived), space hierarchy, attachments | ISO 27001 §5 |
-| **Statement of Applicability** | 147 built-in controls across 5 frameworks (BSI IT-Grundschutz, EU NIS2, EUCS, EU AI Act, CRA) plus ISO 27001 / 9000 / 9001 controls you import yourself (never shipped), inline editing, gap analysis, cross-mapping | ISO 27001 A / BSI / NIS2 / EUCS / EUAI / ISO 9001 / CRA |
+| **Statement of Applicability** | 147 built-in controls across 5 frameworks (BSI IT-Grundschutz, EU NIS2, EUCS, EU AI Act, CRA) plus ISO 27001 / 9000 / 9001 controls you import yourself (never shipped), the **Custom Controls** tab and every other framework tab can be switched off under Administration → Modules when you do not use them (existing controls are kept), **own groups** (your own frameworks such as NEN 7510, TISAX or a customer requirement, with their own tab: create them and import the controls from a JSON file with preview and merge — no standard texts shipped; [docs](docs/template-type-soa.md)), inline editing, gap analysis, cross-mapping | ISO 27001 A / BSI / NIS2 / EUCS / EUAI / ISO 9001 / CRA |
 | **Measures Register** | One register for risk treatments, actions for audit findings, governance measures and TOMs — responsible person, due date, status, evidence; assignable to SoA controls, findings and risks; shown in SoA, risks, findings, governance and GDPR, upgraded automatically from earlier versions ([docs](docs/module-measures.en.md)) | ISO 27001 §6.1.3 / GDPR Art. 32 |
 | **Risk Management** | Risk register, treatment plans (kept in the measures register), auditor role | ISO 27001 §6.1 |
 | **Security Goals** | KPI tracking with progress bars, calendar integration | ISO 27001 §6.2 |
 | **GDPR & Privacy** | VVT, AV-contracts, DSFA, TOMs, DSAR queue, 72h-timer, deletion log with email alerts | DSGVO Art. 13–35 |
-| **Asset Management** | Asset register, editable asset types, protection goals (CIA + authenticity) with dependency inheritance, classification levels, EoL tracking | ISO 27001 A.5.9–5.12 |
-| **BCM / BCP** | Business Impact Analysis, continuity plans, exercises | ISO 27001 A.5.29–5.30 / NIS2 |
-| **Training Records** | Training catalogue, completion tracking, certificate upload | ISO 27001 A.6.3 |
+| **Asset Management** | Asset register sorted by category, type and name with sortable columns, editable asset types, protection goals (CIA + authenticity) with dependency inheritance, classification levels, EoL tracking | ISO 27001 A.5.9–5.12 |
+| **BCM / BCP** | Business Impact Analysis, continuity plans, exercises, templates for all three, register of ISO 22301 requirements (import from your licensed edition) | ISO 27001 A.5.29–5.30 / NIS2 |
+| **Training Records** | Training catalogue, completion tracking, evidence files, confirmation of participation (PDF) | ISO 27001 A.6.3 |
 | **Supplier Management** | Vendor register, audit scheduling, risk assessment | ISO 27001 A.5.19–5.22 |
 | **Legal & Contracts** | Contracts, NDAs, privacy policies, expiry calendar | |
 | **Incident Inbox** | CISO inbox + **public reporting form** (no login required) | NIS2 / BSI |
@@ -140,13 +140,16 @@ and that is not a reason to avoid the project, only a reason to plan realistical
 | **Policy Acknowledgements** | Verifiable distribution of policies to staff and confirmation of understanding, central audit evidence ([docs](docs/module-policy-acknowledgements.en.md)) | ISO 27001 7.3, A.6.3 |
 | **NIS2** | Art. 21 governance checklist (30 items) and Art. 23 reporting deadlines with automatic alerts | NIS2 Art. 21 / 23 |
 | **Calendar** | One calendar for due dates across the modules: measures, risk treatments, audits, reviews, contracts, trainings, deadlines | |
-| **Guidance** | Built-in handbook and knowledge base (module guides, role guides, own documents) with search, in five languages | |
+| **Guidance** | Built-in handbook and knowledge base (module guides, role guides, own documents) with search, in six languages | |
 | **Organisation & Company Logo** | Organisation settings (responsibilities, languages, notifications, SMTP, WebDAV, menu order, organisational units) and an uploadable company logo shown on the login page, policy PDFs and print views; the ISMS Builder logo ships with the demo set ([docs](docs/module-organisation.en.md)) | |
+| **Data Protection Impact Assessment (DPIA)** | Nine ready-made templates (HR in the cloud, video surveillance, employee monitoring, AI services, profiling, health data, biometrics, whistleblowing, recruiting), a pre-check "is a DPIA needed?", a DPO review before approval and a print view; the company prepares it, the DPO reviews it ([docs](docs/module-dsfa.en.md)) | GDPR Art. 35 |
+| **GDPR templates** | Ready-made templates for records of processing activities (14), processing agreements (12), data breaches (10), data subject replies (10) and technical and organisational measures (24), in six languages; pre-fill the form, to be adapted carefully to your own company, not legal advice ([docs](docs/module-gdpr.en.md)) | GDPR Art. 30, 28, 33, 12–22, 32 |
+| **AI Drafts (Policy Assistant)** | Draft a document from a fixed title list with the connected AI (Ollama) or by copy and paste with an AI of your choice; a filter blocks personal and technical data, placeholders are filled locally from the organisation data ([docs](docs/module-ai-drafts.en.md)) | |
 | **Mobile App (Android)** | Separate Android app that works offline with its own data set and syncs with the server over Wi-Fi or a file bundle: sync accounts with per-module rights, set-up by QR code, templates, SoA, risks, assets, findings and guidance (read-only); requires `STORAGE_BACKEND=json` ([docs](docs/module-mobile-sync.en.md)). Not publicly released yet: if you would like to try it beforehand, get in touch via the [project website](https://www.isms-builder.com/#contact) | |
 | **Traceability** | Every record links to SoA controls + policy documents — bidirectional | |
-| **Semantic Search** | Local AI search via Ollama (nomic-embed-text) with keyword fallback | |
+| **Semantic Search** | Local AI search via Ollama (nomic-embed-text) with keyword fallback; the AI address, models and an **optional API key** (sent as `Authorization: Bearer`, e.g. to a gateway in front of Ollama, so its log identifies the ISMS Builder's requests) are set under Administration; the key is never shown again, logged or exported | |
 | **Multi-Entity** | Corporate structure tree, per-entity applicability for controls and policies | |
-| **Multilingual UI & Demo Data** | Full UI, demo content and module documentation in 🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL / 🇭🇺 HU; admin controls available languages | |
+| **Multilingual UI & Demo Data** | Full UI, demo content and module documentation in 🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL / 🇭🇺 HU / 🇪🇪 ET; admin controls available languages. The FR, NL, HU and ET texts are own translations — a review by native speakers is recommended | |
 
 ---
 
@@ -172,6 +175,13 @@ The administrator **must manually import** the controls before these frameworks 
 > **Frameworks included out-of-the-box (no ISO licence required):**
 > BSI IT-Grundschutz, EU NIS2, EUCS, EU AI Act, and CRA are based on publicly available
 > EU legislation and German federal publications and are fully pre-installed.
+>
+> **Other frameworks (NEN 7510, TISAX, customer requirements, …):** an administrator creates an *own group* in the SoA
+> (button **＋ Own group**) and imports the controls from a JSON file — with a preview, merged instead of replaced, and without
+> any standard text being shipped. Only import content you are licensed to use
+> (example file: `docs/examples/soa-custom-framework.example.json`). The ISO import above stays limited to ISO 27001, 9000 and 9001.
+>
+> **Legal notice:** The standard texts of ISO 27001/9000/9001, NEN 7510 and the TISAX assessment catalogues (VDA ISA) are subject to the rights of their publishers (copyright and trademark law) and are not shipped with ISMS Builder. Example controls in demo data are our own invented placeholder texts with no connection to the wording of the standards — incomplete and usable neither for certifications nor for TISAX assessments. Only import texts you are licensed to use. This is not legal advice.
 
 Operating the ISO framework modules without a valid licence for the respective standard is the
 sole responsibility of the operator. The ISMS Builder project and its contributors accept no
@@ -189,7 +199,8 @@ cp .env.example .env          # set JWT_SECRET to a long random string
 npm start                     # http://localhost:3000
 ```
 
-Login with **`admin@example.com` / `adminpass`**. On first login you will be prompted to choose your **demo data language** (🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL / 🇭🇺 HU) or start with an empty system. Change the admin password immediately after.
+Login with **`admin@example.com` / `adminpass`**. On first login you will be prompted to choose your **demo data language** (🇩🇪 DE / 🇬🇧 EN / 🇫🇷 FR / 🇳🇱 NL / 🇭🇺 HU / 🇪🇪 ET) or start with an empty system. Change the admin password immediately after. See [Demo accounts](#demo-accounts) for the other test accounts.
+
 
 For production use with HTTPS:
 
@@ -214,6 +225,30 @@ copyrighted by ISO and are **never** shipped – provide them yourself in `data/
 (see `scripts/import-iso-controls.sh`).
 
 ---
+
+### Demo accounts
+
+The demo set contains these accounts, so every role and function can be tried. **The passwords are public and for demo use only.**
+
+| User | Login (e-mail) | Password | Role | Function | Use it to test |
+|---|---|---|---|---|---|
+| admin | `admin@example.com` | `adminpass` | Administrator | CISO + DPO | everything, including administration |
+| ciso | `ciso@example.com` | `cisopass` | Content Owner | **CISO** | the CISO function without administrator rights (like carla) |
+| dsb | `dsb@example.com` | `dsbpass` | Content Owner | **DPO** | the DPO function without administrator rights (like dana) |
+| alice | `alice@it.example` | `alicepass` | Department head | none | policies, risks and guidance (read and write) |
+| bob | `bob@hr.example` | `bobpass` | Reader | none | read-only access |
+| carla | `carla@security.example` | `carlapass` | Content Owner | **CISO** | preparing and approving a DPIA; she may **not** enter the DPO opinion |
+| dana | `dana@privacy.example` | `danapass` | Content Owner | **DPO** | entering the DPO opinion on a DPIA |
+
+carla and dana are two separate people without administrator rights, so the DPIA review can be tested as intended: carla prepares the DPIA, dana enters the opinion, carla approves. ciso and dsb are the same two functions as separate accounts.
+
+**Which accounts exist depends on how you start:**
+
+- **Docker image / fresh installation without a data directory:** admin, alice, bob, carla, dana.
+- **Source checkout (`git clone`):** the repository ships `data/rbac_users.json` with admin, ciso, dsb, alice, bob. carla and dana are added by the demo import or by loading a demo bundle (2FA switched off).
+- **Public demo (`DEMO_HOSTING`):** the passwords of all seven accounts listed above are kept at these public values; accounts that do not exist in that data set are skipped.
+- Switching to production (Admin → Maintenance → Demo reset) deletes all of them except `admin`. Change the admin password immediately after.
+
 
 ## Docker
 
@@ -337,7 +372,7 @@ gh attestation verify oci://ghcr.io/coolstartnow/isms-builder:latest --owner coo
 |---|---|---|
 | `JWT_SECRET` | *(required)* | Secret for JWT signing — at least 32 random characters (`openssl rand -hex 32`). With `NODE_ENV=production` (always the case in the Docker image) the server does not start with a missing, short or placeholder secret |
 | `PORT` | `3000` | HTTP/HTTPS listen port |
-| `STORAGE_BACKEND` | `json` | `json` (dev/demo) or `sqlite` (production) |
+| `STORAGE_BACKEND` | `json` | `json` (default and current recommendation; required by the mobile app), `sqlite`, `mariadb` or `postgres` |
 | `SSL_CERT_FILE` | — | Path to TLS certificate → enables HTTPS |
 | `SSL_KEY_FILE` | — | Path to TLS private key |
 | `DATA_DIR` | `./data` | Override data directory (Docker volumes) |
@@ -372,7 +407,7 @@ tests/              — Jest + Supertest (176 tests, --runInBand)
 
 - **Auth:** JWT cookie (`sm_session`), bcrypt passwords, TOTP 2FA (enforceable org-wide)
 - **RBAC:** `reader` → `editor` / `dept_head` → `contentowner` / `auditor` → `admin`
-- **Persistence:** JSON files (default/demo) or SQLite via `better-sqlite3`
+- **Persistence:** JSON files (default, recommended) or SQL databases: SQLite via `better-sqlite3`, MariaDB/MySQL, PostgreSQL
 - **AI:** Optional local Ollama (nomic-embed-text); keyword search always available as fallback
 - **Audit Log:** Every create/update/delete/login action recorded, filterable, exportable
 
@@ -421,7 +456,7 @@ Contributions are very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 | ✅ Done | Semantic search (Ollama / nomic-embed-text) |
 | ✅ Done | SQLite backend, Docker, CI/CD |
 | ✅ Done | GDPR deletion log email alerts |
-| ✅ Done | Multilingual demo bundles (DE / EN / FR / NL / HU) |
+| ✅ Done | Multilingual demo bundles (DE / EN / FR / NL / HU / ET) |
 | ✅ Done | Audit Findings module with action plans (V 1.37.2.0) |
 | ✅ Done | FR/NL Guidance translations + admin language configuration (V 1.37.2.0) |
 | ✅ Done | MariaDB/MySQL backend (`STORAGE_BACKEND=mariadb`, V 1.37.2.1) |

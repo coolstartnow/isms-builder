@@ -23,11 +23,14 @@ ISMS Builder fully automates this process:
 
 | Action | Minimum role |
 |---|---|
-| View acknowledgement overview | `reader` |
+| See dashboard figures (“Active distributions”, “Pending acknowledgements”) | `reader` |
+| View the distribution overview and acknowledgement details (menu item “Policy Acknowledgements”) | `contentowner` |
 | Create and send distribution | `contentowner` |
 | Send reminder | `contentowner` |
 | Record or import acknowledgement manually | `contentowner` |
 | Delete distribution | `admin` |
+
+Readers only see the summary figures on the dashboard. The recipient lists with e-mail address, name, time and IP address of the acknowledgement are reserved for the content owner because they contain personal data.
 
 ---
 

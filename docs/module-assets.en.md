@@ -105,6 +105,14 @@ names — usually the corporate language. Resetting to the defaults restores the
 
 ---
 
+## Sorting the list and finding assets
+
+The **All Assets** list is sorted by **category → type → name** by default (alphabetical in the interface language; numbers are ordered naturally, so “Laptop 2” comes before “Laptop 10”; an asset without a type comes last in its category). A newly created asset therefore appears at its place and no longer at the very bottom; after saving, the row is briefly highlighted and scrolled into view, and active filters and search are kept.
+
+Clicking a **column header** (name, type, protection, classification, criticality, owner, status, end of life) sorts ascending and, on the second click, descending; a third click restores the default order. Empty values always come last. The browser remembers the chosen column. Only the display is sorted; the order in exports and the API does not change.
+
+In the **By Category** tab the categories are alphabetical, with the assets inside sorted by type and name. Accounts with edit permission can edit there as well (pencil icon; administrators can also delete); after saving you return to that tab.
+
 ## Classification and Criticality
 
 **Classification** describes the protection requirement regarding confidentiality:

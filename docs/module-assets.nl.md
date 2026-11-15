@@ -110,6 +110,14 @@ standaardwaarden zet ook de vertalingen terug.
 
 ---
 
+## De lijst sorteren en bedrijfsmiddelen vinden
+
+De lijst **Alle bedrijfsmiddelen** is standaard gesorteerd op **categorie → type → naam** (alfabetisch in de taal van de interface; getallen worden natuurlijk geordend, „Laptop 2” komt vóór „Laptop 10”; een bedrijfsmiddel zonder type staat als laatste in zijn categorie). Een nieuw aangemaakt bedrijfsmiddel verschijnt dus op zijn plaats en niet meer helemaal onderaan; na het opslaan wordt de rij kort gemarkeerd en in beeld gebracht, actieve filters en zoekopdracht blijven behouden.
+
+Een klik op een **kolomkop** (naam, type, beschermingsbehoefte, classificatie, kritikaliteit, eigenaar, status, einde levensduur) sorteert oplopend en bij de tweede klik aflopend; een derde klik herstelt de standaardvolgorde. Lege waarden staan altijd achteraan. De browser onthoudt de gekozen kolom. Alleen de weergave wordt gesorteerd; de volgorde in exports en de interface verandert niet.
+
+In het tabblad **Op categorie** staan de categorieën alfabetisch, met daarin de bedrijfsmiddelen gesorteerd op type en naam. Accounts met bewerkingsrecht kunnen daar ook bewerken (potloodpictogram; beheerders kunnen ook verwijderen); na het opslaan keert u naar dat tabblad terug.
+
 ## Classificatie en kritikaliteit
 
 De **classificatie** beschrijft de beschermingsbehoefte met betrekking tot vertrouwelijkheid:

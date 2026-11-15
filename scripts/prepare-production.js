@@ -103,8 +103,10 @@ async function resetUsersToAdminOnly() {
   for (const u of users) {
     if (u.username !== 'admin') rbac.deleteUser(u.username)
   }
-  await rbac.setPasswordHash('admin', 'adminpass')
+  // Übergabe: Anfangspasswort nur für die erste Anmeldung (muss sofort geändert werden); danach als Produktivbetrieb markiert
+  await rbac.setPasswordHash('admin', 'adminpass', { mustChange: true })
   rbac.setUserTotpSecret('admin', null)
+  require(path.join(PROJECT_ROOT, 'server/productionState')).markProduction()
 }
 
 async function quickMode() {
@@ -169,6 +171,20 @@ async function main() {
   console.log('wechseln (bleibt STORAGE_BACKEND=json). Bereits eingegebene echte Daten')
   console.log('lassen sich modulweise behalten.\n')
   console.log('Bitte vorher den Server stoppen: bash stop.sh\n')
+
+  // Anleitung zum Produktivbetrieb: Der Nachweis „angezeigt und bestätigt“ gilt auch auf der Kommandozeile
+  const guidePath = path.join(PROJECT_ROOT, 'docs', 'module-login-security.md')
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  console.log(' WICHTIG — vor dem Wechsel in den Produktivbetrieb')
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  console.log('  1. Je Konto ist nur EINE gleichzeitige Sitzung zulässig (zwei Sitzungen = zwei Konten).')
+  console.log('  2. Nach dem Wechsel gilt das Anfangspasswort „adminpass“ nur für die erste Anmeldung und muss sofort geändert werden;')
+  console.log('     Demo-Passwörter sind im Produktivbetrieb gesperrt. Notfall: node scripts/set-password.js <benutzer>')
+  console.log('  3. Betrieb nur über HTTPS (eigenes Zertifikat oder Proxy mit TRUST_PROXY).')
+  console.log('  Datensicherung: Vor dem Löschen wird automatisch ein Backup des Datenverzeichnisses (data/) angelegt; der Pfad wird danach angezeigt.')
+  console.log(`  Vollständige Anleitung (auch in der Anwendung unter Guidance → Systemhandbuch): ${guidePath}\n`)
+  const readIt = await ask('Haben Sie die Anleitung gelesen? Zum Bestätigen "GELESEN" eingeben: ')
+  if (readIt.trim() !== 'GELESEN') { console.log('Abgebrochen — Anleitung nicht bestätigt, nichts geändert.'); rl.close(); return }
 
   const proceed = await ask('Fortfahren? [j/N]: ')
   if (proceed.toLowerCase() !== 'j') { console.log('Abgebrochen.'); rl.close(); return }

@@ -103,3 +103,9 @@ landing/
 
 # Backups alter Screenshot-Stände (bei Screenshot-Refresh angelegt, nicht publizieren)
 docs/screenshots/_archiv-*/
+
+# ISO-Normtexte und daraus erzeugte Importdateien gehören nie ins Repository (Urheberrecht)
+iso22301*.csv
+iso22301*.json
+*-demo-requirements.csv
+iso-controls*.json

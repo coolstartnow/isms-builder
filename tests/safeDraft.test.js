@@ -1,4 +1,5 @@
 'use strict'
+const LANG_REG = require('../ui/i18n/languages.js')
 const sd = require('../server/ai/safeDraft')
 
 describe('Titelliste', () => {
@@ -10,8 +11,44 @@ describe('Titelliste', () => {
       for (const l of sd.LANGUAGES) expect(e.title[l].length).toBeGreaterThan(3)
     }
   })
+  test('KI-Themen (Nutzung, Kennzeichnung nach EU AI Act, Bilder/Audio/Video, Governance, Kompetenz, vertrauliche Daten, Beschaffung) sind in der Liste', () => {
+    for (const id of ['ai_use', 'ai_labelling', 'ai_media', 'ai_governance', 'ai_literacy', 'ai_confidential', 'ai_vendors', 'ai_inventory', 'ai_oversight', 'ai_risk', 'ai_incident']) expect(sd.entryById(id)).not.toBeNull()
+    expect(sd.entryById('ai_use').title.en).toBe('Artificial Intelligence Use Policy')
+    expect(sd.entryById('ai_labelling').title.de).toContain('Kennzeichnung')
+  })
+  test('Titel sind eindeutig je Typ und Sprache; Anzahl im Anwenderleitfaden stimmt', () => {
+    const fs = require('fs'), path = require('path')
+    const suf = Object.fromEntries(LANG_REG.completeCodes().map(c => [c, LANG_REG.docSuffix(c)]))
+    for (const l of sd.LANGUAGES) {
+      const keys = sd.CATALOG.map(e => e.type + '|' + e.title[l]); expect(new Set(keys).size).toBe(keys.length)
+      if (!(l in suf)) continue   // Leitfäden (docs/module-ai-drafts<Endung>.md) gibt es für Sprachen mit Status „complete“; Inhalte können früher da sein
+      const doc = fs.readFileSync(path.join(__dirname, '..', 'docs', `module-ai-drafts${suf[l]}.md`), 'utf8')
+      expect(doc).toContain(String(sd.CATALOG.length))
+      for (const e of sd.CATALOG) expect(doc).toContain(e.title[l])   // jede Vorlage steht im Leitfaden der Sprache
+    }
+  })
   test('jeder Typ der Oberfläche hat mindestens einen Eintrag', () => {
-    for (const type of ['Policy', 'Procedure', 'Risk Policy', 'SoA', 'Incident', 'Release']) expect(sd.catalogFor(type).length).toBeGreaterThan(0)
+    for (const type of ['Policy', 'Procedure', 'Risk Policy', 'SoA', 'Incident', 'Release', 'BCM Plan', 'BCM Exercise']) expect(sd.catalogFor(type).length).toBeGreaterThan(0)
+  })
+})
+
+describe('BCM-Entwürfe', () => {
+  test('9 Pläne und 6 Übungen, Prompt für den BCM-Zweck mit Gliederung und Platzhalter-Vorgabe', () => {
+    expect(sd.catalogFor('BCM Plan')).toHaveLength(9); expect(sd.catalogFor('BCM Exercise')).toHaveLength(6)
+    const p = sd.buildPrompt({ entry: 'bcm_plan_cyber_attack', language: 'en', hint: 'remote work' })
+    expect(p.ok).toBe(true)
+    expect(p.prompt).toContain('business continuity plan'); expect(p.prompt).toContain('activation criteria'); expect(p.prompt).toContain('{{COMPANY_NAME}}')
+    expect(p.prompt).not.toMatch(/information security documents/)
+    const x = sd.buildPrompt({ entry: 'bcm_exercise_tabletop_ransomware', language: 'de' })
+    expect(x.prompt).toContain('business continuity exercise'); expect(x.prompt).toContain('scenario, objectives')
+  })
+  test('Hinweise mit personenbezogenen Daten werden auch hier blockiert', () => {
+    const p = sd.buildPrompt({ entry: 'bcm_plan_cyber_attack', language: 'de', hint: 'Tel. +49 170 1234567' })
+    expect(p.ok).toBe(false); expect(p.code).toBe('pii')
+  })
+  test('die neuen Kennungen gehören ausschließlich zu den BCM-Typen (nicht zu Dokumenttypen des Editors)', () => {
+    for (const e of sd.CATALOG.filter(x => /^bcm_(plan|exercise)_/.test(x.id))) expect(['BCM Plan', 'BCM Exercise']).toContain(e.type)
+    for (const e of sd.CATALOG.filter(x => ['BCM Plan', 'BCM Exercise'].includes(x.type))) expect(e.id).toMatch(/^bcm_(plan|exercise)_/)
   })
 })
 
@@ -60,6 +97,7 @@ describe('Platzhalter', () => {
     const r = sd.fillPlaceholders('{{COMPANY_NAME}} | {{ company name }} | [ISMS_OWNER] | {{ISMS_SCOPE}} | {{ANDERE}}', { orgName: 'Acme', cisoName: 'Eva', ismsScope: ' ' })
     expect(r.text).toBe('Acme | Acme | Eva | {{ISMS_SCOPE}} | {{ANDERE}}')
     expect(r.unresolved).toEqual(['ISMS_SCOPE'])
+    expect(r.replaced).toBe(3)
   })
   test('Codezäune werden entfernt', () => {
     expect(sd.stripCodeFences('```markdown\n# A\n```')).toBe('# A')

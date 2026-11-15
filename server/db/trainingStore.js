@@ -4,6 +4,7 @@ const STORAGE_BACKEND = (process.env.STORAGE_BACKEND || 'json').toLowerCase()
 
 const fs   = require('fs')
 const path = require('path')
+const trainingFiles = require('../trainingFiles')
 
 const _BASE = process.env.DATA_DIR || path.join(__dirname, '../../data')
 const DATA_FILE = path.join(_BASE, 'training.json')
@@ -27,7 +28,7 @@ function isOverdue(item) {
 }
 
 function publicItem(item) {
-  return { ...item, overdue: isOverdue(item) }
+  return { ...item, attachments: trainingFiles.publicAttachments(item.attachments), overdue: isOverdue(item) }
 }
 
 function getAll({ status, category, entity } = {}) {
@@ -113,6 +114,7 @@ function permanentDelete(id) {
   const list = load()
   const idx  = list.findIndex(i => i.id === id)
   if (idx < 0) return false
+  for (const a of list[idx].attachments || []) trainingFiles.removeFile(a.filename)
   list.splice(idx, 1)
   save(list)
   return true
@@ -164,7 +166,32 @@ if (!fs.existsSync(DATA_FILE)) {
   save(seed)
 }
 
-const _jsonExports = { getAll, getById, getSummary, create, update, delete: del, permanentDelete, restore, getDeleted, CATEGORIES, STATUSES }
+// Anhänge: Metadaten am Datensatz; entfernte Anhänge werden nur markiert, die Datei bleibt erhalten (Nachweise)
+function addAttachment(id, meta) {
+  const list = load()
+  const item = list.find(i => i.id === id && !i.deletedAt)
+  if (!item) return null
+  item.attachments = [...(item.attachments || []), meta]
+  item.updatedAt = nowISO()
+  save(list)
+  return meta
+}
+function getAttachment(id, attId) {
+  const item = load().find(i => i.id === id && !i.deletedAt)
+  return (item && (item.attachments || []).find(a => a.id === attId && !a.removedAt)) || null
+}
+function removeAttachment(id, attId, by) {
+  const list = load()
+  const item = list.find(i => i.id === id && !i.deletedAt)
+  const att = item && (item.attachments || []).find(a => a.id === attId && !a.removedAt)
+  if (!att) return null
+  att.removedAt = nowISO(); att.removedBy = by || null
+  item.updatedAt = nowISO()
+  save(list)
+  return att
+}
+
+const _jsonExports = { addAttachment, getAttachment, removeAttachment, getAll, getById, getSummary, create, update, delete: del, permanentDelete, restore, getDeleted, CATEGORIES, STATUSES }
 
 if (STORAGE_BACKEND !== 'json') {
   const _knex = require('./stores/trainingStore')

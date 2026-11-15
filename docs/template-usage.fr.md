@@ -77,6 +77,19 @@ Dans la barre d’outils de l’éditeur (à partir du rôle Content Owner, seul
 
 ---
 
+En détail, avec les deux voies (directe et copier-coller), mise en place et dépannage : guide « Module : Brouillons IA (assistant de politiques) » dans le manuel système (`docs/module-ai-drafts.fr.md`).
+
+## Export et import CSV
+
+Au-dessus de la liste des documents (« Documents existants ») :
+
+- **Exporter en CSV** (tous les rôles) : écrit **tous les documents de tous les types** dans un fichier `documents-<date>.csv` (UTF-8, virgule, s’ouvre dans Excel et LibreOffice). Colonnes : `id, type, title, language, status, version, owner, nextReviewDate, parent, content`.
+- **Importer un CSV** (à partir de Content Owner) : lit un tel fichier, aussi avec un point-virgule comme séparateur (Excel allemand). Avant toute création, une boîte de dialogue indique combien de documents seront créés, ignorés ou rejetés comme invalides, chacun avec la raison.
+  - L’import crée **uniquement de nouveaux brouillons** (version 1, vous en êtes le propriétaire). Même type, titre et langue qu’un document existant : ignoré. **Les documents existants ne sont jamais modifiés**, même approuvés ; l’approbation et le versionnage restent intacts.
+  - Colonnes obligatoires : `type`, `title`, `language`, `content`. `type` doit figurer dans votre liste de types de documents, `language` vaut `de`, `en`, `fr`, `nl` ou `hu`. Facultatif : `nextReviewDate` (AAAA-MM-JJ) et `parent` (titre du document parent). Les colonnes `id`, `status`, `version` et `owner` sont ignorées.
+  - Limites : 500 lignes et 5 Mo par fichier.
+  - Le plus simple est de partir d’un export : supprimer ou modifier des lignes, adapter les titres, importer.
+
 ## Cycle de vie (flux de statuts)
 
 Chaque modèle passe par quatre étapes de statut :

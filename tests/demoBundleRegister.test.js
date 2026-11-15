@@ -1,4 +1,5 @@
 'use strict'
+const LANG_REG = require('../ui/i18n/languages.js')
 // © 2026 Claude Hecker — ISMS Builder — AGPL-3.0
 // Die Demo-Bundles bringen das Maßnahmen-Register mit (TOMs, Governance-Aktionen, Feststellungs-Maßnahmen, Risiko-Behandlungen,
 // eigene Maßnahmen). Nach dem Laden müssen alle Ansichten sofort stimmen, alle Zuordnungen auf vorhandene Risiken und Feststellungen
@@ -19,7 +20,7 @@ describe('Demo-Bundles und Maßnahmen-Register', () => {
 
   const get = async url => (await authedGet(app, admin, url)).body
 
-  test.each(['de', 'en', 'fr', 'nl', 'hu'])('Bundle %s: alle vier Quellen stehen im Register, Zuordnungen sind gültig', async lang => {
+  test.each(LANG_REG.completeCodes())('Bundle %s: alle vier Quellen stehen im Register, Zuordnungen sind gültig', async lang => {
     expect((await authedPost(app, admin, '/admin/demo-load-bundle', { lang })).status).toBe(200)
     const reg = await get('/measures')
     const gov = await get('/governance/actions'), toms = await get('/gdpr/toms'), findings = await get('/findings'), risks = await get('/risks')

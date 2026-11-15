@@ -183,6 +183,7 @@ const dsfa = (() => {
         applicableEntities: Array.isArray(fields.applicableEntities) ? fields.applicableEntities : [],
         status: DSFA_STATUSES.includes(fields.status) ? fields.status : 'draft',
         owner: fields.owner || '', approvedBy: fields.approvedBy || null, approvedAt: fields.approvedAt || null,
+        dpoOpinionBy: fields.dpoOpinionBy || null, dpoOpinionAt: fields.dpoOpinionAt || null, precheck: fields.precheck || null,
         linkedControls: Array.isArray(fields.linkedControls) ? fields.linkedControls : [],
         linkedPolicies: Array.isArray(fields.linkedPolicies) ? fields.linkedPolicies : [],
         createdBy: createdBy || 'system', createdAt: nowISO(), updatedAt: nowISO(),
@@ -193,7 +194,7 @@ const dsfa = (() => {
       return base._updateEntry(id, fields, ['title','linkedVvtId','processingDescription','necessityAssessment','risks',
         'existingControls','residualRisk','dpoConsulted','dpoOpinion',
         'saConsultationRequired','decision','decisionJustification',
-        'applicableEntities','status','owner','approvedBy','approvedAt',
+        'applicableEntities','status','owner','approvedBy','approvedAt','dpoOpinionBy','dpoOpinionAt','precheck',
         'linkedControls','linkedPolicies'])
     },
     delete: base._deleteEntry, permanentDelete: base._permanentDelete, restore: base._restore,

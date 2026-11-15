@@ -1,0 +1,11 @@
+# Semgrep-Ausnahmen mit Begründung. Geprüft: 2026-10-24. Nächste Prüfung: 2027-04.
+# Entwicklungswerkzeuge (Screenshots, Migrationen), laufen nie im Server
+tools/
+# Tests enthalten absichtlich Nutzlasten und Test-Geheimnisse
+tests/
+# Mitgelieferte Fremdbibliotheken (marked, DOMPurify, Phosphor-Icons)
+ui/vendor/
+# Demo-Datensätze, reine Daten ohne Code
+data/demo-bundles/
+# Demo-Konten mit öffentlichen Demo-Hashes (README „Demo accounts“)
+data/rbac_users.json

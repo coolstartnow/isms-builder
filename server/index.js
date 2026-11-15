@@ -4,6 +4,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') })
 
 const express = require('express')
+const asyncSafe = require('./asyncSafe')   // vor allen Routen: abgelehnte async-Handler → Fehlerantwort statt Prozessende
 const fs = require('fs')
 const path = require('path')
 
@@ -28,15 +29,35 @@ if (process.env.TRUST_PROXY) {
   app.set('trust proxy', Number.isNaN(hops) ? process.env.TRUST_PROXY : hops)
 }
 
+// Sicherheits-Header für alle Antworten: kein MIME-Sniffing, keine Einbettung in fremde Seiten,
+// keine Referrer an Dritte, keine Technik-Angabe. Der Anmelde- und Sitzungsweg wird nicht zwischengespeichert (HDR-006).
+app.disable('x-powered-by')
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+  res.setHeader('Referrer-Policy', 'same-origin')
+  if (req.secure) res.setHeader('Strict-Transport-Security', 'max-age=31536000')   // nur über HTTPS (direkt oder hinter Proxy mit TRUST_PROXY)
+  if (req.path === '/login' || req.path === '/logout' || req.path === '/whoami') res.setHeader('Cache-Control', 'no-store')
+  next()
+})
+
 // Fehlertexte der API in der Sprache der Oberfläche (X-Lang) bzw. der Organisations-Standardsprache.
 // Vor den Body-Parsern, damit auch deren Fehler (zu groß, ungültiges JSON) übersetzt werden (#98); die Middleware braucht den Body nicht.
 require('./i18n').installMiddleware(app)
 
-// Sync-Pushes können groß sein: eigener Parser VOR dem globalen (der sonst bei 100 kB mit 413 abweist)
-app.use('/sync', express.json({ limit: '20mb' }))
+// Sync: KEIN Parser hier. Der Push darf groß sein (20 MB), wird aber erst nach der Schlüsselprüfung gelesen (routes/sync.js); die Einrichtung
+// (/sync/enroll, ohne Anmeldung) hat ein kleines Limit. Früher stand hier ein 20-MB-Parser vor der Prüfung: Unangemeldete konnten so große Bodies erzwingen.
 // Demo-Import: Bundles sind groß; der eigene Parser (50 MB, wie in der Route) muss VOR dem globalen stehen, sonst gilt dessen 100-kB-Grenze (#98)
 app.use('/admin/demo-import', express.json({ limit: '50mb' }))
-app.use(express.json())
+app.use('/admin/pdf-font/custom', express.json({ limit: '12mb' }))   // eigene Schrift (Base64, höchstens 8 MB Datei)
+app.use('/templates/import', express.json({ limit: '8mb' }))   // CSV-Import der Dokumente
+app.use('/api/ai/fill-placeholders', express.json({ limit: '1mb' }))   // Platzhalter in langen Dokumenten
+app.use('/soa/frameworks/import', express.json({ limit: '2mb' }))   // Import einer eigenen SoA-Gruppe (Datei bis 2 MB; der globale Parser kennt nur 100 kB)
+const jsonBody = express.json()
+app.use((req, res, next) => req.path.startsWith('/sync/') ? next() : jsonBody(req, res, next))   // /sync/* parst routes/sync.js selbst (nach der Prüfung)
+app.use(require('./jsonDepth').middleware)   // Tiefenlimit (kein Absturz durch 50 000-fach verschachteltes JSON)
+app.use(asyncSafe.maskServerErrors)   // 5xx-Antworten ohne Treiber-/Interna-Text
+app.use(require('./demoHosting').guard)   // nur mit DEMO_HOSTING=true wirksam (öffentliche Demo): gesperrte Funktionen, Demo-Reset als Attrappe
 
 // ── UI-Dateien: Login-Seite öffentlich, alles andere nur mit gültigem JWT ──
 const uiDir    = path.join(__dirname, '../ui')
@@ -87,7 +108,7 @@ rbacStore.init()
 // Fallback: provide a minimal setUserTotpSecret if not present in rbacStore
 try {
   if (typeof rbacStore.setUserTotpSecret !== 'function') {
-    const DB_FILE = path.join(__dirname, '../data', 'rbac_users.json')
+    const DB_FILE = require('./paths').dataPath('rbac_users.json')
     rbacStore.setUserTotpSecret = function(username, secret){
       let data = {}
       try { data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) } catch {}
@@ -129,7 +150,7 @@ app.get('/health', (req, res) => {
     result.sqlite = true
   } catch {}
   try {
-    const orgFile = path.join(__dirname, '../data/org-settings.json')
+    const orgFile = require('./paths').dataPath('org-settings.json')
     fs.readFileSync(orgFile)
     result.json = true
   } catch {}
@@ -137,6 +158,11 @@ app.get('/health', (req, res) => {
   res.status(result.status === 'ok' ? 200 : 503).json(result)
 })
 */
+
+// Überwachung: rein lesendes /health (ok/degraded, keine Daten) — nur mit DEMO_HOSTING=true oder HEALTH_CHECK=true, sonst gibt es die Route nicht
+if (require('./demoHosting').enabled() || process.env.HEALTH_CHECK === 'true') {
+  app.get('/health', (req, res) => { const h = require('./demoHosting').health(); res.status(h.status === 'ok' ? 200 : 503).json(h) })
+}
 
 // ── Mount routers ──
 app.use(require('./routes/auth'))
@@ -167,13 +193,16 @@ app.use(require('./routes/orgUnits'))
 app.use(require('./routes/acknowledgements'))
 app.use(require('./routes/ackPublic'))
 app.use(require('./routes/nis2'))
+app.use(require('./routes/pdfFont'))
+app.use(require('./routes/assessmentTemplates'))
+app.use(require('./routes/supplierPortal'))
 app.use(require('./routes/assessments'))
 app.use(require('./routes/assessmentPublic'))
 app.use(require('./routes/sync'))
 app.use(require('./routes/syncAccounts'))
 
-// Test-user management routes (temporary, test-env only)
-try {
+// Test-user management routes: nur außerhalb von Produktion (die Routen ändern Benutzerfelder beliebig und liefern Hashes aus)
+if (process.env.NODE_ENV !== 'production') try {
   const testUsers = require('./testUsers')
   app.get('/test/users', requireAuth, authorize('admin'), testUsers.listUsers)
   app.post('/test/users', requireAuth, authorize('admin'), testUsers.createUser)
@@ -248,7 +277,7 @@ async function runAutopurge() {
 }
 
 // ── Idempotente Guidance-Seeds (Architekturdoku, Demo-Beitrag, Rollen-Guides, …) ──
-async function seedAll() {
+async function seedAll() {   // idempotent; nach Demo-Reset/-Import erneut aufgerufen (server/reloadStores.js)
   // In anderen Modulen eingebettete Maßnahmen (TOMs, Risiko-Behandlungen, …) ins Maßnahmen-Register übernehmen
   // (idempotent, die alten Daten bleiben als Sicherung liegen)
   try {
@@ -265,6 +294,14 @@ async function seedAll() {
     if (r && r.added) console.log(`[seed] ${r.added} SoA-Controls angelegt`)
   } catch (e) {
     console.warn('[seed] SoA-Controls konnten nicht angelegt werden:', e.message)
+  }
+
+  // Dokument ↔ SoA-Control: Verknüpfungen, die nur am Dokument stehen (Demo-Bündel, Import, Wiederherstellung), am Control nachtragen (siehe linkReconcile.js)
+  try {
+    const n = await require('./linkReconcile').reconcileDocumentControlLinks()
+    if (n) console.log(`[seed] ${n} Verknüpfungen Dokument → SoA-Control nachgetragen`)
+  } catch (e) {
+    console.warn('[seed] Abgleich der Verknüpfungen Dokument/Control fehlgeschlagen:', e.message)
   }
 
   const guidanceStore = require('./db/guidanceStore')
@@ -315,6 +352,8 @@ async function seedAll() {
 // idempotent/memoisiert; dieses einzige `await` davor reicht, weil jeder
 // Knex-Store (`server/db/stores/*.js`) über dasselbe Singleton initialisiert.
 // Unter STORAGE_BACKEND=json ist dieser Await ein No-Op.
+require('./reloadStores').setSeeder(seedAll)
+
 async function bootstrap() {
   const backend = (process.env.STORAGE_BACKEND || 'json').toLowerCase()
   if (backend !== 'json') {
@@ -327,6 +366,11 @@ async function bootstrap() {
 function startListener() {
   const SSL_CERT = process.env.SSL_CERT_FILE
   const SSL_KEY  = process.env.SSL_KEY_FILE
+
+  // Ohne HTTPS (weder eigenes Zertifikat noch Proxy mit TRUST_PROXY) bekommt das Sitzungs-Cookie kein Secure-Flag und ist mitlesbar.
+  if (process.env.NODE_ENV === 'production' && !(SSL_CERT && SSL_KEY) && !process.env.TRUST_PROXY) {
+    console.warn('[security] Betrieb über HTTP: Sitzungs-Cookie und Passwörter sind im Netz mitlesbar. HTTPS einrichten (SSL_CERT_FILE/SSL_KEY_FILE) oder hinter einem HTTPS-Proxy mit TRUST_PROXY betreiben. HTTP wird in einem späteren Release nur noch mit ALLOW_INSECURE_HTTP=true erlaubt.')
+  }
 
   if (SSL_CERT && SSL_KEY) {
     const https = require('https')
@@ -359,7 +403,7 @@ app.use((err, req, res, next) => {
   if (res.headersSent) return next(err)
   if (err && err.type === 'entity.too.large') return res.status(413).json({ error: 'Request body too large' })
   if (err && err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON in request body' })
-  return next(err)
+  return asyncSafe.errorHandler(err, req, res, next)   // alles Übrige: 500 ohne Einzelheiten, Ursache im Log
 })
 
 // ── Export für Tests ──────────────────────────────────────────────────────────
@@ -371,11 +415,16 @@ module.exports.bootstrap = bootstrap
 
 // ── SSL / HTTPS + Notifier (nur im Produktivbetrieb) ─────────────────────────
 if (require.main === module) {
+  asyncSafe.installProcessGuards()
   bootstrap()
     .then(() => {
       require('./notifier').start()
       require('./art23Watcher').start()
+      require('./supplierPortal').startPolling()                     // nur wirksam, wenn der Briefkasten in der Verwaltung aktiviert ist
       startListener()
+      require('./productionState').warnAtStart().catch(() => {})   // auffällige Logwarnung bei Demo-Passwörtern im Produktivbetrieb
+      require('./twoFactorPolicy').warnAtStart().catch(() => {})     // Logwarnung: 2FA-Pflicht an, aber kein Administrator mit 2FA (Notweg: scripts/emergency-2fa.js)
+      require('./demoHosting').startMaintenance()                   // nur mit DEMO_HOSTING=true: Demo-Passwörter stündlich zurücksetzen
     })
     .catch(e => {
       console.error('[bootstrap] Fataler Fehler beim Start:', e)

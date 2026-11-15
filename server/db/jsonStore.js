@@ -48,8 +48,14 @@ function nowISO() { return new Date().toISOString() }
 
 let store = loadAll()
 
+// Eindeutig auch bei mehreren Anlagen in derselben Millisekunde (z. B. CSV-Import): sonst bekämen zwei Dokumente dieselbe Kennung
+let _lastIdStamp = 0
 function generateId(type) {
-  return `${type}_${Date.now()}`
+  let n = Date.now()
+  if (n <= _lastIdStamp) n = _lastIdStamp + 1
+  _lastIdStamp = n
+  // Nur Zeichen, die der Mobile-Sync als Kennung annimmt (Typen wie „Risk Policy“ enthalten Leerzeichen)
+  return `${String(type).replace(/[^A-Za-z0-9_.:-]+/g, '-')}_${n}`
 }
 
 function findIndex(type, id) {
@@ -225,7 +231,7 @@ module.exports = {
     list.forEach(t => {
       const node = byId[t.id]
       const pid = t.parentId || null
-      if (pid && byId[pid]) {
+      if (pid && pid !== t.id && byId[pid]) {
         byId[pid].children.push(node)
       } else {
         roots.push(node)

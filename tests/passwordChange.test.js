@@ -64,16 +64,20 @@ describe('Anfangspasswort', () => {
 })
 
 describe('Zurücksetzen durch den Administrator', () => {
-  test('Rücksetz-Passwort sperrt auch eine bereits laufende Sitzung des Nutzers sofort', async () => {
+  test('Rücksetz-Passwort beendet eine bereits laufende Sitzung des Nutzers sofort; nach der neuen Anmeldung sind alle Schnittstellen bis zum Wechsel gesperrt', async () => {
     await createUser('reset1')
     const cookie = cookieOf(await login('reset1', 'start-pw-1'))
     await authedPut(app, cookie, '/me/password', { currentPassword: 'start-pw-1', newPassword: 'eigenes-pw-123' })
     expect((await authedGet(app, cookie, '/risks')).status).toBe(200)
     const r = await authedPut(app, adminCookie, '/admin/users/reset1', { password: 'vom-admin-999' })
     expect(r.status).toBe(200); expect(r.body.mustChangePassword).toBe(true)
-    expect((await authedGet(app, cookie, '/risks')).status).toBe(403)                      // dieselbe Sitzung, jetzt gesperrt
-    expect((await authedPut(app, cookie, '/me/password', { currentPassword: 'vom-admin-999', newPassword: 'wieder-eigenes-1' })).status).toBe(200)
-    expect((await authedGet(app, cookie, '/risks')).status).toBe(200)
+    expect((await authedGet(app, cookie, '/risks')).status).toBe(401)                      // die alte Sitzung ist beendet (AUTH-010)
+    const again = await login('reset1', 'vom-admin-999')
+    expect(again.body.mustChangePassword).toBe(true)
+    const cookie2 = cookieOf(again)
+    expect((await authedGet(app, cookie2, '/risks')).status).toBe(403)                     // neue Sitzung: gesperrt bis zum Wechsel
+    expect((await authedPut(app, cookie2, '/me/password', { currentPassword: 'vom-admin-999', newPassword: 'wieder-eigenes-1' })).status).toBe(200)
+    expect((await authedGet(app, cookie2, '/risks')).status).toBe(200)
   })
 
   test('Änderungen ohne Passwort (z. B. Rolle) setzen die Pflicht nicht', async () => {
@@ -81,7 +85,10 @@ describe('Zurücksetzen durch den Administrator', () => {
     const cookie = cookieOf(await login('reset2', 'start-pw-1'))
     await authedPut(app, cookie, '/me/password', { currentPassword: 'start-pw-1', newPassword: 'eigenes-pw-123' })
     await authedPut(app, adminCookie, '/admin/users/reset2', { role: 'reader' })
-    expect((await authedGet(app, cookie, '/risks')).status).toBe(200)
+    expect((await authedGet(app, cookie, '/risks')).status).toBe(401)                      // Rollenänderung beendet die Sitzung (das Token trug die alten Rechte)
+    const again = await login('reset2', 'eigenes-pw-123')
+    expect(again.status).toBe(200); expect(again.body.mustChangePassword).not.toBe(true)   // die Pflicht zum Wechsel entsteht nicht
+    expect((await authedGet(app, cookieOf(again), '/risks')).status).toBe(200)
   })
 
   test('der Administrator, der sein eigenes Passwort ändert, wird nicht gesperrt', async () => {

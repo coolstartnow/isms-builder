@@ -1,0 +1,5 @@
+# Trivy-Ausnahmen mit Begründung. Geprüft: 2026-10-24. Nächste Prüfung: 2027-04.
+# DS-0031: Trivy hält den Namen DEV_HEADER_AUTH im ENV des Dockerfiles für ein Geheimnis; es ist ein Schalter mit dem Wert false, kein Geheimnis (und der Server verweigert den Start in Produktion, wenn er true ist).
+DS-0031
+# DS-0002: Das Image startet bewusst als root; der Entrypoint wechselt mit su-exec vor dem Start des Servers auf den Benutzer isms (nötig, um Rechte am eingebundenen Datenverzeichnis zu setzen, siehe Dockerfile).
+DS-0002

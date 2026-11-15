@@ -77,6 +77,19 @@ In de werkbalk van de editor (vanaf de rol Content Owner, alleen als de AI-integ
 
 ---
 
+Uitgebreid, met beide wegen (direct en kopiëren/plakken), inrichting en probleemoplossing: gids “Module: AI-concepten (beleidsassistent)” in het systeemhandboek (`docs/module-ai-drafts.nl.md`).
+
+## CSV-export en -import
+
+Boven de documentenlijst (“Bestaande documenten”):
+
+- **Exporteren als CSV** (alle rollen): schrijft **alle documenten van alle typen** naar een bestand `documents-<datum>.csv` (UTF-8, komma, opent in Excel en LibreOffice). Kolommen: `id, type, title, language, status, version, owner, nextReviewDate, parent, content`.
+- **CSV importeren** (vanaf Content Owner): leest zo’n bestand, ook met een puntkomma als scheidingsteken (Duits Excel). Voordat er iets wordt aangemaakt, toont een dialoogvenster hoeveel documenten worden aangemaakt, overgeslagen of als ongeldig geweigerd, telkens met de reden.
+  - De import maakt **alleen nieuwe concepten** aan (versie 1, u bent eigenaar). Zelfde type, titel en taal als een bestaand document: overgeslagen. **Bestaande documenten worden nooit gewijzigd**, ook goedgekeurde niet; goedkeuring en versiebeheer blijven onaangeroerd.
+  - Verplichte kolommen: `type`, `title`, `language`, `content`. `type` moet in uw lijst met documenttypen staan, `language` is `de`, `en`, `fr`, `nl` of `hu`. Optioneel: `nextReviewDate` (JJJJ-MM-DD) en `parent` (titel van het bovenliggende document). De kolommen `id`, `status`, `version` en `owner` worden genegeerd.
+  - Grenzen: 500 rijen en 5 MB per bestand.
+  - Leid eigen bestanden het best af van een export: rijen verwijderen of wijzigen, titels aanpassen, importeren.
+
 ## Levenscyclus (statusworkflow)
 
 Elk sjabloon doorloopt vier statusfasen:

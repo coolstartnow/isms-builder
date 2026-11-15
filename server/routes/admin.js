@@ -1,12 +1,14 @@
 // © 2026 Claude Hecker — ISMS Builder V 1.29 — AGPL-3.0
 'use strict'
 const express = require('express')
+const productionState = require('../productionState')
 const router = express.Router()
 const fs = require('fs')
 const path = require('path')
 const { requireAuth, authorize, ROLE_RANK } = require('../auth')
 const { langOf } = require('../i18n')
 const orgSettingsStore = require('../db/orgSettingsStore')
+const twoFactorPolicy = require('../twoFactorPolicy')
 const auditStore       = require('../db/auditStore')
 const customListsStore = require('../db/customListsStore')
 const assetStore       = require('../db/assetStore')
@@ -16,10 +18,18 @@ const orgLogo          = require('../orgLogo')
 
 function nowISO() { return new Date().toISOString() }
 
-const DATA_DIR        = process.env.DATA_DIR || path.join(__dirname, '../../data')
+// Konten des Demosets (öffentlich bekannte Demo-Passwörter, nur für Demo). carla (CISO) und dana (DSB) sind getrennte Personen ohne Administratorrechte.
+const DEMO_USERS = [
+  { username: 'alice', email: 'alice@it.example',       domain: 'IT',       role: 'dept_head',    functions: [],         password: 'alicepass' },
+  { username: 'bob',   email: 'bob@hr.example',         domain: 'HR',       role: 'reader',       functions: [],         password: 'bobpass' },
+  { username: 'carla', email: 'carla@security.example', domain: 'Security', role: 'contentowner', functions: ['ciso'],   password: 'carlapass' },
+  { username: 'dana',  email: 'dana@privacy.example',   domain: 'Privacy',  role: 'contentowner', functions: ['dso'],    password: 'danapass' },
+]
+
+const DATA_DIR        = require('../paths').dataDir()
 const FLAG_FILE       = path.join(DATA_DIR, '.demo_reset_done')
 const DEMO_LANG_FILE  = path.join(DATA_DIR, '.demo_lang_set')
-const BUNDLES_DIR     = path.join(__dirname, '../../data/demo-bundles')
+const BUNDLES_DIR     = require('../paths').staticDataPath('demo-bundles')   // mitgelieferte Demo-Bundles (Programmstand)
 
 /**
  * Dateinamen aus Import-Bundles: nur einfache *.json-Namen, ohne Pfadanteile.
@@ -33,7 +43,7 @@ const { redactOrgSettings, prepareOrgPatch, sanitizeExportFile } = require('../o
 
 function buildFullExport(dataDir) {
   const jsonFiles = [
-    'templates.json','soa.json','risks.json','entities.json',
+    'templates.json','soa.json','soa-frameworks.json','risks.json','entities.json',
     'rbac_users.json','guidance.json','training.json','public-incidents.json',
     'org-settings.json','custom-lists.json','audit-log.json',
     'goals.json','measures.json','assets.json','bcm.json','suppliers.json','governance.json',
@@ -137,7 +147,8 @@ router.put('/admin/user/:username', requireAuth, authorize('admin'), async (req,
 router.post('/admin/users', requireAuth, authorize('admin'), async (req, res) => {
   const { username, email, domain, role, functions, password } = req.body || {}
   if (!username || !email || !role) return res.status(400).json({ error: 'username, email und role sind erforderlich' })
-  if (!password || password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' })
+  if (!password || password.length < 8) return res.status(400).json({ error: 'Passwort muss mindestens 8 Zeichen haben' })
+  if (productionState.isSeedPassword(password) && productionState.isProduction()) return res.status(400).json({ error: 'Dieses Passwort ist ein bekanntes Demo-Passwort und im Produktivbetrieb nicht erlaubt.', code: 'PASSWORD_KNOWN_DEMO' })
   try {
     // Das Anfangspasswort kennt der Administrator → der neue Nutzer muss es beim ersten Login ändern
     const user = await require('../rbacStore').createUser({ username, email, domain, role, functions, password, mustChangePassword: true })
@@ -149,12 +160,18 @@ router.post('/admin/users', requireAuth, authorize('admin'), async (req, res) =>
   }
 })
 
+// Administratoren: Konten, die im Produktivbetrieb noch ein Demo-Passwort tragen (gesperrt, Passwort muss neu gesetzt werden)
+router.get('/admin/security-notice', requireAuth, authorize('admin'), async (req, res) => {
+  res.json({ seedAccounts: await productionState.seedPasswordAccounts() })
+})
+
 router.put('/admin/users/:username', requireAuth, authorize('admin'), async (req, res) => {
   const { username } = req.params
   const { email, domain, role, functions, password } = req.body || {}
-  if (password && password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' })
+  if (password && password.length < 8) return res.status(400).json({ error: 'Passwort muss mindestens 8 Zeichen haben' })
+  if (password && productionState.isSeedPassword(password) && productionState.isProduction()) return res.status(400).json({ error: 'Dieses Passwort ist ein bekanntes Demo-Passwort und im Produktivbetrieb nicht erlaubt.', code: 'PASSWORD_KNOWN_DEMO' })
   // Ein vom Administrator gesetztes Passwort (Zurücksetzen) muss der Nutzer beim nächsten Login ändern; das eigene nicht
-  const updated = await require('../rbacStore').updateUser(username, { email, domain, role, functions, password: password || undefined, mustChangePassword: username !== req.user })
+  const updated = await require('../rbacStore').updateUser(username, { email, domain, role, functions, password: password || undefined, mustChangePassword: username !== req.user }, { keepJti: username === req.user ? req.jti : undefined })
   if (!updated) return res.status(404).json({ error: 'Not found' })
   const fnStr = (functions||[]).join(', ') || '—'
   await auditStore.append({ user: req.user, action: 'update', resource: 'user', resourceId: username, detail: role ? `Neue Rolle: ${role} | Funktionen: ${fnStr}` : 'Profil aktualisiert' })
@@ -256,15 +273,22 @@ router.put('/admin/modules', requireAuth, authorize('admin'), async (req, res) =
 })
 
 // 2FA-Enforcement
-router.get('/admin/security', requireAuth, authorize('reader'), async (req, res) => {
+// nur der Administrationsbereich liest die 2FA-Pflicht
+router.get('/admin/security', requireAuth, authorize('admin'), async (req, res) => {
   const s = await orgSettingsStore.get()
-  res.json({ require2FA: s.require2FA === true })
+  const sum = twoFactorPolicy.summary()
+  res.json({ require2FA: s.require2FA === true, usersWithout2FA: sum.without2FA.length, usersTotal: sum.total, adminsWith2FA: sum.adminsWith2FA })
 })
 router.put('/admin/security', requireAuth, authorize('admin'), async (req, res) => {
-  const { require2FA } = req.body
+  const { require2FA } = req.body || {}
+  // Schutz vor Selbst-Aussperrung: Die Pflicht lässt sich nur einschalten, wenn der handelnde Administrator selbst eine eingerichtete 2FA hat
+  // (sonst kann sich bei der nächsten Anmeldung niemand mehr einloggen, der Notweg ist die Kommandozeile: scripts/emergency-2fa.js). Ausschalten geht immer.
+  if (require2FA === true && !twoFactorPolicy.has2FA(require('../rbacStore').getUserByUsername(req.user))) {
+    return res.status(409).json({ error: 'Set up two-factor authentication for your own account first; otherwise you would lock yourself out.', code: 'ENFORCE_2FA_SELF', usersWithout2FA: twoFactorPolicy.summary().without2FA.length })
+  }
   const updated = await orgSettingsStore.update({ require2FA: !!require2FA })
   await auditStore.append({ user: req.user, action: 'settings', resource: 'security', detail: `2FA-Pflicht: ${updated.require2FA ? 'aktiviert' : 'deaktiviert'}` })
-  res.json({ require2FA: updated.require2FA })
+  res.json({ require2FA: updated.require2FA, usersWithout2FA: twoFactorPolicy.summary().without2FA.length })
 })
 
 // Rollenspezifische Einstellungen
@@ -374,26 +398,36 @@ router.get('/admin/ai-settings', requireAuth, authorize('admin'), async (req, re
     aiOllamaUrl:  cfg.aiOllamaUrl  || '',
     aiEmbedModel: cfg.aiEmbedModel || '',
     aiGenModel:   cfg.aiGenModel   || '',
+    aiApiKeySet:  typeof cfg.aiApiKey === 'string' && cfg.aiApiKey.length > 0,          // der Schlüssel selbst wird nie ausgeliefert
+    aiApiKeyFromEnv: !!(process.env.OLLAMA_API_KEY || '').trim(),                      // Rückfall aus der Umgebung (OLLAMA_API_KEY) aktiv
   })
 })
 
 router.put('/admin/ai-settings', requireAuth, authorize('admin'), async (req, res) => {
-  const { aiEnabled, aiOllamaUrl, aiEmbedModel, aiGenModel } = req.body || {}
+  const { aiEnabled, aiOllamaUrl, aiEmbedModel, aiGenModel, aiApiKey, clearAiApiKey } = req.body || {}
   const patch = {}
   if (typeof aiEnabled    === 'boolean') patch.aiEnabled    = aiEnabled
   if (typeof aiOllamaUrl  === 'string')  patch.aiOllamaUrl  = aiOllamaUrl.trim()
   if (typeof aiEmbedModel === 'string')  patch.aiEmbedModel = aiEmbedModel.trim()
   if (typeof aiGenModel   === 'string')  patch.aiGenModel   = aiGenModel.trim()
+  // API-Schlüssel: leer = unverändert; neuer Wert ersetzt; clearAiApiKey entfernt. Muss in eine Kopfzeile passen (kein Zeilenumbruch).
+  let keyAction = ''
+  if (clearAiApiKey === true) { patch.aiApiKey = ''; keyAction = 'entfernt' }
+  else if (typeof aiApiKey === 'string' && aiApiKey.trim() !== '') {
+    const v = require('../ai/ollamaConfig').validateApiKey(aiApiKey)
+    if (v.code) return res.status(400).json({ error: v.code === 'too_long' ? 'The API key is too long (max 512 characters)' : 'The API key may only contain visible ASCII characters (no spaces or line breaks)', code: v.code })
+    patch.aiApiKey = v.value; keyAction = 'gesetzt'
+  }
   const updated = await orgSettingsStore.update(patch)
-  await auditStore.append({ user: req.user, action: 'update', resource: 'ai-settings', detail: `aiEnabled=${updated.aiEnabled}` })
-  res.json({ ok: true, aiEnabled: updated.aiEnabled, aiOllamaUrl: updated.aiOllamaUrl, aiEmbedModel: updated.aiEmbedModel, aiGenModel: updated.aiGenModel })
+  await auditStore.append({ user: req.user, action: 'update', resource: 'ai-settings', detail: `aiEnabled=${updated.aiEnabled}${keyAction ? `, API-Schlüssel ${keyAction}` : ''}` })   // nie der Wert
+  res.json({ ok: true, aiEnabled: updated.aiEnabled, aiOllamaUrl: updated.aiOllamaUrl, aiEmbedModel: updated.aiEmbedModel, aiGenModel: updated.aiGenModel, aiApiKeySet: typeof updated.aiApiKey === 'string' && updated.aiApiKey.length > 0 })
 })
 
 // ── Daten & Wartung ──
 router.get('/admin/export', requireAuth, authorize('admin'), async (req, res) => {
   try {
     const dataDir = DATA_DIR   // (früher fest ../../data: ignorierte DATA_DIR)
-    const jsonFiles = ['templates.json','soa.json','risks.json','entities.json',
+    const jsonFiles = ['templates.json','soa.json','soa-frameworks.json','risks.json','entities.json',
       'rbac_users.json','guidance.json','training.json','public-incidents.json',
       'org-settings.json','custom-lists.json','audit-log.json']
     const bundle = { exportedAt: nowISO(), files: {} }
@@ -420,7 +454,7 @@ router.get('/admin/export', requireAuth, authorize('admin'), async (req, res) =>
 router.post('/admin/maintenance/cleanup', requireAuth, authorize('admin'), async (req, res) => {
   const results = { removed: [], errors: [] }
   try {
-    const attachDir = path.join(__dirname, '../../data/template-files')
+    const attachDir = require('../paths').dataPath('template-files')
     if (fs.existsSync(attachDir)) {
       const store = require('../db/jsonStore')
       const allTemplates = store.getAll ? store.getAll() : []
@@ -441,6 +475,11 @@ router.post('/admin/maintenance/cleanup', requireAuth, authorize('admin'), async
 // ── Demo-Reset ──
 router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, res) => {
   try {
+    // Der Reset leert die JSON-Dateien. Unter sqlite/mariadb/postgres wären die Daten in der Datenbank nicht betroffen — klar ablehnen (wie der Demo-Import).
+    const backend = (process.env.STORAGE_BACKEND || 'json').toLowerCase()
+    if (backend !== 'json') {
+      return res.status(409).json({ error: `Demo reset is only available with STORAGE_BACKEND=json (current: ${backend}). It is a demo function; for other backends use scripts/prepare-production.js or empty the database.` })
+    }
     const dataDir = DATA_DIR
     const bundle = buildFullExport(dataDir)
 
@@ -456,7 +495,7 @@ router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, re
       { file: 'goals.json',           empty: [] },
       { file: 'measures.json',        empty: [] },
       { file: 'assets.json',          empty: [] },
-      { file: 'bcm.json',             empty: { bia: [], plans: [], exercises: [] } },
+      { file: 'bcm.json',             empty: { bia: [], plans: [], exercises: [], requirements: [], assessments: [] } },
       { file: 'suppliers.json',       empty: [] },
       { file: 'audits.json',          empty: [] },
       { file: 'audit-programs.json',  empty: [] },
@@ -465,6 +504,12 @@ router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, re
     for (const { file, empty } of filesToClear) {
       const fp = path.join(dataDir, file)
       if (fs.existsSync(fp)) fs.writeFileSync(fp, JSON.stringify(empty, null, 2))
+    }
+
+    // Dateianhänge der Schulungen gehören zu den Demo-Daten (training.json ist geleert) — sonst blieben verwaiste Dateien zurück
+    const trainingFilesDir = path.join(dataDir, 'training-files')
+    if (fs.existsSync(trainingFilesDir)) {
+      for (const f of fs.readdirSync(trainingFilesDir)) { try { fs.unlinkSync(path.join(trainingFilesDir, f)) } catch { /* schon weg */ } }
     }
 
     // Clear GDPR files
@@ -491,8 +536,10 @@ router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, re
     for (const u of rbac.getAllUsers()) {
       if (u.username !== 'admin') rbac.deleteUser(u.username)
     }
-    await rbac.setPasswordHash('admin', 'adminpass')
+    // Übergabe: Das Anfangspasswort gilt nur für die erste Anmeldung und muss sofort geändert werden (mustChange); danach ist es gesperrt.
+    await rbac.setPasswordHash('admin', 'adminpass', { mustChange: true })
     rbac.setUserTotpSecret('admin', null)
+    productionState.markProduction()   // dauerhafte Markierung „Produktivbetrieb“ (Seed-Passwörter gelten nie wieder)
 
     // Demo-Logo entfernen; der Hinweis „Firmenlogo setzen“ bleibt aktiv, bis ein eigenes Logo hochgeladen ist
     const logoRequired = orgLogo.prepareForProduction()
@@ -501,42 +548,13 @@ router.post('/admin/demo-reset', requireAuth, authorize('admin'), async (req, re
     fs.writeFileSync(FLAG_FILE, nowISO())
     if (fs.existsSync(DEMO_LANG_FILE)) try { fs.unlinkSync(DEMO_LANG_FILE) } catch {}
 
-    // Auf SQLite-Backend umstellen (falls noch nicht gesetzt)
-    // Bewusste Ausnahme von der aktuellen Default-Empfehlung (json, siehe .env.example/#42):
-    // dieser Endpoint ist der Demo→Produktiv-Übergang und war schon vor Issue #42 auf SQLite
-    // ausgelegt (DB-Neuanlage, Restart-Logik). Nicht mitgezogen, bis bewusst entschieden.
-    const envFile = path.join(__dirname, '../../.env')
-    let envSwitched = false
-    let restartRequired = false
-    try {
-      let envContent = fs.existsSync(envFile) ? fs.readFileSync(envFile, 'utf8') : ''
-      const currentBackend = (process.env.STORAGE_BACKEND || 'json').toLowerCase()
+    // Das Speicher-Backend und die .env bleiben unverändert (der Mobile-Sync läuft nur mit STORAGE_BACKEND=json); die Speicher im Prozess
+    // lesen ihre Daten neu ein, ein Neustart des Servers ist nicht nötig.
+    await require('../reloadStores').reloadAll()
 
-      // Ersetze oder ergänze STORAGE_BACKEND=sqlite
-      if (/^#?\s*STORAGE_BACKEND\s*=/m.test(envContent)) {
-        envContent = envContent.replace(/^#?\s*STORAGE_BACKEND\s*=.*/m, 'STORAGE_BACKEND=sqlite')
-      } else {
-        envContent += '\nSTORAGE_BACKEND=sqlite\n'
-      }
-      fs.writeFileSync(envFile, envContent)
-      envSwitched = true
-
-      // SQLite-DB löschen damit sie sauber neu angelegt wird
-      const dbFile = path.join(dataDir, 'isms.db')
-      if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile)
-
-      // Neustart nötig wenn aktuell JSON läuft
-      restartRequired = currentBackend !== 'sqlite'
-    } catch (e) {
-      console.warn('[demo-reset] .env konnte nicht auf SQLite umgestellt werden:', e.message)
-    }
-
-    await auditStore.append({ user: req.user, action: 'demo_reset', resource: 'org', detail: 'Demo-Reset — alle Moduldaten geleert, Benutzer zurückgesetzt, STORAGE_BACKEND=sqlite gesetzt' })
+    await auditStore.append({ user: req.user, action: 'demo_reset', resource: 'org', detail: 'Demo-Reset — alle Moduldaten geleert, Benutzer zurückgesetzt, Speicher-Backend unverändert | ' + (req.get('X-Guide-Read') === '1' ? 'Anleitung zum Produktivbetrieb angezeigt und bestätigt' : 'Anleitung nicht bestätigt (direkter API-Aufruf)') })
     res.setHeader('Content-Disposition', `attachment; filename="isms-demo-export-${new Date().toISOString().slice(0,10)}.json"`)
     res.setHeader('Content-Type', 'application/json')
-    // restartRequired im Header mitgeben damit das Frontend informieren kann
-    res.setHeader('X-Restart-Required', restartRequired ? '1' : '0')
-    res.setHeader('X-Env-Switched', envSwitched ? '1' : '0')
     res.setHeader('X-Logo-Required', logoRequired ? '1' : '0')
     res.json(bundle)
   } catch (e) {
@@ -558,7 +576,7 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
       return res.status(400).json({ error: 'Ungültiges Bundle-Format' })
     }
     const dataDir = DATA_DIR
-    const protectedFiles = new Set(['soa.json', 'custom-lists.json', 'org-settings.json', 'rbac_users.json'])
+    const protectedFiles = new Set(['soa.json', 'soa-frameworks.json', 'custom-lists.json', 'org-settings.json', 'rbac_users.json'])
 
     // Restore module data files
     if (bundle.files && typeof bundle.files === 'object') {
@@ -589,13 +607,9 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
       }
     }
 
-    // Recreate alice and bob with original demo passwords (2FA cleared by default)
+    // Demo-Konten (alice, bob, carla, dana) mit den bekannten Demo-Passwörtern neu anlegen (2FA zurückgesetzt)
     const rbac = require('../rbacStore')
-    const demoUsers = [
-      { username: 'alice', email: 'alice@it.example', domain: 'IT',  role: 'dept_head', functions: [], password: 'alicepass', sections: ['Guidance','Risk'] },
-      { username: 'bob',   email: 'bob@hr.example',   domain: 'HR',  role: 'reader',    functions: [], password: 'bobpass',   sections: [] },
-    ]
-    for (const du of demoUsers) {
+    for (const du of DEMO_USERS) {
       if (rbac.getUserByUsername(du.username)) rbac.deleteUser(du.username)
       await rbac.createUser({ username: du.username, email: du.email, domain: du.domain, role: du.role, functions: du.functions, password: du.password })
       rbac.setUserTotpSecret(du.username, null)
@@ -603,6 +617,8 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
 
     // Remove demo-reset flag if present
     if (fs.existsSync(FLAG_FILE)) fs.unlinkSync(FLAG_FILE)
+    // Der Import stellt die Demo wieder her (Demo-Konten mit öffentlichen Passwörtern): zurück in den Demozustand
+    productionState.clearProduction()
 
     // Re-seed guidance docs (architecture, demo-overview, role guides, soa-guide, policy-guide)
     try {
@@ -617,6 +633,7 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
 
     await adoptRegisterData()
     await auditStore.append({ user: req.user, action: 'demo_import', resource: 'org', detail: 'Demo-Daten importiert — alice/bob wiederhergestellt' })
+    await require('../reloadStores').reloadAll()   // Daten sofort sichtbar, kein Neustart nötig
     res.json({ ok: true, restoredAt: nowISO() })
   } catch (e) {
     res.status(500).json({ error: e.message })
@@ -626,7 +643,7 @@ router.post('/admin/demo-import', requireAuth, authorize('admin'), express.json(
 // ── Seed-Sprache aktualisieren (ohne Bundle-Import) ──────────────────────────
 router.put('/admin/seed-lang', requireAuth, authorize('admin'), express.json(), async (req, res) => {
   const { lang } = req.body || {}
-  const SUPPORTED = ['de', 'en', 'fr', 'nl', 'hu']
+  const SUPPORTED = require('../languages').completeCodes()
   if (!SUPPORTED.includes(lang)) return res.status(400).json({ error: 'Unsupported language' })
   fs.writeFileSync(DEMO_LANG_FILE, JSON.stringify({ lang, setAt: nowISO() }))
   // Re-run all seed functions so guidance docs are immediately updated
@@ -650,7 +667,7 @@ async function adoptRegisterData() {
 router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.json(), async (req, res) => {
   try {
     const { lang } = req.body || {}
-    const SUPPORTED = ['de', 'en', 'fr', 'nl', 'hu']
+    const SUPPORTED = require('../languages').completeCodes()
 
     // Mark lang as set regardless of whether data is loaded (skip = no data, just flag)
     fs.writeFileSync(DEMO_LANG_FILE, JSON.stringify({ lang: lang || 'skip', setAt: nowISO() }))
@@ -670,7 +687,7 @@ router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.
 
     const bundle = JSON.parse(fs.readFileSync(bundleFile, 'utf8'))
     const dataDir = DATA_DIR
-    const protectedFiles = new Set(['soa.json', 'custom-lists.json', 'org-settings.json', 'rbac_users.json'])
+    const protectedFiles = new Set(['soa.json', 'soa-frameworks.json', 'custom-lists.json', 'org-settings.json', 'rbac_users.json'])
     // Das Register gehört zu den Demo-Daten: ein neu geladenes Bundle ersetzt es (sonst blieben Maßnahmen zu verschwundenen Risiken stehen)
     if ((process.env.STORAGE_BACKEND || 'json').toLowerCase() === 'json' && !(bundle.files && bundle.files['measures.json'])) fs.writeFileSync(path.join(dataDir, 'measures.json'), '[]')
 
@@ -703,13 +720,9 @@ router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.
     // Mitgeliefertes ISMS-Builder-Logo (ein eigenes Logo bleibt)
     orgLogo.installDemoLogo()
 
-    // Recreate demo users alice and bob
+    // Demo-Konten (alice, bob, carla, dana) neu anlegen
     const rbac = require('../rbacStore')
-    const demoUsers = [
-      { username: 'alice', email: 'alice@it.example', domain: 'IT', role: 'dept_head', functions: [], password: 'alicepass', sections: ['Guidance','Risk'] },
-      { username: 'bob',   email: 'bob@hr.example',   domain: 'HR', role: 'reader',   functions: [], password: 'bobpass',   sections: [] },
-    ]
-    for (const du of demoUsers) {
+    for (const du of DEMO_USERS) {
       if (rbac.getUserByUsername(du.username)) rbac.deleteUser(du.username)
       await rbac.createUser({ username: du.username, email: du.email, domain: du.domain, role: du.role, functions: du.functions, password: du.password })
       rbac.setUserTotpSecret(du.username, null)
@@ -728,6 +741,7 @@ router.post('/admin/demo-load-bundle', requireAuth, authorize('admin'), express.
 
     await adoptRegisterData()
     await auditStore.append({ user: req.user, action: 'demo_import', resource: 'org', detail: `Demo-Bundle '${lang}' geladen` })
+    await require('../reloadStores').reloadAll()
     res.json({ ok: true, lang, loadedAt: nowISO() })
   } catch (e) {
     res.status(500).json({ error: e.message })

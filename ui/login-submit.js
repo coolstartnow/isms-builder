@@ -75,7 +75,10 @@ async function submitLogin() {
         showSplashThenGo()
       }
     } else {
-      if (data && data.code === 'ENFORCE_2FA') {
+      if (data && data.code === 'SEED_PASSWORD_BLOCKED') {
+        showError(t('lg_seedBlocked'))
+        if (typeof window.showSeedWarning === 'function') window.showSeedWarning()
+      } else if (data && data.code === 'ENFORCE_2FA') {
         // 2FA systemweit erzwungen, aber für diesen Account noch nicht eingerichtet
         showError(t('lg_enforce2fa'))
         const el = document.getElementById('error-msg')

@@ -35,7 +35,8 @@ module.exports = {
 
   query: async ({ user, action, resource, from, to, limit = 200, offset = 0 } = {}) => {
     const q = getDb()('audit_log')
-    if (user)     q.where('user_email', 'like', `%${user}%`)
+    // LIKE-Platzhalter aus der Eingabe (% _) maskieren, damit „%“ nicht alle Einträge liefert; „!“ als Maskierzeichen gilt in SQLite, MySQL/MariaDB und PostgreSQL gleich
+    if (user)     q.whereRaw("user_email LIKE ? ESCAPE '!'", [`%${String(user).replace(/[!%_]/g, '!$&')}%`])
     if (action)   q.where('action', action)
     if (resource) q.where('resource', resource)
     if (from)     q.where('ts', '>=', from)

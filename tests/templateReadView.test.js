@@ -76,7 +76,7 @@ describe('#61 – Bestätigungsseite zeigt kein Rohformat mehr', () => {
   })
 
   test('der Inhalt wird als JSON eingebettet und gerendert', () => {
-    expect(ACK).toMatch(/JSON\.stringify\(policyContent/)
+    expect(ACK).toMatch(/jsonForScript\(policyContent/)   // JSON, aber mit maskiertem "<" (siehe xssPublicPages.test.js)
     expect(ACK).toMatch(/marked\.parse\(/)
   })
 

@@ -13,9 +13,9 @@ function resolveApplicable(applicableEntities, entityId) {
 
 // 1) Compliance per Gesellschaft: Controls applicable + implementiert pro Entity
 async function complianceReport(entityId) {
-  const entity = entityId ? entityStore.getById(entityId) : null
-  const entities = entityId ? (entity ? [entity] : []) : entityStore.getAll()
-  const allControls = soaStore.getAll()
+  const entity = entityId ? await entityStore.getById(entityId) : null
+  const entities = entityId ? (entity ? [entity] : []) : await entityStore.getAll()
+  const allControls = await soaStore.getAll()
 
   return entities.map(e => {
     const applicable = allControls.filter(c =>
@@ -40,11 +40,14 @@ async function complianceReport(entityId) {
 }
 
 // 2) Framework-Abdeckung: Controls pro Framework mit Implementierungsrate
-function frameworkReport(framework) {
-  const fw = soaStore.FRAMEWORKS
-  const frameworks = framework ? [framework] : Object.keys(fw)
-  return frameworks.map(fwId => {
-    const controls = soaStore.getAll({ framework: fwId })
+async function frameworkReport(framework) {
+  // eingebaute und eigene Gruppen (Definition: getFrameworks); defensiv auch Kennungen, die nur in Controls vorkommen
+  const defs = await soaStore.getFrameworks()
+  const fw = Object.fromEntries(defs.map(f => [f.id, f]))
+  const all = await soaStore.getAll()
+  const frameworks = framework ? [framework] : [...Object.keys(fw), ...[...new Set(all.map(c => c.framework))].filter(f => f && !fw[f])]
+  const rows = await Promise.all(frameworks.map(async fwId => {
+    const controls = all.filter(c => c.framework === fwId)
     const applicable = controls.filter(c => c.applicable)
     const byStatus = { not_started: 0, partial: 0, implemented: 0, optimized: 0 }
     for (const c of applicable) {
@@ -61,12 +64,13 @@ function frameworkReport(framework) {
       implementationRate: applicable.length > 0
         ? Math.round((byStatus.implemented + byStatus.optimized) / applicable.length * 100) : 0
     }
-  })
+  }))
+  return rows
 }
 
 // 3) Gap-Analyse: Controls ohne verknüpfte Templates
 async function gapReport(entityId) {
-  const allControls = soaStore.getAll()
+  const allControls = await soaStore.getAll()
   const gaps = allControls.filter(c => {
     if (!c.applicable) return false
     if (entityId && !resolveApplicable(c.applicableEntities, entityId)) return false
@@ -242,8 +246,8 @@ async function risksReport({ entityId, category, status } = {}) {
 
 // 9) Compliance-Matrix: Control × Gesellschaft → Ampel-Status
 async function complianceMatrixReport(framework) {
-  const entities = entityStore.getAll()
-  const allControls = soaStore.getAll(framework ? { framework } : {})
+  const entities = await entityStore.getAll()
+  const allControls = await soaStore.getAll(framework ? { framework } : {})
   const applicable = allControls.filter(c => c.applicable)
 
   const matrix = applicable.map(ctrl => {
@@ -275,7 +279,7 @@ async function exportCsv(type, { entityId, framework, from, to, lang } = {}) {
       return csvExport([H('entity'), 'Framework', H('applicable'), H('implemented'), H('rate')], rows)
     }
     case 'framework': {
-      const data = frameworkReport(framework)
+      const data = await frameworkReport(framework)
       return csvExport(
         ['Framework', H('label'), H('controlsTotal'), H('applicable'), H('notApplicable'), H('implemented'), H('rate')],
         data.map(f => [f.framework, f.label, f.total, f.applicable, f.notApplicable,

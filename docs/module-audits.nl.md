@@ -116,6 +116,12 @@ definitief worden verwijderd.
 
 ---
 
+## Kaders: ISO, NEN 7510, TISAX
+
+Een controlepunt kan verwijzen naar elke control in de VvT — ook naar de controls van eigen groepen zoals NEN 7510 of TISAX (de ID staat in de suggestielijst van het veld ‘Control’). De auditmodule ondersteunt planning, uitvoering en opvolging van interne audits; hij vervangt geen certificering en geen TISAX-assessment.
+
+> **Juridische kennisgeving:** De normteksten van ISO 27001/9000/9001, NEN 7510 en de TISAX-beoordelingscatalogi (VDA ISA) vallen onder de rechten van hun uitgevers (auteurs- en merkenrecht) en worden niet met ISMS Builder meegeleverd. Voorbeeld-controls in demogegevens zijn eigen, verzonnen plaatsaanduidingsteksten zonder verband met de formulering van de normen — onvolledig en bruikbaar noch voor certificeringen noch voor TISAX-assessments. Importeer alleen teksten die u mag gebruiken. Dit is geen juridisch advies.
+
 ## Auditremark
 
 Alle wijzigingen worden vastgelegd in het auditlogboek. Auditbeheer vervangt geen rapport van een certificeringsinstelling,

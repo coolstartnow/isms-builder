@@ -111,6 +111,14 @@ unique pour leur libellé — généralement la langue de l'entreprise. La réin
 
 ---
 
+## Trier la liste et retrouver les actifs
+
+La liste **Tous les actifs** est triée par défaut par **catégorie → type → nom** (ordre alphabétique dans la langue de l'interface ; les nombres sont ordonnés naturellement, « Laptop 2 » vient avant « Laptop 10 » ; un actif sans type est placé en dernier dans sa catégorie). Un actif nouvellement créé apparaît donc à sa place et non plus tout en bas ; après l'enregistrement, la ligne est brièvement mise en évidence et amenée à l'écran, les filtres et la recherche actifs sont conservés.
+
+Un clic sur un **en-tête de colonne** (nom, type, besoin de protection, classification, criticité, responsable, statut, fin de vie) trie par ordre croissant puis, au deuxième clic, décroissant ; un troisième clic rétablit l'ordre par défaut. Les valeurs vides sont toujours en dernier. Le navigateur mémorise la colonne choisie. Seul l'affichage est trié ; l'ordre dans les exports et l'interface de programmation ne change pas.
+
+Dans l'onglet **Par catégorie**, les catégories sont classées par ordre alphabétique, les actifs étant triés par type et par nom. Les comptes avec droit de modification peuvent aussi y modifier (icône crayon ; les administrateurs peuvent aussi supprimer) ; après l'enregistrement, on revient à cet onglet.
+
 ## Classification et criticité
 
 La **classification** décrit le besoin de protection en termes de confidentialité :

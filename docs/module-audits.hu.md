@@ -116,6 +116,12 @@ véglegesen törölhetik őket.
 
 ---
 
+## Keretrendszerek: ISO, NEN 7510, TISAX
+
+Egy ellenőrzési pont az SoA bármely kontrolljára hivatkozhat — az egyéni csoportok kontrolljaira is, például a NEN 7510-re vagy a TISAX-ra (az azonosító a „Kontroll” mező javaslatlistájában szerepel). Az audit modul a belső auditok tervezését, lebonyolítását és nyomon követését segíti; nem helyettesíti sem a tanúsítást, sem a TISAX-értékelést.
+
+> **Jogi megjegyzés:** Az ISO 27001/9000/9001, a NEN 7510 és a TISAX értékelési katalógusok (VDA ISA) szabványszövegeire a kiadóik jogai (szerzői jog és védjegyjog) vonatkoznak, és az ISMS Builder nem szállítja őket. A demóadatokban lévő példa-kontrollok saját, kitalált helyőrző szövegek, a szabványok szövegéhez nincs közük — hiányosak, és sem tanúsításra, sem TISAX-értékelésre nem használhatók. Csak olyan szöveget importáljon, amelynek használatára jogosult. Ez nem jogi tanács.
+
 ## Audit-megjegyzés
 
 Minden módosítás bekerül az auditnaplóba. Az auditkezelés nem helyettesíti a tanúsító szervezet jelentését,

@@ -2,6 +2,7 @@
 
 const { getDb, init: initDb } = require('../knexDatabase')
 const triage = require('../supplierTriage')
+const evidence = require('../../supplierEvidence')
 
 function nowISO() { return new Date().toISOString() }
 function makeId() { return `sup_${require('crypto').randomBytes(4).toString('hex')}` }
@@ -21,6 +22,7 @@ function rowToSupplier(row) {
     dataCategories: d.dataCategories || [],
     securityRequirements: d.securityRequirements || [],
     lastAuditDate: d.lastAuditDate || '', nextAuditDate: row.next_audit || '',
+    evidenceUrl: d.evidenceUrl || '', evidenceLabel: d.evidenceLabel || '', evidenceValidUntil: d.evidenceValidUntil || '',
     auditResult: d.auditResult || 'not_scheduled',
     contractId: d.contractId || '', avContractId: d.avContractId || '',
     riskScore: d.riskScore || 0,
@@ -48,6 +50,7 @@ function packData(s) {
     dataAccess: s.dataAccess, dataCategories: s.dataCategories || [],
     securityRequirements: s.securityRequirements || [],
     lastAuditDate: s.lastAuditDate, auditResult: s.auditResult,
+    evidenceUrl: s.evidenceUrl || '', evidenceLabel: s.evidenceLabel || '', evidenceValidUntil: s.evidenceValidUntil || '',
     contractId: s.contractId, avContractId: s.avContractId,
     riskScore: s.riskScore, linkedPolicies: s.linkedPolicies || [],
     deletedBy: s.deletedBy || '', updatedBy: s.updatedBy || '',
@@ -86,6 +89,7 @@ module.exports = {
       dataCategories: Array.isArray(fields.dataCategories) ? fields.dataCategories : [],
       securityRequirements: Array.isArray(fields.securityRequirements) ? fields.securityRequirements : [],
       lastAuditDate: fields.lastAuditDate || '', nextAuditDate: fields.nextAuditDate || '',
+      evidenceUrl: evidence.clean(fields.evidenceUrl), evidenceLabel: evidence.clean(fields.evidenceLabel), evidenceValidUntil: evidence.clean(fields.evidenceValidUntil),
       auditResult: fields.auditResult || 'not_scheduled',
       contractId: fields.contractId || '', avContractId: fields.avContractId || '',
       riskScore: typeof fields.riskScore === 'number' ? fields.riskScore : (parseInt(fields.riskScore) || 0),
@@ -120,6 +124,9 @@ module.exports = {
       'riskScore','notes','linkedControls','linkedPolicies','applicableEntities','contractEnd']
     for (const k of allowed) {
       if (patch[k] !== undefined) s[k] = patch[k]
+    }
+    for (const k of evidence.FIELDS) {
+      if (patch[k] !== undefined) s[k] = evidence.clean(patch[k])
     }
     if (patch.triage !== undefined) {
       s.triage = triage.normalizeTriage({ ...s.triage, ...patch.triage })
@@ -197,6 +204,11 @@ module.exports = {
       })(),
       triageUnassessed: list.map(i => triage.computeTriageResult(i.triage).level).filter(l => l === 'unassessed').length,
     }
+  },
+
+  getUpcomingEvidenceExpiries: async (days = 60) => {
+    const rows = await getDb()('suppliers').whereNull('deleted_at')
+    return evidence.expiring(rows.map(rowToSupplier), days)
   },
 
   getUpcomingAudits: async (days = 30) => {

@@ -23,11 +23,14 @@ Das ISMS Builder automatisiert diesen Prozess vollständig:
 
 | Aktion | Mindestrolle |
 |---|---|
-| Bestätigungsübersicht einsehen | `reader` |
+| Kennzahlen im Dashboard sehen („Aktive Verteilrunden“, „Ausstehende Bestätigungen“) | `reader` |
+| Verteilungsübersicht und Details der Bestätigungen einsehen (Menüpunkt „Richtlinien-Bestätigungen“) | `contentowner` |
 | Verteilung anlegen und versenden | `contentowner` |
 | Erinnerung verschicken | `contentowner` |
 | Bestätigung manuell erfassen oder importieren | `contentowner` |
 | Verteilung löschen | `admin` |
+
+Reader sehen nur die zusammengefassten Zahlen im Dashboard. Die Empfängerlisten mit E-Mail-Adresse, Name, Zeitpunkt und IP-Adresse der Bestätigung sind dem Content Owner vorbehalten, weil sie personenbezogene Daten enthalten.
 
 ---
 

@@ -5,7 +5,7 @@
  *
  *   POST /sync/enroll                         Gerät einrichten (Einrichtungscode → Geräteschlüssel)
  *   GET  /sync/me                             Name, Rechte und Gültigkeit des Zugangs
- *   GET  /sync/pull?since=<ISO>&modules=a,b   Änderungen seit `since` (inkl. Soft-Deletes)
+ *   GET  /sync/pull?since=<ISO>&modules=a,b   Änderungen seit `since` (inkl. Soft-Deletes); `epoch` (server/syncEpoch.js): ändert sie sich, holt das Gerät einmal alles
  *   POST /sync/push                           Änderungen vom Gerät einspielen
  *
  * Zugang: ausschließlich über ein Sync-Konto (Verwaltung → Benutzer → Sync-Konten), Header
@@ -33,7 +33,8 @@ const loginThrottle = require('../loginThrottle')
 
 const SYNC_PROTOCOL = 2   // 2: Maßnahmen (abgeleitete Rechte), Antwort enthält visibleIds
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../../data')
-const MAX_BODY = '20mb'
+const MAX_BODY = '20mb'            // Push: wird erst NACH der Schlüsselprüfung gelesen (Unangemeldete können keine großen Bodies erzwingen)
+const ENROLL_MAX_BODY = '4kb'      // Einrichtung ohne Anmeldung: nur Code und Gerätename
 const FORBIDDEN_IDS = new Set(['__proto__', 'constructor', 'prototype'])
 const ROLE_RANK = { reader: 1, revision: 1, editor: 2, dept_head: 2, qmb: 2, contentowner: 3, auditor: 3, admin: 4 }
 const GUIDANCE_RANK = 1   // ein Sync-Konto sieht Guidance wie ein Leser (minRole „reader“)
@@ -46,6 +47,9 @@ const MODULES = {
   assets:    { file: 'assets.json',    kind: 'array' },
   findings:  { file: 'findings.json',  kind: 'array' },
   guidance:  { file: 'guidance.json',  kind: 'array' },
+  // Eigene SoA-Gruppen (Definitionen: Kennung, Bezeichnung, Farbe). Eigenes Recht `soaFrameworks`; lesen darf auch, wer SoA lesen darf
+  // (ohne die Definitionen blieben die Controls einer eigenen Gruppe ohne Namen). Schreiben nur mit `soaFrameworks: write`.
+  soaFrameworks: { file: 'soa-frameworks.json', kind: 'array', frameworks: true },
   // Maßnahmen: kein eigenes Recht im Sync-Konto, Zugriff je Datensatz aus den verknüpften Modulen (db/measureAccess.js)
   measures:  { file: 'measures.json',  kind: 'array', derived: true },
 }
@@ -84,7 +88,8 @@ function requireSyncAccount(req, res, next) {
   next()
 }
 
-const canRead  = (acc, mod) => acc.permissions[mod] === 'read' || acc.permissions[mod] === 'write'
+const hasLevel = (acc, mod) => acc.permissions[mod] === 'read' || acc.permissions[mod] === 'write'
+const canRead  = (acc, mod) => hasLevel(acc, mod) || (mod === 'soaFrameworks' && hasLevel(acc, 'soa'))
 const canWrite = (acc, mod) => acc.permissions[mod] === 'write'
 
 function nowISO() { return new Date().toISOString() }
@@ -116,6 +121,10 @@ function changeTime(r) {
   return [r.updatedAt, r.deletedAt, r.createdAt].filter(x => typeof x === 'string').sort().pop() || ''
 }
 
+// Kennungen NEUER Datensätze: nur Buchstaben, Ziffern und _ . : - (die Oberfläche setzt Kennungen in Ereignis-Attribute ein; GHSA-m8g6-pq5j-2r9r, Nachtrag).
+// Bestehende Datensätze behalten ihre Kennung, auch wenn sie aus älteren Importen davon abweicht.
+const SAFE_NEW_ID = /^[A-Za-z0-9_.:-]+$/
+
 function validId(id) {
   return typeof id === 'string' && id.length > 0 && id.length <= 200 && !FORBIDDEN_IDS.has(id)
 }
@@ -124,6 +133,40 @@ function parseModules(raw) {
   const wanted = raw ? String(raw).split(',').map(s => s.trim()).filter(Boolean) : Object.keys(MODULES)
   const unknown = wanted.filter(m => !Object.prototype.hasOwnProperty.call(MODULES, m))
   return { wanted, unknown }
+}
+
+// Eigene SoA-Gruppen einspielen: gleiche Prüfungen wie in der Verwaltung (soaFrameworkDefs); Löschen nur, wenn die Gruppe keine Controls mehr hat.
+// Gelöschte Gruppen bleiben als Löschmarkierung (deletedAt) stehen, damit andere Geräte das Löschen übernehmen.
+function pushFrameworks(incoming, req, result) {
+  const defs = require('../soaFrameworkDefs')
+  const mod = 'soaFrameworks'
+  const data = loadRecords(mod)
+  const accepted = [], conflicts = []
+  let dirty = false
+  for (const rec of incoming) {
+    if (!rec || typeof rec !== 'object' || !validId(rec.id)) { result.rejected.push({ module: mod, id: rec && rec.id, reason: 'ungültiger Datensatz/ID' }); continue }
+    const idx = data.findIndex(f => f && f.id === rec.id)
+    const existing = idx >= 0 ? data[idx] : undefined
+    if (existing && (typeof rec.baseUpdatedAt !== 'string' || changeTime(existing) > rec.baseUpdatedAt)) { conflicts.push({ id: rec.id, server: existing }); continue }
+    const stamp = nowISO()
+    let merged
+    if (rec.deletedAt) {
+      if (!existing || existing.deletedAt) { result.rejected.push({ module: mod, id: rec.id, reason: 'Gruppe nicht gefunden' }); continue }
+      const used = Object.values(loadRecords('soa')).some(c => c && c.framework === rec.id && !c.deletedAt)
+      if (used) { result.rejected.push({ module: mod, id: rec.id, reason: 'Die Gruppe enthält noch Controls' }); continue }
+      merged = { ...existing, deletedAt: stamp, deletedBy: req.user, updatedAt: stamp, updatedBy: req.user }
+    } else {
+      const v = defs.validateDefinition({ id: rec.id, label: rec.label, color: rec.color })
+      if (v.code) { result.rejected.push({ module: mod, id: rec.id, reason: `ungültige Gruppe (${v.code})` }); continue }
+      if (existing && !existing.deletedAt) merged = { ...existing, label: v.value.label, color: v.value.color, updatedAt: stamp, updatedBy: req.user }
+      else merged = { ...v.value, createdAt: stamp, createdBy: req.user, updatedAt: stamp, updatedBy: req.user }   // neu oder über einer Löschmarkierung
+    }
+    if (idx >= 0) data[idx] = merged; else data.push(merged)
+    accepted.push(merged); dirty = true
+  }
+  if (dirty) saveRecords(mod, data)
+  result.accepted[mod] = accepted
+  result.conflicts[mod] = conflicts
 }
 
 // Maßnahmen einspielen: Rechte je Datensatz aus den verknüpften Modulen, geschützte Felder bleiben unverändert.
@@ -141,6 +184,7 @@ function pushMeasures(incoming, acc, req, result) {
     // Geschützte bzw. abgeleitete Felder kommen nie aus der App
     delete fields.attachments
     const existing = index.has(rec.id) ? data[index.get(rec.id)] : undefined
+    if (!existing && !SAFE_NEW_ID.test(rec.id)) { reject(rec, 'invalid', 'ungültige ID (erlaubt: Buchstaben, Ziffern, _ . : -)'); continue }
 
     if (existing && !measureAccess.modulesOf(existing).length) { reject(rec, 'unlinked', 'Maßnahme ohne Verknüpfung wird nicht synchronisiert'); continue }
     const verdict = measureAccess.canWrite(existing || null, fields, acc.permissions)
@@ -183,7 +227,7 @@ router.get('/sync/me', requireSyncAccount, (req, res) => {
 
 // Gerät einrichten: Einrichtungscode (aus dem QR-Code) gegen einen Geräteschlüssel tauschen. Ohne Anmeldung, aber
 // ausgebremst; der Code ist einmalig und nur kurz gültig.
-router.post('/sync/enroll', jsonBackendOnly, async (req, res) => {
+router.post('/sync/enroll', express.json({ limit: ENROLL_MAX_BODY }), require('../jsonDepth').middleware, jsonBackendOnly, async (req, res) => {
   const body = req.body || {}
   const ident = 'enroll'
   const delay = loginThrottle.getRequiredDelayMs(ident, req.ip)
@@ -230,12 +274,12 @@ router.get('/sync/pull', requireSyncAccount, jsonBackendOnly, (req, res) => {
     if (since) list = list.filter(r => changeTime(r) > since)
     out[mod] = list
   }
-  const body = { protocolVersion: SYNC_PROTOCOL, serverTime, modules: out, denied }
+  const body = { protocolVersion: SYNC_PROTOCOL, serverTime, epoch: require('../syncEpoch').get(), modules: out, denied }
   if (visibleIds) body.visibleIds = { measures: visibleIds }
   res.json(body)
 })
 
-router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ limit: MAX_BODY }), async (req, res) => {
+router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ limit: MAX_BODY }), require('../jsonDepth').middleware, async (req, res) => {
   const acc = req.syncAccount
   const body = req.body
   if (!body || typeof body !== 'object' || typeof body.changes !== 'object' || body.changes === null) {
@@ -255,6 +299,10 @@ router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ li
     const incoming = body.changes[mod]
     if (!Array.isArray(incoming)) { result.rejected.push({ module: mod, reason: 'changes muss ein Array sein' }); continue }
     if (def.derived) { pushMeasures(incoming, acc, req, result); total += (result.accepted[mod] || []).length; continue }
+    if (def.frameworks) {
+      if (!canWrite(acc, mod)) { result.rejected.push({ module: mod, reason: 'Keine Schreibrechte für dieses Modul' }); continue }
+      pushFrameworks(incoming, req, result); total += (result.accepted[mod] || []).length; continue
+    }
     if (mod === 'guidance' || !canWrite(acc, mod)) {
       result.rejected.push({ module: mod, reason: mod === 'guidance' ? 'Modul ist nur lesbar' : 'Keine Schreibrechte für dieses Modul' })
       continue
@@ -276,6 +324,10 @@ router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ li
       const existing = def.kind === 'array'
         ? (index.has(rec.id) ? data[index.get(rec.id)] : undefined)
         : (Object.prototype.hasOwnProperty.call(data, rec.id) ? data[rec.id] : undefined)
+      if (!existing && !SAFE_NEW_ID.test(rec.id)) {
+        result.rejected.push({ module: mod, id: rec.id, reason: 'ungültige ID (erlaubt: Buchstaben, Ziffern, _ . : -)' })
+        continue
+      }
 
       if (existing && (typeof baseUpdatedAt !== 'string' || changeTime(existing) > baseUpdatedAt)) {
         conflicts.push({ id: rec.id, server: existing })
@@ -283,18 +335,21 @@ router.post('/sync/push', requireSyncAccount, jsonBackendOnly, express.json({ li
       }
 
       const stamp = nowISO()
-      const merged = { ...fields, id: rec.id, updatedAt: stamp }
+      // Autorenangaben setzt immer der Server: Was die App in createdBy/updatedBy/deletedBy mitschickt, wird nicht übernommen.
+      const merged = { ...fields, id: rec.id, updatedAt: stamp, updatedBy: req.user }
+      delete merged.createdBy; delete merged.deletedBy
       if (existing) {
         merged.createdAt = existing.createdAt || merged.createdAt
+        if (existing.createdBy !== undefined) merged.createdBy = existing.createdBy
         for (const k of PRESERVE_ON_UPDATE[mod] || []) {
           if (existing[k] !== undefined) merged[k] = existing[k]
         }
       } else {
         merged.createdAt = merged.createdAt || stamp
-        merged.createdBy = merged.createdBy || req.user
+        merged.createdBy = req.user
         for (const k of PRESERVE_ON_UPDATE[mod] || []) merged[k] = []
       }
-      if (merged.deletedAt) { merged.deletedAt = stamp; merged.deletedBy = merged.deletedBy || req.user }
+      if (merged.deletedAt) { merged.deletedAt = stamp; merged.deletedBy = req.user }
 
       if (def.kind === 'array') {
         if (existing) data[index.get(rec.id)] = merged

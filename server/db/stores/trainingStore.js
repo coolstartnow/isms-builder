@@ -1,6 +1,7 @@
 'use strict'
 
 const { getDb, init: initDb } = require('../knexDatabase')
+const trainingFiles = require('../../trainingFiles')
 
 function nowISO() { return new Date().toISOString() }
 function makeId() { return `training_${Date.now()}_${Math.random().toString(36).slice(2,6)}` }
@@ -27,6 +28,7 @@ function rowToTraining(row) {
     evidence: row.evidence, mandatory: !!row.mandatory,
     linkedControls: d.linkedControls || [],
     linkedPolicies: d.linkedPolicies || [],
+    attachments: trainingFiles.publicAttachments(d.attachments),
     deletedBy: d.deletedBy || '',
     createdBy: row.created_by, createdAt: row.created_at,
     updatedAt: row.updated_at, deletedAt: row.deleted_at || null,
@@ -144,6 +146,7 @@ module.exports = {
     const row = await getDb()('training').where('id', id).whereNull('deleted_at').first()
     if (!row) return null
     const item = rowToTraining(row)
+    const d0 = _json(row.data, {})
     const allowed = ['title','description','category','status','dueDate','completedDate',
       'instructor','assignees','applicableEntities','evidence','mandatory','linkedControls','linkedPolicies']
     for (const k of allowed) {
@@ -160,7 +163,7 @@ module.exports = {
       instructor: item.instructor, assignees: item.assignees,
       applicable_entities: JSON.stringify(item.applicableEntities || []),
       evidence: item.evidence, mandatory: item.mandatory ? 1 : 0,
-      data: JSON.stringify({ linkedControls: item.linkedControls || [], linkedPolicies: item.linkedPolicies || [] }),
+      data: JSON.stringify({ ...d0, linkedControls: item.linkedControls || [], linkedPolicies: item.linkedPolicies || [] }),
       updated_at: item.updatedAt,
     })
     return { ...item, overdue: isOverdue(item) }
@@ -178,6 +181,8 @@ module.exports = {
   },
 
   permanentDelete: async (id) => {
+    const old = await getDb()('training').where('id', id).first()
+    for (const a of (old ? _json(old.data, {}).attachments || [] : [])) trainingFiles.removeFile(a.filename)
     const affected = await getDb()('training').where('id', id).del()
     return affected > 0
   },
@@ -196,6 +201,30 @@ module.exports = {
   getDeleted: async () => {
     const rows = await getDb()('training').whereNotNull('deleted_at')
     return rows.map(rowToTraining)
+  },
+
+  // Anhänge: Metadaten im Feld `data`; entfernte Anhänge werden nur markiert, die Datei bleibt erhalten
+  addAttachment: async (id, meta) => {
+    const row = await getDb()('training').where('id', id).whereNull('deleted_at').first()
+    if (!row) return null
+    const d = _json(row.data, {})
+    d.attachments = [...(d.attachments || []), meta]
+    await getDb()('training').where('id', id).update({ data: JSON.stringify(d), updated_at: nowISO() })
+    return meta
+  },
+  getAttachment: async (id, attId) => {
+    const row = await getDb()('training').where('id', id).whereNull('deleted_at').first()
+    return (row && (_json(row.data, {}).attachments || []).find(a => a.id === attId && !a.removedAt)) || null
+  },
+  removeAttachment: async (id, attId, by) => {
+    const row = await getDb()('training').where('id', id).whereNull('deleted_at').first()
+    if (!row) return null
+    const d = _json(row.data, {})
+    const att = (d.attachments || []).find(a => a.id === attId && !a.removedAt)
+    if (!att) return null
+    att.removedAt = nowISO(); att.removedBy = by || null
+    await getDb()('training').where('id', id).update({ data: JSON.stringify(d), updated_at: nowISO() })
+    return att
   },
 
   CATEGORIES, STATUSES,

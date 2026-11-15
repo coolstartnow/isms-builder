@@ -22,11 +22,14 @@ Az ISMS Builder ezt a folyamatot teljes mértékben automatizálja:
 
 | Művelet | Minimális szerepkör |
 |---|---|
-| Visszaigazolás-áttekintő megtekintése | `reader` |
+| Az Irányítópult összesítő adatainak megtekintése („Aktív terjesztések”, „Függőben lévő tudomásul vételek”) | `reader` |
+| A terjesztések áttekintésének és a visszaigazolások részleteinek megtekintése („Szabályzat-visszaigazolások” menüpont) | `contentowner` |
 | Terjesztés létrehozása és elküldése | `contentowner` |
 | Emlékeztető küldése | `contentowner` |
 | Visszaigazolás manuális rögzítése vagy importálása | `contentowner` |
 | Terjesztés törlése | `admin` |
+
+Az olvasók csak az összesített számokat látják az Irányítópulton. A címzettlisták (e-mail-cím, név, a visszaigazolás időpontja és IP-címe) a contentowner számára vannak fenntartva, mert személyes adatokat tartalmaznak.
 
 ---
 

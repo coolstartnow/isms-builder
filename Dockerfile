@@ -29,6 +29,8 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy application source (kein data/ – wird als Bind-Mount gemountet)
 COPY server ./server
 COPY ui     ./ui
+COPY scripts/set-password.js ./scripts/set-password.js
+COPY scripts/emergency-2fa.js ./scripts/emergency-2fa.js
 # docs/ + die vier Root-Markdown-Dateien: werden von den Guidance-Seeds
 # (ARCH_SEED in guidanceStore.js) zur Laufzeit eingelesen. .dockerignore
 # filtert die grossen/internen Teile (docs/private, docs/community, ...)

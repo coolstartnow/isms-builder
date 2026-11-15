@@ -52,14 +52,17 @@ function fmt(dateStr) {
 
 // ── HTML-Template ────────────────────────────────────────────────────────────
 
+// Texte aus den Registern (Titel, Namen, Status) stehen als reiner Text in der Mail, nie als HTML.
+const escMail = v => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
 function buildDigest(orgName, sections) {
   const sectionHtml = sections.map(({ heading, items }) => `
-    <h3 style="color:#de350b;margin:20px 0 8px">${heading}</h3>
+    <h3 style="color:#de350b;margin:20px 0 8px">${escMail(heading)}</h3>
     <table style="border-collapse:collapse;width:100%;font-size:14px">
       <tbody>
         ${items.map(row => `<tr>
-          <td style="padding:6px 12px 6px 0;border-bottom:1px solid #eee;font-weight:600">${row.label}</td>
-          <td style="padding:6px 0;border-bottom:1px solid #eee;color:#666">${row.detail}</td>
+          <td style="padding:6px 12px 6px 0;border-bottom:1px solid #eee;font-weight:600">${escMail(row.label)}</td>
+          <td style="padding:6px 0;border-bottom:1px solid #eee;color:#666">${escMail(row.detail)}</td>
         </tr>`).join('')}
       </tbody>
     </table>`).join('')
@@ -70,7 +73,7 @@ function buildDigest(orgName, sections) {
 <body style="font-family:Arial,sans-serif;color:#333;max-width:700px;margin:0 auto;padding:24px">
   <div style="background:#0052cc;padding:16px 24px;border-radius:6px 6px 0 0">
     <h2 style="color:#fff;margin:0">${T('srv_dg_title')}</h2>
-    <p style="color:#bfdbfe;margin:4px 0 0">${orgName}</p>
+    <p style="color:#bfdbfe;margin:4px 0 0">${escMail(orgName)}</p>
   </div>
   <div style="background:#f9fafb;padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px">
     ${sectionHtml}
@@ -335,4 +338,4 @@ async function start() {
   }, 60_000)
 }
 
-module.exports = { start, runDailyChecks, collectDigests }
+module.exports = { start, runDailyChecks, collectDigests, buildDigest }

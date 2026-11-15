@@ -4,7 +4,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const DB_ROOT = require('path').join(__dirname, '../data')
+const DB_ROOT = require('./paths').dataDir()
 const DB_FILE = require('path').join(DB_ROOT, 'rbac_users.json')
 function ensureDir() { if (!fs.existsSync(DB_ROOT)) fs.mkdirSync(DB_ROOT, { recursive: true }) }
 function load() {

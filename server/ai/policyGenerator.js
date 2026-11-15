@@ -4,15 +4,8 @@
 // Erzeugt einen Markdown-Entwurf per Ollama. Der Prompt kommt ausschließlich aus ./safeDraft.js: Dokument aus der festen
 // Titelliste, Sprache, optional ein kurzer, gefilterter Hinweis. Keine Firmen-, Personen- oder Systemdaten gehen hinaus;
 // das Modell schreibt mit Platzhaltern, die der Aufrufer danach lokal füllt (safeDraft.fillPlaceholders).
-const { ollamaUrl } = require('./ollamaConfig')
+const { ollamaFetch, genModel } = require('./ollamaConfig')
 const safeDraft = require('./safeDraft')
-
-function genModel() {
-  try {
-    const cfg = require('../db/orgSettingsStore').get()
-    return (cfg.aiGenModel && cfg.aiGenModel.trim()) || 'llama3.2:3b'
-  } catch { return 'llama3.2:3b' }
-}
 
 /**
  * Sendet einen bereits geprüften Prompt an Ollama und liefert den bereinigten Markdown-Text.
@@ -22,13 +15,10 @@ function genModel() {
 async function generateFromPrompt(prompt) {
   let res
   try {
-    res = await fetch(ollamaUrl() + '/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: genModel(), prompt, stream: false }),
-      signal: AbortSignal.timeout(60_000),
-    })
+    res = await ollamaFetch('/api/generate', { method: 'POST', body: { model: await genModel(), prompt, stream: false }, timeout: 60_000 })
   } catch (e) {
+    // Mit API-Schlüssel werden Weiterleitungen nicht verfolgt (der Schlüssel soll nie an eine andere Adresse gehen) → klare Meldung
+    if (/redirect/i.test(String((e && e.cause && e.cause.message) || ''))) throw new Error('Ollama leitet auf eine andere Adresse weiter; mit API-Schlüssel werden Weiterleitungen nicht verfolgt. Bitte die Adresse in den KI-Einstellungen anpassen.')
     throw new Error(`Ollama nicht erreichbar: ${e.message}`)
   }
 

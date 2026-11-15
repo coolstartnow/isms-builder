@@ -129,6 +129,9 @@
           <button id="btnEntities" class="btn btn-secondary btn-sm" onclick="openEntityPickerForTemplate()">
             <i class="ph ph-buildings"></i> <span data-i18n="tmpl_appliesTo">Gilt für</span>
           </button>
+          <button id="btnFillPh" class="btn btn-secondary btn-sm" style="display:none;" onclick="fillPlaceholders()" title="{{COMPANY_NAME}}">
+            <i class="ph ph-textbox"></i> <span data-i18n="tmpl_fillPh">Platzhalter füllen</span>
+          </button>
           <button id="btnAiDraft" class="btn btn-secondary btn-sm" style="display:none;" onclick="aiDraftPolicy()">
             <i class="ph ph-sparkle"></i> <span data-i18n="tmpl_aiDraft">Mit KI entwerfen</span>
           </button>
@@ -181,6 +184,13 @@
             <button class="btn btn-secondary btn-sm" onclick="exportTemplateSet()" title="PDF">
               <i class="ph ph-file-pdf"></i> <span data-i18n="tmpl_exportSet">Auswahl als PDF</span>
             </button>
+            <button class="btn btn-secondary btn-sm" onclick="exportTemplatesCsv()" title="CSV">
+              <i class="ph ph-file-csv"></i> <span data-i18n="tmpl_csvExport">CSV exportieren</span>
+            </button>
+            <button id="btnTmplCsvImport" class="btn btn-secondary btn-sm" style="display:none;" onclick="document.getElementById('tmplCsvFile').click()" title="CSV">
+              <i class="ph ph-upload-simple"></i> <span data-i18n="tmpl_csvImport">CSV importieren</span>
+            </button>
+            <input type="file" id="tmplCsvFile" accept=".csv,text/csv" style="display:none;" onchange="importTemplatesCsv(this)">
           </div>
         </div>
         <ul id="templateList" class="template-list"></ul>
@@ -237,6 +247,7 @@
 
   <script src="vendor/marked.min.js"></script>
   <script src="vendor/purify.min.js"></script>
+  <script src="/ui/i18n/languages.js"></script>
   <script src="/ui/i18n/t.js"></script>
   <script src="/ui/i18n/translations.js"></script>
   <script>

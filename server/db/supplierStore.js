@@ -8,6 +8,7 @@ const _BASE = process.env.DATA_DIR || path.join(__dirname, '../../data')
 const FILE  = path.join(_BASE, 'suppliers.json')
 
 const triage = require('./supplierTriage')
+const evidence = require('../supplierEvidence')
 
 function _withTriageResult(item) {
   if (!item) return item
@@ -58,6 +59,9 @@ function create(fields, { createdBy } = {}) {
     securityRequirements: Array.isArray(fields.securityRequirements) ? fields.securityRequirements : [],
     lastAuditDate:        fields.lastAuditDate        || '',
     nextAuditDate:        fields.nextAuditDate        || '',
+    evidenceUrl:          evidence.clean(fields.evidenceUrl),
+    evidenceLabel:        evidence.clean(fields.evidenceLabel),
+    evidenceValidUntil:   evidence.clean(fields.evidenceValidUntil),
     auditResult:          fields.auditResult          || 'not_scheduled',
     contractId:           fields.contractId           || '',
     avContractId:         fields.avContractId         || '',
@@ -88,6 +92,9 @@ function update(id, patch, { changedBy } = {}) {
   ]
   for (const k of allowed) {
     if (patch[k] !== undefined) list[idx][k] = patch[k]
+  }
+  for (const k of evidence.FIELDS) {
+    if (patch[k] !== undefined) list[idx][k] = evidence.clean(patch[k])
   }
   if (patch.triage !== undefined) {
     list[idx].triage = triage.normalizeTriage({ ...list[idx].triage, ...patch.triage })
@@ -162,6 +169,11 @@ function getSummary() {
   return { total, critical, byStatus, withDataAccess, upcomingAudits, overdueAudits, byTriageLevel, triageUnassessed }
 }
 
+// Nachweise, die in den nächsten `days` Tagen ablaufen oder schon abgelaufen sind (laufende Lieferanten)
+function getUpcomingEvidenceExpiries(days = 60) {
+  return evidence.expiring(load(), days)
+}
+
 function getUpcomingAudits(days = 30) {
   const today  = new Date().toISOString().slice(0, 10)
   const cutoff = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
@@ -184,6 +196,7 @@ const _jsonExports = {
   getDeleted,
   getSummary,
   getUpcomingAudits,
+  getUpcomingEvidenceExpiries,
 }
 
 if (STORAGE_BACKEND !== 'json') {

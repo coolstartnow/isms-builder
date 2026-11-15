@@ -91,7 +91,7 @@ router.delete('/governance/meetings/:id', requireAuth, authorize('admin'), async
 })
 
 // ── Governance – Dokumenten-Upload ──
-const GOV_FILES_DIR = path.join(__dirname, '../../data/governance-files')
+const GOV_FILES_DIR = require('../paths').dataPath('governance-files')
 if (!fs.existsSync(GOV_FILES_DIR)) fs.mkdirSync(GOV_FILES_DIR, { recursive: true })
 
 const govUpload = multer({

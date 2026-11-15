@@ -306,9 +306,66 @@ const QUESTIONS_BY_LANG = {
       ]
     },
   ],
+
+  et: [
+    {
+      section: 'Infoturbepoliitikad',
+      questions: [
+        { id: 'q_pol_1',  text: 'Kas teie organisatsioonil on dokumenteeritud infoturbepoliitika?', type: 'yesno' },
+        { id: 'q_pol_2',  text: 'Kas poliitikat vaadatakse regulaarselt (vähemalt kord aastas) üle?', type: 'yesno' },
+        { id: 'q_pol_3',  text: 'Kas infoturbejuht (CISO/ISO) on määratud?', type: 'yesno' },
+      ]
+    },
+    {
+      section: 'Juurdepääsukontroll',
+      questions: [
+        { id: 'q_acc_1',  text: 'Kas juurdepääsuõigusi antakse vähimate õiguste põhimõtte järgi?', type: 'yesno' },
+        { id: 'q_acc_2',  text: 'Kas privilegeeritud juurdepääsu jaoks on rakendatud kahefaktoriline autentimine?', type: 'yesno' },
+        { id: 'q_acc_3',  text: 'Kas juurdepääsuõigused tühistatakse töötajate vahetumisel või lahkumisel viivitamata?', type: 'yesno' },
+      ]
+    },
+    {
+      section: 'Andmekaitse ja IKÜM',
+      questions: [
+        { id: 'q_gdpr_1', text: 'Kas andmekaitsespetsialist on määratud?', type: 'yesno' },
+        { id: 'q_gdpr_2', text: 'Kas andmetöötluse leping on sõlmitud või olete valmis selle sõlmima?', type: 'yesno' },
+        { id: 'q_gdpr_3', text: 'Millistes riikides andmeid töödeldakse või hoitakse?', type: 'text' },
+      ]
+    },
+    {
+      section: 'Intsidendihaldus',
+      questions: [
+        { id: 'q_inc_1',  text: 'Kas teie organisatsioonil on dokumenteeritud intsidentidele reageerimise protsess?', type: 'yesno' },
+        { id: 'q_inc_2',  text: 'Kas te saate turvaintsidentidest teatada 72 tunni jooksul?', type: 'yesno' },
+        { id: 'q_inc_3',  text: 'Kas viimase 12 kuu jooksul on olnud teavitamisele kuuluvaid andmekaitseintsidente?', type: 'yesno' },
+      ]
+    },
+    {
+      section: 'Talitluspidevus',
+      questions: [
+        { id: 'q_bcm_1',  text: 'Kas talitluspidevuse kava (BCP) on olemas?', type: 'yesno' },
+        { id: 'q_bcm_2',  text: 'Kas andmeid varundatakse regulaarselt ja taastatavust testitakse?', type: 'yesno' },
+        { id: 'q_bcm_3',  text: 'Mis on teie põhisüsteemide maksimaalne talutav seisakuaeg (RTO)?', type: 'text' },
+      ]
+    },
+    {
+      section: 'Sertifikaadid ja auditid',
+      questions: [
+        { id: 'q_cert_1', text: 'Kas teie organisatsioonil on ISO 27001 sertifikaat?', type: 'yesno' },
+        { id: 'q_cert_2', text: 'Kas on tehtud väliseid turvaauditeid või läbistustestimisi? (viimase aasta jooksul)', type: 'yesno' },
+        { id: 'q_cert_3', text: 'Muud olulised sertifikaadid (ISO 9001, SOC 2, TISAX, BSI jne):', type: 'text' },
+      ]
+    },
+    {
+      section: 'Üldised märkused',
+      questions: [
+        { id: 'q_note_1', text: 'Kas teil on lisateavet infoturbe kohta oma organisatsioonis, mis võiks olla oluline?', type: 'textarea' },
+      ]
+    },
+  ],
 }
 
-const SUPPORTED_LANGS  = ['de', 'en', 'fr', 'nl', 'hu']
+const SUPPORTED_LANGS  = require('../languages').completeCodes()
 const DEFAULT_QUESTIONS = QUESTIONS_BY_LANG.de  // Rückwärtskompatibilität
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
@@ -337,6 +394,10 @@ function create(fields, { createdBy } = {}) {
     supplierName: fields.supplierName || '',
     title:       fields.title       || 'Lieferanten-Selbstauskunft',
     language:    lang,
+    templateId:  fields.templateId  || '',
+    delivery:    fields.delivery === 'portal' ? 'portal' : 'direct',
+    contactName:  typeof fields.contactName  === 'string' ? fields.contactName.trim().slice(0, 200)  : '',
+    contactEmail: typeof fields.contactEmail === 'string' ? fields.contactEmail.trim().slice(0, 200) : '',
     questions:   fields.questions   || QUESTIONS_BY_LANG[lang],
     status:      'pending',          // pending | submitted | reviewed
     dueDate:     fields.dueDate     || '',
@@ -383,6 +444,37 @@ function submitAnswers(token, answers) {
   return list[idx]
 }
 
+// Markiert eine eingegangene Antwort, bei der ausdrücklich verlangte Pflichtfragen fehlen
+function markIncomplete(token, missing) {
+  const list = load()
+  const idx  = list.findIndex(i => i.token === token && !i.deletedAt)
+  if (idx < 0) return null
+  list[idx].missingRequired = missing
+  save(list)
+  return list[idx]
+}
+
+// Antworten wurden von einem Editor aus einem zurückgesendeten Formular eingetragen
+function setAnsweredVia(id, via, by) {
+  const list = load()
+  const idx  = list.findIndex(i => i.id === id && !i.deletedAt)
+  if (idx < 0) return null
+  list[idx].answeredVia = via
+  list[idx].enteredBy = by || ''
+  save(list)
+  return list[idx]
+}
+
+function setPortalLink(id, link) {
+  const list = load()
+  const idx  = list.findIndex(i => i.id === id && !i.deletedAt)
+  if (idx < 0) return null
+  list[idx].portalLink = link
+  list[idx].updatedAt = nowISO()
+  save(list)
+  return list[idx]
+}
+
 function review(id, { reviewNote, status, reviewedBy } = {}) {
   const list = load()
   const idx  = list.findIndex(i => i.id === id && !i.deletedAt)
@@ -413,6 +505,6 @@ function getDefaultQuestions(lang) {
 
 module.exports = {
   getAll, getById, getByToken,
-  create, submitAnswers, review, remove,
+  create, submitAnswers, markIncomplete, setPortalLink, setAnsweredVia, review, remove,
   getDefaultQuestions, SUPPORTED_LANGS,
 }

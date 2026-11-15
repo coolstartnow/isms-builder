@@ -4,6 +4,8 @@ updates:
   # npm – wöchentliche Security- und Versions-Updates
   - package-ecosystem: "npm"
     directory: "/"
+    cooldown:
+      default-days: 7   # neue Versionen erst nach einer Woche vorschlagen (Sicherheitsupdates sind davon ausgenommen)
     schedule:
       interval: "weekly"
       day: "monday"
@@ -48,6 +50,8 @@ updates:
   # GitHub Actions – Actions selbst aktuell halten
   - package-ecosystem: "github-actions"
     directory: "/"
+    cooldown:
+      default-days: 7   # neue Versionen erst nach einer Woche vorschlagen (Sicherheitsupdates sind davon ausgenommen)
     schedule:
       interval: "weekly"
       day: "monday"

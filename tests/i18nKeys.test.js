@@ -1,4 +1,5 @@
 'use strict'
+const LANG_REG = require('../ui/i18n/languages.js')
 // Vollständigkeit der Übersetzungen.
 //
 // Hintergrund: Rund 30 Label-Maps in ui/app.js trugen ihre Anzeigetexte fest
@@ -23,7 +24,7 @@ const TRANSLATIONS = (() => {
   return win.TRANSLATIONS
 })()
 
-const LANGS = ['de', 'en', 'fr', 'nl', 'hu']
+const LANGS = LANG_REG.completeCodes()
 
 /** Alle statisch aufgelösten t('…') / t("…") aus app.js. */
 function usedKeys() {
@@ -118,7 +119,7 @@ describe('i18n – Rückfall-Schutz für ui/app.js', () => {
   const ERLAUBT = new Set([
     'ISO 27001:2022', 'BSI IT-Grundschutz', 'EU NIS2', 'EU Cloud (EUCS)', 'EU AI Act', 'ISO 9000:2015',
     'ISO 9001:2015', 'EU Cyber Resilience Act', 'JSON', 'CSV', 'PDF', 'HTML', 'Markdown', 'CVSS', 'CVEs', 'Ref',
-    'NDAs', 'NIS2', 'EoL', 'FIRST.org', 'Global', 'GroupIT', 'ISMS', 'ALP', 'ISO-5.1',
+    'NDAs', 'NIS2', 'EoL', 'FIRST.org', 'Global', 'GroupIT', 'ISMS', 'ALP', 'ISO-5.1', 'NEN7510', 'NEN-1',
     'IEC 62443', 'VDI/VDE 2182', 'NAMUR NA 163', 'STARTTLS (Port 587)', 'TLS (Port 465)',
     'npm start', 'docker compose restart', '(ISO 27001 A.5.12)', '(ISO 27001 / BSI IT-Grundschutz)',
     '&times;', 'Example Ltd', 'max.mustermann', 'vvt_seed_001', 'email;name;date', 'Alice Müller',

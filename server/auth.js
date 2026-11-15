@@ -5,6 +5,7 @@
 
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') })
 const jwt = require('jsonwebtoken')
+const sessions = require('./sessionStore')   // oben laden: dieselbe Instanz für alle Aufrufer (auch nach jest.resetModules in Tests)
 
 const JWT_SECRET = process.env.JWT_SECRET
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h'
@@ -12,6 +13,7 @@ const DEV_HEADER_AUTH = process.env.DEV_HEADER_AUTH === 'true'
 
 // Unsicheres Secret: in Produktion Abbruch, sonst Warnung (GHSA-vwc3-4j58-wrxc)
 require('./secretCheck').enforce({ secret: JWT_SECRET })
+require('./secretCheck').enforceDevHeaderAuth({ enabled: DEV_HEADER_AUTH })
 
 const ROLE_RANK = {
   reader:       1,  // Lesezugriff auf alle Module
@@ -30,8 +32,11 @@ function normalizeRole(r) {
 }
 
 // JWT-Token ausstellen
+// Jedes Token trägt eine Sitzungskennung (jti), die in der serverseitigen Sitzungsliste eingetragen wird (server/sessionStore.js).
 function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
+  const probe = jwt.decode(jwt.sign({}, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN }))
+  const jti = sessions.create(payload.username, probe.exp)
+  return jwt.sign({ ...payload, jti }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
 }
 
 // JWT-Token aus Cookie lesen und verifizieren
@@ -56,15 +61,18 @@ function getSessionFromReq(req) {
   const match = cookie.match(/sm_session=([^;]+)(;|$)/)
   if (match) {
     const payload = verifyToken(match[1])
-    if (payload) {
+    // Nur Tokens mit eingetragener Sitzung gelten (abgemeldet/gesperrt/ohne Kennung = ungültig)
+    if (payload && sessions.isActive(payload.jti, payload.username)) {
       const role = normalizeRole(payload.role)
-      return {
+      const sess = {
         username: payload.username,
         role,
         domain: payload.domain || 'Global',
         roleRank: ROLE_RANK[role] || 0,
         functions: Array.isArray(payload.functions) ? payload.functions : []
       }
+      Object.defineProperty(sess, 'jti', { value: payload.jti, enumerable: false })   // nicht in /whoami & Co. ausgeben
+      return sess
     }
   }
 
@@ -86,6 +94,7 @@ function requireAuth(req, res, next) {
   req.domain = sess.domain
   req.roleRank = sess.roleRank
   req.functions = sess.functions || []
+  req.jti = sess.jti
   next()
 }
 

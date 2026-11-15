@@ -1,0 +1,15 @@
+# Gitleaks-Konfiguration (Geheimnis-Suche). Jede Ausnahme steht mit Begründung hier; neue Ausnahmen nur mit Begründung ergänzen.
+# Geprüft: 2026-10-24. Nächste Prüfung: 2027-04.
+title = "ISMS Builder"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Bewusst öffentliche Demo-Daten und Test-Geheimnisse"
+paths = [
+  '''data/rbac_users\.json''',      # Demo-Konten mit den dokumentierten, öffentlichen Demo-Passwörtern (README „Demo accounts“); TOTP-Seeds sind geleert
+  '''data/assessments\.json''',     # Demo-Lieferantenbewertung mit Demo-Link; der Token ist Teil der Beispieldaten
+  '''tests/.*''',                   # Test-Geheimnisse (JWT_SECRET und Passwörter der Testkonten in Jest-Tests), keine echten Zugangsdaten
+  '''data/demo-bundles/.*''',       # Demo-Datensätze in fünf Sprachen, rein erfundene Inhalte
+]

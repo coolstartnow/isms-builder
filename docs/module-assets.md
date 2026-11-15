@@ -109,6 +109,14 @@ Zurücksetzen auf die Vorgabe stellt auch die Übersetzungen wieder her.
 
 ---
 
+## Liste sortieren und Assets finden
+
+Die Liste **Alle Assets** ist standardmäßig nach **Kategorie → Typ → Name** sortiert (alphabetisch in der Sprache der Oberfläche; Zahlen werden natürlich geordnet, „Laptop 2“ steht vor „Laptop 10“; ein Asset ohne Typ steht in seiner Kategorie zuletzt). Ein neu angelegtes Asset erscheint deshalb an seinem Platz und nicht mehr ganz unten; nach dem Speichern wird die Zeile kurz hervorgehoben und ins Bild gescrollt, gesetzte Filter und Suche bleiben erhalten.
+
+Ein Klick auf einen **Spaltenkopf** (Name, Typ, Schutzbedarf, Klassifizierung, Kritikalität, Verantwortliche, Status, Lebensende) sortiert auf- und, beim zweiten Klick, absteigend; ein dritter Klick stellt die Standardsortierung wieder her. Leere Werte stehen immer am Ende. Die gewählte Spalte merkt sich der Browser. Sortiert wird nur die Anzeige; die Reihenfolge in Exporten und der Schnittstelle ändert sich nicht.
+
+Im Reiter **Nach Kategorie** stehen die Kategorien alphabetisch, darin die Assets nach Typ und Name. Konten mit Bearbeitungsrecht können dort ebenfalls bearbeiten (Stift-Symbol, Administratoren auch löschen); nach dem Speichern geht es in diesen Reiter zurück.
+
 ## Klassifizierung und Kritikalität
 
 Die **Klassifizierung** beschreibt den Schutzbedarf bezüglich Vertraulichkeit:

@@ -20,16 +20,19 @@
  */
 
 const PDFDocument = require('pdfkit')
+const pdfFonts = require('./pdfFonts')
 const orgLogo = require('./orgLogo')
 const { marked } = require('../ui/vendor/marked.min.js')
 const { versionTable } = require('./db/templateVersioning')
 const i18n = require('./i18n')
 
 const PAGE_MARGIN = 56
-const FONT_BODY = 'Helvetica'
-const FONT_BOLD = 'Helvetica-Bold'
-const FONT_ITALIC = 'Helvetica-Oblique'
-const FONT_MONO = 'Courier'
+// Schriftnamen: je Dokument gesetzt (Unicode-Schrift aus server/pdfFonts.js oder Helvetica). Der Aufbau eines Dokuments läuft ohne
+// Unterbrechung (kein await), deshalb stören sich gleichzeitige Exporte nicht.
+let FONT_BODY = 'Helvetica'
+let FONT_BOLD = 'Helvetica-Bold'
+let FONT_ITALIC = 'Helvetica-Oblique'
+let FONT_MONO = 'Courier'
 const SIZE_BODY = 10.5
 const COLOR_TEXT = '#111111'
 const COLOR_MUTED = '#666666'
@@ -255,8 +258,13 @@ function renderVersionTable(pdf, rows, lang = 'de') {
 async function renderTemplateToPdf(doc) {
   const lang = i18n.pickLang(doc.language) || await i18n.orgLang()
   const T = key => i18n.tr(lang, key)
+  let fontChoice
+  try { fontChoice = (await require('./db/orgSettingsStore').get()).pdfFont } catch { /* ohne Einstellung: Standard */ }
+  const res = pdfFonts.resolve(fontChoice)
   return new Promise((resolve, reject) => {
     const pdf = new PDFDocument({ size: 'A4', margin: PAGE_MARGIN, bufferPages: true })
+    const F = pdfFonts.apply(pdf, res)
+    FONT_BODY = F.regular; FONT_BOLD = F.bold; FONT_ITALIC = F.italic; FONT_MONO = F.mono
     const chunks = []
     pdf.on('data', c => chunks.push(c))
     pdf.on('end', () => resolve(Buffer.concat(chunks)))

@@ -16,7 +16,15 @@ const TRANSITIONS = {
 const ROLE_RANK = { reader: 1, revision: 1, editor: 2, dept_head: 2, qmb: 2, contentowner: 3, auditor: 3, admin: 4 }
 
 function nowISO() { return new Date().toISOString() }
-function generateId(type) { return `${type}_${Date.now()}` }
+// Eindeutig auch bei mehreren Anlagen in derselben Millisekunde (z. B. CSV-Import): sonst bekämen zwei Dokumente dieselbe Kennung
+let _lastIdStamp = 0
+function generateId(type) {
+  let n = Date.now()
+  if (n <= _lastIdStamp) n = _lastIdStamp + 1
+  _lastIdStamp = n
+  // Nur Zeichen, die der Mobile-Sync als Kennung annimmt (Typen wie „Risk Policy“ enthalten Leerzeichen)
+  return `${String(type).replace(/[^A-Za-z0-9_.:-]+/g, '-')}_${n}`
+}
 
 function rowToTemplate(row) {
   if (!row) return null
@@ -252,7 +260,7 @@ module.exports = {
     const roots = []
     list.forEach(t => {
       const pid = t.parentId || null
-      if (pid && byId[pid]) byId[pid].children.push(byId[t.id])
+      if (pid && pid !== t.id && byId[pid]) byId[pid].children.push(byId[t.id])
       else roots.push(byId[t.id])
     })
     function sortLevel(nodes) {

@@ -1,4 +1,5 @@
 'use strict'
+const LANG_REG = require('../ui/i18n/languages.js')
 // Server-Meldungen in der Sprache der Oberfläche (server/i18n.js, Header X-Lang).
 const { createTestDataDir, removeTestDataDir } = require('./setup/testEnv')
 const { loginAs } = require('./setup/authHelper')
@@ -6,9 +7,10 @@ const { MESSAGES, translateError, langOf, SUPPORTED } = require('../server/i18n'
 const request = require('supertest')
 
 describe('server/i18n – Übersetzungstabelle', () => {
-  test('jeder Eintrag hat alle fünf Sprachen mit gleichen Platzhaltern', () => {
+  test('jeder Eintrag hat alle Sprachen des Registers mit Status „complete“ (und höchstens alle bekannten) mit gleichen Platzhaltern', () => {
     for (const e of MESSAGES) {
-      expect(e).toHaveLength(5)
+      expect(e.length).toBeGreaterThanOrEqual(LANG_REG.completeCodes().length)
+      expect(e.length).toBeLessThanOrEqual(LANG_REG.list.length)
       const params = t => (t.match(/\{\w+\}/g) || []).sort().join()
       e.forEach(t => { expect(typeof t).toBe('string'); expect(t.trim()).not.toBe('') })
       expect(new Set(e.map(params)).size).toBe(1)
@@ -40,8 +42,9 @@ describe('server/i18n – Übersetzungstabelle', () => {
   test('langOf: Header vor Standardsprache, ungültiger Header wird ignoriert', () => {
     expect(langOf({ headers: { 'x-lang': 'HU' } })).toBe('hu')
     expect(langOf({ headers: { 'x-lang': 'de-DE' } })).toBe('de')
-    expect(SUPPORTED).toEqual(['de', 'en', 'fr', 'nl', 'hu'])
-    expect(['de', 'en', 'fr', 'nl', 'hu']).toContain(langOf({ headers: { 'x-lang': 'zz' } }))
+    expect(SUPPORTED).toEqual(LANG_REG.codes())
+    expect(SUPPORTED).toEqual(expect.arrayContaining(['de', 'en', 'fr', 'nl', 'hu']))
+    expect(LANG_REG.codes()).toContain(langOf({ headers: { 'x-lang': 'zz' } }))
   })
 })
 

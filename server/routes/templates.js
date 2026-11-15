@@ -9,6 +9,7 @@ const { requireAuth, authorize } = require('../auth')
 const storage = require('../storage')
 const entityStore = require('../db/entityStore')
 const { versionTable, nextApprovalVersion, contentChangeBlocked } = require('../db/templateVersioning')
+const templateCsv = require('../templateCsv')
 
 // ── Templates ──
 
@@ -21,6 +22,43 @@ router.get('/templates', requireAuth, authorize('reader'), async (req, res) => {
   const { type, language } = req.query
   const list = await storage.getTemplates?.({ type, language })
   res.json(list)
+})
+
+// ── CSV-Export / -Import aller Dokumente ──
+// Export: alle nicht gelöschten Dokumente aller Typen. Import: legt NUR neue Entwürfe an (Status draft, Version 1, Eigentümer = Importierender);
+// gleiche Kombination aus Typ, Titel und Sprache wird übersprungen, vorhandene Dokumente werden nie verändert (kein Umgehen von Freigabe und Versionierung).
+router.get('/templates/export.csv', requireAuth, authorize('reader'), async (req, res) => {
+  const list = (await storage.getTemplates?.({})) || []
+  await require('../db/auditStore').append({ user: req.user, action: 'export', resource: 'template', detail: `CSV-Export: ${list.length} Dokumente` })
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+  res.setHeader('Content-Disposition', `attachment; filename="documents-${new Date().toISOString().slice(0, 10)}.csv"`)
+  res.send(templateCsv.toCsv(list))
+})
+
+// Body: { csv: "<Text>", dryRun?: true } — dryRun prüft und zählt nur, schreibt nichts
+router.post('/templates/import', requireAuth, authorize('contentowner'), async (req, res) => {
+  const customLists = require('../db/customListsStore')
+  const types = await customLists.getList('templateTypes')
+  const parsed = templateCsv.parseImport(req.body && req.body.csv, types)
+  if (!parsed.ok) return res.status(400).json({ error: 'The CSV file could not be read.', code: parsed.code, column: parsed.column, max: parsed.max })
+  const existing = (await storage.getTemplates?.({})) || []
+  const { toCreate, skipped } = templateCsv.plan(parsed.records, existing)
+  const summary = { total: parsed.records.length + parsed.errors.length, created: toCreate.length, skipped, errors: parsed.errors, dryRun: !!(req.body && req.body.dryRun) }
+  if (summary.dryRun) return res.json(summary)
+
+  // Elternbezug über den Titel: erst unter den vorhandenen, dann unter den soeben angelegten Dokumenten desselben Typs
+  const byTitle = new Map(existing.map(t => [t.type + '\u0001' + String(t.title).trim().toLowerCase(), t.id]))
+  const warnings = []
+  for (const r of toCreate) {
+    const parentId = r.parent ? (byTitle.get(r.type + '\u0001' + r.parent.toLowerCase()) || null) : null
+    if (r.parent && !parentId) warnings.push({ line: r.line, title: r.title, code: 'parent_not_found' })
+    const t = await storage.createTemplate?.({ type: r.type, language: r.language, title: r.title, content: r.content, parentId, owner: req.user })
+    if (t && r.nextReviewDate) await storage.updateTemplate?.(t.type, t.id, { nextReviewDate: r.nextReviewDate })
+    if (t) byTitle.set(r.type + '\u0001' + r.title.trim().toLowerCase(), t.id)
+  }
+  summary.warnings = warnings
+  await require('../db/auditStore').append({ user: req.user, action: 'import', resource: 'template', detail: `CSV-Import: ${toCreate.length} angelegt, ${skipped.length} übersprungen, ${parsed.errors.length} fehlerhaft` })
+  res.status(201).json(summary)
 })
 
 router.get('/templates/tree', requireAuth, authorize('reader'), async (req, res) => {
@@ -175,7 +213,7 @@ router.post('/template/:type/:id/publish-webdav', requireAuth, authorize('editor
 })
 
 // ── Template-Anhänge ──
-const TMPL_FILES_DIR = path.join(__dirname, '../../data/template-files')
+const TMPL_FILES_DIR = require('../paths').dataPath('template-files')
 if (!fs.existsSync(TMPL_FILES_DIR)) fs.mkdirSync(TMPL_FILES_DIR, { recursive: true })
 
 const tmplAttachUpload = multer({

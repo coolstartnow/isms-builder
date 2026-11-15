@@ -3,6 +3,7 @@
 const fs = require('fs')
 const path = require('path')
 const bcrypt = require('bcryptjs')
+const sessionStore = require('./sessionStore')
 
 const DB_ROOT = process.env.DATA_DIR || path.join(__dirname, '../data')
 const DB_FILE = path.join(DB_ROOT, 'rbac_users.json')
@@ -46,6 +47,27 @@ function createSeed() {
       passwordHash: bcrypt.hashSync('bobpass', BCRYPT_ROUNDS),
       totpSecret: '',
       sections: []
+    },
+    // Demo-Konten für die Funktionen CISO und DSB (beide ohne Administratorrechte, getrennte Personen): zum Testen der DSB-Stellungnahme und der DSFA-Freigabe
+    carla: {
+      username: 'carla',
+      email: 'carla@security.example',
+      domain: 'Security',
+      role: 'contentowner',
+      functions: ['ciso'],
+      passwordHash: bcrypt.hashSync('carlapass', BCRYPT_ROUNDS),
+      totpSecret: '',
+      sections: ['Guidance','Risk','Legal','Incident','Training','Reports','Settings']
+    },
+    dana: {
+      username: 'dana',
+      email: 'dana@privacy.example',
+      domain: 'Privacy',
+      role: 'contentowner',
+      functions: ['dso'],
+      passwordHash: bcrypt.hashSync('danapass', BCRYPT_ROUNDS),
+      totpSecret: '',
+      sections: ['Guidance','Legal','Incident','Privacy','Training','Reports','Settings']
     }
   }
 }
@@ -86,9 +108,11 @@ async function verifyPassword(username, plaintext) {
 // Passwort-Hash setzen (z.B. nach Passwortänderung)
 // mustChange: Der Administrator kennt dieses Passwort (Anfangs-/Rücksetz-Passwort) → der Nutzer muss es beim nächsten Login ändern.
 // Setzt der Nutzer sein Passwort selbst, entfällt die Pflicht.
-async function setPasswordHash(username, plaintext, { mustChange = false } = {}) {
+// keepJti: Sitzung, die beim Passwortwechsel bestehen bleibt (die eigene); alle übrigen Sitzungen des Kontos werden beendet.
+async function setPasswordHash(username, plaintext, { mustChange = false, keepJti } = {}) {
   const hash = await bcrypt.hash(plaintext, BCRYPT_ROUNDS)
   if (!USERS[username]) return false
+  sessionStore.revokeUser(username, keepJti)
   USERS[username].passwordHash = hash
   if (mustChange) USERS[username].mustChangePassword = true; else delete USERS[username].mustChangePassword
   saveUsers(USERS)
@@ -168,13 +192,18 @@ async function createUser({ username, email, domain, role, functions, password, 
   return getAllUsers().find(u => u.username === username)
 }
 
-async function updateUser(username, { email, domain, role, functions, password, mustChangePassword }) {
+async function updateUser(username, { email, domain, role, functions, password, mustChangePassword }, { keepJti } = {}) {
   const u = USERS[username]
   if (!u) return null
+  const before = { role: u.role, domain: u.domain, functions: JSON.stringify(u.functions || []) }
   if (email     !== undefined) u.email     = email
   if (domain    !== undefined) u.domain    = domain
   if (role      !== undefined) u.role      = role
   if (functions !== undefined) u.functions = Array.isArray(functions) ? functions : []
+  // Rolle, Bereich, Funktionen oder Passwort geändert → bestehende Sitzungen enden (das Token trägt die alten Rechte)
+  if (before.role !== u.role || before.domain !== u.domain || before.functions !== JSON.stringify(u.functions || []) || password) {
+    sessionStore.revokeUser(username, keepJti)
+  }
   if (password) {
     u.passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
     if (mustChangePassword === true) u.mustChangePassword = true; else delete u.mustChangePassword
@@ -193,6 +222,7 @@ function getUsersByFunction(fn) {
 function deleteUser(username) {
   if (!USERS[username]) return false
   delete USERS[username]
+  sessionStore.revokeUser(username)
   saveUsers(USERS)
   return true
 }

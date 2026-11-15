@@ -7,7 +7,7 @@ const embeddingStore = require('../ai/embeddingStore')
 const lexicalSearch  = require('../ai/lexicalSearch')
 const policyGenerator = require('../ai/policyGenerator')
 const auditStore     = require('../db/auditStore')
-const { aiEnabled, ollamaUrl } = require('../ai/ollamaConfig')
+const { aiEnabled, ollamaUrl, embedModel, ollamaFetch } = require('../ai/ollamaConfig')
 
 // ── GET /api/ai/search?q=...  ─────────────────────────────────────────────────
 // Keyword-Suche funktioniert immer. Semantische Suche nur wenn KI aktiviert + Ollama erreichbar.
@@ -17,9 +17,9 @@ router.get('/api/ai/search', requireAuth, async (req, res) => {
 
   // Semantische Suche nur wenn KI-Toggle aktiv UND Ollama erreichbar
   let semantic = false
-  if (aiEnabled()) {
+  if (await aiEnabled()) {
     try {
-      const r = await fetch(ollamaUrl() + '/api/tags', { signal: AbortSignal.timeout(1500) })
+      const r = await ollamaFetch('/api/tags', { timeout: 1500 })
       semantic = r.ok && embeddingStore.count() > 0
     } catch {}
   }
@@ -43,7 +43,7 @@ router.get('/api/ai/search', requireAuth, async (req, res) => {
 
 // ── POST /api/ai/reindex  (admin only) ────────────────────────────────────────
 router.post('/api/ai/reindex', requireAuth, authorize('admin'), async (req, res) => {
-  if (!aiEnabled()) return res.status(503).json({ error: 'KI-Integration deaktiviert' })
+  if (!(await aiEnabled())) return res.status(503).json({ error: 'KI-Integration deaktiviert' })
   try {
     const stats = await embeddingStore.reindexAll()
     await auditStore.append({
@@ -61,11 +61,11 @@ router.post('/api/ai/reindex', requireAuth, authorize('admin'), async (req, res)
 // ── GET /api/ai/status  ───────────────────────────────────────────────────────
 // Status-Abfragen werden nicht geloggt (reines Monitoring, kein Datenzugriff)
 router.get('/api/ai/status', requireAuth, async (req, res) => {
-  const enabled = aiEnabled()
+  const enabled = await aiEnabled()
   let ollamaOk  = false
   if (enabled) {
     try {
-      const r = await fetch(ollamaUrl() + '/api/tags', { signal: AbortSignal.timeout(2000) })
+      const r = await ollamaFetch('/api/tags', { timeout: 2000 })
       ollamaOk = r.ok
     } catch {}
   }
@@ -73,7 +73,7 @@ router.get('/api/ai/status', requireAuth, async (req, res) => {
   res.json({
     enabled,
     ollama:   ollamaOk,
-    model:    process.env.EMBED_MODEL || 'nomic-embed-text',
+    model:    await embedModel(),
     indexed,
     mode:     enabled ? (ollamaOk && indexed > 0 ? 'semantic' : 'keyword') : 'disabled',
   })
@@ -93,19 +93,19 @@ const DRAFT_ERRORS = {
   pii: 'The hint contains personal or technical data and is not sent.',
 }
 
-function orgValues() {
-  try { return require('../db/orgSettingsStore').get() } catch { return {} }
+async function orgValues() {
+  try { return (await require('../db/orgSettingsStore').get()) || {} } catch { return {} }   // unter den SQL-Speichern ein Promise: ohne await blieben Firmenname und Platzhalter leer
 }
 // Werte, die nie im Hinweis stehen dürfen
 function knownValues(org) { return [org.orgName, org.orgShort, org.cisoName, org.gdpoName].filter(Boolean) }
 
-function destination() {
-  try { return new URL(require('../ai/ollamaConfig').ollamaUrl()).origin } catch { return '' }
+async function destination() {
+  try { return new URL(await ollamaUrl()).origin } catch { return '' }
 }
 
-function buildChecked(body) {
+async function buildChecked(body) {
   const { entry, language, hint } = body || {}
-  return safeDraft.buildPrompt({ entry, language, hint, known: knownValues(orgValues()) })
+  return safeDraft.buildPrompt({ entry, language, hint, known: knownValues(await orgValues()) })
 }
 
 function sendBuildError(res, r) {
@@ -113,33 +113,41 @@ function sendBuildError(res, r) {
 }
 
 // Titelliste für den Dialog
-router.get('/api/ai/draft-catalog', requireAuth, authorize('contentowner'), (req, res) => {
+router.get('/api/ai/draft-catalog', requireAuth, authorize('contentowner'), async (req, res) => {
   res.json({
-    enabled: aiEnabled(),
+    enabled: await aiEnabled(),
     languages: safeDraft.LANGUAGES,
     maxHint: safeDraft.MAX_HINT,
     placeholders: Object.keys(safeDraft.PLACEHOLDERS),
-    destination: destination(),
+    destination: await destination(),
     entries: safeDraft.CATALOG.map(e => ({ id: e.id, type: e.type, title: e.title })),
   })
 })
 
 // Zeigt, was gesendet würde (Prompt und Ziel), ohne etwas zu senden
-router.post('/api/ai/draft-preview', requireAuth, authorize('contentowner'), (req, res) => {
-  const r = buildChecked(req.body)
+router.post('/api/ai/draft-preview', requireAuth, authorize('contentowner'), async (req, res) => {
+  const r = await buildChecked(req.body)
   if (!r.ok) return sendBuildError(res, r)
-  res.json({ prompt: r.prompt, destination: destination(), title: r.entry.title[r.language], type: r.entry.type })
+  res.json({ prompt: r.prompt, destination: await destination(), title: r.entry.title[r.language], type: r.entry.type })
+})
+
+// Platzhalter in einem beliebigen Text ersetzen (z. B. von Hand eingefügte KI-Antwort). Rolle editor, weil das die Berechtigung zum Speichern des Dokuments ist.
+router.post('/api/ai/fill-placeholders', requireAuth, authorize('editor'), async (req, res) => {
+  const text = req.body && req.body.text
+  if (typeof text !== 'string') return res.status(400).json({ error: 'Invalid request.' })
+  const r = safeDraft.fillPlaceholders(text, await orgValues())
+  res.json({ text: r.text, unresolved: r.unresolved, replaced: r.replaced })
 })
 
 router.post('/api/ai/generate-policy', requireAuth, authorize('contentowner'), async (req, res) => {
-  if (!aiEnabled()) return res.status(503).json({ error: 'KI-Integration ist deaktiviert (Admin-Einstellung).' })
+  if (!(await aiEnabled())) return res.status(503).json({ error: 'KI-Integration ist deaktiviert (Admin-Einstellung).' })
 
-  const r = buildChecked(req.body)
+  const r = await buildChecked(req.body)
   if (!r.ok) return sendBuildError(res, r)
 
   try {
     const raw = await policyGenerator.generateFromPrompt(r.prompt)
-    const filled = safeDraft.fillPlaceholders(raw, orgValues())
+    const filled = safeDraft.fillPlaceholders(raw, await orgValues())
     await auditStore.append({
       user:     req.user,
       action:   'ai_generate_policy',

@@ -156,6 +156,21 @@ router.get('/calendar', requireAuth, authorize('reader'), async (req, res) => {
     }
   } catch {}
 
+  // Lieferanten: Nachweise (Zertifikat/Bericht), die ablaufen oder abgelaufen sind
+  try {
+    const supplierStore = require('../db/supplierStore')
+    const today = new Date().toISOString().slice(0, 10)
+    for (const s of await supplierStore.getUpcomingEvidenceExpiries(60)) {
+      events.push({
+        date:     s.evidenceValidUntil,
+        type:     'supplier_evidence',
+        title:    `Nachweis läuft ab: ${s.name}`,
+        ref:      s.id,
+        severity: s.evidenceValidUntil < today || s.criticality === 'critical' || s.criticality === 'high' ? 'high' : 'normal',
+      })
+    }
+  } catch {}
+
   // Audit-Feststellungen: überfällige und bald fällige Actions
   try {
     const findingStore = require('../db/findingStore')

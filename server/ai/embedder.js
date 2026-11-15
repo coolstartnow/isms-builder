@@ -2,8 +2,7 @@
 // Thin wrapper around Ollama /api/embed
 'use strict'
 
-const OLLAMA_URL  = process.env.OLLAMA_URL  || 'http://localhost:11434'
-const EMBED_MODEL = process.env.EMBED_MODEL || 'nomic-embed-text'
+const { ollamaFetch, embedModel } = require('./ollamaConfig')   // URL, Modell und optionaler Schlüssel aus den Einstellungen (Rückfall: Umgebungsvariablen)
 
 /**
  * Returns a 768-dim float array for `text`, or null when Ollama is unavailable.
@@ -12,12 +11,7 @@ const EMBED_MODEL = process.env.EMBED_MODEL || 'nomic-embed-text'
 async function embed(text) {
   if (!text || !text.trim()) return null
   try {
-    const res = await fetch(`${OLLAMA_URL}/api/embed`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ model: EMBED_MODEL, input: String(text).slice(0, 4000) }),
-      signal:  AbortSignal.timeout(10_000),
-    })
+    const res = await ollamaFetch('/api/embed', { method: 'POST', body: { model: await embedModel(), input: String(text).slice(0, 4000) }, timeout: 10_000 })
     if (!res.ok) return null
     const data = await res.json()
     return data?.embeddings?.[0] ?? null

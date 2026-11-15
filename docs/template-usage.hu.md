@@ -77,6 +77,19 @@ A szerkesztő eszköztárában (Content Owner szerepkörtől, csak bekapcsolt AI
 
 ---
 
+Részletesen, mindkét úttal (közvetlen és másolás-beillesztés), beállítással és hibakereséssel: „Modul: AI-vázlatok (szabályzat-asszisztens)” útmutató a rendszerkézikönyvben (`docs/module-ai-drafts.hu.md`).
+
+## CSV-export és -import
+
+A dokumentumlista felett („Meglévő dokumentumok”):
+
+- **Exportálás CSV-be** (minden szerepkör): **az összes típus összes dokumentumát** egy `documents-<dátum>.csv` fájlba írja (UTF-8, vessző, megnyílik Excelben és LibreOffice-ban). Oszlopok: `id, type, title, language, status, version, owner, nextReviewDate, parent, content`.
+- **CSV importálása** (Content Ownertől): beolvas egy ilyen fájlt, pontosvesszős elválasztóval is (német Excel). Mielőtt bármi létrejönne, egy párbeszédablak megmutatja, hány dokumentum jön létre, marad ki vagy kerül elutasításra hibásként, mindegyik indoklással.
+  - Az import **csak új vázlatokat** hoz létre (1. verzió, Ön a tulajdonos). Azonos típus, cím és nyelv egy meglévő dokumentummal: kihagyva. **A meglévő dokumentumok soha nem módosulnak**, a jóváhagyottak sem; a jóváhagyás és a verziókezelés érintetlen marad.
+  - Kötelező oszlopok: `type`, `title`, `language`, `content`. A `type` szerepeljen a dokumentumtípusok listájában, a `language` `de`, `en`, `fr`, `nl` vagy `hu`. Nem kötelező: `nextReviewDate` (ÉÉÉÉ-HH-NN) és `parent` (a szülődokumentum címe). Az `id`, `status`, `version` és `owner` oszlopokat figyelmen kívül hagyja.
+  - Korlátok: fájlonként 500 sor és 5 MB.
+  - Saját fájlt a legegyszerűbb egy exportból készíteni: sorok törlése vagy módosítása, címek átírása, importálás.
+
 ## Életciklus (státuszfolyamat)
 
 Minden sablon négy státuszfázison megy át:

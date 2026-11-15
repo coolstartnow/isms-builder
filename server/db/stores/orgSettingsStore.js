@@ -7,10 +7,18 @@ const DEFAULTS = {
   orgShort:   '',
   ismsScope:  '',
   logoText:   '',
+  orgStreet:  '',
+  orgZip:     '',
+  orgCity:    '',
+  orgCountry: '',
+  orgPhone:   '',
+  pdfFont:    'liberation',   // PDF-Schrift: liberation | noto | dejavu | custom | helvetica (siehe server/pdfFonts.js)
   require2FA: false,
   aiEnabled:       true,
   aiOllamaUrl:     '',
   aiEmbedModel:    '',
+  aiGenModel:      '',
+  aiApiKey:        '',   // optionaler API-Schlüssel der KI-Anbindung; nur schreibbar, nie ausgeliefert (orgSecrets.js)
   cisoName:   '',
   cisoEmail:  '',
   gdpoName:   '',
@@ -37,7 +45,7 @@ const DEFAULTS = {
   },
   soaFrameworks: {
     ISO27001: true, BSI: true, NIS2: true, EUCS: true, EUAI: true,
-    ISO9000: true, ISO9001: true, CRA: true,
+    ISO9000: true, ISO9001: true, CRA: true, CUSTOM: true,
   },
   icsSettings: {
     otResponsible: '', otResponsibleEmail: '', otScope: '',
@@ -60,7 +68,7 @@ const DEFAULTS = {
     enabled: true, duration: 7,
   },
   languageConfig: {
-    available: ['de', 'en', 'fr', 'nl', 'hu'], default: 'en',
+    available: require('../../languages').listedCodes(), default: 'en',
   },
   navOrder: ['dashboard','soa','measures','guidance','goals','risk','legal','incident','gdpr','training','assets','governance','nis2','audits','bcm','suppliers','policy-acks','reports','calendar','settings','admin'],
   emailNotifications: {

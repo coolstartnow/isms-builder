@@ -1,6 +1,6 @@
 {
   "name": "isms-build",
-  "version": "1.83.0",
+  "version": "1.84.0",
   "description": "ISMS Template Builder – Build Mode",
   "scripts": {
     "start": "node server/index.js",
@@ -20,8 +20,8 @@
     "express": "^4.22.2",
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.2.9",
-    "multer": "^2.1.1",
-    "nodemailer": "^10.1.1",
+    "multer": "^2.5.0",
+    "nodemailer": "^10.2.1",
     "pdf-parse": "1.1.1",
     "pdfkit": "^0.20.2",
     "pg": "^8.20.0",
@@ -32,12 +32,12 @@
     "mysql2": "^3.22.3"
   },
   "devDependencies": {
-    "jest": "^30.4.2",
+    "jest": "^30.5.2",
     "puppeteer": "^25.9.0",
-    "supertest": "^7.2.2"
+    "supertest": "^7.3.1"
   },
   "overrides": {
-    "body-parser": "^1.20.6",
+    "body-parser": "^1.20.9",
     "brace-expansion": "^5.0.8"
   },
   "allowScripts": {

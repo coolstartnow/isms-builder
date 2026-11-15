@@ -23,7 +23,7 @@ const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
 
-const MODULES = ['templates', 'soa', 'risks', 'assets', 'findings', 'guidance']
+const MODULES = ['templates', 'soa', 'risks', 'assets', 'findings', 'guidance', 'soaFrameworks']
 const MAX_LEVEL = { guidance: 'read' }          // Guidance ist nur lesbar
 const LEVELS = ['none', 'read', 'write']
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'   // 31 Zeichen

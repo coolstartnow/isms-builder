@@ -78,7 +78,7 @@ Der ISMS Builder ist eine eigenständige Node.js/Express-Anwendung mit Vanilla-J
 
 **Tech-Stack:** Node.js ≥18, Express, JWT, bcryptjs, multer, better-sqlite3
 **Persistenz:** JSON-Dateien (Standard, aktuell empfohlen), SQLite (`STORAGE_BACKEND=sqlite`, siehe Hinweis in Abschnitt 31), MariaDB/MySQL (`STORAGE_BACKEND=mariadb`), PostgreSQL (`STORAGE_BACKEND=pg`)
-**Auth:** JWT-Cookie (`sm_session`), bcrypt-Passwörter, optionale TOTP-2FA
+**Auth:** JWT-Cookie (`sm_session`) mit serverseitiger Sitzungsliste (`jti`, **eine gleichzeitige Sitzung je Konto**, Abschnitt 67), bcrypt-Passwörter (mindestens 8 Zeichen, Demo-Passwörter im Produktivbetrieb gesperrt), optionale TOTP-2FA
 **RBAC:** `reader`/`revision`(1) < `editor`/`dept_head`/`qmb`(2) < `contentowner`/`auditor`(3) < `admin`(4)
 **UI-Schutz:** Alle UI-Seiten außer `login.html` und ihren Abhängigkeiten sind serverseitig durch JWT-Prüfung geschützt. Unauthentifizierte Anfragen werden mit `302 → /ui/login.html` umgeleitet — unabhängig vom Client-seitigen `logincheck.js`.
 
@@ -90,7 +90,11 @@ Der ISMS Builder ist eine eigenständige Node.js/Express-Anwendung mit Vanilla-J
 Confluence_ISMS_build/
 ├── server/
 │   ├── index.js              – Express-Setup, UI-Middleware, Router-Einbindung (~180 Zeilen)
-│   ├── auth.js               – JWT-Auth, requireAuth, authorize()
+│   ├── auth.js               – JWT-Auth, requireAuth, authorize(); Token nur mit eingetragener Sitzung
+│   ├── sessionStore.js       – serverseitige Sitzungsliste (data/sessions.json), Einzelsitzung je Konto, Sperren bei Logout/Passwort/Rolle
+│   ├── productionState.js    – Demo oder Produktiv (Markierung .production), Demo-Passwörter, Startwarnung
+│   ├── asyncSafe.js          – Fehlerfang für async-Routen, 500-Antworten ohne Interna, zentraler Fehlerhandler
+│   ├── jsonDepth.js          – Tiefenlimit für JSON-Eingaben
 │   ├── rbacStore.js          – Benutzer/Passwort-Store (bcrypt)
 │   ├── storage.js            – Backend-Façade (json/sqlite)
 │   ├── reports.js            – Report-Logik
@@ -140,6 +144,7 @@ Confluence_ISMS_build/
 ├── data/
 │   ├── templates.json        – Templates
 │   ├── soa.json              – SoA-Controls (alle Frameworks)
+│   ├── soa-frameworks.json   – Definitionen eigener SoA-Gruppen (Kennung, Bezeichnung, Farbe)
 │   ├── risks.json            – Risikoregister
 │   ├── entities.json         – Konzernstruktur
 │   ├── rbac_users.json       – Benutzer (bcrypt-Hashes)
@@ -180,7 +185,8 @@ Confluence_ISMS_build/
 
 ```env
 JWT_SECRET=<min. 32 zufällige Zeichen>   # openssl rand -hex 32
-JWT_EXPIRES_IN=8h
+JWT_EXPIRES_IN=8h                         # Sitzungsdauer; je Konto nur EINE gleichzeitige Sitzung (SESSION_SINGLE=false nur für Demo-Hosting)
+# TRUST_PROXY=1                           # hinter einem HTTPS-Proxy setzen, damit Secure-Cookie/HSTS greifen
 PORT=3000
 DEV_HEADER_AUTH=false
 STORAGE_BACKEND=json                      # json (empfohlen) | sqlite | mariadb | postgres
@@ -191,7 +197,9 @@ STORAGE_BACKEND=json                      # json (empfohlen) | sqlite | mariadb 
 # DB_USER=isms
 # DB_PASS=yourpass
 # DB_NAME=isms_builder
-# DB_SSL=false
+# DB_SSL=false                       # true: TLS, Zertifikat wird geprüft
+# DB_SSL_CA=/pfad/ca.pem             # eigene CA (z. B. selbstsigniertes DB-Zertifikat)
+# DB_SSL_REJECT_UNAUTHORIZED=false   # nur im Notfall: Prüfung abschalten (unsicher, Warnung im Log)
 
 # SSL (optional – leer lassen für HTTP)
 # SSL_CERT_FILE=ssl/cert.pem
@@ -308,6 +316,8 @@ tests/
     testEnv.js      – Erstellt isoliertes Temp-Datenverzeichnis mit Seed-Nutzern (bcrypt 1 Runde)
     authHelper.js   – loginAs(), authedGet/Post/Put/Delete()
   auth.test.js      – Login (korrekt/falsch/TOTP), JWT-Schutz, Whoami, Logout
+  sessions.test.js  – Sitzungsliste (Logout, Passwortwechsel, Einzelsitzung), Demo/Produktiv, Startwarnung, Secure-Cookie/HSTS
+  hardening.test.js – Test-Route, DEV_HEADER_AUTH, DB-TLS, Geheimnisse, Workflows, Mindestversionen, Absturzsicherheit, Header
   rbac.test.js      – Rollendurchsetzung pro Modul (Templates, Risiken, Guidance, Ziele, Admin)
   templates.test.js – Template CRUD, Lifecycle, Versionshistorie, Anhänge
   soa.test.js       – SoA lesen/filtern/bearbeiten, Cross-Mapping
@@ -449,6 +459,8 @@ Die Sichtbarkeit von Navigationseinträgen folgt einer zweidimensionalen Regel:
 | admin (admin@example.com) | admin | ciso, dso | Alle (admin) |
 | alice (alice@it.example) | dept_head | — | Dashboard, SoA, Guidance, Training, Kalender, Risiken, Assets |
 | bob (bob@hr.example) | reader | — | Dashboard, SoA, Guidance, Training, Kalender |
+| carla (carla@security.example) | contentowner | ciso | wie Content Owner mit Funktion CISO (Demo-Konto, kein Admin): DSFA vorbereiten und freigeben |
+| dana (dana@privacy.example) | contentowner | dso | wie Content Owner mit Funktion DSB (Demo-Konto, kein Admin): DSB-Stellungnahme zur DSFA eintragen |
 
 ### Organisatorische Zuordnung (empfohlen)
 
@@ -599,6 +611,13 @@ DELETE /soa/custom/:id                – Custom Control löschen (contentowner+
 
 GET  /soa/import-controls/status      – ISO-Import-Status prüfen (admin)
 POST /soa/import-controls             – ISO-Controls importieren (admin) → { controls: [...] }
+
+GET  /soa/frameworks/custom           – alle eigenen Gruppen inkl. Anzahl Controls, auch ausgeblendete (admin)
+POST /soa/frameworks                  – eigene Gruppe anlegen {id,label,color} (admin)
+PUT  /soa/frameworks/:id              – Bezeichnung/Farbe ändern, ID unveränderlich (admin)
+DELETE /soa/frameworks/:id            – nur wenn die Gruppe keine Controls hat, sonst 409 + count (admin)
+POST /soa/frameworks/import           – { framework, controls } importieren; ?dryRun=1 = nur Vorschau (admin)
+GET  /soa/frameworks/import/example   – Beispieldatei mit erfundenen Controls (admin)
 GET  /admin/soa-frameworks            – Framework-Aktivierung lesen
 PUT  /admin/soa-frameworks            – Framework-Aktivierung setzen
 ```
@@ -609,8 +628,8 @@ Organisationen können eigene Controls anlegen — z.B. interne Vorgaben, branch
 
 | Feld | Beschreibung |
 |---|---|
-| `id` | Automatisch generiert, Präfix `CUSTOM-` |
-| `framework` | Immer `CUSTOM` |
+| `id` | Frei wählbar (`controlId`, global eindeutig) oder automatisch generiert, Präfix `CUSTOM-` bzw. `<GRUPPE>-` |
+| `framework` | `CUSTOM` oder die Kennung einer eigenen Gruppe (`framework`) |
 | `title` | Freitext-Titel des Controls |
 | `theme` | Themengruppe (frei wählbar) |
 | `applicable` | true / false |
@@ -620,6 +639,9 @@ Organisationen können eigene Controls anlegen — z.B. interne Vorgaben, branch
 | `linkedTemplates` | Verknüpfte Richtlinien |
 
 **RBAC:** Anlegen, bearbeiten und löschen erfordert mindestens `contentowner` (Rang 3).
+
+**Ein-/Ausschalten:** Der Sammel-Tab `CUSTOM` ist wie die übrigen Frameworks über `orgSettings.soaFrameworks` schaltbar (Standard `CUSTOM: true`; Administration → Module → Aktive Compliance-Frameworks,
+`PUT /admin/soa-frameworks`). Ausgeschaltet verschwindet er aus `GET /soa/frameworks`, `GET /soa/summary` (Dashboard) und der SoA; die Controls bleiben in `soa.json` bzw. `soa_controls` und erscheinen beim Einschalten wieder.
 
 **Lösch-Schutz:** Ein Custom Control kann nur gelöscht werden wenn keine Templates damit verknüpft sind. Andernfalls gibt die API `409 Conflict` mit dem Hinweis welche Templates betroffen sind.
 
@@ -632,6 +654,39 @@ Content-Type: application/json
 { "controls": [ { "id": "ISO-5.1", "framework": "ISO27001", "title": "...", ... } ] }
 ```
 Status prüfen (wieviele Controls pro Framework vorhanden): `GET /soa/import-controls/status`
+
+### Eigene Gruppen (nutzerdefinierte Frameworks)
+
+Neben den acht eingebauten Frameworks und dem Sammel-Tab `CUSTOM` kann ein Administrator **eigene Gruppen** anlegen (z. B. NEN 7510, TISAX,
+Kundenanforderung). Es werden **keine Normtexte** mitgeliefert; der Importeur verwendet nur Inhalte, die er nutzen darf.
+
+**Datenmodell:** Die Definition (`id`, `label`, `color`, `createdAt`, `createdBy`) liegt in `data/soa-frameworks.json`
+(`server/db/soaFrameworkStore.js`, atomisches Schreiben, eine unlesbare Datei wird vor dem Überschreiben nach `…json.defekt-<Zeit>` kopiert) —
+**für alle Speicher-Backends dieselbe Datei**, wie `data/iso-controls.json` (Konfiguration, keine Fachdaten; kein Schema-Umbau). Die Controls liegen wie alle
+anderen in `soa.json` bzw. in der Tabelle `soa_controls` (`framework` = Kennung der Gruppe, `is_custom` = true). Die Aktivierung nutzt den vorhandenen
+Schalter `orgSettings.soaFrameworks`.
+
+**Regeln** (`server/soaFrameworkDefs.js`, reine Funktionen): Kennung `^[A-Z0-9][A-Z0-9_-]{1,49}$`, nicht eine der acht eingebauten Kennungen und nicht `CUSTOM`;
+Bezeichnung 1–120 Zeichen; Farbe nur `#RRGGBB` (sie wird als CSS-Wert verwendet). Control-Kennungen: `[A-Za-z0-9][A-Za-z0-9._:()+-]*`, höchstens 120 Zeichen,
+**global eindeutig** (Primärschlüssel), kein Name aus `Object.prototype`.
+
+**Import:** `planImport()` prüft jede Zeile einzeln (Gründe `not_an_object`, `missing_field`, `invalid_id`, `too_long`, `duplicate_id`, `id_conflict`) und plant
+neu/aktualisiert. Grenzen: 2 MB, 2000 Zeilen, `theme` 80 (Länge der Spalte `soa_controls.theme`), `title` 512, `description` 4000. **Zusammenführen:** vorhandene
+Controls derselben Gruppe erhalten nur `title`/`theme`/`description`; `applicable`, `status`, `owner`, `justification`, `linkedTemplates`, `applicableEntities` bleiben.
+Es wird nichts gelöscht. Unter Knex läuft der Import in **einer Transaktion** (SQLite: Blöcke zu 40 Zeilen wegen der Grenze von 999 Platzhaltern). Der Import hat einen
+eigenen JSON-Parser (2 MB) vor dem globalen (`server/index.js`; der globale kennt 100 kB).
+
+**Auswertungen:** `getFrameworks()` liefert eingebaute **plus** eigene Gruppen (`custom: true`); `getSummary()` und `frameworkReport()` (`server/reports.js`) iterieren darüber
+und zusätzlich über alle in den Controls vorkommenden Kennungen — ein Control geht auch bei fehlender Definitionsdatei nie aus den Kennzahlen verloren.
+`GET /soa/export` enthält zusätzlich `frameworks`. `soa-frameworks.json` gehört zum Vollexport (`/admin/export`) und ist beim Bundle-Import, beim Demo-Bundle und beim Demo-Reset geschützt.
+
+**Öffentliche Demo:** `server/demoHosting.js` sperrt `POST/PUT/DELETE /soa/frameworks…` (das Demo-Admin-Konto ist öffentlich).
+
+**Oberfläche:** Inline-Panel „Eigene Gruppe“ in der SoA (`soaGroupPanelHtml()`, kein Overlay; Zustand `soaGrp` bleibt beim Neuzeichnen), Verwaltung unter
+Administration → Module. Werte aus Gruppen und Controls werden nie in `onclick`-Zeichenketten gesetzt (`escHtml` maskiert keine Apostrophe), sondern über `data-`-Attribute weitergereicht.
+
+**Tests:** `soaFrameworkDefs.test.js` (reine Funktionen, Speicher), `soaFrameworks.test.js` (API, JSON), `soaFrameworksSql.test.js` (API, SQLite; `DB_STORES_TEST_BACKEND` für MariaDB/PostgreSQL),
+`soaFrameworksBrowser.test.js` (Chrome), `soaFrameworksRepoGuard.test.js` (statische Wächter).
 
 ### Modulübergreifende Traceability (Control- & Policy-Verknüpfungen)
 
@@ -691,13 +746,21 @@ Der Organisation-Tab enthält folgende Sektionen:
 | **Organisationsdaten** (Abschnitt „Allgemeine Informationen“) | Org-Name, Kürzel, ISMS-Scope, Logo-Text, **Firmenlogo** (PNG/JPEG, ab 1.82.0) |
 | **Verantwortlichkeiten** | CISO-Name/E-Mail, GDPO-Name/E-Mail, ICS-Kontakt |
 | **Sicherheitsrichtlinien** | 2FA systemweit erzwingen (blockiert Login ohne TOTP) |
-| **KI-Integration** | Ollama-URL (leer = localhost:11434), Embedding-Modell (leer = nomic-embed-text), globaler KI-Toggle |
+| **KI-Integration** | Ollama-URL (leer = localhost:11434), Embedding-Modell (leer = nomic-embed-text), Generierungs-Modell, **optionaler API-Schlüssel**, globaler KI-Toggle |
 | **SMTP-Konfiguration** | Host, Port, TLS, User, Passwort, Absenderadresse; Test-Mail-Button; Hinweis wenn .env-Variablen Vorrang haben |
 | **Splash-Screen** | Aktivieren/deaktivieren, Anzeigedauer (1–30 Sek.) |
 | **Sprach-Konfiguration** | Aktivierte Sprachen (DE/EN/FR/NL/HU), Standard-Sprache für Login-Seite |
 | **Navigationsreihenfolge** | Drag & Drop oder ↑↓-Buttons; Reset auf Standard |
 | **Richtlinien-Bestätigung** | `policyAckMode`: email_campaign / manual / distribution_only (nur admin) |
 | **E-Mail-Benachrichtigungen** | Globaler Toggle; Einzelne Typen: Risiken (→ CISO), DSAR/GDPR-Vorfälle (→ GDPO), Verträge/Templates/Lieferanten-Audits (→ Admin), BCM-Tests, Löschprotokoll |
+
+#### KI-Anbindung: Konfiguration, API-Schlüssel, Kopfzeilen
+
+- **Eine Quelle:** `server/ai/ollamaConfig.js` liefert asynchron `aiEnabled()`, `ollamaUrl()`, `embedModel()`, `genModel()`, `ollamaApiKey()` und `ollamaFetch(pfad, opts)`. **Jede** Anfrage an Ollama geht durch `ollamaFetch` (Status und Suche `GET /api/tags`, Entwurf `/api/generate`, Einbettung `/api/embed`); ein Wächter-Test verbietet jedes andere `fetch(` in `server/ai/` und `routes/ai.js`.
+- **Asynchron wegen der SQL-Speicher:** `orgSettingsStore.get()` liefert unter SQLite/MariaDB/PostgreSQL ein Promise. Der frühere synchrone Zugriff las darauf `undefined` — URL, Modelle und der KI-Schalter der Oberfläche galten dort nicht, und die Organisationsdaten für Filter und Platzhalter der KI-Entwürfe blieben leer. Alle KI-Stellen warten jetzt (`await`); ein Wächter prüft das.
+- **Kopfzeilen:** `User-Agent: ISMS-Builder/<Version>` immer; `Authorization: Bearer <Schlüssel>`, wenn ein Schlüssel gesetzt ist. Damit lassen sich die Anfragen des ISMS Builders im Protokoll eines vorgeschalteten Gateways eindeutig erkennen. Mit Schlüssel `redirect: 'error'`: Weiterleitungen werden nicht verfolgt, der Schlüssel geht nie an eine andere Adresse.
+- **Schlüssel:** Einstellung `aiApiKey` (nur schreibbar), Rückfall Umgebungsvariable `OLLAMA_API_KEY`; die Einstellung hat Vorrang. Setzen/Entfernen nur über `PUT /admin/ai-settings` (`aiApiKey`, `clearAiApiKey`; leer = unverändert; höchstens 512 sichtbare ASCII-Zeichen, sonst 400 — damit keine Kopfzeilen eingeschleust werden). `GET /admin/ai-settings` liefert nur `aiApiKeySet` und `aiApiKeyFromEnv`. Über `PUT /admin/org-settings` lässt er sich nicht setzen. `server/orgSecrets.js` entfernt ihn aus `GET /admin/org-settings` und aus jedem Export (flaches Geheimnis, neben den Gruppen `smtpSettings.pass`/`webdavSettings.appPassword`). Das Audit-Log nennt nur „API-Schlüssel gesetzt/entfernt“. Er liegt wie das SMTP-Passwort unverschlüsselt in `org-settings.json` bzw. der Tabelle `org_settings`.
+- **Tests:** `aiApiKey.test.js` und `aiApiKeySql.test.js` (Stub-Ollama: Kopfzeilen an allen vier Stellen, Weiterleitung, Auslieferung, Validierung), `aiApiKeyUnit.test.js` (Prüfregel, `ollamaFetch`, `orgSecrets`, statische Wächter), `aiApiKeyBrowser.test.js` (Chrome).
 
 ### API-Endpunkte (Admin)
 
@@ -762,7 +825,7 @@ Jeder Benutzer erreicht seine persönlichen Einstellungen über **Benutzermenü 
 
 | Bereich | Funktion |
 |---|---|
-| **Passwort ändern** | Aktuelles Passwort eingeben, neues Passwort (min. 6 Zeichen) zweimal bestätigen; `PUT /me/password`. Ein vom Administrator vergebenes Passwort (Anfangs- oder Rücksetz-Passwort) muss beim nächsten Login auf der Seite `ui/change-password.html` geändert werden; bis dahin sperrt der Server (`server/auth.js` `requireAuth`) jede Schnittstelle außer `PUT /me/password` und `/logout` mit `403 PASSWORD_CHANGE_REQUIRED`, sofort auch für eine bereits laufende Sitzung (Kennzeichen `mustChangePassword` in `rbac_users.json`, `rbacStore.isPasswordChangeRequired`); das neue Passwort muss sich vom bisherigen unterscheiden |
+| **Passwort ändern** | Aktuelles Passwort eingeben, neues Passwort (min. 8 Zeichen) zweimal bestätigen; `PUT /me/password`. Ein vom Administrator vergebenes Passwort (Anfangs- oder Rücksetz-Passwort) muss beim nächsten Login auf der Seite `ui/change-password.html` geändert werden; bis dahin sperrt der Server (`server/auth.js` `requireAuth`) jede Schnittstelle außer `PUT /me/password` und `/logout` mit `403 PASSWORD_CHANGE_REQUIRED`, sofort auch für eine bereits laufende Sitzung (Kennzeichen `mustChangePassword` in `rbac_users.json`, `rbacStore.isPasswordChangeRequired`); das neue Passwort muss sich vom bisherigen unterscheiden |
 | **2FA einrichten** | QR-Code wird automatisch geladen (TOTP); Authenticator-App scannen; 6-stelligen Code eingeben → Aktivieren |
 | **2FA deaktivieren** | Button erscheint, wenn 2FA bereits aktiv ist; Bestätigungsdialog |
 
@@ -783,6 +846,8 @@ Im Admin-Panel → Tab **Organisation** → Sektion **Sicherheitsrichtlinien** k
 | 2FA-Pflicht **aktiviert** | Benutzer ohne eingerichtete 2FA werden beim Login mit Code `ENFORCE_2FA` und erklärendem Hinweis abgewiesen |
 
 **Wichtig:** Vor der Aktivierung der 2FA-Pflicht sicherstellen, dass alle Benutzerkonten bereits 2FA eingerichtet haben — andernfalls werden betroffene Accounts sofort gesperrt.
+
+**Schutz vor Selbst-Aussperrung (ab 1.84.0-beta.42):** `PUT /admin/security` mit `require2FA: true` antwortet `409` mit Code `ENFORCE_2FA_SELF`, solange der handelnde Administrator keine eingerichtete und bestätigte 2FA hat (`server/twoFactorPolicy.js`, gleiche Regel wie bei der Anmeldung); die Antwort nennt `usersWithout2FA`, `GET /admin/security` zusätzlich `usersTotal` und `adminsWith2FA`. Ausschalten geht immer. Beim Serverstart warnt das Log, wenn die Pflicht an ist und kein Administrator 2FA hat (`warnAtStart`). **Notweg:** `scripts/emergency-2fa.js` (`status`, `disable-policy`, `reset-user <name>`; alle Backends; Server vorher beenden; Bestätigung JA, Sicherungskopie `*.notfall-<Zeit>.bak`, Audit-Eintrag `notfall-cli`; im Docker-Image enthalten). Anleitung: `docs/module-login-security*.md`, Abschnitt „Notfall“. Tests: `tests/enforce2fa*.test.js` (409), `tests/emergency2fa*.test.js` (Werkzeug als Prozess, JSON und SQLite). Vorgemerkt, nicht umgesetzt: Selbsteinrichtung der 2FA direkt bei der Anmeldung unter der Pflicht (siehe ROADMAP).
 
 **API-Endpunkte:**
 ```
@@ -1743,6 +1808,10 @@ Verwaltet Lieferanten und Dienstleister framework-agnostisch. `linkedControls[]`
 
 **Seed-Daten (10 Einträge):** NIS2-d in kritischen/hohen Lieferanten (Deutsche Telekom, DATEV, SAP, Cisco, Microsoft, AWS), EUCS-SCM.1/2 in Cloud-Anbietern (Microsoft, AWS, Hetzner).
 
+### Nachweis-Link und Ablauf (GitHub #108)
+
+`evidenceUrl`, `evidenceLabel`, `evidenceValidUntil` verweisen auf ein Dokument (Zertifikat, SOC-Bericht), das der Ersteller selbst verwaltet; der Server ruft den Link nie ab. `server/supplierEvidence.js` lässt nur `http://`/`https://` (≤ 2000 Zeichen), eine Beschriftung ≤ 120 Zeichen und ein gültiges Datum zu (sonst 400, Meldungen in `server/i18n.js`). Die Oberfläche gibt den Link nur bei http(s) als Verweis aus (`supEvidenceCell`, `rel="noopener noreferrer"`). `GET /calendar` liefert dazu Ereignisse vom Typ `supplier_evidence` (Titel „Nachweis läuft ab: <Name>“): Ablauf innerhalb von 60 Tagen und bereits abgelaufene Nachweise, solange der Lieferant weder `inactive` noch `terminated` ist; abgelaufen oder kritisch/hoch = `severity: high`. Tests: `tests/supplierEvidence*.test.js`;
+
 ### Datenmodell
 
 ```json
@@ -1759,6 +1828,7 @@ Verwaltet Lieferanten und Dienstleister framework-agnostisch. `linkedControls[]`
   "dataCategories": [],
   "securityRequirements": [],
   "lastAuditDate": "", "nextAuditDate": "",
+  "evidenceUrl": "", "evidenceLabel": "", "evidenceValidUntil": "",   // Nachweis-Link (nur http/https), Beschriftung, Ablaufdatum (YYYY-MM-DD)
   "auditResult": "passed|failed|pending|not_scheduled",
   "contractId": "",    // Verknüpfung → Legal/Verträge
   "avContractId": "",  // Verknüpfung → GDPR/AV (wenn Auftragsverarbeiter)
@@ -2119,13 +2189,12 @@ Der ISMS Builder wird als Demo-System ausgeliefert. Zwei Admin-Wartungsfunktione
 **Ablauf:**
 1. Erstellt einen vollständigen Datenexport aller Module (identisch zu GET /admin/export, aber erweitert um goals, assets, bcm, suppliers, governance, legal)
 2. Leert alle Moduldaten-Dateien (templates, risks, entities, guidance, training, public-incidents, audit-log, goals, assets, bcm, suppliers, governance, gdpr/\*, legal/\*)
-3. Behält unverändert: `soa.json`, `custom-lists.json`, `org-settings.json`
-4. Löscht alle Benutzer außer `admin`; setzt admin-Passwort auf `adminpass` (Login: `admin@example.com`), 2FA deaktiviert
-5. **Setzt `STORAGE_BACKEND=sqlite` in `.env`** (überschreibt auskommentierte oder fehlende Zeile)
-6. Löscht `data/isms.db` falls vorhanden (SQLite startet beim nächsten Start sauber leer)
-7. Schreibt Flag-Datei `data/.demo_reset_done` (Zeitstempel)
-8. Gibt den Export-Bundle als JSON-Download zurück
-9. Setzt Response-Header `X-Restart-Required: 1` wenn aktuell noch JSON-Backend aktiv ist
+3. Behält unverändert: `soa.json`, `soa-frameworks.json`, `custom-lists.json`, `org-settings.json`
+4. Löscht alle Benutzer außer `admin`; setzt das admin-Passwort auf das Anfangspasswort `adminpass` **mit Wechselpflicht** (Login: `admin@example.com`; muss bei der ersten Anmeldung geändert werden), 2FA deaktiviert, und schreibt die dauerhafte Markierung `data/.production` (ab dann sind die Demo-Passwörter gesperrt, Abschnitt 67)
+5. **Das Speicher-Backend und die `.env` bleiben unverändert** (seit beta.13; früher wurde auf SQLite umgestellt — der Mobile-Sync läuft nur mit `STORAGE_BACKEND=json`). Nur mit `STORAGE_BACKEND=json`: bei `sqlite`, `mariadb` und `postgres` antwortet die Route mit `409` (der Reset leert nur die JSON-Dateien; wie beim Demo-Import)
+6. **Lädt die Speicher im Prozess neu** (`server/reloadStores.js`: Dokumente, Entitäten, SoA, Benutzer; danach die Grunddaten wie Guidance und SoA erneut) — **kein Neustart des Servers nötig**; die Sitzung des Administrators endet, die Oberfläche leitet zur Anmeldeseite
+7. Schreibt Flag-Datei `data/.demo_reset_done` (Zeitstempel) und die dauerhafte Markierung `data/.production` (Kapitel 67)
+8. Gibt den Export-Bundle als JSON-Download zurück (`isms-demo-export-<Datum>.json`; der Server speichert keine Kopie) und vermerkt im Audit-Log, ob die Anleitung zum Produktivbetrieb bestätigt wurde (`X-Guide-Read`, Kapitel 67)
 
 **RBAC:** admin only
 
@@ -2133,33 +2202,20 @@ Der ISMS Builder wird als Demo-System ausgeliefert. Zwei Admin-Wartungsfunktione
 - Login-Seite prüft GET `/auth/demo-reset-done` → zeigt gelben Banner mit Hinweis auf Produktivbetrieb
 - Nach erstem Admin-Login: Flag-Datei wird automatisch gelöscht → Banner verschwindet
 
-> **⚠️ Wichtig: Server-Neustart erforderlich**
->
-> Der Demo-Reset schreibt `STORAGE_BACKEND=sqlite` in die `.env`, aber `dotenv` liest die Konfiguration nur beim Prozessstart ein. Der laufende Server arbeitet bis zum Neustart noch mit dem alten Backend.
->
-> ```bash
-> # Neustart (direkt):
-> npm start
->
-> # Neustart (Docker):
-> docker compose restart
-> ```
->
-> Erst nach dem Neustart ist SQLite aktiv und alle neuen Daten werden in `data/isms.db` gespeichert.
-> Die JSON-Dateien bleiben als Fallback-Backup erhalten.
+> **Hinweis (seit beta.13):** Der Reset benötigt keinen Neustart und schaltet nicht auf SQLite um. Dasselbe gilt für den Demo-Import und das Laden eines Demo-Bundles: Die Daten sind sofort sichtbar. Wer SQLite, MariaDB oder PostgreSQL einsetzt, nutzt `scripts/prepare-production.js` bzw. leert die Datenbank selbst.
 
 **Admin-UI (Wartung-Tab):**
 - **Backend-Anzeige**: Zeigt aktives Backend (JSON = orange Warnung / SQLite = grün)
-- **Neustart-Banner**: Erscheint automatisch wenn `.env` bereits `sqlite` enthält, der Prozess aber noch mit `json` läuft — bleibt sichtbar bis zum Neustart
+- **Neustart-Banner**: Erscheint, wenn `.env` ein anderes Backend enthält als der laufende Prozess (z. B. nach manueller Änderung) — bleibt sichtbar bis zum Neustart
 
 ### Demo-Import (`POST /admin/demo-import`)
 
 **Ablauf:**
 1. Empfängt exportiertes JSON-Bundle (Limit: 50 MB, Content-Type: application/json)
-2. Stellt alle Moduldaten aus dem Bundle wieder her (außer soa.json, custom-lists.json, org-settings.json, rbac_users.json)
-3. Erstellt alice (`alice@it.example` / `alicepass`) und bob (`bob@hr.example` / `bobpass`) neu, 2FA deaktiviert
+2. Stellt alle Moduldaten aus dem Bundle wieder her (außer soa.json, soa-frameworks.json, custom-lists.json, org-settings.json, rbac_users.json)
+3. Erstellt alice (`alice@it.example` / `alicepass`), bob (`bob@hr.example` / `bobpass`), carla (`carla@security.example` / `carlapass`) und dana (`dana@privacy.example` / `danapass`) neu, 2FA deaktiviert
 4. admin-Account bleibt vollständig unverändert (Passwort, 2FA, Einstellungen)
-5. Löscht Flag-Datei falls vorhanden
+5. Löscht Flag-Datei falls vorhanden **und die Produktiv-Markierung `.production`** — der Import ist der Weg **zurück in die Demo**: Die Demo-Konten sind mit ihren öffentlichen Passwörtern wieder gültig (bis beta.14 blieb die Markierung stehen, die Demo-Passwörter waren danach gesperrt)
 
 **Nur mit `STORAGE_BACKEND=json`:** Der Demo-Import schreibt JSON-Dateien. Unter `sqlite`, `mariadb` und `postgres` würden sie nie gelesen; die Route antwortet dort mit `409` und einer Meldung (`Demo import is only available with STORAGE_BACKEND=json …`), statt still ins Leere zu schreiben (#98). Er ist eine Demo-Funktion, kein Backup-, Restore- oder Migrationswerkzeug. Demo und Produktiv werden nie vermischt: Eine Produktiv-Instanz ist immer eine frische Installation.
 
@@ -2432,7 +2488,7 @@ Die Guidance-Seeds (SoA-/Policy-Leitfaden, Demo-Übersicht, ISO-Hinweis, Rollen-
 
 ### Geschützte Dateien (werden beim Bundle-Import nicht überschrieben)
 
-`soa.json`, `custom-lists.json`, `org-settings.json`, `rbac_users.json`
+`soa.json`, `soa-frameworks.json`, `custom-lists.json`, `org-settings.json`, `rbac_users.json`
 
 ### API-Endpunkt
 
@@ -2616,6 +2672,8 @@ Nachher: `['de', 'en', 'fr', 'nl'].includes(l) ? l : 'en'` — alle vier Sprache
 ---
 
 ## 47. Sprach-Konfiguration (Admin, V 1.32.0)
+
+> **Sprachregister (1.84.0-beta.22):** Die Liste der Sprachen steht nur noch in `ui/i18n/languages.js` (Server: `server/languages.js`). Anmeldeseite (Sprachknöpfe, Demo-Auswahl), Verwaltung (Sprachauswahl), `t.js`, Meldungstabelle, Locale, Doku-Endungen und KI-Sprachnamen werden daraus abgeleitet. `status`/`listed` steuern, ab wann eine Sprache auswählbar ist; fehlende Texte fallen auf Englisch zurück. Checkliste: `AGENTS.md`, Abschnitt „Sprachregister und Neue Sprache hinzufügen“. Tests: `tests/languageRegistry.test.js`.
 
 ### Zweck
 
@@ -3468,6 +3526,10 @@ Kompakte Übersicht aller seit V 1.37 behobenen Sicherheitsfindings — Details 
 | **V 1.80.1** | **GHSA-vf3w-pmvj-x8mc** — Token mit `Math.random()` | Token der öffentlichen Bestätigungsseiten jetzt aus `crypto.randomBytes` (`server/secureToken.js`) | CHANGELOG 1.80.1 |
 | **V 1.80.1** | Härtung: Administratoren kannten Passwörter | **Dienst-Zugangsdaten nur schreibbar:** SMTP-Passwort und WebDAV-App-Passwort werden nie mehr ausgeliefert (auch nicht an Administratoren): `GET/PUT /admin/org-settings` nennen nur `passSet`/`appPasswordSet`; leeres Feld beim Speichern = unverändert, `clearPass`/`clearAppPassword` = entfernen; der WebDAV-Verbindungstest nutzt das gespeicherte Passwort nur für die gespeicherte Adresse und den gespeicherten Benutzer (`server/orgSecrets.js`). **Datenexport** (`GET /admin/export`, `demo-reset`) enthält weder Passwort-Hashes und 2FA-Geheimnisse der Nutzer noch Dienst-Passwörter; der Export liest jetzt aus `DATA_DIR` statt fest aus `data/`. **Passwortwechsel beim ersten Login** für vom Administrator vergebene Passwörter (siehe Persönliche Einstellungen) | CHANGELOG 1.80.1 |
 
+| **V 1.84.0-beta.9** | Härtung | `/test/users` nicht in Produktion; `DEV_HEADER_AUTH` in Produktion verboten; DB-TLS prüft Zertifikate; `server/asyncSafe.js` + `server/jsonDepth.js` (kein Prozessende durch Eingaben); öffentliche Bestätigungsseite mit DOMPurify; Abhängigkeiten angehoben; Actions per SHA | `tests/hardening.test.js`, `tests/ackPublicXss.test.js` |
+| **V 1.84.0-beta.10** | Header, Sync-Autoren, Passwortlänge | `nosniff`, `X-Frame-Options`, `Referrer-Policy`, kein `X-Powered-By`, `no-store` für Anmeldewege; Sync setzt `createdBy`/`updatedBy` selbst; Passwort mindestens 8 Zeichen; Berichte unter SQL-Backends (fehlendes `await`), LIKE-Platzhalter im Audit-Filter, keine Treibertexte in 500-Antworten | `tests/hardening.test.js`, `tests/sync.test.js`, `tests/dbBackendRoutes.test.js` |
+| **V 1.84.0-beta.11** | Sitzungen, Demo/Produktiv, HTTPS | Serverseitige Sitzungen, eine gleichzeitige Sitzung je Konto; Demo-Passwörter im Produktivbetrieb gesperrt mit nicht wegklickbarer Warnung; `Secure`-Cookie und HSTS bei HTTPS | `tests/sessions.test.js` |
+
 ### Secret-Scanning (GitGuardian, seit September 2026)
 
 Das Repository wird zusätzlich zu `npm audit` (Abschnitt 49) fortlaufend von GitGuardian auf versehentlich committete Zugangsdaten überwacht. Da das Projekt bewusst mit dokumentierten Demo-Zugangsdaten ausgeliefert wird (`adminpass`, `bobpass` etc., siehe Abschnitt 10) und Tests entsprechende Fixtures verwenden, sind bekannte Fundorte dauerhaft als False Positive hinterlegt:
@@ -3489,13 +3551,14 @@ Eigenständige Android-App (Projekt `isms-builder-mobile`, Capacitor), die offli
 
 **Server-Seite (dieses Projekt):**
 
+- **Eigene SoA-Gruppen (ab 1.84.0-beta.41):** Modul `soaFrameworks` (`data/soa-frameworks.json`). Lesen: Recht `soa` oder `soaFrameworks` (mindestens lesen); Schreiben nur mit `soaFrameworks: write` (Sync-Konten sind keine Administratoren; der Administrator vergibt das Recht am Konto). Der Push prüft wie die Verwaltung (`soaFrameworkDefs.validateDefinition`), löscht nur Gruppen ohne Controls und hinterlässt eine Löschmarkierung (`deletedAt`); `soaFrameworkStore` blendet Markierungen aus. Protokoll bleibt 2 (ältere Apps ignorieren das unbekannte Modul). Tests: `tests/syncSoaFrameworks.test.js`.
 - `server/routes/sync.js` — `GET /sync/pull?since=&modules=` und `POST /sync/push`; in `server/index.js` nach den übrigen Routen eingebunden. Nur `STORAGE_BACKEND=json` (sonst `501`).
 - Module: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance` (Guidance nur lesbar). Datensätze werden direkt in den JSON-Dateien des Datenverzeichnisses zusammengeführt (temporäre Datei + `rename`, damit kein halb geschriebener Stand entsteht).
 - **Konfliktregel:** Der Client schickt je Datensatz `baseUpdatedAt`. Hat sich der Datensatz am Server danach geändert (größtes von `updatedAt`, `deletedAt`, `createdAt`) oder existiert er ohne Basis, wird er nicht überschrieben, sondern unter `conflicts` samt Serverstand zurückgemeldet. Angenommene Datensätze erhalten `updatedAt` = Serverzeit.
 - **Zugang:** ausschließlich über **Sync-Konten** (`server/db/syncAccountStore.js`, `data/sync-accounts.json`; Verwaltung: `server/routes/syncAccounts.js`, Oberfläche: Verwaltung → Benutzer → Sync-Konten). Sie sind unabhängig von den RBAC-Benutzern: kein Login, keine Rolle. Ein Konto steht für eine Rolle/Person und hat **mehrere Geräte mit je eigenem Schlüssel**. Header `Authorization: Bearer <Geräteschlüssel>`; ein Sitzungs-Cookie genügt für `/sync/*` nicht. Schlüsselformat `ISMS-` + 8×4 Zeichen (31er-Alphabet, 160 Bit), gespeichert nur als SHA-256-Hash, Vergleich zeitkonstant; die erste Gruppe ist die Kennung (`keyId`). Falsche Schlüssel laufen durch `loginThrottle`.
 - **Einrichtung per QR-Code:** `POST /admin/sync-accounts/:id/enrollment` erzeugt einen Einrichtungscode (12 Zeichen, 15 Minuten, einmalig, nur als Hash gespeichert) und einen QR-Code (`isms-sync://enroll?u=<Server-Adresse>&c=<Code>`, serverseitig mit `qrcode`). Die App löst ihn über `POST /sync/enroll` (ohne Login, gebremst) ein und erhält dabei einen neuen Geräteschlüssel; der Administrator sieht den Schlüssel nie. Für Skripte: `POST …/devices` (Schlüssel einmalig sichtbar). Einzelne Geräte: `DELETE …/devices/:deviceId`.
 - **Rechte je Konto und Modul:** `none`/`read`/`write` für `templates`, `soa`, `risks`, `assets`, `findings`, `guidance` (Guidance höchstens `read`). Pull liefert nur lesbare Module (ausdrücklich angefragte, nicht erlaubte unter `denied`), Push braucht `write`. Neue Datensätze tragen `createdBy: sync:<Name>`; das Audit-Log nennt `sync:<Name>`. Template-Anhänge werden von einem Push nie verändert.
-- `GET /sync/me` liefert Id, Name, Rechte, Gültigkeit und Gerätename des Kontos. `/sync` hat einen eigenen JSON-Parser (20 MB) vor dem globalen (100 kB).
+- `GET /sync/me` liefert Id, Name, Rechte, Gültigkeit und Gerätename des Kontos. `/sync/push` liest seinen JSON-Inhalt (20 MB, Tiefenlimit) **erst nach der Prüfung des Geräteschlüssels**; `/sync/enroll` (ohne Anmeldung) nimmt höchstens 4 kB an; der globale Parser (100 kB) überspringt `/sync/*` (beta.17). `GET /sync/pull` nennt zusätzlich die **Daten-Epoche** (`epoch`, `server/syncEpoch.js`): Sie ändert sich bei jedem Serverstart und nach jedem Datenaustausch (`reloadAll()` nach Demo-Reset/-Import/-Bündel); eine App mit anderer Epoche holt einmal alle Daten, weil Datensätze mit altem Zeitstempel sonst nie ankämen (beta.18).
 - `GET /api/version` liefert zusätzlich `syncProtocol` (aktuell `2`); Clients mit anderem Protokoll bekommen `409`.
 - **Maßnahmen (ab 1.81.0, Protokoll 2):** Das Modul `measures` hat **kein eigenes Recht**; die Regeln stehen in `server/db/measureAccess.js` (reine Funktionen, auch von der App genutzt). Verknüpfung → Modul: Risiko → `risks`, Feststellung → `findings`, Control → `soa`, Richtlinie → `templates`. Lesen: mindestens ein verknüpftes Modul lesbar; Pull filtert je Datensatz und liefert `visibleIds.measures` (alle lesbaren Kennungen, damit die App entzogene Maßnahmen entfernt). Schreiben/Anlegen/Löschen: Schreibrecht auf alle Module (gespeicherter ∪ neuer Stand), neue Maßnahme mindestens eine Verknüpfung; TOM, Governance und VVT-Verknüpfung sind gesperrt, Maßnahmen ohne Verknüpfung werden nicht synchronisiert. Abgelehnte Datensätze stehen in `rejected` mit `code`. Anhänge, `tom`/`governance` und die Referenz kommen nie aus der App; Referenz-Kollision → nächste freie `M-nnn`. In Risiko-/Feststellungs-Pushes werden eingebettete `treatmentPlans`/`actions` verworfen. Test: `tests/syncMeasures.test.js`.
 - **Transport:** Die App akzeptiert nur `https://`. Bei eigenem/selbstsigniertem Zertifikat muss die Server-Adresse im Zertifikat stehen (`scripts/setup-ssl.sh` fragt dafür *Weitere Namen/IP-Adressen* ab) und das Zertifikat am Handy installiert werden (Details: `docs/module-mobile-sync.md`, Abschnitt *Zertifikat auf dem Handy*).
@@ -3622,10 +3685,10 @@ Der AI Policy Assistant (siehe Abschnitt „AI Policy Assistant“, V 1.60.0) se
 
 | Baustein | Datei | Aufgabe |
 |---|---|---|
-| Gemeinsames Modul | `server/ai/safeDraft.js` | Reine Funktionen ohne Datei- und Netzzugriff (Server und Mobile App): Titelliste (`CATALOG`, 21 Einträge, Typ + Titel in fünf Sprachen), `findPii`, `buildPrompt`, `fillPlaceholders`, `stripCodeFences` |
+| Gemeinsames Modul | `server/ai/safeDraft.js` | Reine Funktionen ohne Datei- und Netzzugriff (Server und Mobile App): Titelliste (`CATALOG`, 134 Einträge, Typ + Titel in fünf Sprachen; Gruppen: Richtlinien, Verfahren, Risikorichtlinien, Vorfälle, Freigaben, SoA; KI-Themen nach EU AI Act und ISO 42001), `findPii`, `buildPrompt`, `fillPlaceholders`, `stripCodeFences` |
 | Ollama-Aufruf | `server/ai/policyGenerator.js` | `generateFromPrompt(prompt)`: sendet einen bereits geprüften Prompt, Fehler → 502 ohne stillen Fallback |
 | Endpunkte | `server/routes/ai.js` | `GET /api/ai/draft-catalog`, `POST /api/ai/draft-preview` (zeigt Prompt und Ziel, sendet nichts), `POST /api/ai/generate-policy`; Rolle `contentowner` |
-| Oberfläche | `aiDraftPolicy()` u. a. in `ui/app.js` | Dialog: Dokument, Sprache, Hinweis, gesendeter Prompt, Ziel, Platzhalter; Sperre bei Funden |
+| Oberfläche | `aiDraftPolicy()` u. a. in `ui/app.js` | Dialog: Dokument, Sprache (Hauptsprache der Installation und Englisch; bei Englisch als Hauptsprache ausgeblendet), Hinweis, gesendeter Prompt, Ziel, Platzhalter; Sperre bei Funden |
 | Tests | `tests/safeDraft.test.js`, `tests/aiPolicyGenerator.test.js` | Filter, Prompt, Platzhalter; der an Ollama gesendete Text enthält keine Organisationsdaten |
 
 **Prompt:** feste englische Anweisung, Dokumenttyp und Titel aus der Liste, Gliederungsvorgabe je Typ, Zielsprache, Pflicht zu Platzhaltern statt erfundener Angaben, optional `Pay particular attention to: <Hinweis>`. Der Hinweis darf höchstens 200 Zeichen haben und nur Buchstaben, Ziffern, Leerzeichen und `, . ; : ( ) / & + - –` enthalten (keine Zeilenumbrüche, Anführungszeichen oder Klammerzeichen für Anweisungen).
@@ -3636,4 +3699,119 @@ Der AI Policy Assistant (siehe Abschnitt „AI Policy Assistant“, V 1.60.0) se
 
 **Audit:** `ai_generate_policy` mit Kennung und Sprache, `, mit Hinweis` wenn ein Hinweis gesendet wurde; der Hinweistext wird nicht protokolliert.
 
+**Zwei Wege (seit Beta 1.84.0-beta.1):** Der Dialog hat neben **Entwurf erzeugen** (direkt über Ollama) den Knopf **Text kopieren** (der geprüfte Prompt kommt in die Zwischenablage; der Nutzer verwendet ihn in einer KI seiner Wahl). Der Dialog öffnet sich auch bei ausgeschalteter KI-Integration; dann ist nur das Kopieren möglich. Die eingefügte Antwort wird im Editor beim Einfügen (`paste`-Ereignis auf `#contentEditor`) oder mit dem Knopf **Platzhalter füllen** über `POST /api/ai/fill-placeholders` (Rolle `editor`, Body `{ text }`, Antwort `{ text, replaced, unresolved }`, Body-Limit 1 MB) ersetzt; dieselbe Funktion `fillPlaceholders` wie beim direkten Weg. Codezäune (```) entfernt nur der direkte Weg. Anwenderanleitung: `docs/module-ai-drafts*.md` (Guidance-Seed `seed_module_ai_drafts`, fünf Sprachen).
+
 **Nicht Teil davon:** die KI-Suche und der Scan-Import (senden weiterhin Inhalte an Ollama) sowie die Mobile App (Weitergabe an eine KI-App über das Android-Teilen-Menü folgt in App 1.6.0, mit demselben Modul).
+
+## 61. CSV-Export und -Import der Dokumente (V 1.84.0)
+
+| Baustein | Datei | Aufgabe |
+|---|---|---|
+| Format und Prüfung | `server/templateCsv.js` | Reine Funktionen: `toCsv`, `parseRows` (Anführungszeichen, Zeilenumbrüche in Zellen, Komma/Semikolon an der Kopfzeile erkannt, BOM), `parseImport` (Prüfung), `plan` (vorhandene und doppelte überspringen) |
+| Endpunkte | `server/routes/templates.js` | `GET /templates/export.csv` (Rolle `reader`), `POST /templates/import` (Rolle `contentowner`, Body `{ csv, dryRun? }`); Body-Limit 8 MB (`server/index.js`) |
+| Oberfläche | `exportTemplatesCsv()`, `importTemplatesCsv()` in `ui/app.js`, Knöpfe in `ui/index.html` | Export, Vorschau-Dialog, Anlegen |
+| Test | `tests/templateCsv.test.js` | Format, Rundreise, Prüfungen, Endpunkte, Rechte |
+
+**Format:** UTF-8 mit BOM, Komma, jede Zelle in Anführungszeichen. Spalten: `id, type, title, language, status, version, owner, nextReviewDate, parent, content` (feste englische Namen). `parent` ist der Titel des übergeordneten Dokuments. Zellen, die mit `= + - @ Tab CR` beginnen, bekommen beim Export ein Hochkomma (Schutz vor Formelauswertung in Tabellenkalkulationen); der Import entfernt es wieder.
+
+**Import:** Pflichtspalten `type, title, language, content`. Er legt **ausschließlich neue Entwürfe** an (Status `draft`, Version 1, Eigentümer = Importierender, Datum aus `nextReviewDate`); die Spalten `id`, `status`, `version` und `owner` werden ignoriert. Gleiche Kombination aus Typ, Titel (ohne Beachtung der Groß-/Kleinschreibung) und Sprache wie ein vorhandenes Dokument wird übersprungen; vorhandene Dokumente werden nie verändert, damit Freigabe und Versionierung nicht umgangen werden. Grenzen: 5 MB, 500 Zeilen, Titel 200 Zeichen, Inhalt 500 kB; Dokumenttyp aus der Liste `templateTypes` der Installation, Sprache `de, en, fr, nl, hu`, Datum `JJJJ-MM-TT`. Fehlerhafte Zeilen werden mit Grund gemeldet, gültige trotzdem angelegt. Mit `dryRun: true` wird nur geprüft und gezählt.
+
+## 62. DSFA: Vorlagen, Vorabprüfung, Prüfablauf, Ausdruck (V 1.84.0-beta.2)
+
+| Baustein | Datei | Aufgabe |
+|---|---|---|
+| Vorlagen und Regeln | `server/dsfaTemplates.js` | Reine Funktionen: Katalog aus 18 Risiken, 28 Maßnahmen und 9 Verarbeitungsarten in fünf Sprachen (`list`, `build`), Vorabprüfung (`precheckCriteria`, `evaluatePrecheck`), Freigaberegel (`validateApproval`) |
+| Endpunkte | `server/routes/gdpr.js` | `GET /gdpr/dsfa-templates`, `GET /gdpr/dsfa-templates/:id?lang=`, `GET/POST /gdpr/dsfa-precheck`; Prüfablauf in `POST/PUT /gdpr/dsfa` |
+| Speicher | `server/db/gdprStore.js`, `server/db/stores/gdprStore.js` | neue Felder `dpoOpinionBy`, `dpoOpinionAt`, `precheck` (beide Speicher) |
+| Oberfläche | `ui/app.js` (`openDsfaForm`, `openDsfaTemplateDialog`, `openDsfaPrecheck`, `exportDsfaPdf`) | Vorlage wählen, Vorabprüfung, Maßnahmen je Risiko, DSB-Felder, Druckansicht über `openPrintWindow()` (mit Firmenlogo) |
+| Anleitung | `docs/module-dsfa*.md` | Systemhandbuch, fünf Sprachen (Guidance-Seed `seed_module_dsfa`) |
+| Test | `tests/dsfaTemplates.test.js` | Katalog, Vorabprüfung, Freigaberegel, Endpunkte, Rechte, Anleitung vollständig |
+
+**Prüfablauf (serverseitig, unabhängig vom Speicher):** `dpoOpinion` und `dpoConsulted` ändern nur Konten mit Funktion `dso` und Administratoren (`403`, Code `dpo_only`); der Server setzt `dpoOpinionBy/At`, `approvedBy/At` und die Person und das Datum der Vorabprüfung (`precheck`), Werte aus dem Client werden verworfen. Eine neue DSFA kann nicht sofort `approved` sein (`approve_on_create`). Der Wechsel auf `approved` verlangt eine Stellungnahme des DSB (`dpo_opinion_missing`), eine Entscheidung (`decision_missing`) und bei Restrisiko `high`/`critical` eine Begründung oder `saConsultationRequired` (`high_residual_unjustified`). Beim Zurücksetzen entfallen `approvedBy/At`. Anlegen, Ändern und Statuswechsel stehen im Audit-Log (`gdpr_dsfa`).
+
+**Behoben:** Das Formular verwarf beim Speichern die Maßnahmen je Risiko und vergab neue Risiko-Kennungen; beides bleibt jetzt erhalten.
+
+**Grenzen:** Die Werte für Wahrscheinlichkeit und Auswirkung in den Vorlagen sind Vorschläge; die Vorlagen und die Vorabprüfung ersetzen keine Rechtsberatung. Listen der Aufsichtsbehörden prüft das Unternehmen selbst. Die KI erzeugt keine DSFA (sie beschreibt eine konkrete Verarbeitung = Firmendaten). Das Modul GDPR ist in der Mobile App nicht enthalten.
+
+## 63. Vorlagen für die Einträge des GDPR-Moduls (V 1.84.0-beta.2)
+
+| Baustein | Datei | Aufgabe |
+|---|---|---|
+| Vorlagen | `server/gdprTemplates.js` | Reine Funktionen: `list(kind, lang)`, `build(kind, id, lang, org)`; Katalog in fünf Sprachen für `vvt` (14), `av` (12), `incident` (10), `dsar` (10, Antwortschreiben) und `tom` (24) |
+| Endpunkte | `server/routes/gdpr.js` | `GET /gdpr/templates/:kind`, `GET /gdpr/templates/:kind/:id?lang=` (ab `reader`) |
+| Oberfläche | `openGdprTemplateDialog()`, `useGdprTemplate()` in `ui/app.js` | Knopf „Vorlage verwenden“ in den Reitern VVT, AV-Verträge, Datenpannen, Betroffenenrechte und TOMs; die Formulare `open*Form(id, prefill)` nehmen den Vorschlag als Vorbelegung |
+| Anleitung | `docs/module-gdpr*.md`, Kapitel „Vorlagen für Einträge“ | Fünf Sprachen, vollständige Liste je Art, Hinweis zur Anpassung und zur Rechtsberatung |
+| Test | `tests/gdprTemplates.test.js` | Vollständigkeit je Sprache, gültige Werte gegenüber den Auswahllisten, Platzhalter, Endpunkte, Anleitung vollständig |
+
+**Grundsätze:** Die Vorlagen enthalten keine Firmendaten (nur `{{COMPANY_NAME}}` und `{{DATA_PROTECTION_OFFICER}}` in den Antwortschreiben, gefüllt aus den Organisationsdaten). Die Vorlage legt keinen Eintrag an: Erst das Speichern im Formular erzeugt ihn. AV-Vorlagen lassen Auftragsverarbeiter und die Art.-28-Checkliste leer; die Vorschläge zur Meldepflicht bei Datenpannen und die Aufbewahrungsmonate sind Richtwerte. **Alle Vorlagen sind praxisbezogen, müssen aber sorgfältig auf das eigene Unternehmen angepasst werden; sie sind keine Rechtsberatung und dürfen nicht als solche verstanden werden.** Für das Löschprotokoll und den DSB-Eintrag gibt es keine Vorlagen (reale Vorgänge bzw. Einzeleintrag). Für die DSFA siehe Kapitel 62.
+
+## 64. Schulungen: Anhänge und Teilnahmebestätigung (V 1.84.0-beta.4)
+
+| Baustein | Datei | Aufgabe |
+|---|---|---|
+| Dateien | `server/trainingFiles.js` | Speicherort `training-files/` im Datenverzeichnis, Zufallsnamen, Prüfung von Endung **und** Dateikopf (PDF, PNG, JPG, DOCX, XLSX, TXT, höchstens 20 MB), bereinigter Anzeigename, `publicAttachments()` ohne Serverpfad |
+| Speicher | `server/db/trainingStore.js`, `server/db/stores/trainingStore.js` | `addAttachment`, `getAttachment`, `removeAttachment` (markiert nur, `removedAt/By`); Knex: Metadaten im Feld `data` (keine Schemaänderung), `update` bewahrt `data` |
+| Bestätigung | `server/trainingCertificate.js` | pdfkit; Inhalt aus der Schulung, Akzentfarbe je Kategorie, Logo und Firmenname, Prüfcode (SHA-256, 12 Zeichen), fester Hinweis „Interner Beleg, keine Zertifizierung“; ő/ű werden zu ö/ü (Helvetica) |
+| Endpunkte | `server/routes/training.js` | `POST /training/:id/attachments` (ab `editor`), `GET …/attachments/:attId/file` (ab `reader`, `nosniff`, `attachment`), `DELETE …/attachments/:attId` (ab `editor`, nur markieren), `GET /training/:id/confirmation.pdf` (ab `reader`, 409 `not_completed`) |
+| Oberfläche | `ui/app.js` | Abschnitt „Anhänge“ im Formular, Knöpfe auf der Karte im Reiter „Nachweise“ (ohne die Karte zu öffnen), `downloadTrainingFile()`, `downloadTrainingConfirmation()` |
+| Tests | `tests/trainingAttachments.test.js`, `tests/trainingEvidence.test.js` | Upload/Ablehnung/Rechte/Entfernen/Audit, PDF, Prüfcode, fünf Sprachen; echter Browser; SQLite mit `TEST_BACKEND=sqlite` |
+
+**Grundsätze:** Entfernte Anhänge bleiben auf dem Server (Vorbereitung für den geplanten Nachweisschutz); beim endgültigen Löschen einer Schulung werden ihre Dateien mitgelöscht. Die Bestätigung gilt nur als interner Beleg und nur bei Status „Abgeschlossen“. `training-files/` ist nicht Teil des JSON-Datenexports und muss mitgesichert werden.
+
+## 65. BCM: Register der ISO-22301-Anforderungen (V 1.84.0-beta.5)
+
+| Baustein | Datei | Aufgabe |
+|---|---|---|
+| Logik | `server/bcmRequirements.js` | Reine Funktionen: CSV/JSON lesen (`parse`), Prüfung je Zeile mit Grund (`validate`, `checkParents`), Vorlage mit erfundenen Beispielen, Export mit neutralisierten Formelzeichen, `summarize` (nur Blätter), `cleanAssessment` |
+| Speicher | `server/db/bcmStore.js`, `server/db/stores/bcmStore.js` | Definitionen (`requirements`, Knex: `bcm_entries.bcm_type = 'req'`) und Bearbeitungsstand (`assessments`, `req_assess`) getrennt; Import überschreibt Definitionen, nie den Stand; keine Schemaänderung |
+| Endpunkte | `server/routes/bcm.js` | `GET /bcm/requirements`, `POST /bcm/requirements/import[?dryRun=1]` (Admin), `GET …/template.csv`, `GET …/export.csv`, `PUT /bcm/requirements/:framework/:id/assessment` (ab `editor`); `GET /bcm/summary` enthält `requirements` |
+| Oberfläche | `renderBcmRequirements()` u. a. in `ui/app.js` | Reiter „Anforderungen“: Leerzustand mit Import (Admin), Baum nach Kapiteln, Filter, Abdeckungsleiste, Hinweise aus vorhandenen Daten (8.2.2, 8.4.4, 8.5), Import-Dialog mit Vorschau |
+| Demo/Produktiv | `server/routes/admin.js` | Demo-Reset leert `requirements` und `assessments` (und die Dateien der Schulungs-Anhänge) |
+| Repo-Schutz | `.gitignore`, `tests/bcmRequirementsRepoGuard.test.js` | `iso22301*.csv/json`, `*-demo-requirements.csv`, `iso-controls*.json` sind ausgeschlossen; der Test prüft, dass keine solche Datei im Repo liegt und kein Demo-Bündel ISO-22301-Titel enthält |
+| Tests | `tests/bcmRequirements.test.js`, `tests/bcmRequirementsBrowser.test.js` | Parser, Prüfung, Import/Vorschau, Rechte, Bearbeiten, erneuter Import, Export, SQLite (`TEST_BACKEND=sqlite`), echter Browser |
+
+**Grundsätze:** Der Normtext wird nie ausgeliefert (auch nicht in Demo-Bündeln); die Firma importiert ihn aus ihrer lizenzierten Ausgabe. Die Demo-Instanz erhält eine Datei mit eigenen Kurzbeschreibungen aus `~/Downloads`, außerhalb jedes Repositories. Der Status wird nie automatisch gesetzt.
+
+## 66. BCM: Vorlagen für BIA, Pläne und Übungen (V 1.84.0-beta.6)
+
+| Baustein | Datei | Aufgabe |
+|---|---|---|
+| Katalog | `server/bcmTemplates.js` | Reine Funktionen `list(kind, lang)` und `build(kind, id, lang, org)`; 8 BIA, 9 Pläne (Text mit acht Abschnitten), 6 Übungen (Szenario, Ziele, Einspielungen, Bewertungsfragen) in fünf Sprachen; Platzhalter `{{COMPANY_NAME}}`, `{{ISMS_OWNER}}` über `safeDraft.fillPlaceholders` |
+| Endpunkte | `server/routes/bcm.js` | `GET /bcm/templates/:kind` (ab `reader`), `GET /bcm/templates/:kind/:id?lang=` (ab `editor`) |
+| Datenmodell | `server/db/bcmStore.js`, `server/db/stores/bcmStore.js` | Übung bekommt `scenario` (Text, höchstens 8000 Zeichen; Knex: im JSON-Feld `data`); alte Übungen ohne Feld bleiben lesbar |
+| Oberfläche | `openBcmTemplateDialog()`, `useBcmTemplate()`, `open*Form(id, prefill)` in `ui/app.js` | Knopf „Vorlage verwenden“ in den Reitern BIA, Pläne, Übungen |
+| Tests | `tests/bcmTemplates.test.js`, `tests/bcmTemplatesBrowser.test.js` | Vollständigkeit je Sprache, gültige Werte, keine Firmendaten/Normzitate, Endpunkte und Rechte, Szenario-Feld (JSON und SQLite), echter Browser |
+
+**Grundsätze:** Eigene Texte, kein Normtext; praxisorientierte Vorschläge, die das Unternehmen anpasst; keine Beratung. FR/NL/HU sind eigene Übersetzungen.
+
+## 67. Sitzungen, Demo/Produktiv und HTTPS-Cookie (V 1.84.0-beta.11)
+
+> Anwenderfassung mit Screenshots in fünf Sprachen: Guidance „Modul: Anmeldung, Sitzungen und Produktivbetrieb“ (`docs/module-login-security*.md`), auch in der Anwendung unter Guidance → Systemhandbuch lesbar.
+
+**Serverseitige Sitzungen.** Das Anmelde-Token (JWT im Cookie `sm_session`) enthält eine Sitzungskennung `jti`. Der Server führt eine Liste gültiger Sitzungen (`server/sessionStore.js`, Datei `sessions.json` im Datenverzeichnis, Rechte 0600, abgelaufene Einträge werden entfernt, höchstens 50 Sitzungen je Konto). Ein Token gilt nur, wenn Signatur, Ablauf **und** Eintrag in der Liste stimmen. Beendet werden Sitzungen durch: Abmelden (nur diese Sitzung), Passwortwechsel (alle anderen Sitzungen des Kontos), Änderung von Rolle, Bereich oder Funktionen, Passwort-Reset durch den Administrator, Löschen des Kontos. **Verbindliche Regel: Je Konto ist nur eine gleichzeitige Sitzung zulässig.** Eine neue Anmeldung beendet die bisherige Sitzung desselben Kontos (die ältere Sitzung wird beim nächsten Aufruf abgemeldet und führt zur Anmeldeseite). Wer zwei Sitzungen gleichzeitig nutzen möchte — zwei Personen, zwei Geräte oder Browser —, muss dafür ein **separates Konto** anlegen; ein Konto darf nicht geteilt werden. Der Schalter `SESSION_SINGLE=false` hebt die Regel nur für Demo-Hosting auf (öffentliche Demo-Konten mit mehreren gleichzeitigen Besuchern) und wird in Produktion nicht verwendet. Die Zugangsschlüssel der Mobile-App (Sync) sind davon nicht betroffen. Tokens aus der Zeit vor diesem Stand haben keine Kennung und gelten nicht; nach dem Update meldet sich jeder einmal neu an.
+
+**Demo und Produktivbetrieb.** `NODE_ENV=production` (Docker-Image) beschreibt nur den technischen Modus. Der Datenzustand „Produktiv“ beginnt mit dem Demo-Reset (Admin → Demo-Reset) oder `scripts/prepare-production.js`; beide schreiben die Markierung `.production` im Datenverzeichnis. Fehlt sie, gilt die Instanz als produktiv, sobald die Demo-Konten `alice` und `bob` nicht mehr existieren. Im Produktivbetrieb werden die Passwörter der Demo-Konten (`adminpass`, `alicepass`, `bobpass`, `carlapass`, `danapass`) bei der Anmeldung abgelehnt und können nicht vergeben werden (Administrator, Passwortwechsel, Skript). Ausnahme ist die Übergabe: Nach dem Reset hat `admin` das Anfangspasswort `adminpass` mit Wechselpflicht; alle Schnittstellen außer Passwortwechsel und Abmelden sind gesperrt, bis ein eigenes Passwort gesetzt ist. **Anleitung vor der Umstellung (beta.12).** Der Knopf „Demo-Reset“ (Administration → Wartung) öffnet **zuerst die Anleitung** `docs/module-login-security*.md` in einem eigenen Fenster (`showDemoResetGuide()` in `ui/app.js`, Sprache der Oberfläche; das Fenster entsteht synchron im Klick, damit der Popup-Blocker es zulässt, und wird vor dem Reset geladen, weil danach die Sitzung endet). Der Bestätigungsknopf wird erst nach Scrollen bis zum Ende und 15 Sekunden frei; Nachricht `isms-demo-reset-guide-read` per `postMessage` (nur gleicher Ursprung, nur vom eigenen Fenster). Erst danach folgen die Eingabe `RESET` und der Aufruf `POST /admin/demo-reset` mit Header `X-Guide-Read: 1`. Wird das Fenster anders geschlossen oder blockiert, bleibt alles unverändert. Der Server erzwingt die Anleitung nicht (API, Skripte), vermerkt aber im Audit-Eintrag `demo_reset` „Anleitung angezeigt und bestätigt“ bzw. „nicht bestätigt (direkter API-Aufruf)“; der Vermerk bleibt erhalten, weil er nach dem Leeren des Protokolls angehängt wird. Der Kommandozeilenweg `scripts/prepare-production.js` zeigt die Kernpunkte und verlangt die Eingabe `GELESEN`. **Datensicherung:** `POST /admin/demo-reset` liefert den Export (`buildFullExport`: Moduldateien, Benutzerliste ohne Passwort-Hashes, Einstellungen, Protokoll, `gdpr/*`, `legal/*`; keine hochgeladenen Dateien) als Antwort, den die Oberfläche automatisch als `isms-demo-export-<Datum>.json` herunterlädt; der Server speichert keine Kopie. Dieser Hinweis steht im Anleitungsfenster, im Bestätigungsdialog und in der Anleitung. Die Bestätigung `RESET` ist ein eigener Dialog (`askDemoResetConfirmation()`), kein `window.prompt()`: Chrome unterdrückt Browser-Dialoge, wenn die Seite nach dem Schließen des Anleitungsfensters keinen Fokus hat. In der Demo selbst (Anmelden, Navigieren, Arbeiten) erscheint die Anleitung nicht.
+
+**Warnung:** Solange im Produktivbetrieb noch ein Konto sein Demo-Passwort trägt, schreibt der Server beim Start und danach alle 30 Minuten einen auffälligen Kasten („SICHERHEITSWARNUNG“) ins Log; die Anmeldeseite zeigt ein rotes Hinweisfeld ohne Schließen-Knopf (öffentlich ohne Kontonamen, `GET /auth/security-notice`), die gesperrte Anmeldung meldet den Code `SEED_PASSWORD_BLOCKED`, und angemeldete Administratoren sehen oben eine feste Leiste mit den betroffenen Konten (`GET /admin/security-notice`). Alle Hinweise verschwinden erst, wenn die Demo-Passwörter ersetzt sind. Wer vor diesem Stand produktiv gegangen ist und das Demo-Passwort behalten hat, wird ausgesperrt und setzt ein Passwort mit `node scripts/set-password.js <benutzer>` (Docker: `docker exec -it <container> node scripts/set-password.js admin`; Passwort wird verdeckt abgefragt).
+
+**HTTPS.** Kommt die Anfrage über HTTPS (eigenes Zertifikat per `SSL_CERT_FILE`/`SSL_KEY_FILE` oder Proxy mit `TRUST_PROXY`), setzt der Server das Flag `Secure` am Sitzungs-Cookie und `Strict-Transport-Security`. Hinter einem Proxy **muss** `TRUST_PROXY` gesetzt sein, sonst erkennt die App HTTPS nicht. Über HTTP in Produktion warnt der Server beim Start; in einem späteren Minor-Release wird HTTP dort nur noch mit `ALLOW_INSECURE_HTTP=true` erlaubt.
+
+## 68. Öffentliche Demo betreiben — `DEMO_HOSTING` (V 1.84.0-beta.14)
+
+Für `demo.isms-builder.de`, wo die Zugangsdaten der Demo-Konten öffentlich sind und jeder Besucher Administrator ist. Der Schalter `DEMO_HOSTING=true` (nur `.env`, **keine Route**, kein neuer Angriffsweg) wirkt als Filter `server/demoHosting.js` vor den vorhandenen Routen; ohne ihn ändert sich nichts.
+- **Demo-Reset als Attrappe:** `POST /admin/demo-reset` antwortet für angemeldete Administratoren `200 {"simulated":true}` mit Header `X-Demo-Hosting: simulated`, ändert nichts und vermerkt `demo_reset_simulated` im Protokoll; die Oberfläche (Anleitungsfenster, Bestätigungsdialog) läuft vollständig, zeigt am Ende „Simulation“ und lädt nichts herunter. Ohne Anmeldung oder als Leser antwortet die echte Route (401/403), es wird nichts simuliert und nichts protokolliert.
+- **Gesperrt** (`403`, Code `DEMO_HOSTING`, Meldung in fünf Sprachen): `POST /admin/demo-import`, `POST /admin/maintenance/cleanup`, `DELETE /admin/audit-log`, `POST/PUT/DELETE /admin/users…`, `PUT /me/password`, alle `/2fa…`, `PUT /admin/security|role-settings|ai-settings`, `POST /admin/email/test` und `/admin/webdav/test` (Mailversand und Verbindungen zu fremden Servern), `PUT/DELETE /admin/logo`, alle schreibenden `/admin/sync-accounts…`. Die Zuordnung ignoriert Groß-/Kleinschreibung und Schrägstrich am Ende (der Router nimmt beides an). `PUT /admin/org-settings` wird ausgeführt, aber ohne `smtpSettings` und `webdavSettings`.
+- **Sitzungen und Zustand:** mehrere gleichzeitige Sitzungen je Konto (ausdrückliches `SESSION_SINGLE=true` gilt weiter), nie Produktivzustand (`isProduction()` ist falsch, keine Passwortsperre/-warnung).
+- **Demo-Passwörter:** `resetDemoPasswords()` setzt die öffentlichen Passwörter (admin, ciso, dsb, alice, bob, carla, dana) beim Start, stündlich und auf `SIGUSR2` zurück und schaltet 2FA aus; der Arbeitsspeicher und die Datei werden zugleich geändert (das frühere Cron-Skript schrieb nur die Datei, der laufende Server sah es nicht).
+- **`GET /health`:** rein lesend, nur `{"status":"ok"|"degraded","ts":…}`, nur mit `DEMO_HOSTING=true` oder `HEALTH_CHECK=true`.
+- **Tests:** `tests/demoHosting.test.js` (Sperren, Attrappe, Betriebsart, Passwörter, `/health`, keine eigene Route). Betriebsskripte für eine öffentliche Demo (Daten-Reset, Zeitplan) richtet der Betreiber selbst ein.
+
+## 69. Werte in Inline-Handlern (V 1.84.0-beta.40)
+
+`escHtml()` maskiert `&`, `<`, `>` und `"`, nicht den Apostroph. Ein Wert, der in `onclick="f('${escHtml(x)}')"` zwischen Hochkommas steht, kann die JavaScript-Zeichenkette verlassen: Der Browser entschlüsselt das Attribut vor der Ausführung, der Rest läuft als Code (gespeichertes XSS mit Klick des Opfers, z. B. Editor → Administrator über einen Vorlagen-Titel).
+
+**Regel:** In Handler-Attributen (`onclick`, `onchange`, `onkeydown` …) kommen Werte nur über `jsArg(wert)` (Zeichenketten-Literal in doppelten Anführungszeichen, vollständig maskiert, U+2028/2029 ersetzt) oder `jsNum(zahl)` hinein — ohne eigene Anführungszeichen drumherum: `onclick="deleteX(${jsArg(x.id)}, ${jsArg(x.title)})"`. Feste Zähler und Konstanten sind erlaubt.
+
+**Absicherung:** `tests/inlineHandlerGuard.test.js` liest alle Handler in `ui/app.js` (Leser: `tests/setup/inlineHandlers.js`), verbietet Werte in Hochkommas und ungeschützte Werte und übersetzt jeden Handler probeweise mit Beispielwerten (`new Function`). `tests/inlineHandlersBrowser.test.js` öffnet feindliche Titel in einem echten Chrome. Stand beta.40: 607 Handler, davon 304 mit `jsArg`/`jsNum`, 0 unsicher (vorher 279 + 18).
+
+**Grenzen:** Gilt für Handler in Vorlagenzeichenketten von `ui/app.js`. Eine Content-Security-Policy ist weiterhin nicht umgesetzt.

@@ -199,6 +199,17 @@ async function getFilePath(id) {
   return null
 }
 
+// Inhalt eines angelegten Seed-Artikels mit fn(content) → neuer Inhalt | null ändern (null = nichts tun); → true, wenn geändert
+async function patchSeedContent(seedId, fn) {
+  const db = getDb()
+  const row = await db('guidance').where('seed_id', seedId).whereNull('deleted_at').first()
+  if (!row) return false
+  const next = fn(row.content)
+  if (!next || next === row.content) return false
+  await db('guidance').where('id', row.id).update({ content: next, updated_at: nowISO() })
+  return true
+}
+
 async function upsertSeed(seedId, docData) {
   const db = getDb()
   const lang = docData.seedLang || 'en'
@@ -262,4 +273,5 @@ module.exports = {
   getFilePath,
   VALID_CATEGORIES,
   upsertSeed,
+  patchSeedContent,
 }

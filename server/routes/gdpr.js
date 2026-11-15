@@ -9,7 +9,7 @@ const { requireAuth, authorize } = require('../auth')
 const gdprStore = require('../db/gdprStore')
 
 const gdprUpload = multer({
-  dest: path.join(__dirname, '../../data/gdpr/files/'),
+  dest: require('../paths').dataPath('gdpr', 'files') + path.sep,
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['.pdf', '.docx', '.doc']
@@ -193,12 +193,96 @@ router.get('/gdpr/dsfa/:id', requireAuth, authorize('reader'), async (req, res) 
   if (!item) return res.status(404).json({ error: 'Not found' })
   res.json(item)
 })
+// ── DSFA: Vorlagen, Vorabprüfung, Prüfablauf (DSB-Stellungnahme vor der Freigabe) ──
+const dsfaTemplates = require('../dsfaTemplates')
+const DSFA_SERVER_FIELDS = ['approvedBy', 'approvedAt', 'dpoOpinionBy', 'dpoOpinionAt']   // setzt nur der Server
+const isDpo = req => req.role === 'admin' || (req.functions || []).includes('dso')
+
+router.get('/gdpr/dsfa-templates', requireAuth, authorize('reader'), (req, res) => {
+  res.json(dsfaTemplates.list(require('../i18n').langOf(req)))
+})
+router.get('/gdpr/dsfa-templates/:id', requireAuth, authorize('reader'), async (req, res) => {
+  const org = await require('../db/orgSettingsStore').get()
+  const t = dsfaTemplates.build(req.params.id, req.query.lang || require('../i18n').langOf(req), org)
+  if (!t) return res.status(404).json({ error: 'Not found' })
+  res.json(t)
+})
+router.get('/gdpr/dsfa-precheck', requireAuth, authorize('reader'), (req, res) => {
+  res.json(dsfaTemplates.precheckCriteria(req.query.lang || require('../i18n').langOf(req)))
+})
+router.post('/gdpr/dsfa-precheck', requireAuth, authorize('reader'), (req, res) => {
+  res.json(dsfaTemplates.evaluatePrecheck(req.body || {}, req.query.lang || require('../i18n').langOf(req)))
+})
+
+// ── Vorlagen für VVT, AV-Verträge, Datenpannen, Betroffenenanfragen und TOMs (server/gdprTemplates.js) ──
+const gdprTemplates = require('../gdprTemplates')
+router.get('/gdpr/templates/:kind', requireAuth, authorize('reader'), (req, res) => {
+  const l = gdprTemplates.list(req.params.kind, req.query.lang || require('../i18n').langOf(req))
+  if (!l) return res.status(404).json({ error: 'Not found' })
+  res.json(l)
+})
+router.get('/gdpr/templates/:kind/:id', requireAuth, authorize('reader'), async (req, res) => {
+  const org = await require('../db/orgSettingsStore').get()
+  const t = gdprTemplates.build(req.params.kind, req.params.id, req.query.lang || require('../i18n').langOf(req), org)
+  if (!t) return res.status(404).json({ error: 'Not found' })
+  res.json(t)
+})
+
+// Vorabprüfung aus dem Client übernehmen: Ergebnis wird immer neu berechnet, Person und Zeitpunkt setzt der Server
+function dsfaPrecheck(input, existing, user) {
+  if (!input || typeof input !== 'object') return undefined
+  const r = dsfaTemplates.evaluatePrecheck(input)
+  const same = existing && JSON.stringify([existing.art353, existing.criteria]) === JSON.stringify([r.art353, r.criteria])
+  return { art353: r.art353, criteria: r.criteria, result: r.result, at: same ? existing.at : nowISOStr(), by: same ? existing.by : user }
+}
+const nowISOStr = () => new Date().toISOString()
+
 router.post('/gdpr/dsfa', requireAuth, authorizeContentOwner, async (req, res) => {
-  res.status(201).json(await gdprStore.dsfa.create(req.body, req.user))
+  const body = { ...req.body }
+  for (const k of DSFA_SERVER_FIELDS) delete body[k]
+  if (body.status === 'approved') return res.status(400).json({ error: 'A new assessment cannot be approved directly.', code: 'approve_on_create' })
+  if (!isDpo(req)) { body.dpoConsulted = false; body.dpoOpinion = '' }
+  else if (String(body.dpoOpinion || '').trim()) { body.dpoOpinionBy = req.user; body.dpoOpinionAt = nowISOStr() }
+  if (body.precheck !== undefined) body.precheck = dsfaPrecheck(body.precheck, null, req.user) || null
+  const item = await gdprStore.dsfa.create(body, req.user)
+  await require('../db/auditStore').append({ user: req.user, action: 'create', resource: 'gdpr_dsfa', resourceId: item.id, detail: item.title })
+  res.status(201).json(item)
 })
 router.put('/gdpr/dsfa/:id', requireAuth, authorizeContentOwner, async (req, res) => {
-  const item = await gdprStore.dsfa.update(req.params.id, req.body)
+  const existing = await gdprStore.dsfa.getById(req.params.id)
+  if (!existing) return res.status(404).json({ error: 'Not found' })
+  const body = { ...req.body }
+  for (const k of DSFA_SERVER_FIELDS) delete body[k]
+
+  // Stellungnahme des DSB: nur der DSB oder ein Administrator darf sie eintragen oder ändern
+  const opinionChanged = 'dpoOpinion' in body && String(body.dpoOpinion || '') !== String(existing.dpoOpinion || '')
+  const consultedChanged = 'dpoConsulted' in body && !!body.dpoConsulted !== !!existing.dpoConsulted
+  if ((opinionChanged || consultedChanged) && !isDpo(req)) {
+    return res.status(403).json({ error: 'Only the data protection officer or an administrator may enter the DPO opinion.', code: 'dpo_only' })
+  }
+  if (opinionChanged) { body.dpoOpinionBy = req.user; body.dpoOpinionAt = nowISOStr() }
+
+  // Freigabe: nur mit Stellungnahme des DSB, Entscheidung und (bei hohem Restrisiko) Begründung oder Konsultation der Aufsichtsbehörde
+  if (body.status === 'approved' && existing.status !== 'approved') {
+    const check = dsfaTemplates.validateApproval({ ...existing, ...body })
+    if (!check.ok) {
+      const messages = {
+        dpo_opinion_missing: 'Approval requires the opinion of the data protection officer.',
+        decision_missing: 'Approval requires a decision.',
+        high_residual_unjustified: 'With a high residual risk, approval requires a justification or the consultation of the supervisory authority.',
+      }
+      return res.status(400).json({ error: messages[check.code] || 'Approval is not possible.', code: check.code })
+    }
+    body.approvedBy = req.user; body.approvedAt = nowISOStr()
+  } else if (body.status && body.status !== 'approved' && existing.status === 'approved') {
+    body.approvedBy = null; body.approvedAt = null
+  }
+  if (body.precheck !== undefined) body.precheck = dsfaPrecheck(body.precheck, existing.precheck, req.user) || null
+
+  const item = await gdprStore.dsfa.update(req.params.id, body)
   if (!item) return res.status(404).json({ error: 'Not found' })
+  const detail = body.status && body.status !== existing.status ? `${existing.status} → ${body.status}` : 'geändert'
+  await require('../db/auditStore').append({ user: req.user, action: 'update', resource: 'gdpr_dsfa', resourceId: item.id, detail: `${item.title}: ${detail}` })
   res.json(item)
 })
 router.delete('/gdpr/dsfa/:id', requireAuth, authorize('admin'), async (req, res) => {

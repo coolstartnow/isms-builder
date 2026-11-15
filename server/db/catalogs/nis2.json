@@ -1,0 +1,515 @@
+{
+  "id": "nis2-supplier-v1",
+  "source": "Gliederung nach Richtlinie (EU) 2022/2555 (NIS2), Art. 20, Art. 21 Abs. 2 Buchst. a-j, Art. 23. Eigene Formulierung der Fragen, keine Rechtsberatung, keine offizielle Checkliste.",
+  "title": {
+    "de": "NIS2-Lieferantenprüfung",
+    "en": "NIS2 supplier assessment"
+  },
+  "sections": [
+    {
+      "key": "mgmt",
+      "title": {
+        "de": "Verantwortung der Leitung (Art. 20)",
+        "en": "Management responsibility (Art. 20)"
+      },
+      "questions": [
+        {
+          "id": "q_mgmt_1",
+          "type": "yesno",
+          "comment": true,
+          "de": "Hat die Geschäftsleitung die Maßnahmen zum Management von Cybersicherheitsrisiken förmlich genehmigt?",
+          "en": "Has senior management formally approved the cybersecurity risk-management measures?"
+        },
+        {
+          "id": "q_mgmt_2",
+          "type": "yesno",
+          "de": "Überwacht die Geschäftsleitung die Umsetzung dieser Maßnahmen (z. B. durch regelmäßige Berichte)?",
+          "en": "Does senior management oversee the implementation of these measures (e.g. through regular reports)?",
+          "comment": true
+        },
+        {
+          "id": "q_mgmt_3",
+          "type": "yesno",
+          "de": "Haben die Mitglieder der Geschäftsleitung an Schulungen zu Cybersicherheitsrisiken teilgenommen?",
+          "en": "Have members of senior management attended cybersecurity risk training?",
+          "comment": true
+        },
+        {
+          "id": "q_mgmt_4",
+          "type": "yesno",
+          "de": "Ist eine Person für Informationssicherheit benannt (z. B. ISB/CISO) und mit ausreichenden Befugnissen ausgestattet?",
+          "en": "Is a person responsible for information security appointed (e.g. CISO) and given sufficient authority?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "risk",
+      "title": {
+        "de": "Risikoanalyse und Sicherheitskonzepte (Art. 21 Abs. 2 a)",
+        "en": "Risk analysis and security policies (Art. 21(2)(a))"
+      },
+      "questions": [
+        {
+          "id": "q_risk_1",
+          "type": "yesno",
+          "comment": true,
+          "de": "Gibt es eine dokumentierte Informationssicherheitsrichtlinie, die von der Leitung freigegeben ist?",
+          "en": "Is there a documented information security policy approved by management?"
+        },
+        {
+          "id": "q_risk_2",
+          "type": "yesno",
+          "de": "Wird die Richtlinie mindestens jährlich und bei wesentlichen Änderungen überprüft?",
+          "en": "Is the policy reviewed at least annually and after significant changes?",
+          "comment": true
+        },
+        {
+          "id": "q_risk_3",
+          "type": "yesno",
+          "comment": true,
+          "de": "Führen Sie regelmäßig eine dokumentierte Risikoanalyse für Ihre Netz- und Informationssysteme durch?",
+          "en": "Do you regularly carry out a documented risk analysis of your network and information systems?"
+        },
+        {
+          "id": "q_risk_4",
+          "type": "yesno",
+          "de": "Berücksichtigt die Risikoanalyse alle Gefahrenarten (z. B. Cyberangriffe, technische Ausfälle, Naturereignisse, menschliches Versagen)?",
+          "en": "Does the risk analysis cover all hazards (e.g. cyberattacks, technical failure, natural events, human error)?",
+          "comment": true
+        },
+        {
+          "id": "q_risk_5",
+          "type": "yesno",
+          "de": "Gibt es einen Maßnahmenplan mit Verantwortlichen und Fristen für erkannte Risiken?",
+          "en": "Is there a treatment plan with owners and deadlines for identified risks?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "incident",
+      "title": {
+        "de": "Bewältigung von Sicherheitsvorfällen (Art. 21 Abs. 2 b, Art. 23)",
+        "en": "Incident handling (Art. 21(2)(b), Art. 23)"
+      },
+      "questions": [
+        {
+          "id": "q_inc_1",
+          "type": "yesno",
+          "comment": true,
+          "de": "Gibt es einen dokumentierten Prozess zur Erkennung, Bewertung und Bewältigung von Sicherheitsvorfällen?",
+          "en": "Is there a documented process for detecting, assessing and handling security incidents?"
+        },
+        {
+          "id": "q_inc_2",
+          "type": "yesno",
+          "de": "Sind Rollen, Erreichbarkeit und Eskalationswege für Vorfälle festgelegt (auch außerhalb der Geschäftszeiten)?",
+          "en": "Are roles, availability and escalation paths for incidents defined (including outside business hours)?",
+          "comment": true
+        },
+        {
+          "id": "q_inc_3",
+          "type": "yesno",
+          "de": "Ist Ihnen bekannt, dass erhebliche Vorfälle von betroffenen Einrichtungen innerhalb von 24 Stunden (Frühwarnung) und 72 Stunden (Meldung) gemeldet werden müssen, und können Sie diese Fristen einhalten?",
+          "en": "Are you aware that significant incidents must be reported by in-scope entities within 24 hours (early warning) and 72 hours (notification), and can you meet these deadlines?",
+          "comment": true
+        },
+        {
+          "id": "q_inc_4",
+          "type": "text",
+          "de": "Innerhalb wie vieler Stunden informieren Sie uns nach Kenntnis eines Vorfalls, der unsere Daten oder Leistungen betrifft?",
+          "en": "Within how many hours do you inform us after becoming aware of an incident affecting our data or services?"
+        },
+        {
+          "id": "q_inc_5",
+          "type": "yesno",
+          "de": "Werden Vorfälle protokolliert, ausgewertet und die Erkenntnisse in Verbesserungen überführt?",
+          "en": "Are incidents logged, analysed and the lessons learned turned into improvements?",
+          "comment": true
+        },
+        {
+          "id": "q_inc_6",
+          "type": "yesno",
+          "de": "Gab es in den letzten 24 Monaten Sicherheitsvorfälle, die unsere Daten oder Leistungen betroffen haben könnten?",
+          "en": "Were there security incidents in the last 24 months that could have affected our data or services?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "bcm",
+      "title": {
+        "de": "Betriebskontinuität und Krisenmanagement (Art. 21 Abs. 2 c)",
+        "en": "Business continuity and crisis management (Art. 21(2)(c))"
+      },
+      "questions": [
+        {
+          "id": "q_bcm_1",
+          "type": "yesno",
+          "de": "Gibt es dokumentierte Notfall- und Wiederanlaufpläne für die Leistungen, die Sie uns erbringen?",
+          "en": "Are there documented continuity and recovery plans for the services you provide to us?",
+          "comment": true
+        },
+        {
+          "id": "q_bcm_2",
+          "type": "yesno",
+          "de": "Werden diese Pläne mindestens jährlich getestet (z. B. Übung, Wiederherstellungstest)?",
+          "en": "Are these plans tested at least annually (e.g. exercise, restore test)?",
+          "comment": true
+        },
+        {
+          "id": "q_bcm_3",
+          "type": "yesno",
+          "comment": true,
+          "de": "Werden Datensicherungen regelmäßig erstellt, getrennt aufbewahrt und die Wiederherstellung geprüft?",
+          "en": "Are backups made regularly, stored separately and is restoration verified?"
+        },
+        {
+          "id": "q_bcm_4",
+          "type": "text",
+          "de": "Welche Wiederanlaufzeit (RTO) und welchen maximalen Datenverlust (RPO) sichern Sie für unsere Leistungen zu?",
+          "en": "Which recovery time (RTO) and maximum data loss (RPO) do you commit to for our services?"
+        },
+        {
+          "id": "q_bcm_5",
+          "type": "yesno",
+          "de": "Gibt es ein Krisenmanagement mit festgelegtem Krisenstab und Kommunikationsplan?",
+          "en": "Is there crisis management with a defined crisis team and communication plan?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "supply",
+      "title": {
+        "de": "Sicherheit der Lieferkette (Art. 21 Abs. 2 d)",
+        "en": "Supply chain security (Art. 21(2)(d))"
+      },
+      "questions": [
+        {
+          "id": "q_sup_1",
+          "type": "yesno",
+          "de": "Haben Sie ein Verzeichnis Ihrer für unsere Leistungen relevanten Unterlieferanten und Dienstleister?",
+          "en": "Do you maintain a register of subcontractors and service providers relevant to our services?",
+          "comment": true
+        },
+        {
+          "id": "q_sup_2",
+          "type": "yesno",
+          "comment": true,
+          "de": "Bewerten Sie die Informationssicherheit Ihrer Unterlieferanten vor Beauftragung und danach regelmäßig?",
+          "en": "Do you assess the information security of your subcontractors before engagement and regularly afterwards?"
+        },
+        {
+          "id": "q_sup_3",
+          "type": "yesno",
+          "de": "Verpflichten Sie Unterlieferanten vertraglich auf Sicherheitsanforderungen, die den Ihren entsprechen?",
+          "en": "Do you contractually oblige subcontractors to security requirements equivalent to yours?",
+          "comment": true
+        },
+        {
+          "id": "q_sup_4",
+          "type": "yesno",
+          "de": "Informieren Sie uns vor einem Wechsel oder der Hinzunahme von Unterlieferanten, die mit unseren Daten arbeiten?",
+          "en": "Do you inform us before changing or adding subcontractors that process our data?",
+          "comment": true
+        },
+        {
+          "id": "q_sup_5",
+          "type": "yesno",
+          "de": "Gibt es Ausstiegs- und Ersatzregelungen für kritische Unterlieferanten?",
+          "en": "Are there exit and replacement arrangements for critical subcontractors?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "dev",
+      "title": {
+        "de": "Beschaffung, Entwicklung, Wartung und Schwachstellen (Art. 21 Abs. 2 e)",
+        "en": "Acquisition, development, maintenance and vulnerabilities (Art. 21(2)(e))"
+      },
+      "questions": [
+        {
+          "id": "q_dev_1",
+          "type": "yesno",
+          "de": "Werden Sicherheitsanforderungen bei Beschaffung und Entwicklung von Systemen berücksichtigt?",
+          "en": "Are security requirements considered when acquiring and developing systems?",
+          "comment": true
+        },
+        {
+          "id": "q_dev_2",
+          "type": "yesno",
+          "de": "Gibt es einen dokumentierten Softwareentwicklungsprozess mit Sicherheitsprüfungen (z. B. Code-Review, Tests)?",
+          "en": "Is there a documented software development process with security checks (e.g. code review, testing)?",
+          "comment": true
+        },
+        {
+          "id": "q_dev_3",
+          "type": "yesno",
+          "comment": true,
+          "de": "Werden Schwachstellen systematisch erfasst, bewertet und nach festen Fristen behoben?",
+          "en": "Are vulnerabilities systematically recorded, assessed and fixed within defined deadlines?"
+        },
+        {
+          "id": "q_dev_4",
+          "type": "yesno",
+          "de": "Werden Sicherheitsupdates für Betriebssysteme und Anwendungen zeitnah eingespielt?",
+          "en": "Are security updates for operating systems and applications applied promptly?",
+          "comment": true
+        },
+        {
+          "id": "q_dev_5",
+          "type": "yesno",
+          "de": "Gibt es einen Weg, Schwachstellen an Sie zu melden (z. B. Meldestelle, security.txt) und einen Umgang mit Meldungen?",
+          "en": "Is there a way to report vulnerabilities to you (e.g. contact point, security.txt) and a process for handling reports?",
+          "comment": true
+        },
+        {
+          "id": "q_dev_6",
+          "type": "yesno",
+          "de": "Sind Entwicklungs-, Test- und Produktivumgebung getrennt?",
+          "en": "Are development, test and production environments separated?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "effect",
+      "title": {
+        "de": "Wirksamkeitsprüfung (Art. 21 Abs. 2 f)",
+        "en": "Effectiveness assessment (Art. 21(2)(f))"
+      },
+      "questions": [
+        {
+          "id": "q_eff_1",
+          "type": "yesno",
+          "de": "Prüfen Sie die Wirksamkeit Ihrer Sicherheitsmaßnahmen regelmäßig (z. B. interne Audits, Kennzahlen)?",
+          "en": "Do you regularly assess the effectiveness of your security measures (e.g. internal audits, metrics)?",
+          "comment": true
+        },
+        {
+          "id": "q_eff_2",
+          "type": "yesno",
+          "comment": true,
+          "de": "Werden Penetrationstests oder Schwachstellenscans durch unabhängige Stellen durchgeführt?",
+          "en": "Are penetration tests or vulnerability scans performed by independent parties?"
+        },
+        {
+          "id": "q_eff_3",
+          "type": "yesno",
+          "de": "Werden Feststellungen aus Audits und Tests verfolgt und nachweislich behoben?",
+          "en": "Are findings from audits and tests tracked and demonstrably remediated?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "hygiene",
+      "title": {
+        "de": "Cyberhygiene und Schulung (Art. 21 Abs. 2 g)",
+        "en": "Cyber hygiene and training (Art. 21(2)(g))"
+      },
+      "questions": [
+        {
+          "id": "q_hyg_1",
+          "type": "yesno",
+          "de": "Erhalten alle Beschäftigten regelmäßig Schulungen zur Informationssicherheit?",
+          "en": "Do all employees receive regular information security training?",
+          "comment": true
+        },
+        {
+          "id": "q_hyg_2",
+          "type": "yesno",
+          "de": "Gibt es Maßnahmen gegen Phishing (Schulung, Filter, Meldemöglichkeit)?",
+          "en": "Are there measures against phishing (training, filtering, reporting option)?",
+          "comment": true
+        },
+        {
+          "id": "q_hyg_3",
+          "type": "yesno",
+          "de": "Sind Schutzmaßnahmen gegen Schadsoftware auf Endgeräten und Servern im Einsatz?",
+          "en": "Is protection against malware in place on endpoints and servers?",
+          "comment": true
+        },
+        {
+          "id": "q_hyg_4",
+          "type": "yesno",
+          "de": "Gibt es Regeln für sichere Passwörter bzw. eine Passwortverwaltung?",
+          "en": "Are there rules for secure passwords or a password manager?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "crypto",
+      "title": {
+        "de": "Kryptografie und Verschlüsselung (Art. 21 Abs. 2 h)",
+        "en": "Cryptography and encryption (Art. 21(2)(h))"
+      },
+      "questions": [
+        {
+          "id": "q_cry_1",
+          "type": "yesno",
+          "de": "Gibt es eine Richtlinie zum Einsatz von Kryptografie und Schlüsselverwaltung?",
+          "en": "Is there a policy on the use of cryptography and key management?",
+          "comment": true
+        },
+        {
+          "id": "q_cry_2",
+          "type": "yesno",
+          "comment": true,
+          "de": "Werden Daten bei der Übertragung verschlüsselt (z. B. TLS) und gelten dafür Mindestanforderungen?",
+          "en": "Is data encrypted in transit (e.g. TLS) with minimum requirements?"
+        },
+        {
+          "id": "q_cry_3",
+          "type": "yesno",
+          "comment": true,
+          "de": "Werden gespeicherte Daten verschlüsselt (Server, Datenbanken, Datensicherungen, mobile Geräte)?",
+          "en": "Is stored data encrypted (servers, databases, backups, mobile devices)?"
+        }
+      ]
+    },
+    {
+      "key": "hr",
+      "title": {
+        "de": "Personal, Zugriffskontrolle, Asset-Management (Art. 21 Abs. 2 i)",
+        "en": "HR security, access control, asset management (Art. 21(2)(i))"
+      },
+      "questions": [
+        {
+          "id": "q_hr_1",
+          "type": "yesno",
+          "de": "Werden Beschäftigte vor Einstellung in sicherheitsrelevanten Funktionen angemessen überprüft und auf Vertraulichkeit verpflichtet?",
+          "en": "Are employees in security-relevant roles appropriately vetted before hiring and bound to confidentiality?",
+          "comment": true
+        },
+        {
+          "id": "q_hr_2",
+          "type": "yesno",
+          "de": "Werden Zugriffsrechte nach dem Prinzip der minimalen Rechtevergabe vergeben?",
+          "en": "Are access rights granted on a least-privilege basis?",
+          "comment": true
+        },
+        {
+          "id": "q_hr_3",
+          "type": "yesno",
+          "de": "Werden Zugriffsrechte bei Wechsel oder Austritt zeitnah angepasst bzw. entzogen?",
+          "en": "Are access rights adjusted or revoked promptly on role change or departure?",
+          "comment": true
+        },
+        {
+          "id": "q_hr_4",
+          "type": "yesno",
+          "de": "Werden Zugriffsrechte regelmäßig überprüft (z. B. halbjährlich)?",
+          "en": "Are access rights reviewed regularly (e.g. every six months)?",
+          "comment": true
+        },
+        {
+          "id": "q_hr_5",
+          "type": "yesno",
+          "de": "Führen Sie ein aktuelles Verzeichnis Ihrer Assets (Hardware, Software, Daten, Dienste) mit Verantwortlichen?",
+          "en": "Do you maintain a current inventory of assets (hardware, software, data, services) with owners?",
+          "comment": true
+        },
+        {
+          "id": "q_hr_6",
+          "type": "yesno",
+          "de": "Gibt es Regeln für den Umgang mit Wechseldatenträgern, mobilen Geräten und deren sichere Entsorgung?",
+          "en": "Are there rules for removable media, mobile devices and their secure disposal?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "mfa",
+      "title": {
+        "de": "Mehr-Faktor-Authentifizierung und gesicherte Kommunikation (Art. 21 Abs. 2 j)",
+        "en": "Multi-factor authentication and secured communications (Art. 21(2)(j))"
+      },
+      "questions": [
+        {
+          "id": "q_mfa_1",
+          "type": "yesno",
+          "comment": true,
+          "de": "Ist Mehr-Faktor-Authentifizierung für Administratoren und privilegierte Zugänge eingeführt?",
+          "en": "Is multi-factor authentication enforced for administrators and privileged access?"
+        },
+        {
+          "id": "q_mfa_2",
+          "type": "yesno",
+          "de": "Ist Mehr-Faktor-Authentifizierung für Fernzugänge (VPN, Cloud-Dienste, E-Mail) eingeführt?",
+          "en": "Is multi-factor authentication enforced for remote access (VPN, cloud services, email)?",
+          "comment": true
+        },
+        {
+          "id": "q_mfa_3",
+          "type": "yesno",
+          "de": "Werden Sprach-, Video- und Textkommunikation mit sensiblen Inhalten abgesichert?",
+          "en": "Are voice, video and text communications with sensitive content secured?",
+          "comment": true
+        },
+        {
+          "id": "q_mfa_4",
+          "type": "yesno",
+          "de": "Gibt es gesicherte Notfallkommunikation, falls die üblichen Kanäle ausfallen?",
+          "en": "Is there secured emergency communication if the usual channels fail?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "cert",
+      "title": {
+        "de": "Zertifikate und Nachweise",
+        "en": "Certifications and evidence"
+      },
+      "questions": [
+        {
+          "id": "q_cert_1",
+          "type": "yesno",
+          "comment": true,
+          "de": "Besitzen Sie ein gültiges Zertifikat zur Informationssicherheit (z. B. ISO/IEC 27001)?",
+          "en": "Do you hold a valid information security certification (e.g. ISO/IEC 27001)?"
+        },
+        {
+          "id": "q_cert_2",
+          "type": "text",
+          "de": "Bis wann ist das Zertifikat gültig, und was ist der Geltungsbereich?",
+          "en": "Until when is the certificate valid and what is its scope?"
+        },
+        {
+          "id": "q_cert_3",
+          "type": "yesno",
+          "comment": true,
+          "de": "Liegt ein aktueller unabhängiger Prüfbericht vor (z. B. SOC 2 Typ II, ISAE 3402)?",
+          "en": "Is a current independent audit report available (e.g. SOC 2 Type II, ISAE 3402)?"
+        },
+        {
+          "id": "q_cert_4",
+          "type": "yesno",
+          "de": "Sind Sie bereit, uns auf Anfrage Nachweise zur Verfügung zu stellen bzw. ein Audit zu ermöglichen?",
+          "en": "Are you willing to provide evidence on request or allow an audit?",
+          "comment": true
+        }
+      ]
+    },
+    {
+      "key": "misc",
+      "title": {
+        "de": "Allgemeine Anmerkungen",
+        "en": "General remarks"
+      },
+      "questions": [
+        {
+          "id": "q_misc_1",
+          "type": "textarea",
+          "de": "Gibt es weitere Informationen zur Informationssicherheit in Ihrer Organisation, die für uns relevant sein könnten?",
+          "en": "Is there any further information about information security in your organisation that may be relevant to us?"
+        }
+      ]
+    }
+  ]
+}

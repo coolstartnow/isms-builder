@@ -106,6 +106,14 @@ egyetlen nyelvében — általában a vállalati nyelvben. A visszaállítás vi
 
 ---
 
+## A lista rendezése és az eszközök megtalálása
+
+Az **Összes eszköz** lista alapértelmezés szerint **kategória → típus → név** szerint rendezett (ábécésorrendben a felület nyelvén; a számokat természetes sorrendben rendezi, a „Laptop 2” a „Laptop 10” előtt áll; a típus nélküli eszköz a kategóriájában utolsó). Az újonnan létrehozott eszköz ezért a helyén jelenik meg, és nem a lista legalján; mentés után a sor rövid időre kiemelődik és a látómezőbe görget, az aktív szűrők és a keresés megmaradnak.
+
+Az **oszlopfejlécre** kattintva (név, típus, védelmi igény, besorolás, kritikusság, felelős, állapot, élettartam vége) növekvő, a második kattintásra csökkenő sorrendbe rendez; a harmadik kattintás visszaállítja az alapértelmezett sorrendet. Az üres értékek mindig a végén állnak. A böngésző megjegyzi a kiválasztott oszlopot. Csak a megjelenítés rendezett; az exportok és az interfész sorrendje nem változik.
+
+A **Kategória szerint** lapon a kategóriák ábécésorrendben vannak, bennük az eszközök típus és név szerint. A szerkesztési joggal rendelkező fiókok itt is szerkeszthetnek (ceruza ikon; a rendszergazdák törölhetnek is); mentés után ide tér vissza.
+
 ## Besorolás és kritikusság
 
 A **besorolás** a bizalmassági védelmi igényt írja le:

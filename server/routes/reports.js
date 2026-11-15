@@ -8,8 +8,8 @@ const reports = require('../reports')
 router.get('/reports/compliance', requireAuth, authorize('reader'), async (req, res) => {
   res.json(await reports.complianceReport(req.query.entity || null))
 })
-router.get('/reports/framework', requireAuth, authorize('reader'), (req, res) => {
-  res.json(reports.frameworkReport(req.query.framework || null))
+router.get('/reports/framework', requireAuth, authorize('reader'), async (req, res) => {
+  res.json(await reports.frameworkReport(req.query.framework || null))
 })
 router.get('/reports/gap', requireAuth, authorize('reader'), async (req, res) => {
   res.json(await reports.gapReport(req.query.entity || null))

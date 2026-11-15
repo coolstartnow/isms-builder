@@ -36,4 +36,17 @@ function enforce({ secret, env = process.env.NODE_ENV, exit = code => process.ex
   return reason
 }
 
-module.exports = { weakSecretReason, enforce, MIN_LENGTH }
+// Header-Anmeldung (X-User-Name/X-User-Role) ist nur für Entwicklung gedacht: wer die Header setzen kann, ist beliebiger Benutzer.
+// In Produktion (NODE_ENV=production, z. B. Docker-Image) bricht der Start ab; sonst nur eine Warnung.
+function enforceDevHeaderAuth({ enabled, env = process.env.NODE_ENV, exit = code => process.exit(code), warn = m => console.warn(m), error = m => console.error(m) } = {}) {
+  if (!enabled) return false
+  if (env === 'production') {
+    error('[AUTH] FEHLER: DEV_HEADER_AUTH=true ist in Produktion nicht erlaubt (Anmeldung per X-User-Header umgeht jede Prüfung). Variable entfernen oder auf false setzen.')
+    exit(1)
+    return true
+  }
+  warn('[AUTH] WARNUNG: DEV_HEADER_AUTH=true — Anmeldung per X-User-Header ist aktiv. Nur für Entwicklung und Tests; in Produktion startet der Server so nicht.')
+  return true
+}
+
+module.exports = { weakSecretReason, enforce, enforceDevHeaderAuth, MIN_LENGTH }

@@ -79,6 +79,19 @@ In der Werkzeugleiste des Editors (ab Rolle Content Owner, nur wenn die KI-Integ
 
 ---
 
+Ausführlich, mit beiden Wegen (direkt und Kopieren/Einfügen), Einrichtung und Fehlersuche: Leitfaden „Modul: KI-Entwürfe (Policy-Assistent)“ im Systemhandbuch (`docs/module-ai-drafts.md`).
+
+## CSV-Export und -Import
+
+Über der Dokumentenliste („Vorhandene Dokumente“):
+
+- **CSV exportieren** (alle Rollen): schreibt **alle Dokumente aller Typen** in eine Datei `documents-<Datum>.csv` (UTF-8, Komma, öffnet sich in Excel und LibreOffice). Spalten: `id, type, title, language, status, version, owner, nextReviewDate, parent, content`.
+- **CSV importieren** (ab Content Owner): liest eine solche Datei, auch mit Semikolon als Trenner (deutsches Excel). Vor dem Anlegen zeigt ein Dialog, wie viele Dokumente angelegt, übersprungen oder als fehlerhaft abgelehnt werden, jeweils mit Grund.
+  - Der Import legt **nur neue Entwürfe** an (Version 1, Sie sind Eigentümer). Gleicher Typ, Titel und Sprache wie ein vorhandenes Dokument: übersprungen. **Vorhandene Dokumente werden nie verändert**, auch freigegebene nicht; Freigabe und Versionierung bleiben unberührt.
+  - Pflichtspalten: `type`, `title`, `language`, `content`. `type` muss in Ihrer Liste der Dokumenttypen stehen, `language` ist `de`, `en`, `fr`, `nl` oder `hu`. Optional: `nextReviewDate` (JJJJ-MM-TT) und `parent` (Titel des übergeordneten Dokuments). Die Spalten `id`, `status`, `version` und `owner` werden ignoriert.
+  - Grenzen: 500 Zeilen und 5 MB je Datei.
+  - Eigene Dateien am besten aus einem Export ableiten: Zeile löschen oder ändern, Titel anpassen, importieren.
+
 ## Lebenszyklus (Status-Workflow)
 
 Jedes Template durchläuft vier Status-Stufen:

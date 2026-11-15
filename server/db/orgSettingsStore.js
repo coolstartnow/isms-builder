@@ -17,6 +17,12 @@ const DEFAULTS = {
   orgShort:   '',
   ismsScope:  '',
   logoText:   '',
+  orgStreet:  '',
+  orgZip:     '',
+  orgCity:    '',
+  orgCountry: '',
+  orgPhone:   '',
+  pdfFont:    'liberation',   // PDF-Schrift: liberation | noto | dejavu | custom | helvetica (siehe server/pdfFonts.js)
 
   // Sicherheitsrichtlinien
   require2FA: false,   // 2FA systemweit erzwingen (blockiert Login ohne TOTP)
@@ -26,6 +32,7 @@ const DEFAULTS = {
   aiOllamaUrl:     '',     // Ollama-URL (leer = http://localhost:11434)
   aiEmbedModel:    '',     // Embedding-Modell (leer = nomic-embed-text)
   aiGenModel:      '',     // Generierungs-Modell für den AI Policy Assistant (leer = llama3.2:3b)
+  aiApiKey:        '',     // optionaler API-Schlüssel der KI-Anbindung (Authorization: Bearer); nur schreibbar, nie ausgeliefert (orgSecrets.js)
 
   // Verantwortlichkeiten
   cisoName:   '',
@@ -82,6 +89,7 @@ const DEFAULTS = {
     ISO9000:  true,
     ISO9001:  true,
     CRA:      true,
+    CUSTOM:   true,   // Sammel-Tab „Custom Controls“: ausschaltbar wie die übrigen
   },
 
   // ICS/OT-Einstellungen
@@ -137,7 +145,7 @@ const DEFAULTS = {
 
   // Sprach-Konfiguration
   languageConfig: {
-    available: ['de', 'en', 'fr', 'nl', 'hu'],   // aktivierte Sprachen
+    available: require('../languages').listedCodes(),   // aktivierte Sprachen
     default:   'en',                        // Standardsprache auf Login-Seite
   },
 

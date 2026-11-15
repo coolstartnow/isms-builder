@@ -115,6 +115,15 @@
     .dev-warning-banner .dev-warn-title i { font-size: 18px; vertical-align: -3px; margin-right: 5px; }
     .dev-warning-banner.visible { display: block; }
 
+    .seed-warning-banner {
+      display: none; width: 360px; max-width: 95vw;
+      margin-bottom: 16px; padding: 14px 16px;
+      background: #7a0c16; border: 2px solid #ff5a67; border-radius: 8px; color: #fff;
+      font-size: 13px; line-height: 1.5; box-shadow: 0 0 0 4px rgba(255,90,103,.25);
+    }
+    .seed-warning-banner b { display: block; margin-bottom: 6px; font-size: 14.5px; color: #ffd3d7; }
+    .seed-warning-banner code { display: block; margin-top: 8px; padding: 6px 8px; background: rgba(0,0,0,.35); border-radius: 4px; font-size: 12px; word-break: break-all; user-select: all; }
+    .seed-warning-banner.visible { display: block; }
     .demo-reset-banner {
       display: none; width: 360px; max-width: 95vw;
       margin-bottom: 16px; padding: 14px 16px;
@@ -328,6 +337,14 @@
     Do not use for production or store sensitive information.</span>
   </div>
 
+  <div class="seed-warning-banner" id="seedWarnBanner" role="alert">
+    <b><i class="ph ph-warning-octagon-fill"></i> <span data-i18n="seedWarnTitle">Sicherheitswarnung: Demo-Passwort im Produktivbetrieb</span></b>
+    <span data-i18n="seedWarnText">Mindestens ein Konto trägt noch das öffentlich bekannte Demo-Passwort.</span>
+    <span data-i18n="seedWarnCmd" style="display:block;margin-top:8px;font-weight:600">Auf dem Server:</span>
+    <code>node scripts/set-password.js admin</code>
+    <code>docker exec -it &lt;container&gt; node scripts/set-password.js admin</code>
+  </div>
+
   <div class="demo-reset-banner" id="demoResetBanner">
     <b><i class="ph ph-warning"></i> <span data-i18n="demoResetTitle">Demo-Modus beendet</span></b>
     <span id="demoResetText" data-i18n="demoResetText">Das System wurde für den Produktivbetrieb zurückgesetzt. Bitte melden Sie sich mit <strong>admin@example.com</strong> / Passwort <strong>adminpass</strong> an und ändern Sie das Passwort sofort nach dem ersten Login.</span>
@@ -380,13 +397,7 @@
       <span class="lang-current-flag" id="langFlag">🌐</span>
       <span id="langCurrentLabel">–</span>
     </div>
-    <div class="lang-btns">
-      <button class="lang-btn" data-lang="de" onclick="switchLoginLang('de')">DE</button>
-      <button class="lang-btn" data-lang="en" onclick="switchLoginLang('en')">EN</button>
-      <button class="lang-btn" data-lang="fr" onclick="switchLoginLang('fr')">FR</button>
-      <button class="lang-btn" data-lang="nl" onclick="switchLoginLang('nl')">NL</button>
-      <button class="lang-btn" data-lang="hu" onclick="switchLoginLang('hu')">HU</button>
-    </div>
+    <div class="lang-btns" id="langBtns"></div>
   </div>
 
   <button class="btn-incident" onclick="openIncModal()">
@@ -394,7 +405,7 @@
   </button>
 
   <div class="login-footer" data-i18n="loginFooter">
-    ISMS Builder · ISO 27001 · BSI · NIS2 · EUCS · EU AI Act
+    ISMS Builder · ISO 27001 · ISO 22301 · BSI · NIS2 · EUCS · EU AI Act
   </div>
   <div class="license-notice">
     <span id="loginVersion"></span>
@@ -499,17 +510,38 @@
     </div>
   </div>
 
+  <script src="/ui/i18n/languages.js"></script>
   <script src="/ui/i18n/t.js"></script>
   <script src="/ui/i18n/translations.js"></script>
   <script src="login-submit.js"></script>
   <script>
     // ── i18n for login page ──────────────────────────────────────────────
-    const LANG_META = {
-      de: { flag: '🇩🇪', name: 'Deutsch' },
-      en: { flag: '🇬🇧', name: 'English' },
-      fr: { flag: '🇫🇷', name: 'Français' },
-      nl: { flag: '🇳🇱', name: 'Nederlands' },
-      hu: { flag: '🇭🇺', name: 'Magyar' },
+    // Sprachen, Namen und Flaggen kommen aus dem Register ui/i18n/languages.js; Knöpfe und Demo-Auswahl werden daraus erzeugt
+    const LANG_META = Object.fromEntries(LANGUAGES.list.map(l => [l.code, { flag: l.flag, name: l.name }]))
+
+    function buildLangUi() {
+      const btns = document.getElementById('langBtns')
+      btns.innerHTML = ''
+      LANGUAGES.listedCodes().forEach(code => {
+        const b = document.createElement('button')
+        b.className = 'lang-btn'; b.dataset.lang = code; b.textContent = code.toUpperCase()
+        b.addEventListener('click', () => switchLoginLang(code))
+        btns.appendChild(b)
+      })
+      const grid = document.getElementById('demoLangGrid')
+      grid.innerHTML = ''
+      const codes = LANGUAGES.listedCodes()
+      codes.forEach((code, n) => {
+        const l = LANGUAGES.get(code)
+        const b = document.createElement('button')
+        b.className = 'demo-lang-btn'
+        if (n === codes.length - 1 && codes.length % 2) b.style.gridColumn = '1 / -1'
+        b.addEventListener('click', () => loadDemoBundle(code))
+        const f = document.createElement('span'); f.className = 'flag'; f.textContent = l.flag
+        const nm = document.createElement('span'); nm.textContent = l.name
+        const sm = document.createElement('small'); sm.style.cssText = 'color:var(--subtle);font-size:11px;'; sm.textContent = l.demoLabel
+        b.append(f, nm, sm); grid.appendChild(b)
+      })
     }
 
     function applyLoginLang() {
@@ -554,7 +586,7 @@
         const res = await fetch('/auth/language-config')
         if (!res.ok) return
         const cfg = await res.json()
-        const available = Array.isArray(cfg.available) && cfg.available.length ? cfg.available : ['de','en','fr','nl','hu']
+        const available = Array.isArray(cfg.available) && cfg.available.length ? cfg.available : LANGUAGES.listedCodes()
         // Nicht verfügbare Sprach-Buttons ausblenden
         document.querySelectorAll('.lang-btn').forEach(btn => {
           btn.style.display = available.includes(btn.dataset.lang) ? '' : 'none'
@@ -570,6 +602,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      buildLangUi()
       applyLoginLang()
       applyLanguageConfig()
       fetch('/api/version').then(r => r.ok ? r.json() : null).then(d => {
@@ -666,6 +699,15 @@
       document.getElementById('devWarningBanner').classList.add('visible')
     }
 
+    // Sicherheitshinweis (nicht wegklickbar): Demo-Passwort im Produktivbetrieb
+    window.showSeedWarning = () => document.getElementById('seedWarnBanner').classList.add('visible')
+    ;(async () => {
+      try {
+        const r = await fetch('/auth/security-notice')
+        if (r.ok && (await r.json()).seedPasswords) window.showSeedWarning()
+      } catch {}
+    })()
+
     // Demo-Reset-Banner anzeigen wenn Flag gesetzt
     ;(async () => {
       try {
@@ -725,33 +767,7 @@
     <div class="demo-lang-card">
       <h3>🌍 <span data-i18n="demo_welcome">Welcome to ISMS Builder</span></h3>
       <p data-i18n="demo_choose">Choose your preferred language for the demo data.<br/>The user interface will follow the language you selected on the login page.</p>
-      <div class="demo-lang-grid" id="demoLangGrid">
-        <button class="demo-lang-btn" onclick="loadDemoBundle('de')">
-          <span class="flag">🇩🇪</span>
-          <span>Deutsch</span>
-          <small style="color:var(--subtle);font-size:11px;">Demo-Daten auf Deutsch</small>
-        </button>
-        <button class="demo-lang-btn" onclick="loadDemoBundle('en')">
-          <span class="flag">🇬🇧</span>
-          <span>English</span>
-          <small style="color:var(--subtle);font-size:11px;">Demo data in English</small>
-        </button>
-        <button class="demo-lang-btn" onclick="loadDemoBundle('fr')">
-          <span class="flag">🇫🇷</span>
-          <span>Français</span>
-          <small style="color:var(--subtle);font-size:11px;">Données de démonstration en français</small>
-        </button>
-        <button class="demo-lang-btn" onclick="loadDemoBundle('nl')">
-          <span class="flag">🇳🇱</span>
-          <span>Nederlands</span>
-          <small style="color:var(--subtle);font-size:11px;">Demogegevens in het Nederlands</small>
-        </button>
-        <button class="demo-lang-btn" onclick="loadDemoBundle('hu')" style="grid-column:1 / -1">
-          <span class="flag">🇭🇺</span>
-          <span>Magyar</span>
-          <small style="color:var(--subtle);font-size:11px;">Demóadatok magyarul</small>
-        </button>
-      </div>
+      <div class="demo-lang-grid" id="demoLangGrid"></div>
       <div class="demo-lang-loading" id="demoLangLoading" data-i18n="demo_loading">Loading demo data…</div>
       <button class="demo-lang-skip" id="demoLangSkip" onclick="loadDemoBundle('skip')" data-i18n="demo_skip">Skip – start with empty system</button>
     </div>

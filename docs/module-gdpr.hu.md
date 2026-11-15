@@ -70,7 +70,47 @@ kockázatcsökkentő intézkedések, jóváhagyás állapota.
 
 > **Minimálisan szükséges szerepkör a DPIA-hoz:** `contentowner`
 
+> **Részletesen:** a sablonok, az előzetes vizsgálat, a DPO általi felülvizsgálat és a nyomtatás a „Modul: Adatvédelmi hatásvizsgálat (DPIA)” útmutatóban találhatók (`docs/module-dsfa.hu.md`).
+
 ---
+
+## Sablonok a bejegyzésekhez
+
+Minden fülhöz tartoznak sablonok, amelyek egy új űrlapot gyakorlatias javaslattal töltenek elő: **adatkezelési tevékenységek (nyilvántartás)**, **adatfeldolgozói szerződések**, **adatvédelmi incidensek**, **érintetti jogok** (válaszlevelek) és **TOM-ok**. A **DPIA**-nak saját sablonjai vannak, lásd a „Modul: Adatvédelmi hatásvizsgálat (DPIA)” útmutatót.
+
+**Így működik:** a fülön kattintson a **Sablon használata** gombra, válassza ki a sablont, majd kattintson a **Sablon alkalmazása** gombra. Az űrlap a javaslattal nyílik meg. Ön ellenőrzi, módosítja és menti. Bejegyzés csak mentéskor jön létre; magát a sablont soha nem módosítjuk.
+
+> **Fontos:** Minden sablon gyakorlatias, de **gondosan hozzá kell igazítani a saját vállalkozásához**. **Nem jogi tanácsadás**, és nem is értelmezhető annak. A határidők, jogalapok és megőrzési idők javaslatok, amelyeket az Önre vonatkozó jog szerint kell ellenőriznie. A neveket, szolgáltatókat, számokat és felelősségeket Ön maga adja meg.
+
+### Adatkezelési tevékenységek (nyilvántartás) (14)
+
+Előre kitöltődik a cél, a jogalap, az adatkategóriák, az érintettek, a címzettek, a megőrzés és a törlési eljárás; a „magas kockázat” csak ott van beállítva, ahol általában fennáll. A megőrzési hónapok csak ott szerepelnek, ahol rövid irányérték szokásos.
+
+A weboldal üzemeltetése és webanalitika; Bejelentési rendszer (visszaélés-bejelentési csatorna); Beszállítók és üzleti partnerek kezelése; Hírlevél és e-mail marketing; IT-üzemeltetés, naplózás és információbiztonság; Kapcsolatfelvételi űrlap és általános megkeresések; Könyvelés és számlázás; Munkaidő-nyilvántartás és beléptetés; Pályázatkezelés; Rendezvények és képzések; Személyügyi nyilvántartás és bérszámfejtés; Videó-megfigyelés; Ügyfélkezelés (CRM); Ügyfélszolgálat és jegykezelő rendszer.
+
+### Adatfeldolgozói szerződések (12)
+
+Előre kitöltődik a cím és az adatkezelés terjedelme. Az adatfeldolgozó, az ország, a szerződéses dátumok és a **28. cikk szerinti ellenőrzőlista** üresen marad; csak azt jelöli be, amit a szerződés ténylegesen tartalmaz.
+
+AI-szolgáltatás (pl. asszisztens vagy szövegfeldolgozás); CRM- és marketingszoftver; E-mail-, naptár- és együttműködési szolgáltatás; Felhőtárhely és adatközpont; HR- és bérszámfejtő szoftver (SaaS); Iratmegsemmisítés és adathordozók ártalmatlanítása; IT-szolgáltató, karbantartás és távkarbantartás; Mentési és archiválási szolgáltatás; Telefonos ügyfélszolgálat és ügyfélszolgálati szolgáltató; Támogatási és jegykezelő rendszer; Videó-megfigyelés és biztonsági szolgálat; Webtárhely és weboldal-ügynökség.
+
+### Adatvédelmi incidensek (10)
+
+Előre kitöltődik a típus, az adatkategóriák, az érintettek, a azonnali intézkedések, a további intézkedések, a kockázat, valamint egy **javaslat** arra, hogy értesíteni kell-e a felügyeleti hatóságot és az érintetteket. Hogy szükséges-e bejelentés, azt az egyedi esetben Ön dönti el.
+
+A hozzáférési jogosultságokkal való visszaélés munkatársak által; Adathalászat a hozzáférési adatok kiszivárgásával; Adatok véletlen törlése vagy módosítása; Hibás konfiguráció: nyilvánosan vagy túl széles körben megosztott adatok; Jogosulatlan hozzáférés feltört fiókon keresztül; Laptop, okostelefon vagy adathordozó elvesztése vagy ellopása; Papíralapú iratok ellopása vagy elvesztése; Személyes adatok véletlen közzététele; Tévesen elküldött e-mail vagy dokumentum; Zsarolóvírus-támadás.
+
+### Érintetti jogok, válaszlevelek (10)
+
+Előre kitöltődik a válasz szövege nyitó és záró mondattal. A `{{COMPANY_NAME}}` és `{{DATA_PROTECTION_OFFICER}}` helyőrzőket a szervezeti adatokból töltjük ki. Vannak szövegek a személyazonosság igazolásának kéréséhez, a határidő meghosszabbításához és az elutasításhoz is; a nyitott pontok zárójelben állnak.
+
+Kérelem elutasítása (12. cikk (4) és (5) bekezdés); Személyazonosság igazolásának kérése (12. cikk (6) bekezdés); Válasz adathordozhatósági kérelemre (20. cikk); Válasz automatizált döntéshozatalról (22. cikk); Válasz az adatkezelés korlátozására irányuló kérelemre (18. cikk); Válasz helyesbítési kérelemre (16. cikk); Válasz hozzáférési kérelemre (15. cikk); Válasz tiltakozásra (21. cikk); Válasz törlési kérelemre (17. cikk); Értesítés a határidő meghosszabbításáról (12. cikk (3) bekezdés).
+
+### TOM-ok (24)
+
+Előre kitöltődik a cím, a kategória, a leírás és a megvalósítási tanács; az állapot „Tervezett”. Azt, ami ténylegesen megvalósult, Ön maga adja meg.
+
+Adatmentés és tesztelt helyreállítás; Adatvédelmi irányítás és a DPO bevonása; Adatvédelmi és tudatossági képzés; Az adatfeldolgozók kiválasztása és ellenőrzése; Bevitelellenőrzés (a módosítások nyomon követhetősége); Biztonságos fejlesztés és a tesztadatok védelme; Elkülönítési ellenőrzés és célhoz kötöttség; Fizikai beléptetés az épületekbe és a szerverhelyiségekbe; Folyamat adatvédelmi incidensekhez; Javítás- és sérülékenységkezelés; Kártevők elleni védelem; Lemez- és eszköztitkosítás; Megőrzési idők és archiválás; Mentések és hordozható adathordozók titkosítása; Naplózás és elemzés; Szerepköralapú jogosultsági koncepció; Szállítási titkosítás (TLS) és biztonságos távoli hozzáférés; Tiszta asztal és képernyőzár; Titoktartási kötelezettségvállalás; Többfaktoros hitelesítés; Törlési koncepció; Tűzfal és hálózati szegmentálás; Vészhelyzeti és helyreállítási tervezés; Álnevesítés és anonimizálás.
 
 ## Adatvédelmi incidensek
 

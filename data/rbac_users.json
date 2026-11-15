@@ -5,7 +5,7 @@
     "domain": "Global",
     "role": "admin",
     "passwordHash": "$2a$12$V8XzeAmCpzq6p5dKyhBHT.E7e3UW./en8L0XLfpUQ8F0tUKjbebd.",
-    "totpSecret": "XFQCNWVFCTX2DQZE6OF7AQBILFVXNPY6",
+    "totpSecret": "",
     "sections": [
       "Guidance",
       "Risk",
@@ -27,7 +27,7 @@
       "ciso"
     ],
     "passwordHash": "$2a$12$tDGJVeKKjvYG9WM/Sgs.l.uKkkhn4/hDW1y7zAi5KHPWjITAPsQg.",
-    "totpSecret": "M525IVTX6QWVMZXLOYIDJ3UBAZNDH4KL",
+    "totpSecret": "",
     "sections": []
   },
   "dsb": {

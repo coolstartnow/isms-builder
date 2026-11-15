@@ -1,4 +1,5 @@
 'use strict'
+const LANG_REG = require('../ui/i18n/languages.js')
 // Mitgelieferte Katalogdaten werden beim Lesen übersetzt (Overlay je ID); gespeicherte Daten bleiben unberührt.
 const { createTestDataDir, removeTestDataDir } = require('./setup/testEnv')
 const { loginAs } = require('./setup/authHelper')
@@ -24,7 +25,7 @@ const get = (url, lang) => request(app).get(url).set('Cookie', reader).set('X-La
 describe('Katalog-Overlay: Vollständigkeit', () => {
   const soa = require('../server/i18n/catalogSoa')
   const nis2 = require('../server/i18n/catalogNis2')
-  const langs = ['en', 'fr', 'nl', 'hu']
+  const langs = LANG_REG.completeCodes().filter(c => c !== 'de')
   test('jeder Eintrag hat alle vier Sprachen, nicht leer', () => {
     const all = [
       ...Object.values(soa.titles), ...Object.values(soa.themes),

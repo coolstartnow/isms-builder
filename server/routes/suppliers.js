@@ -6,6 +6,7 @@ const { requireAuth, authorize } = require('../auth')
 const supplierStore = require('../db/supplierStore')
 const embeddingStore = require('../ai/embeddingStore')
 const supplierTriage = require('../db/supplierTriage')
+const supplierEvidence = require('../supplierEvidence')
 
 router.get('/suppliers/summary', requireAuth, authorize('reader'), async (req, res) => {
   res.json(await supplierStore.getSummary())
@@ -24,6 +25,8 @@ router.get('/suppliers/:id', requireAuth, authorize('reader'), async (req, res) 
 router.post('/suppliers', requireAuth, authorize('editor'), async (req, res) => {
   const triageErrors = supplierTriage.validateTriage(req.body.triage)
   if (triageErrors.length) return res.status(400).json({ error: triageErrors.join('; ') })
+  const evidenceError = supplierEvidence.validate(req.body)
+  if (evidenceError) return res.status(400).json({ error: evidenceError })
   try {
     const item = await supplierStore.create(req.body, { createdBy: req.user })
     await require('../db/auditStore').append({ user: req.user, action: 'create', resource: 'supplier', detail: item.name })
@@ -37,6 +40,8 @@ router.post('/suppliers', requireAuth, authorize('editor'), async (req, res) => 
 router.put('/suppliers/:id', requireAuth, authorize('editor'), async (req, res) => {
   const triageErrors = supplierTriage.validateTriage(req.body.triage)
   if (triageErrors.length) return res.status(400).json({ error: triageErrors.join('; ') })
+  const evidenceError = supplierEvidence.validate(req.body)
+  if (evidenceError) return res.status(400).json({ error: evidenceError })
   try {
     const updated = await supplierStore.update(req.params.id, req.body, { changedBy: req.user })
     if (!updated) return res.status(404).json({ error: 'Not found' })

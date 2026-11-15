@@ -20,6 +20,10 @@
 
 *Risiken auf dem Handy*
 
+![Eigene SoA-Gruppe als eigener Reiter (hier ein erfundenes Beispiel)](images/mobile/soa-groups.png)
+
+*Eigene SoA-Gruppe als eigener Reiter (hier ein erfundenes Beispiel)*
+
 ![Tablet im Querformat: Menü und Inhalt nebeneinander](images/mobile/tablet-risks.png)
 
 *Tablet im Querformat: Menü und Inhalt nebeneinander*
@@ -66,6 +70,10 @@ Administratoren legen Sync-Konten unter *Verwaltung → Benutzer* im Bereich *Sy
 - **Rechte je Modul:** *kein Zugriff*, *lesen* oder *lesen und schreiben* (Dokumente/Vorlagen, SoA, Risiken, Assets, Feststellungen). Guidance ist nur lesbar. Beispiel: Das Konto der Auditorin darf Risiken und Feststellungen lesen und schreiben und sonst nichts.
 - **Gültig bis** (optional).
 - **Geräte:** Ein Konto kann mehrere Geräte haben (z. B. Handy und Tablet der CISO). Jedes Gerät hat einen **eigenen Schlüssel**. Die Liste zeigt Gerätename und „zuletzt benutzt“; ein verlorenes Gerät lässt sich einzeln sperren (✕), ohne die anderen zu betreffen.
+
+### Eigene SoA-Gruppen
+
+Eigene SoA-Gruppen (Frameworks, die ein Administrator auf dem Server angelegt hat) werden mit der SoA synchronisiert. **Anzeigen** dürfen Konten mit Leserecht auf SoA oder auf *Eigene SoA-Gruppen*; ohne Gruppen-Definition hätten die Controls einer eigenen Gruppe in der App keinen Namen und keine Farbe. **Anlegen, umbenennen, umfärben und leere Gruppen löschen** darf nur ein Konto mit dem Recht *Eigene SoA-Gruppen (Verwaltung)* = *Lesen und Schreiben* — Sync-Konten sind keine Administratoren, den Zugriff vergibt der Administrator des Servers an dieser Stelle. Das Schreibrecht auf SoA allein genügt dafür nicht. Die Server-Prüfungen gelten unverändert (Kennung, reservierte Kennungen eingebauter Frameworks, Farbe `#RRGGBB`, Bezeichnung höchstens 120 Zeichen); eine Gruppe mit Controls lässt sich nicht löschen. Der Import einer Gruppe per Datei legt zugleich Controls an und braucht deshalb zusätzlich Schreibrecht auf SoA (die Vorschau genügt mit dem Gruppenrecht). **Mindestversion des Servers für diese Funktion: 1.84.0.**
 
 ### Gerät einrichten (QR-Code)
 
@@ -158,7 +166,7 @@ Alle Aufrufe außer `/sync/enroll` tragen den Header `Authorization: Bearer <Ger
 | GET | `/sync/pull?since=<ISO>&modules=a,b` | Änderungen seit `since`, einschließlich gelöschter Datensätze, nur für lesbare Module (ausdrücklich angefragte, nicht erlaubte unter `denied`). Antwort enthält `serverTime` für den nächsten Pull. |
 | POST | `/sync/push` | `{ protocolVersion, changes: { <modul>: [Datensätze mit baseUpdatedAt] } }` — Antwort: `accepted`, `conflicts`, `rejected`. |
 
-Die Verwaltung der Sync-Konten (`/admin/sync-accounts`) ist nur für Administratoren. Module: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Beschreibung in `docs/architecture/openapi.yaml`.
+Die Verwaltung der Sync-Konten (`/admin/sync-accounts`) ist nur für Administratoren. Module: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`, `soaFrameworks`. Beschreibung in `docs/architecture/openapi.yaml`.
 
 ## Sicherheit
 
@@ -178,3 +186,23 @@ Die Verwaltung der Sync-Konten (`/admin/sync-accounts`) ist nur für Administrat
 - Die Oberfläche kennt keine Rechte je Modul: Sie unterscheidet nur „darf irgendwo schreiben“ und „nur lesen“. Die genaue Prüfung je Modul erfolgt beim Speichern.
 - Audit-Feststellungen werden synchronisiert, haben in der App aber noch keine eigene Ansicht.
 - Die App enthält die Server-Logik des Stands, mit dem sie gebaut wurde. Nach einem Server-Update sollte auch die App neu gebaut werden (`npm run build:android` im Projekt `isms-builder-mobile`).
+
+## Häufige Fragen (FAQ)
+
+**Der Abgleich meldet „Sync complete“, aber es fehlen Daten auf dem Gerät (z. B. Dokumentvorlagen, Maßnahmen, Risiken, Assets).**
+Der Abgleich holt nur Datensätze, die sich *seit dem letzten Abgleich geändert* haben (Zeitstempel `updatedAt`). Werden Daten **mit altem Zeitstempel** erst *nach* dem letzten Abgleich auf den Server gebracht — Demo-Import, geladenes Demo-Bündel, Wiederherstellung aus einem Backup, von Hand ersetzte Dateien —, gelten sie für das Gerät als „nicht geändert“ und kommen nie an. Ab Hauptsystem 1.84 und App 1.6 erkennt die App das selbst: Der Server nennt eine *Daten-Epoche*, die sich bei jedem Serverstart und nach jedem Datenaustausch ändert, und die App lädt dann einmal **alle** Daten neu. Von Hand: im Sync-Panel **Alle Daten neu laden** (App 1.6). Mit älteren Ständen hilft *Gerät zurücksetzen* und eine neue Einrichtung per QR-Code — dabei gehen nicht gesendete Änderungen verloren, deshalb vorher abgleichen oder *Nur Änderungen exportieren*.
+
+**Ich muss jeden Konflikt einzeln bestätigen und jedes Mal die PIN eingeben.**
+Ab App 1.6 erscheinen Konflikte als Liste zum Anhaken: Einträge auswählen (anfangs ist nichts gewählt), *Alle auswählen* und den Modulfilter nutzen und mit **einer** Sammelaktion lösen — die PIN wird nur einmal abgefragt.
+
+**Das Handy lehnt das Zertifikat meines Servers ab.**
+Ein einzelnes selbstsigniertes Serverzertifikat wird auf manchen Geräten nicht akzeptiert (beobachtet auf einem Android-16-Tablet). Zuverlässig: eine **eigene CA** erzeugen, damit ein Serverzertifikat mit der Adresse (IP oder Name) im `subjectAltName` signieren und die **CA** am Handy als **„CA-Zertifikat“** installieren (nicht als „VPN- und App-Nutzerzertifikat“). Zu prüfen: Steht sie unter *Vertrauenswürdige Anmeldedaten → Benutzer*? Ein Browserhinweis „nicht sicher“ sagt nichts darüber, ob die App dem Zertifikat vertraut. Eine nur zum Testen angelegte CA nach dem Test vom Handy entfernen.
+
+**Welchen Port nutzt der Abgleich?**
+Keinen eigenen: dieselbe Adresse und denselben Port wie die Weboberfläche (`https://host[:port]`). Eine Firewall-Regel und ein Zertifikat genügen.
+
+**In den Guidance-Artikeln fehlen Bilder.**
+Die mitgelieferten Artikel enthalten ihre Bilder in der App (ab App 1.6). Bilder, die Anwender selbst in eigenen Artikeln verlinken, bringt die App nicht mit — sie liegen nur auf dem Server. Wer sie in der App braucht, passt den Bau der App an (`scripts/sync-ui.sh`).
+
+**Ein Dokument aus dem Demo-Paket fehlt (z. B. „Rollen & Verantwortlichkeiten“), nachdem ich Guidance-Artikel gelöscht habe.**
+Das Demo-Paket bringt Dokumente und Daten als ganz normale Datensätze mit — im Unterschied zu den *Seed-Artikeln* (z. B. die Bedienungsanleitungen in *Rollen*, das Systemhandbuch, die Leitfäden), die der Server bei jedem Start neu anlegt, falls sie fehlen. Ein gelöschtes Paket-Dokument kommt deshalb **nicht von selbst zurück**. Vorbeugen: nicht ganze Kategorien löschen; gelöschte Artikel zuerst im *Papierkorb* **wiederherstellen**, solange er nicht geleert ist. Nach dem endgültigen Löschen: das Dokument neu anlegen (der Text steht im Demo-Paket, `data/demo-bundles/<Sprache>.json`) oder das Demo-Paket neu laden — das ersetzt die Demodaten und ist im Produktivbetrieb gesperrt. Auf den Geräten erscheint ein neu angelegtes Dokument beim nächsten Abgleich.

@@ -17,6 +17,12 @@ const FRAMEWORKS = {
 
 const IMPLEMENTATION_STATUSES = ['not_started', 'partial', 'implemented', 'optimized']
 
+// Eigene Gruppen (data/soa-frameworks.json, für alle Backends dieselbe Datei): eingebaute zuerst, dann die eigenen nach Anlage
+const frameworkDefs = require('../../soaFrameworkDefs')
+const frameworkStore = require('../soaFrameworkStore')
+const allFrameworks = () => [...Object.values(FRAMEWORKS), ...frameworkStore.getAllSync().map(f => ({ id: f.id, label: f.label, color: f.color, custom: true }))]
+const frameworkMeta = id => allFrameworks().find(f => f.id === id)
+
 function _parse(val, fallback) {
   if (!val) return fallback
   try { return JSON.parse(val) } catch { return fallback }
@@ -87,7 +93,7 @@ async function seedBuiltIn() {
 }
 
 async function getFrameworks() {
-  return Object.values(FRAMEWORKS)
+  return allFrameworks()
 }
 
 async function getAll({ framework, theme } = {}) {
@@ -149,8 +155,10 @@ async function removeLinkedTemplate(controlId, templateId) {
 }
 
 async function getSummary(framework) {
-  const frameworks = framework ? [framework] : Object.keys(FRAMEWORKS)
   const db = getDb()
+  const known = allFrameworks().map(f => f.id)
+  // defensiv: auch Kennungen, die nur in den Controls vorkommen (z. B. gelöschte Definitionsdatei), gehen nie aus den Kennzahlen verloren
+  const frameworks = framework ? [framework] : [...known, ...(await db('soa_controls').distinct('framework')).map(r => r.framework).filter(f => f && !known.includes(f))]
   const result = {}
   for (const fw of frameworks) {
     const rows = await db('soa_controls').where('framework', fw)
@@ -162,8 +170,8 @@ async function getSummary(framework) {
     }
     result[fw] = {
       framework: fw,
-      label: FRAMEWORKS[fw]?.label || fw,
-      color: FRAMEWORKS[fw]?.color || '#888',
+      label: frameworkMeta(fw)?.label || fw,
+      color: frameworkMeta(fw)?.color || '#888',
       total: controls.length,
       applicable: applicable.length,
       notApplicable: controls.length - applicable.length,
@@ -179,13 +187,20 @@ async function getSummary(framework) {
 async function createCustomControl(body, { changedBy } = {}) {
   const title = (body.title || '').trim()
   if (!title) throw new Error('title required')
-  const now = new Date().toISOString()
-  const id = 'CUSTOM-' + Date.now()
+  // optional: eigene Gruppe statt des Sammel-Tabs CUSTOM, und eine frei gewählte Kennung (global eindeutig)
+  const framework = body.framework ? String(body.framework).trim() : 'CUSTOM'
+  if (framework !== 'CUSTOM' && !frameworkStore.getByIdSync(framework)) throw new Error('invalid_framework')
+  const wanted = body.controlId ? String(body.controlId).trim() : ''
+  if (wanted && !frameworkDefs.isValidControlId(wanted)) throw new Error('invalid_control_id')
   const db = getDb()
+  if (wanted && await db('soa_controls').where('id', wanted).first()) throw new Error('id_conflict')
+  const now = new Date().toISOString()
+  let id = wanted || (framework === 'CUSTOM' ? 'CUSTOM-' : framework + '-') + Date.now()
+  while (!wanted && await db('soa_controls').where('id', id).first()) id += 'x'   // zwei Anlagen in derselben Millisekunde
   await db('soa_controls').insert({
     id,
-    framework: 'CUSTOM',
-    control_id: id,
+    framework,
+    control_id: id.length <= 50 ? id : '',   // Spalte control_id hat 50 Zeichen; leer = rowToObj nimmt die Kennung
     title,
     description: (body.description || '').trim(),
     theme: (body.theme || 'Custom').trim(),
@@ -233,8 +248,52 @@ async function deleteCustomControl(id) {
   return { ok: true }
 }
 
+// Import in eine eigene Gruppe (Plan: server/soaFrameworkDefs.planImport): neue Controls anlegen, vorhandene derselben Gruppe
+// nur in Titel/Thema/Beschreibung auffrischen — Anwendbarkeit, Status, Verantwortliche, Begründung und Verknüpfungen bleiben.
+// In einer Transaktion: bei einem Fehler wird nichts übernommen. → { added, updated }
+async function importControls(frameworkId, accepted, { changedBy } = {}) {
+  const db = getDb()
+  const now = new Date().toISOString()
+  let added = 0, updated = 0
+  await db.transaction(async trx => {
+    const have = new Map()
+    for (let i = 0; i < accepted.length; i += 200) {
+      const rows = await trx('soa_controls').whereIn('id', accepted.slice(i, i + 200).map(c => c.id)).select('id', 'framework')
+      for (const r of rows) have.set(r.id, r.framework)
+    }
+    const fresh = []
+    for (const c of accepted) {
+      if (have.has(c.id)) {
+        if (have.get(c.id) !== frameworkId) continue   // Schutz: nie ein Control einer anderen Gruppe verändern
+        const patch = { title: c.title, theme: c.theme, updated_at: now, updated_by: changedBy || 'unknown' }
+        if (c.description !== undefined) patch.description = c.description
+        await trx('soa_controls').where('id', c.id).update(patch)
+        updated++
+      } else {
+        fresh.push({
+          id: c.id, framework: frameworkId, control_id: c.id.length <= 50 ? c.id : '', title: c.title, description: c.description || '',
+          theme: c.theme, applicable: true, status: 'not_started', owner: '', justification: '', evidence: '',
+          applicable_entities: '[]', linked_templates: '[]', updated_by: changedBy || 'unknown', is_custom: true, created_at: now, updated_at: now,
+        })
+      }
+    }
+    // in Blöcken: SQLite erlaubt höchstens 999 Platzhalter je Anweisung (17 Spalten × 40 Zeilen = 680)
+    for (let i = 0; i < fresh.length; i += 40) await trx('soa_controls').insert(fresh.slice(i, i + 40))
+    added = fresh.length
+  })
+  return { added, updated }
+}
+
+// Anzahl der Controls einer Gruppe (Löschsperre)
+async function countControls(framework) {
+  const r = await getDb()('soa_controls').where('framework', framework).count({ n: '*' }).first()
+  return Number(r && r.n) || 0
+}
+
 module.exports = {
   init,
+  importControls,
+  countControls,
   setSeedControls,
   seedBuiltIn,
   getFrameworks,

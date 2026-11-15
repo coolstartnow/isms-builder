@@ -9,6 +9,10 @@ const { tr, pageLang, fmtDate, fmtDateTime } = require('../i18n')
 const { isTokenFormat } = require('../secureToken')
 
 // ── GET /ack/:token — Bestätigungsseite anzeigen ──────────────────────────────
+// JSON für ein Inline-<script>: "<" (</script>), ">", "&" und die Zeilentrenner U+2028/2029 werden als \u-Folgen geschrieben,
+// damit Text aus dem Redaktionssystem das Skript nie verlassen kann.
+const jsonForScript = v => JSON.stringify(v).replace(/[<>&\u2028\u2029]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'))
+
 router.get('/ack/:token', async (req, res) => {
   // Nie aus dem Cache: Inhalt und Bestaetigungsstand koennen sich aendern.
   res.setHeader('Cache-Control', 'no-store')
@@ -115,7 +119,7 @@ router.get('/ack/:token', async (req, res) => {
     </div>
 
     <h1>${escapeHtml(policyTitle)}</h1>
-    <div class="meta">Version ${dist.templateVersion} &middot; Typ: ${escapeHtml(dist.templateType)}</div>
+    <div class="meta">Version ${escapeHtml(String(dist.templateVersion ?? ''))} &middot; Typ: ${escapeHtml(dist.templateType)}</div>
 
     ${dueDateHtml}
     ${confirmedHtml}
@@ -128,6 +132,7 @@ router.get('/ack/:token', async (req, res) => {
   </div>
 
   <script src="/ui/vendor/marked.min.js"></script>
+  <script src="/ui/vendor/purify.min.js"></script>
   <script>
     // #61: Bis hierher stand die Richtlinie als Rohtext auf dieser Seite —
     // Empfänger bestätigten also "## Überschrift" gelesen zu haben.
@@ -138,9 +143,9 @@ router.get('/ack/:token', async (req, res) => {
     // nachträglich entfernt: Diese Seite ist ohne Login erreichbar, der Inhalt
     // stammt aus dem Redaktionssystem.
     (function () {
-      var raw = ${JSON.stringify(policyContent || '')};
+      var raw = ${jsonForScript(policyContent || '')};
       var box = document.getElementById('policyContent');
-      if (!raw) { box.innerHTML = '<em>' + ${JSON.stringify(tr(L, 'srv_ackpub_noContent'))} + '</em>'; return; }
+      if (!raw) { box.innerHTML = '<em>' + ${jsonForScript(tr(L, 'srv_ackpub_noContent'))} + '</em>'; return; }
       if (typeof marked === 'undefined') {
         var pre = document.createElement('pre');
         pre.style.whiteSpace = 'pre-wrap';
@@ -148,11 +153,22 @@ router.get('/ack/:token', async (req, res) => {
         box.appendChild(pre);
         return;
       }
-      box.innerHTML = marked.parse(raw.replace(/</g, '&lt;'));
-      box.querySelectorAll('a[href]').forEach(function (a) {
-        if (/^\s*javascript:/i.test(a.getAttribute('href') || '')) a.removeAttribute('href');
-        else { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+      // Bereinigung wie in der Oberfläche (DOMPurify, gleiche Einstellungen wie renderGuidanceMarkdown): Skripte, Ereignis-Attribute,
+      // Formulare, Rahmen und javascript:-/data:-Verweise werden entfernt. Fehlt DOMPurify, wird nur Text gezeigt, nie HTML.
+      if (typeof DOMPurify === 'undefined') {
+        var plain = document.createElement('pre');
+        plain.style.whiteSpace = 'pre-wrap';
+        plain.textContent = raw;
+        box.appendChild(plain);
+        return;
+      }
+      box.innerHTML = DOMPurify.sanitize(marked.parse(raw.replace(/</g, '&lt;')), {
+        USE_PROFILES: { html: true },
+        FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select', 'option', 'iframe', 'frame', 'frameset', 'object', 'embed', 'link', 'meta', 'base'],
+        FORBID_ATTR: ['style', 'srcdoc', 'formaction'],
+        ALLOW_DATA_ATTR: false
       });
+      box.querySelectorAll('a[href]').forEach(function (a) { a.target = '_blank'; a.rel = 'noopener noreferrer'; });
     })();
   <\/script>
 </body>

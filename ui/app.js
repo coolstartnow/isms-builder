@@ -16,7 +16,7 @@ let MODULE_CONFIG = {
 }
 let SOA_FW_CONFIG = {
   ISO27001:true, BSI:true, NIS2:true, EUCS:true, EUAI:true,
-  ISO9000:true, ISO9001:true, CRA:true,
+  ISO9000:true, ISO9001:true, CRA:true, CUSTOM:true,
 }
 
 // Drag & Drop state for Template Tree
@@ -119,7 +119,21 @@ function openPrintWindow() {
   const win = window.open('', '_blank')
   if (!win) return win
   const write = win.document.write.bind(win.document)
-  const css = '.org-logo{float:right;max-height:48px;max-width:200px;margin:0 0 10px 14px}'
+  let css = '.org-logo{float:right;max-height:48px;max-width:200px;margin:0 0 10px 14px}'
+  if (_pdfFont.unicode) {
+    // gleiche Schrift wie in den serverseitig erzeugten PDFs (Auswahl in Administration → Organisation)
+    const u = style => `${location.origin}/pdf-font/file/${style}?v=${encodeURIComponent(_pdfFont.v)}`
+    css += `@font-face{font-family:'ISMS-PDF';font-weight:400;font-style:normal;src:url('${u('regular')}')}` +
+           `@font-face{font-family:'ISMS-PDF';font-weight:700;font-style:normal;src:url('${u('bold')}')}` +
+           `@font-face{font-family:'ISMS-PDF';font-weight:400;font-style:italic;src:url('${u('italic')}')}` +
+           `@font-face{font-family:'ISMS-PDF-Mono';font-weight:400;font-style:normal;src:url('${u('mono')}')}` +
+           `body{font-family:'ISMS-PDF',Arial,sans-serif}` +
+           // Referenzen (inline „monospace“) und Code in der Courier-ähnlichen Festbreitenschrift; !important schlägt Inline-Stile
+           `code,pre,kbd,samp,[style*="monospace"]{font-family:'ISMS-PDF-Mono',monospace !important}`
+    // erst drucken, wenn die Schrift geladen ist (sonst erscheint kurz die Ersatzschrift im Ausdruck)
+    const nativePrint = win.print.bind(win)
+    win.print = () => { Promise.race([win.document.fonts ? win.document.fonts.ready : Promise.resolve(), new Promise(r => setTimeout(r, 4000))]).then(() => nativePrint()) }
+  }
   const img = `<img class="org-logo" alt="" src="${location.origin}/branding/logo" onerror="this.style.display='none'">`
   let done = false
   win.document.write = html => {
@@ -229,7 +243,7 @@ function renderWebdavPublishBar(tmpl) {
   } else if (pub.ok) {
     const when = pub.publishedAt ? new Date(pub.publishedAt).toLocaleString('de-DE') : ''
     const linkHtml = pub.shareLink
-      ? ` <a href="${escHtml(pub.shareLink)}" target="_blank" rel="noopener noreferrer">${t('tmpl_webdavOpenLink')}</a>`
+      ? ` <a href="${escHtml(safeUrl(pub.shareLink))}" target="_blank" rel="noopener noreferrer">${t('tmpl_webdavOpenLink')}</a>`
       : ''
     statusHtml = `<span class="tmpl-review-hint" style="color:var(--success,#4ade80)"><i class="ph ph-check-circle"></i> ${t('tmpl_webdavPublished')} ${when}</span>${linkHtml}`
   } else {
@@ -312,7 +326,7 @@ function _initSemanticSearch() {
       const data = await res.json()
       _results = data.results || []
       if (!_results.length) {
-        _open(`<div class="search-no-results">${t('search_noResultsFor')} <strong>${q}</strong></div>`)
+        _open(`<div class="search-no-results">${t('search_noResultsFor')} <strong>${escHtml(q)}</strong></div>`)
         return
       }
       const mode = data.mode || 'keyword'
@@ -321,12 +335,12 @@ function _initSemanticSearch() {
         : `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(255,255,255,.08);color:var(--text-subtle);font-weight:600;margin-left:6px;">${t('search_keyword')}</span>`
       const rows = _results.map((r, i) => {
         const icon = TYPE_ICONS[r.type] || 'ph-magnifying-glass'
-        return `<div class="search-result-item" data-idx="${i}" onclick="_searchNavigate('${r.url}')">
+        return `<div class="search-result-item" data-idx="${escVal(i)}" onclick="_searchNavigate(${jsArg(r.url)})">
           <div class="search-result-icon"><i class="ph ${icon}"></i></div>
           <div class="search-result-body">
-            <div class="search-result-title">${r.title}</div>
+            <div class="search-result-title">${escHtml(r.title)}</div>
             <div class="search-result-meta">
-              <span class="search-result-badge">${r.type}</span>
+              <span class="search-result-badge">${escHtml(r.type)}</span>
               <span class="search-result-score">${r.score}% match</span>
             </div>
           </div>
@@ -387,10 +401,10 @@ function _searchNavigate(url) {
 // showPolicies: whether to show the policy picker (false for guidance docs)
 function renderLinksBlock(formId, existingControls = [], existingPolicies = [], showPolicies = true) {
   const ctrlChips = existingControls.map(id =>
-    `<span class="link-chip" onclick="removeLinkChip(this,'${formId}_ctrl')" data-val="${escHtml(id)}">${escHtml(id)} <i class="ph ph-x"></i></span>`
+    `<span class="link-chip" onclick="removeLinkChip(this,${jsArg(formId + '_ctrl')})" data-val="${escHtml(id)}">${escHtml(id)} <i class="ph ph-x"></i></span>`
   ).join('')
   const polChips = existingPolicies.map(id =>
-    `<span class="link-chip" onclick="removeLinkChip(this,'${formId}_pol')" data-val="${escHtml(id)}">${escHtml(id)} <i class="ph ph-x"></i></span>`
+    `<span class="link-chip" onclick="removeLinkChip(this,${jsArg(formId + '_pol')})" data-val="${escHtml(id)}">${escHtml(id)} <i class="ph ph-x"></i></span>`
   ).join('')
 
   const policiesPicker = showPolicies ? `
@@ -399,9 +413,9 @@ function renderLinksBlock(formId, existingControls = [], existingPolicies = [], 
       <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
         <div>
           <input id="${formId}_polSearch" class="form-input" style="width:160px;padding:4px 8px;font-size:.8rem" placeholder="${t('link_search')}"
-            oninput="filterLinkSelect('${formId}_polSelect', this.value)">
+            oninput="filterLinkSelect(${jsArg(formId + '_polSelect')}, this.value)">
           <select id="${formId}_polSelect" class="select" multiple size="5" style="margin-top:4px;width:340px;font-size:.8rem"
-            ondblclick="addLinkChip('${formId}_pol', this)"></select>
+            ondblclick="addLinkChip(${jsArg(formId + '_pol')}, this)"></select>
         </div>
         <div>
           <div id="${formId}_pol_chips" class="link-chip-area">${polChips}</div>
@@ -419,9 +433,9 @@ function renderLinksBlock(formId, existingControls = [], existingPolicies = [], 
         <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
           <div>
             <input id="${formId}_ctrlSearch" class="form-input" style="width:160px;padding:4px 8px;font-size:.8rem" placeholder="${t('link_searchControlId')}"
-              oninput="filterLinkSelect('${formId}_ctrlSelect', this.value)">
+              oninput="filterLinkSelect(${jsArg(formId + '_ctrlSelect')}, this.value)">
             <select id="${formId}_ctrlSelect" class="select" multiple size="5" style="margin-top:4px;width:340px;font-size:.8rem"
-              ondblclick="addLinkChip('${formId}_ctrl', this)"></select>
+              ondblclick="addLinkChip(${jsArg(formId + '_ctrl')}, this)"></select>
           </div>
           <div>
             <div id="${formId}_ctrl_chips" class="link-chip-area">${ctrlChips}</div>
@@ -487,7 +501,7 @@ function addLinkChip(areaKey, selectEl) {
   chip.dataset.val = val
   // data-chip-text am Select: Chip zeigt den Anzeigenamen statt der ID (Assets, Lieferanten, #92)
   const label = selectEl.dataset.chipText ? opt.text : val
-  chip.innerHTML = `${escHtml(label)} <i class="ph ph-x" onclick="removeLinkChip(this,'${areaKey}')"></i>`
+  chip.innerHTML = `${escHtml(label)} <i class="ph ph-x" onclick="removeLinkChip(this,${jsArg(areaKey)})"></i>`
   area.appendChild(chip)
 }
 
@@ -517,7 +531,7 @@ async function initLinkPickers(formId, showPolicies = true) {
 function renderRefPicker(formId, suffix, labelText, options, selectedIds = []) {
   const byId  = Object.fromEntries(options.map(o => [o.id, o.label]))
   const chips = selectedIds.map(id =>
-    `<span class="link-chip" onclick="removeLinkChip(this,'${formId}_${suffix}')" data-val="${escHtml(id)}">${escHtml(byId[id] || id)} <i class="ph ph-x"></i></span>`
+    `<span class="link-chip" onclick="removeLinkChip(this,${jsArg(formId + '_' + suffix)})" data-val="${escHtml(id)}">${escHtml(byId[id] || id)} <i class="ph ph-x"></i></span>`
   ).join('')
   return `
     <div class="link-picker-group" style="margin-top:10px">
@@ -525,9 +539,9 @@ function renderRefPicker(formId, suffix, labelText, options, selectedIds = []) {
       <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
         <div>
           <input id="${formId}_${suffix}Search" class="form-input" style="width:160px;padding:4px 8px;font-size:.8rem" placeholder="${escHtml(t('link_search'))}"
-            oninput="filterLinkSelect('${formId}_${suffix}Select', this.value)">
+            oninput="filterLinkSelect(${jsArg(formId + '_' + suffix + 'Select')}, this.value)">
           <select id="${formId}_${suffix}Select" class="select" multiple size="5" data-chip-text="1"
-            style="margin-top:4px;width:340px;font-size:.8rem" ondblclick="addLinkChip('${formId}_${suffix}', this)">
+            style="margin-top:4px;width:340px;font-size:.8rem" ondblclick="addLinkChip(${jsArg(formId + '_' + suffix)}, this)">
             ${options.map(o => `<option value="${escHtml(o.id)}">${escHtml(o.label)}</option>`).join('')}
           </select>
         </div>
@@ -549,12 +563,12 @@ async function loadLinkedRisks(containerId, query) {
   el.innerHTML = list.length === 0
     ? `<p class="asset-prot-hint">${escHtml(t('risk_noLinkedRisks'))}</p>`
     : `<div class="rl-list">${list.map(r => {
-        const lv  = RISK_LEVEL_CFG[r.riskLevel] || { label: r.riskLevel, cls: '' }
+        const lv  = RISK_LEVEL_CFG[r.riskLevel] || { label: escVal(r.riskLevel), cls: '' }
         const via = query.asset && !(r.linkedAssets || []).includes(query.asset)
         return `<div class="rl-row">
           <span class="risk-badge ${lv.cls}">${lv.label}</span>
           <span class="rl-title">${escHtml(r.title)}</span>
-          <span class="risk-status-badge risk-st-${r.status}">${escHtml(RISK_STATUSES.find(x => x.id === r.status)?.label || r.status)}</span>
+          <span class="risk-status-badge risk-st-${escHtml(r.status)}">${escHtml(RISK_STATUSES.find(x => x.id === r.status)?.label || r.status)}</span>
           ${via ? `<small>${escHtml(t('risk_linkedViaType'))}</small>` : ''}
         </div>`
       }).join('')}</div>`
@@ -571,7 +585,7 @@ function renderFunctionBadges(functions) {
   if (!functions || !functions.length) { container.innerHTML = ''; return }
   const FN_ABBR = { ciso:'CISO', dso:'DSB', qmb:'QMB', bcm_manager:'BCM', dept_head:'AL', auditor:'Aud.', admin_notify:'Admin' }
   container.innerHTML = functions.map(f =>
-    `<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:var(--color-P75,#e3d9ff);color:var(--color-P400,#5243aa);font-weight:600;">${FN_ABBR[f]||f}</span>`
+    `<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:var(--color-P75,#e3d9ff);color:var(--color-P400,#5243aa);font-weight:600;">${FN_ABBR[f]||escVal(f)}</span>`
   ).join('')
 }
 
@@ -598,6 +612,8 @@ async function init() {
       if (Array.isArray(orgData.navOrder) && orgData.navOrder.length) _navOrder = orgData.navOrder
     }
   } catch {}
+
+  await loadPdfFont()
 
   // ── Sprach-Konfiguration laden ──
   try {
@@ -685,6 +701,9 @@ async function init() {
     }
   } catch {}
 
+  // ── Sicherheitshinweis für Administratoren: Konten mit Demo-Passwort im Produktivbetrieb (nicht wegklickbar) ──
+  showSeedPasswordNotice()
+
   // ── Navigation befüllen ──
   populateSectionNav()
 
@@ -696,14 +715,14 @@ async function init() {
     li.className = 'sidebar-tree-item'
     li.innerHTML = `
       <div class="sidebar-tree-row">
-        <button class="sidebar-nav-item sidebar-tree-parent" data-type="${t}">
-          <i class="ph ${icon}"></i><span>${t}</span>
+        <button class="sidebar-nav-item sidebar-tree-parent" data-type="${escVal(t)}">
+          <i class="ph ${icon}"></i><span>${escVal(t)}</span>
         </button>
-        <button class="sidebar-tree-toggle" data-type="${t}" title="${escHtml(window.t('ui_expand'))}">
+        <button class="sidebar-tree-toggle" data-type="${escVal(t)}" title="${escHtml(window.t('ui_expand'))}">
           <i class="ph ph-caret-right"></i>
         </button>
       </div>
-      <ul class="sidebar-tree-children" id="tree-${t}" style="display:none;"></ul>
+      <ul class="sidebar-tree-children" id="tree-${escVal(t)}" style="display:none;"></ul>
     `
     li.querySelector('.sidebar-tree-parent').onclick = () => selectType(t)
     li.querySelector('.sidebar-tree-toggle').onclick = () => toggleTypeTree(t)
@@ -711,7 +730,7 @@ async function init() {
   })
 
   selectType(currentType, true)
-  loadSection(currentSection)
+  if (!openDeepLinkedDocument()) loadSection(currentSection)   // Verweis …#doc=<Typ>/<Kennung> (neuer Tab aus dem SoA) öffnet das Dokument
 
   dom('btnNewType')?.addEventListener('click', () => openModal())
   // Erstellen-Button nur für editor+ sichtbar
@@ -750,6 +769,10 @@ function selectType(type, init=false) {
     const listPanel  = dom('listPanel')
     if (editorCard) editorCard.style.display = ''
     if (listPanel)  listPanel.style.display  = ''
+    // Beim Wechsel des Dokumenttyps das geöffnete Dokument sofort schließen: Editor UND Leseansicht leeren, auch wenn der neue Typ
+    // noch keine Dokumente hat (sonst bleibt das Dokument des vorigen Typs sichtbar)
+    currentTemplate = null
+    clearEditor()
   }
 
   const isAdmin = (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK['admin']
@@ -787,7 +810,6 @@ function selectType(type, init=false) {
       list.appendChild(ul)
       // Sidebar-Tree aktualisieren
       refreshSidebarTree(type, treeData)
-      if (!init) { currentTemplate = null; clearEditor() }
     })
 }
 
@@ -1003,8 +1025,8 @@ function refreshSidebarTree(type, treeData) {
       const li = document.createElement('li')
       const paddingLeft = depth * 12
       li.innerHTML = `<button class="sidebar-tree-child" data-id="${t.id}" style="padding-left:${8 + paddingLeft}px">
-        <span class="status-dot ${t.status || 'draft'}"></span>
-        <span>${t.title}</span>
+        <span class="status-dot ${escHtml(t.status || 'draft')}"></span>
+        <span>${escHtml(t.title)}</span>
       </button>`
       // #74: selectType() lädt den Baum asynchron nach und räumt danach den
       // Editor leer (Wechsel auf einen anderen Dokumententyp). Wurde
@@ -1022,7 +1044,7 @@ function refreshSidebarTree(type, treeData) {
 
 async function toggleTypeTree(type) {
   const ul = document.getElementById(`tree-${type}`)
-  const icon = document.querySelector(`.sidebar-tree-toggle[data-type="${type}"] i`)
+  const icon = document.querySelector(`.sidebar-tree-toggle[data-type="${escVal(type)}"] i`)
   if (!ul) return
 
   const isOpen = ul.style.display !== 'none'
@@ -1070,7 +1092,17 @@ function canSeeSection(meta) {
 let _navOrder = []
 
 // Sprach-Konfiguration (wird beim Start vom Server geladen)
-let _langConfig = { available: ['de', 'en', 'fr', 'nl', 'hu'], default: 'en' }
+// Sprachen aus dem Register ui/i18n/languages.js; Name in der eigenen Sprache, falls kein übersetzter Name (settings_lang<Code>) existiert
+const langLabel = code => { const k = 'settings_lang' + code.charAt(0).toUpperCase() + code.slice(1); const v = t(k); return v !== k ? v : LANGUAGES.get(code).name }
+let _langConfig = { available: LANGUAGES.listedCodes(), default: 'en' }
+// Aktive PDF-Schrift (siehe Administration → Organisation); die Druckfenster laden sie nach, damit Ausdrucke dieselbe Schrift wie die PDFs haben
+let _pdfFont = { unicode: false, id: '', v: '' }
+async function loadPdfFont() {
+  try {
+    const r = await fetch('/pdf-font/active', { headers: apiHeaders() })
+    if (r.ok) { const j = await r.json(); _pdfFont = { unicode: j.unicode === true, id: j.id || '', v: String(Date.now()) } }
+  } catch { /* ohne Angabe: Browser-Standardschrift */ }
+}
 
 function populateSectionNav(){
   const nav = dom('sectionNav')
@@ -1111,7 +1143,7 @@ function loadSection(sectionId){
 }
 
 function removeAllDynamicPanels() {
-  ['dashboardContainer','soaContainer','measuresContainer','guidanceContainer','riskContainer','calendarContainer','adminPanelContainer','settingsPanelContainer','reportsContainer','gdprContainer','trainingContainer','incidentContainer','legalContainer','goalsContainer','assetsContainer','governanceContainer','nis2Container','bcmContainer','suppliersContainer','policyAcksContainer','auditsContainer'].forEach(id => {
+  ['soaBackBar','dashboardContainer','soaContainer','measuresContainer','guidanceContainer','riskContainer','calendarContainer','adminPanelContainer','settingsPanelContainer','reportsContainer','gdprContainer','trainingContainer','incidentContainer','legalContainer','goalsContainer','assetsContainer','governanceContainer','nis2Container','bcmContainer','suppliersContainer','policyAcksContainer','auditsContainer'].forEach(id => {
     dom(id)?.remove()
   })
 }
@@ -1222,7 +1254,7 @@ function renderReportsTabContent(container) {
         <label class="form-label">${t('reports_entity')}</label>
         <select id="reportEntitySel" class="select report-sel">
           <option value="">${t('filter_allEntities')}</option>
-          ${_reportEntities.map(e => `<option value="${e.id}">${e.name} (${e.shortCode || e.id})</option>`).join('')}
+          ${_reportEntities.map(e => `<option value="${e.id}">${escHtml(e.name)} (${escHtml(e.shortCode || e.id)})</option>`).join('')}
         </select>
       </div>
       <label class="form-label">${t('reports_framework')}</label>
@@ -1301,22 +1333,22 @@ async function runReport(type) {
 
   try {
     const res = await fetch(url, { headers: apiHeaders('reader') })
-    if (!res.ok) { resultEl.innerHTML = `<p class="report-error">${t('error')}: ${res.status}</p>`; return }
+    if (!res.ok) { resultEl.innerHTML = `<p class="report-error">${t('error')}: ${escHtml(res.status)}</p>`; return }
     _lastReportData = await res.json()
     renderReportResult(type, _lastReportData, resultEl)
   } catch (e) {
-    resultEl.innerHTML = `<p class="report-error">${t('err_network')}: ${e.message}</p>`
+    resultEl.innerHTML = `<p class="report-error">${t('err_network')}: ${escHtml(e.message)}</p>`
   }
 }
 
 function _docStatusLabel(s) {
-  return { draft: t('status_draft'), review: t('status_review'), approved: t('status_approved'), archived: t('status_archived') }[s] || s
+  return { draft: t('status_draft'), review: t('status_review'), approved: t('status_approved'), archived: t('status_archived') }[s] || escVal(s)
 }
 function _riskLevelLabel(s) {
-  return { critical: t('riskl_critical'), high: t('riskl_high'), medium: t('riskl_medium'), low: t('riskl_low') }[s] || s || '—'
+  return { critical: t('riskl_critical'), high: t('riskl_high'), medium: t('riskl_medium'), low: t('riskl_low') }[s] || escVal(s) || '—'
 }
 function _riskStatusLabel(s) {
-  return (RISK_STATUSES.find(x => x.id === s) || {}).label || s || '—'
+  return (RISK_STATUSES.find(x => x.id === s) || {}).label || escVal(s) || '—'
 }
 
 function renderReportResult(type, data, el) {
@@ -1324,7 +1356,7 @@ function renderReportResult(type, data, el) {
     el.innerHTML = `<h3 class="report-result-title">${t('reports_compliance')}</h3>` +
       (Array.isArray(data) ? data : [data]).map(row => `
         <div class="report-compliance-card">
-          <h4>${row.entity?.name || t('reports_allEntities')} <span class="picker-id">${row.entity?.shortCode || ''}</span></h4>
+          <h4>${escHtml(row.entity?.name || t('reports_allEntities'))} <span class="picker-id">${escHtml(row.entity?.shortCode || '')}</span></h4>
           <div class="report-kpi-row">
             <div class="report-kpi"><span class="report-kpi-val">${row.totalApplicable}</span><span class="report-kpi-label">${t('soa_applicable')}</span></div>
             <div class="report-kpi"><span class="report-kpi-val">${row.totalImplemented}</span><span class="report-kpi-label">${t('soa_implemented')}</span></div>
@@ -1333,7 +1365,7 @@ function renderReportResult(type, data, el) {
           <table class="report-table">
             <thead><tr><th>${t('reports_framework')}</th><th>${t('soa_applicable')}</th><th>${t('soa_implemented')}</th><th>${t('reports_rate')}</th></tr></thead>
             <tbody>${Object.entries(row.byFramework || {}).map(([fw, v]) =>
-              `<tr><td>${fw}</td><td>${v.applicable}</td><td>${v.implemented}</td>
+              `<tr><td>${escHtml(fw)}</td><td>${v.applicable}</td><td>${v.implemented}</td>
                <td>${v.applicable > 0 ? Math.round(v.implemented/v.applicable*100) : 0}%</td></tr>`
             ).join('')}</tbody>
           </table>
@@ -1345,7 +1377,7 @@ function renderReportResult(type, data, el) {
         <thead><tr><th>${t('reports_framework')}</th><th>${t('reports_colControls')}</th><th>${t('soa_applicable')}</th><th>${t('reports_colNA')}</th><th>${t('soa_implemented')}</th><th>${t('reports_rate')}</th></tr></thead>
         <tbody>${(Array.isArray(data) ? data : [data]).map(fw => `
           <tr>
-            <td><span class="fw-dot" style="background:${fw.color}"></span>${fw.label}</td>
+            <td><span class="fw-dot" style="background:${escVal(fw.color)}"></span>${escVal(fw.label)}</td>
             <td>${fw.total}</td><td>${fw.applicable}</td><td>${fw.notApplicable}</td>
             <td>${(fw.byStatus?.implemented||0) + (fw.byStatus?.optimized||0)}</td>
             <td>${fw.implementationRate}%</td>
@@ -1357,8 +1389,8 @@ function renderReportResult(type, data, el) {
       <table class="report-table">
         <thead><tr><th>${t('reports_colControlId')}</th><th>${t('reports_framework')}</th><th>${t('col_title')}</th><th>${t('col_status')}</th><th>${t('col_owner')}</th></tr></thead>
         <tbody>${(data.gaps || []).map(g => `
-          <tr><td class="picker-id">${g.id}</td><td>${g.framework}</td><td>${g.title}</td>
-              <td>${g.status || '—'}</td><td>${g.owner || '—'}</td></tr>`).join('')}
+          <tr><td class="picker-id">${g.id}</td><td>${escHtml(g.framework)}</td><td>${escHtml(g.title)}</td>
+              <td>${escHtml(g.status || '—')}</td><td>${escHtml(g.owner || '—')}</td></tr>`).join('')}
         </tbody>
       </table>`
   } else if (type === 'templates') {
@@ -1369,16 +1401,16 @@ function renderReportResult(type, data, el) {
       <table class="report-table">
         <thead><tr><th>${t('col_type')}</th><th>${t('col_title')}</th><th>${t('col_status')}</th><th>${t('col_version')}</th><th>${t('reports_colControls')}</th></tr></thead>
         <tbody>${(data.templates||[]).map(tpl=>`
-          <tr><td>${tpl.type}</td><td>${tpl.title}</td>
-              <td><span class="status-badge status-${tpl.status}">${_docStatusLabel(tpl.status)}</span></td>
-              <td>v${tpl.version}</td><td>${tpl.linkedControls.length}</td></tr>`).join('')}
+          <tr><td>${escHtml(tpl.type)}</td><td>${escHtml(tpl.title)}</td>
+              <td><span class="status-badge status-${escHtml(tpl.status)}">${_docStatusLabel(tpl.status)}</span></td>
+              <td>v${escHtml(tpl.version)}</td><td>${tpl.linkedControls.length}</td></tr>`).join('')}
         </tbody>
       </table>`
   } else if (type === 'reviews') {
     const fmtDate = d => d ? new Date(d).toLocaleDateString('en-GB') : '—'
     const reviewRow = (row, cls) =>
-      `<tr class="${cls}"><td>${fmtDate(row.nextReviewDate)}</td><td>${row.type}</td>
-       <td>${escHtml(row.title)}</td><td><span class="status-badge status-${row.status}">${_docStatusLabel(row.status)}</span></td>
+      `<tr class="${cls}"><td>${fmtDate(row.nextReviewDate)}</td><td>${escHtml(row.type)}</td>
+       <td>${escHtml(row.title)}</td><td><span class="status-badge status-${escHtml(row.status)}">${_docStatusLabel(row.status)}</span></td>
        <td>${escHtml(row.owner||'—')}</td>
        <td>${row.daysUntil !== null ? (row.daysUntil < 0 ? `<span style="color:var(--color-danger)">${row.daysUntil} ${t('reports_days')}</span>` : `${row.daysUntil} ${t('reports_days')}`) : '—'}</td></tr>`
     el.innerHTML = `
@@ -1399,14 +1431,14 @@ function renderReportResult(type, data, el) {
       partial:'var(--color-warning)', not_started:'var(--color-danger)', 'n/a':'var(--color-muted)' })[s] || '#888'
     const statusEmoji = s => ({ implemented:'✓', optimized:'★', partial:'◑', not_started:'✗', 'n/a':'—' })[s] || '?'
     el.innerHTML = `
-      <h3 class="report-result-title">${t('reports_matrix')} — ${data.framework === 'all' ? t('reports_allFw') : data.framework}</h3>
+      <h3 class="report-result-title">${t('reports_matrix')} — ${data.framework === 'all' ? t('reports_allFw') : escHtml(data.framework)}</h3>
       <div style="overflow-x:auto">
       <table class="report-table matrix-table">
-        <thead><tr><th>${t('soa_control')}</th><th>${t('reports_framework')}</th><th>${t('col_title')}</th>${(data.entities||[]).map(e=>`<th title="${e.name}">${e.shortCode||e.name}</th>`).join('')}</tr></thead>
+        <thead><tr><th>${t('soa_control')}</th><th>${t('reports_framework')}</th><th>${t('col_title')}</th>${(data.entities||[]).map(e=>`<th title="${escHtml(e.name)}">${escHtml(e.shortCode||e.name)}</th>`).join('')}</tr></thead>
         <tbody>${(data.controls||[]).map(ctrl=>`
           <tr>
-            <td class="picker-id">${ctrl.id}</td>
-            <td>${ctrl.framework}</td>
+            <td class="picker-id">${escVal(ctrl.id)}</td>
+            <td>${escHtml(ctrl.framework)}</td>
             <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(ctrl.title)}">${escHtml(ctrl.title)}</td>
             ${(data.entities||[]).map(e=>{
               const s = ctrl[e.id] || 'n/a'
@@ -1423,9 +1455,9 @@ function renderReportResult(type, data, el) {
         <thead><tr><th>${t('col_date')}</th><th>${t('reports_colTemplate')}</th><th>${t('col_type')}</th><th>${t('col_status')}</th><th>${t('reports_changedBy')}</th></tr></thead>
         <tbody>${(data.entries||[]).map(e=>`
           <tr><td>${new Date(e.changedAt).toLocaleString('en-GB')}</td>
-              <td>${e.templateTitle}</td><td>${e.type}</td>
-              <td><span class="status-badge status-${e.status}">${_docStatusLabel(e.status)}</span></td>
-              <td>${e.changedBy}</td></tr>`).join('')}
+              <td>${escHtml(e.templateTitle)}</td><td>${escHtml(e.type)}</td>
+              <td><span class="status-badge status-${escHtml(e.status)}">${_docStatusLabel(e.status)}</span></td>
+              <td>${escVal(e.changedBy)}</td></tr>`).join('')}
         </tbody>
       </table>`
   } else if (type === 'findings') {
@@ -1448,10 +1480,10 @@ function renderReportResult(type, data, el) {
         <tbody>${(data.findings||[]).map(f => {
           const openActs = (f.actions||[]).filter(a => a.status !== 'done').length
           return `<tr>
-            <td class="picker-id">${f.ref}</td>
+            <td class="picker-id">${escHtml(f.ref)}</td>
             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(f.title)}">${escHtml(f.title)}</td>
-            <td><span style="color:${sevColor[f.severity]||'#888'};font-weight:600">${FINDING_SEVERITY_LABELS[f.severity]||f.severity}</span></td>
-            <td><span style="color:${stColor[f.status]||'#888'}">${FINDING_STATUS_LABELS[f.status]||f.status}</span></td>
+            <td><span style="color:${sevColor[f.severity]||'#888'};font-weight:600">${escHtml(FINDING_SEVERITY_LABELS[f.severity]||f.severity)}</span></td>
+            <td><span style="color:${stColor[f.status]||'#888'}">${escHtml(FINDING_STATUS_LABELS[f.status]||f.status)}</span></td>
             <td>${escHtml(f.auditor||'—')}</td>
             <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(f.auditedArea||'—')}</td>
             <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(f.observation||'')}">${escHtml(f.observation||'—')}</td>
@@ -1482,9 +1514,9 @@ function renderReportResult(type, data, el) {
             <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.title)}">${escHtml(r.title)}</td>
             <td>${escHtml(r.category||'—')}</td>
             <td><span style="color:${lvColor[r.level]||'#888'};font-weight:600">${_riskLevelLabel(r.level)}</span></td>
-            <td><span class="status-badge status-${r.status}">${_riskStatusLabel(r.status)}</span></td>
+            <td><span class="status-badge status-${escHtml(r.status)}">${_riskStatusLabel(r.status)}</span></td>
             <td>${cvssVal ? `<span class="cvss-badge ${cvssData?.cls||''}" style="font-size:.75rem">${cvssVal}</span>` : '—'}</td>
-            <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(r.cveIds||[]).join(', ')||'—'}</td>
+            <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((r.cveIds||[]).join(', ')||'—')}</td>
             <td style="text-align:center">${r.score != null ? r.score : '—'}</td>
             <td>${escHtml(r.owner||'—')}</td>
             <td>${r.source === 'greenbone-scan' ? `<span class="badge-review-pending" style="background:#3b82f6;color:#fff;font-size:.7rem">${t('reports_scanBadge')}</span>` : t('reports_manual')}</td>
@@ -1560,13 +1592,13 @@ function exportReportPdf() {
 // ── Findings UI ───────────────────────────────────────────────────────────────
 
 function _findingSeverityBadge(sev) {
-  const label = FINDING_SEVERITY_LABELS[sev] || sev
+  const label = FINDING_SEVERITY_LABELS[sev] || escVal(sev)
   const color = FINDING_SEVERITY_COLOR[sev]  || '#888'
   return `<span class="soa-status-badge" style="background:${color}22;color:${color};border-color:${color}44">${label}</span>`
 }
 
 function _findingStatusBadge(st) {
-  const label = FINDING_STATUS_LABELS[st] || st
+  const label = FINDING_STATUS_LABELS[st] || escVal(st)
   const color = FINDING_STATUS_COLOR[st]  || '#888'
   return `<span class="soa-status-badge" style="background:${color}22;color:${color};border-color:${color}44">${label}</span>`
 }
@@ -1616,7 +1648,7 @@ async function renderFindingsTab() {
         { label:t('findings_actionsOverdueShort'), value: sum.overdueActions||0,   color: sum.overdueActions > 0 ? FINDING_SEVERITY_COLOR.critical:'#4ade80' },
       ].map(k => `
         <div class="dash-card kpi" style="flex:1;min-width:100px;padding:10px 14px;text-align:center">
-          <div style="font-size:1.4rem;font-weight:700;color:${k.color}">${k.value}</div>
+          <div style="font-size:1.4rem;font-weight:700;color:${escVal(k.color)}">${k.value}</div>
           <div style="font-size:.72rem;color:var(--text-subtle)">${k.label}</div>
         </div>
       `).join('')}
@@ -1624,7 +1656,7 @@ async function renderFindingsTab() {
 
     <div class="training-tab-bar" style="margin-bottom:12px">
       ${tabs.map(tb => `<button class="training-tab${_findingsTab===tb.id?' active':''}" data-tab="${tb.id}"
-        onclick="_switchFindingsTab('${tb.id}')">
+        onclick="_switchFindingsTab(${jsArg(tb.id)})">
         <i class="ph ${tb.icon}"></i> ${tb.label}
       </button>`).join('')}
     </div>
@@ -1669,7 +1701,7 @@ function _renderFindingsList(all, list) {
     const actOpen = (f.actions || []).filter(a => a.status !== 'done').length
     const actTotal = (f.actions || []).length
     return `
-    <div class="risk-item" style="cursor:pointer" onclick="openFindingDetail('${f.id}')">
+    <div class="risk-item" style="cursor:pointer" onclick="openFindingDetail(${jsArg(f.id)})">
       <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
@@ -1680,7 +1712,7 @@ function _renderFindingsList(all, list) {
           <div style="font-weight:600;color:var(--text-inv);margin-bottom:2px">${escHtml(f.title)}</div>
           <div style="font-size:12px;color:var(--text-subtle)">${escHtml(f.auditedArea || '')}
             ${f.auditor ? `· ${t('findings_auditor')}: ${escHtml(f.auditor)}` : ''}
-            ${f.auditPeriodFrom ? `· ${f.auditPeriodFrom}${f.auditPeriodTo?' – '+f.auditPeriodTo:''}` : ''}
+            ${f.auditPeriodFrom ? `· ${escVal(f.auditPeriodFrom)}${f.auditPeriodTo?' – '+escVal(f.auditPeriodTo):''}` : ''}
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
@@ -1688,11 +1720,11 @@ function _renderFindingsList(all, list) {
             <i class="ph ph-checks"></i> ${actOpen}/${actTotal} ${t('findings_statusOpen').toLowerCase()}
           </span>
           ${canEdit ? `
-          <button class="btn btn-sm" onclick="event.stopPropagation();openFindingForm('${f.id}')">
+          <button class="btn btn-sm" onclick="event.stopPropagation();openFindingForm(${jsArg(f.id)})">
             <i class="ph ph-pencil-simple"></i>
           </button>` : ''}
           ${isAdmin ? `
-          <button class="btn btn-sm" style="color:var(--danger)" onclick="event.stopPropagation();deleteFinding('${f.id}')">
+          <button class="btn btn-sm" style="color:var(--danger)" onclick="event.stopPropagation();deleteFinding(${jsArg(f.id)})">
             <i class="ph ph-trash-simple"></i>
           </button>` : ''}
         </div>
@@ -1732,7 +1764,7 @@ async function openFindingDetail(id) {
           <span style="font-size:12px;color:var(--text-subtle);font-family:monospace">${escHtml(f.ref)}</span>
           ${escHtml(f.title)}
         </h3>
-        <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="printFindingDetail('${f.id}')">
+        <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="printFindingDetail(${jsArg(f.id)})">
           <i class="ph ph-printer"></i> ${t('common_print')} / PDF
         </button>
       </div>
@@ -1774,7 +1806,7 @@ async function openFindingDetail(id) {
             <h4 class="training-form-section-title" style="margin:0">
               <i class="ph ph-check-square"></i> ${t('findings_actions')}
             </h4>
-            ${canAct ? `<button class="btn btn-primary btn-sm" onclick="openAddActionForm('${f.id}')">
+            ${canAct ? `<button class="btn btn-primary btn-sm" onclick="openAddActionForm(${jsArg(f.id)})">
               <i class="ph ph-plus"></i> ${t('risk_measure')}
             </button>` : ''}
           </div>
@@ -1800,7 +1832,7 @@ async function openFindingDetail(id) {
 
         ${canEdit ? `
         <div class="training-form-section">
-          <button class="btn btn-primary" onclick="openFindingForm('${f.id}')">
+          <button class="btn btn-primary" onclick="openFindingForm(${jsArg(f.id)})">
             <i class="ph ph-pencil-simple"></i> ${t('findings_edit')}
           </button>
         </div>` : ''}
@@ -1854,7 +1886,7 @@ async function printFindingDetail(findingId) {
       <h2>${t('findings_singular')}</h2>
       <div class="grid2">
         <div><span style="color:#555">${t('findings_period')}:</span> ${esc(f.auditPeriodFrom||'—')}${f.auditPeriodTo?' – '+esc(f.auditPeriodTo):''}</div>
-        <div><span style="color:#555">${t('findings_linkedControls')}:</span> ${(f.linkedControls||[]).join(', ')||'—'}</div>
+        <div><span style="color:#555">${t('findings_linkedControls')}:</span> ${escHtml((f.linkedControls||[]).join(', ')||'—')}</div>
       </div>
       <div class="field"><div class="label">${t('findings_observationFull')}</div><div class="value">${esc(f.observation)}</div></div>
       <div class="field"><div class="label">${t('findings_requirementFull')}</div><div class="value">${esc(f.requirement)}</div></div>
@@ -1971,19 +2003,19 @@ function _renderActionsList(actions, findingId, canEdit) {
           <div style="font-weight:600;font-size:13px;margin-bottom:3px">${escHtml(a.description)}</div>
           <div style="font-size:12px;color:var(--text-subtle)">
             ${t('col_responsible')}: <b>${escHtml(a.responsible||'—')}</b>
-            ${a.dueDate ? `· ${t('col_due')} <span style="color:${overdue?'#f87171':'inherit'}">${a.dueDate}${overdue?' ⚠':''}</span>` : ''}
+            ${a.dueDate ? `· ${t('col_due')} <span style="color:${overdue?'#f87171':'inherit'}">${escVal(a.dueDate)}${overdue?' ⚠':''}</span>` : ''}
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           ${canEdit ? `<select class="select" style="font-size:11px;padding:2px 6px"
-            onchange="updateActionStatus('${findingId}','${a.id}',this.value)">
+            onchange="updateActionStatus(${jsArg(findingId)},${jsArg(a.id)},this.value)">
             ${Object.entries(FINDING_ACT_STATUS_LABELS).map(([v,l]) =>
-              `<option value="${v}"${a.status===v?' selected':''}>${l}</option>`).join('')}
+              `<option value="${escVal(v)}"${a.status===v?' selected':''}>${l}</option>`).join('')}
           </select>
           <button class="btn btn-sm" style="color:var(--danger)" title="${t('delete')}"
-            onclick="deleteAction('${findingId}','${a.id}')">
+            onclick="deleteAction(${jsArg(findingId)},${jsArg(a.id)})">
             <i class="ph ph-trash-simple"></i>
-          </button>` : `<span style="color:${colAct};font-size:12px">${FINDING_ACT_STATUS_LABELS[a.status]||a.status}</span>`}
+          </button>` : `<span style="color:${colAct};font-size:12px">${escHtml(FINDING_ACT_STATUS_LABELS[a.status]||a.status)}</span>`}
         </div>
       </div>
     </div>`
@@ -2014,8 +2046,8 @@ async function openAddActionForm(findingId) {
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn btn-primary btn-sm" onclick="saveNewAction('${findingId}')">${t('save')}</button>
-      <button class="btn btn-secondary btn-sm" onclick="dom('${formId}').remove()">${t('cancel')}</button>
+      <button class="btn btn-primary btn-sm" onclick="saveNewAction(${jsArg(findingId)})">${t('save')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="dom(${jsArg(formId)}).remove()">${t('cancel')}</button>
     </div>
   `
   area.prepend(el)
@@ -2096,14 +2128,14 @@ async function openFindingForm(id = null) {
               <label class="form-label">${t('findings_severity')}</label>
               <select id="fndSeverity" class="select">
                 ${Object.entries(FINDING_SEVERITY_LABELS).map(([v,l]) =>
-                  `<option value="${v}"${(f?.severity||'medium')===v?' selected':''}>${l}</option>`).join('')}
+                  `<option value="${escVal(v)}"${(f?.severity||'medium')===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_status')}</label>
               <select id="fndStatus" class="select">
                 ${Object.entries(FINDING_STATUS_LABELS).map(([v,l]) =>
-                  `<option value="${v}"${(f?.status||'open')===v?' selected':''}>${l}</option>`).join('')}
+                  `<option value="${escVal(v)}"${(f?.status||'open')===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -2127,11 +2159,11 @@ async function openFindingForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('findings_periodFrom')}</label>
-              <input id="fndPeriodFrom" class="form-input" type="date" value="${f?.auditPeriodFrom||''}">
+              <input id="fndPeriodFrom" class="form-input" type="date" value="${escVal(f?.auditPeriodFrom||'')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('reports_to')}</label>
-              <input id="fndPeriodTo" class="form-input" type="date" value="${f?.auditPeriodTo||''}">
+              <input id="fndPeriodTo" class="form-input" type="date" value="${escVal(f?.auditPeriodTo||'')}">
             </div>
           </div>
         </div>
@@ -2162,11 +2194,11 @@ async function openFindingForm(id = null) {
 
         <div class="training-form-section">
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button class="btn btn-primary" onclick="saveFinding(${id ? `'${id}'` : 'null'})">
+            <button class="btn btn-primary" onclick="saveFinding(${id ? `${jsArg(id)}` : 'null'})">
               <i class="ph ph-floppy-disk"></i> ${isEdit ? t('save') : t('findings_create')}
             </button>
             <button class="btn btn-secondary" onclick="switchReportsMainTab('findings')">${t('cancel')}</button>
-            ${isEdit ? `<button class="btn btn-secondary" onclick="openFindingDetail('${id}')">
+            ${isEdit ? `<button class="btn btn-secondary" onclick="openFindingDetail(${jsArg(id)})">
               <i class="ph ph-eye"></i> ${t('findings_detailView')}
             </button>` : ''}
           </div>
@@ -2435,12 +2467,12 @@ async function loadIncidents() {
       <tbody>
         ${list.map(i => `
           <tr class="incident-row ${_incidentDetail?.id === i.id ? 'active' : ''}"
-              onclick="openIncidentDetail('${i.id}')">
+              onclick="openIncidentDetail(${jsArg(i.id)})">
             <td><strong>${escHtml(i.refNumber)}</strong></td>
             <td style="white-space:nowrap">${new Date(i.createdAt).toLocaleDateString('en-GB')}</td>
             <td>${escHtml(i.entityName || '—')}</td>
             <td style="font-size:.78rem">${escHtml(INC_TYPE_LABELS[i.incidentType] || i.incidentType)}</td>
-            <td><span class="${INC_STATUS_CLS[i.status] || 'risk-badge'}">${INC_STATUS_LABELS[i.status] || i.status}</span></td>
+            <td><span class="${INC_STATUS_CLS[i.status] || 'risk-badge'}">${escHtml(INC_STATUS_LABELS[i.status] || i.status)}</span></td>
           </tr>`).join('')}
       </tbody>
     </table>`
@@ -2465,7 +2497,7 @@ async function openIncidentDetail(id) {
       <div class="incident-detail-topbar">
         <div>
           <span class="incident-ref">${escHtml(i.refNumber)}</span>
-          <span class="${INC_STATUS_CLS[i.status] || 'risk-badge'}" style="margin-left:8px">${INC_STATUS_LABELS[i.status] || i.status}</span>
+          <span class="${INC_STATUS_CLS[i.status] || 'risk-badge'}" style="margin-left:8px">${escHtml(INC_STATUS_LABELS[i.status] || i.status)}</span>
         </div>
         <span style="font-size:.78rem;color:var(--text-subtle)">${new Date(i.createdAt).toLocaleString('en-GB')}</span>
       </div>
@@ -2487,7 +2519,7 @@ async function openIncidentDetail(id) {
             <div class="inc-field-label">${t('inc_setStatus')}</div>
             <select class="select" id="incEditStatus" style="font-size:.82rem">
               ${Object.entries(INC_STATUS_LABELS).map(([v,l]) =>
-                `<option value="${v}" ${i.status === v ? 'selected' : ''}>${l}</option>`).join('')}
+                `<option value="${escVal(v)}" ${i.status === v ? 'selected' : ''}>${l}</option>`).join('')}
             </select>
           </div>
           <div class="inc-field">
@@ -2514,10 +2546,10 @@ async function openIncidentDetail(id) {
         </div>
         ${i.updatedAt ? `<p style="font-size:.75rem;color:var(--text-disabled);margin-top:6px">${t('inc_lastUpdated')}: ${new Date(i.updatedAt).toLocaleString('en-GB')} ${t('dash_by')} ${escHtml(i.updatedBy || '—')}</p>` : ''}
         <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
-          ${canAccess('admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteIncident('${i.id}','${escHtml(i.refNumber)}')">
+          ${canAccess('admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteIncident(${jsArg(i.id)},${jsArg(i.refNumber)})">
             <i class="ph ph-trash"></i> ${t('delete')}
           </button>` : ''}
-          <button class="btn btn-primary btn-sm" onclick="saveIncidentDecision('${i.id}')">
+          <button class="btn btn-primary btn-sm" onclick="saveIncidentDecision(${jsArg(i.id)})">
             <i class="ph ph-floppy-disk"></i> ${t('inc_saveDecision')}
           </button>
         </div>
@@ -2568,7 +2600,7 @@ function renderUnderConstruction(sectionId) {
     <div class="uc-card">
       <div class="uc-icon"><i class="ph ${m.icon}"></i></div>
       <h2 class="uc-title">${m.label}</h2>
-      <p class="uc-desc">${m.desc}</p>
+      <p class="uc-desc">${escHtml(m.desc)}</p>
       <div class="uc-badge"><i class="ph ph-wrench"></i> ${t('underConstruction')}</div>
       <p class="uc-hint">${t('underConstructionHint')}</p>
     </div>
@@ -2626,6 +2658,11 @@ async function renderSoa() {
   }
 
   renderSoaContent(container)
+  if (_soaPendingControl) {   // Rückweg aus einem verknüpften Dokument: Control wieder aufklappen
+    const cid = _soaPendingControl; _soaPendingControl = null
+    const btn = container.querySelector(`.soa-expand-btn[data-id="${escVal(cid)}"]`)
+    if (btn) { toggleSoaDetail(cid, container); btn.scrollIntoView({ block: 'center' }) }
+  }
 }
 
 async function switchFramework(fw, container) {
@@ -2660,9 +2697,9 @@ function renderSoaContent(container) {
   // Framework-Tabs
   const tabsHtml = soaFrameworks.map(fw => `
     <button class="soa-fw-tab ${fw.id === soaActiveFramework ? 'active' : ''}"
-            data-fw="${fw.id}"
-            style="--fw-color:${fw.color}">
-      ${fw.label}
+            data-fw="${escVal(fw.id)}"
+            style="--fw-color:${escVal(fw.color)}">
+      ${escVal(fw.label)}
     </button>
   `).join('')
 
@@ -2676,18 +2713,19 @@ function renderSoaContent(container) {
         <span class="soa-kpi soa-kpi-blue">${implRate}% ${t('soa_implemented')}</span>
         <a class="btn btn-export" href="/soa/export" download="soa-export.json">${t('export')} JSON</a>
         ${(ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK['admin'] ? `<button class="btn btn-import-iso" onclick="openSoaIsoImport()" title="${t('soa_importIsoControls')}">⬆ ${t('soa_importIsoControls')}</button>` : ''}
-        ${soaActiveFramework === 'CUSTOM' && (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK['contentowner']
+        ${(ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK['admin'] ? `<button class="btn btn-import-iso" onclick="openSoaGroupPanel()" title="${t('soa_groupTitle')}">＋ ${t('soa_groupBtn')}</button>` : ''}
+        ${(soaActiveFramework === 'CUSTOM' || activeFw.custom) && (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK['contentowner']
           ? `<button class="btn btn-primary btn-sm" onclick="openCustomControlModal(null)"><i class="ph ph-plus"></i> ${t('soa_newControl')}</button>`
           : ''}
       </div>
       <div class="soa-filters">
         <select id="soaFilterTheme" class="soa-select">
           <option value="">${t('soa_allThemes')}</option>
-          ${themes.map(t => `<option value="${t}" ${soaFilters.theme===t?'selected':''}>${t}</option>`).join('')}
+          ${themes.map(t => `<option value="${escVal(t)}" ${soaFilters.theme===t?'selected':''}>${escVal(t)}</option>`).join('')}
         </select>
         <select id="soaFilterStatus" class="soa-select">
           <option value="">${t('filter_allStatuses')}</option>
-          ${Object.entries(STATUS_LABELS).map(([v,l]) => `<option value="${v}" ${soaFilters.status===v?'selected':''}>${l}</option>`).join('')}
+          ${Object.entries(STATUS_LABELS).map(([v,l]) => `<option value="${escVal(v)}" ${soaFilters.status===v?'selected':''}>${l}</option>`).join('')}
         </select>
         <select id="soaFilterApplicable" class="soa-select">
           <option value="">${t('filter_allStatuses')}</option>
@@ -2697,6 +2735,7 @@ function renderSoaContent(container) {
       </div>
     </div>
 
+    ${soaGroupPanelHtml()}
     <div class="soa-table-wrap">
       <table class="soa-table">
         <thead>
@@ -2741,57 +2780,72 @@ function renderSoaContent(container) {
   container.querySelectorAll('.soa-expand-btn').forEach(btn => {
     btn.onclick = () => toggleSoaDetail(btn.dataset.id, container)
   })
+  // Ein Klick auf die Kennung oder den Titel der Zeile (auch auf den Dokument-Zähler) klappt die Details ebenfalls auf/zu — nicht nur das kleine ▸
+  // (dort stehen die verknüpften Dokumente, Issue #110). Texte markieren, Links, Knöpfe und Eingabefelder bleiben unberührt.
+  container.querySelectorAll('tr.soa-row').forEach(tr => {
+    tr.querySelectorAll('.soa-id, .soa-ctrl-title').forEach(cell => {
+      cell.style.cursor = 'pointer'
+      cell.addEventListener('click', ev => {
+        if (ev.target.closest('a, button, input, select, textarea')) return
+        if (String(window.getSelection && window.getSelection()).trim()) return
+        toggleSoaDetail(tr.dataset.id, container)
+      })
+    })
+  })
 }
+
+// „1 Dokument“ / „3 Dokumente“ (lokalisiert) — Zähler hinter dem Titel in der Zeile
+const soaDocCount = n => t(n === 1 ? 'soa_docCountOne' : 'soa_docCountMany', { n })
 
 function soaRow(c, canEdit) {
   const color = THEME_COLORS[c.theme] || '#888'
   const linkedCount = (c.linkedTemplates || []).length
   const linkedBadge = linkedCount > 0
-    ? `<span class="soa-linked-badge">${linkedCount} Document${linkedCount > 1 ? 's' : ''}</span>`
+    ? `<span class="soa-linked-badge" title="${escVal(t('soa_showDetails'))}">${escHtml(soaDocCount(linkedCount))}</span>`
     : ''
   return `
-    <tr class="soa-row ${c.applicable ? '' : 'soa-row-na'}" data-id="${c.id}">
+    <tr class="soa-row ${c.applicable ? '' : 'soa-row-na'}" data-id="${escVal(c.id)}">
       <td class="soa-id">
-        <button class="soa-expand-btn" data-id="${c.id}" title="${t('soa_showDetails')}">&#9656;</button>
-        ${c.id}
+        <button class="soa-expand-btn" data-id="${escVal(c.id)}" title="${t('soa_showDetails')}">&#9656;</button>
+        ${escVal(c.id)}
       </td>
-      <td><span class="soa-theme-badge" style="border-color:${color};color:${color}">${c.theme}</span></td>
-      <td class="soa-ctrl-title">${c.title} ${linkedBadge}</td>
+      <td><span class="soa-theme-badge" style="border-color:${color};color:${color}">${escHtml(c.theme)}</span></td>
+      <td class="soa-ctrl-title">${escHtml(c.title)} ${linkedBadge}</td>
       <td class="soa-center">
         ${canEdit
-          ? `<input type="checkbox" class="soa-applicable" data-id="${c.id}" ${c.applicable ? 'checked' : ''}>`
+          ? `<input type="checkbox" class="soa-applicable" data-id="${escVal(c.id)}" ${c.applicable ? 'checked' : ''}>`
           : (c.applicable ? '✓' : '✗')}
       </td>
       <td>
         ${canEdit
-          ? `<select class="soa-status-sel" data-id="${c.id}">
+          ? `<select class="soa-status-sel" data-id="${escVal(c.id)}">
               ${Object.entries(STATUS_LABELS).map(([v,l]) =>
-                `<option value="${v}" ${c.status===v?'selected':''}>${l}</option>`
+                `<option value="${escVal(v)}" ${c.status===v?'selected':''}>${l}</option>`
               ).join('')}
             </select>`
-          : `<span class="soa-status-label soa-status-${c.status}">${STATUS_LABELS[c.status]||c.status}</span>`}
+          : `<span class="soa-status-label soa-status-${escHtml(c.status)}">${escHtml(STATUS_LABELS[c.status]||c.status)}</span>`}
       </td>
       <td>
         ${canEdit
-          ? `<input class="soa-owner-input" data-id="${c.id}" value="${c.owner||''}" placeholder="${t('col_name')}…">`
-          : (c.owner || '—')}
+          ? `<input class="soa-owner-input" data-id="${escVal(c.id)}" value="${escHtml(c.owner||'')}" placeholder="${t('col_name')}…">`
+          : escHtml(c.owner || '—')}
       </td>
       <td>
         ${canEdit
-          ? `<input class="soa-just-input" data-id="${c.id}" value="${c.justification||''}" placeholder="${t('soa_justification')}…">`
-          : (c.justification || '')}
+          ? `<input class="soa-just-input" data-id="${escVal(c.id)}" value="${escHtml(c.justification||'')}" placeholder="${t('soa_justification')}…">`
+          : escHtml(c.justification || '')}
       </td>
       ${canEdit ? `<td style="white-space:nowrap">
-        <button class="btn-soa-save soa-save-btn" data-id="${c.id}">${t('save')}</button>
+        <button class="btn-soa-save soa-save-btn" data-id="${escVal(c.id)}">${t('save')}</button>
         ${c.isCustom ? `
-          <button class="btn btn-secondary btn-xs" style="margin-left:4px" onclick="openCustomControlModal('${c.id}')" title="${t('soa_editControl')}"><i class="ph ph-pencil"></i></button>
-          <button class="btn btn-danger btn-xs" style="margin-left:4px" onclick="deleteCustomControl('${c.id}','${escHtml(c.title)}')" title="${t('soa_deleteControlTitle')}"><i class="ph ph-trash"></i></button>
+          <button class="btn btn-secondary btn-xs" style="margin-left:4px" data-id="${escVal(c.id)}" onclick="openCustomControlModal(this.dataset.id)" title="${t('soa_editControl')}"><i class="ph ph-pencil"></i></button>
+          <button class="btn btn-danger btn-xs" style="margin-left:4px" data-id="${escVal(c.id)}" data-title="${escVal(c.title)}" onclick="deleteCustomControl(this.dataset.id, this.dataset.title)" title="${t('soa_deleteControlTitle')}"><i class="ph ph-trash"></i></button>
         ` : ''}
       </td>` : ''}
     </tr>
-    <tr class="soa-detail-row" data-for="${c.id}" style="display:none;">
+    <tr class="soa-detail-row" data-for="${escVal(c.id)}" style="display:none;">
       <td colspan="8" class="soa-detail-cell">
-        <div class="soa-detail-content" id="soa-detail-${c.id}">
+        <div class="soa-detail-content" id="soa-detail-${escVal(c.id)}">
           <div class="soa-detail-loading">${t('soa_loading')}</div>
         </div>
       </td>
@@ -2800,8 +2854,8 @@ function soaRow(c, canEdit) {
 }
 
 async function toggleSoaDetail(id, container) {
-  const detailRow = container.querySelector(`.soa-detail-row[data-for="${id}"]`)
-  const btn = container.querySelector(`.soa-expand-btn[data-id="${id}"]`)
+  const detailRow = container.querySelector(`.soa-detail-row[data-for="${escVal(id)}"]`)
+  const btn = container.querySelector(`.soa-expand-btn[data-id="${escVal(id)}"]`)
   if (!detailRow) return
 
   const isOpen = detailRow.style.display !== 'none'
@@ -2843,12 +2897,12 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
   } else {
     crossHtml = crossGroups.map(g => {
       const pills = g.related.map(cid =>
-        `<span class="soa-crossmap-pill">${cid}</span>`
+        `<span class="soa-crossmap-pill">${escHtml(cid)}</span>`
       ).join(' ')
       return `
         <div class="soa-crossmap-group">
-          <span class="soa-crossmap-topic">${g.topic}</span>
-          <span class="soa-crossmap-desc">${g.description}</span>
+          <span class="soa-crossmap-topic">${escHtml(g.topic)}</span>
+          <span class="soa-crossmap-desc">${escHtml(g.description)}</span>
           <div class="soa-crossmap-pills">${pills}</div>
         </div>
       `
@@ -2859,10 +2913,17 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
   const linkedTmplHtml = linked.length > 0
     ? linked.map(tid => {
         const tmpl = allTemplates.find(t => t.id === tid)
-        const label = tmpl ? `${tmpl.title} (${tmpl.type})` : tid
+        const label = tmpl ? `${escHtml(tmpl.title)} (${escHtml(tmpl.type)})` : escHtml(tid)
+        // Issue #110: Das verknüpfte Dokument lässt sich direkt öffnen (gleiche Ansicht mit Rückweg zum Control; Strg-/Mittelklick und das Symbol öffnen einen neuen Tab).
+        // Nur, wenn das Dokument existiert und lesbar ist; sonst bleibt es Text wie bisher.
+        const openable = tmpl && DOC_LINK_TYPE.test(tmpl.type || '') && DOC_LINK_ID.test(tmpl.id || '')
+        const shown = openable
+          ? `<a class="soa-tmpl-open" href="${escVal(docDeepLink(tmpl.type, tmpl.id))}" data-type="${escVal(tmpl.type)}" data-tid="${escVal(tmpl.id)}" title="${escVal(t('soa_openDocument'))}">${label}</a>` +
+            `<a class="soa-tmpl-newtab" href="${escVal(docDeepLink(tmpl.type, tmpl.id))}" target="_blank" rel="noopener noreferrer" title="${escVal(t('soa_openDocumentNewTab'))}" aria-label="${escVal(t('soa_openDocumentNewTab'))}"><i class="ph ph-arrow-square-out"></i></a>`
+          : label
         return canEdit
-          ? `<span class="soa-tmpl-tag">${label}<button class="soa-tmpl-remove" data-tid="${tid}" title="${escHtml(t('remove'))}">&times;</button></span>`
-          : `<span class="soa-tmpl-tag">${label}</span>`
+          ? `<span class="soa-tmpl-tag">${shown}<button class="soa-tmpl-remove" data-tid="${escHtml(tid)}" title="${escHtml(t('remove'))}">&times;</button></span>`
+          : `<span class="soa-tmpl-tag">${shown}</span>`
       }).join('')
     : `<span class="soa-detail-none">${t('soa_noTemplatesLinked')}</span>`
 
@@ -2871,18 +2932,18 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
   const pickerHtml = canEdit && unlinked.length > 0
     ? `<select id="soa-tmpl-picker-${id}" class="soa-tmpl-picker">
         <option value="">${t('soa_linkTemplate')}</option>
-        ${unlinked.map(t => `<option value="${t.id}">${t.title} (${t.type})</option>`).join('')}
+        ${unlinked.map(t => `<option value="${t.id}">${escHtml(t.title)} (${escHtml(t.type)})</option>`).join('')}
        </select>
-       <button class="soa-tmpl-add-btn" data-id="${id}">${t('soa_link')}</button>`
+       <button class="soa-tmpl-add-btn" data-id="${escVal(id)}">${t('soa_link')}</button>`
     : ''
 
   // ── Entity-Applicability ──
   const applicableEnts = control.applicableEntities || []
   const entLabel = applicableEnts.length === 0
     ? t('filter_allEntities')
-    : applicableEnts.map(id => `<span class="tmpl-bar-pill">${id}</span>`).join('')
+    : applicableEnts.map(id => `<span class="tmpl-bar-pill">${escHtml(id)}</span>`).join('')
   const entEditorHtml = canEdit
-    ? `<button class="btn btn-secondary btn-sm soa-ent-edit" data-id="${id}" style="margin-left:6px;" title="${t('soa_editApplicability')}"><i class="ph ph-pencil-simple"></i></button>`
+    ? `<button class="btn btn-secondary btn-sm soa-ent-edit" data-id="${escVal(id)}" style="margin-left:6px;" title="${t('soa_editApplicability')}"><i class="ph ph-pencil-simple"></i></button>`
     : ''
 
   el.innerHTML = `
@@ -2908,6 +2969,15 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
   `
   loadMeasuresBlock('control', id, `soa-measures-${id}`)
 
+  // Verknüpftes Dokument öffnen (ohne Zusatztaste: gleiche Ansicht mit Rückweg; mit Strg/Umschalt/Mittelklick bleibt der Verweis ein normaler Link)
+  el.querySelectorAll('a.soa-tmpl-open').forEach(a => {
+    a.onclick = ev => {
+      if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button !== 0) return
+      ev.preventDefault()
+      openLinkedDocument(a.dataset.type, a.dataset.tid, id)
+    }
+  })
+
   // Entity-Picker öffnen für SoA-Control
   const entEditBtn = el.querySelector('.soa-ent-edit')
   if (entEditBtn) {
@@ -2924,7 +2994,7 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
         await saveSoaLinkedTemplates(id, newLinked, el, container)
       }
     })
-    const addBtn = el.querySelector(`.soa-tmpl-add-btn[data-id="${id}"]`)
+    const addBtn = el.querySelector(`.soa-tmpl-add-btn[data-id="${escVal(id)}"]`)
     if (addBtn) {
       addBtn.onclick = async () => {
         const picker = document.getElementById(`soa-tmpl-picker-${id}`)
@@ -2936,6 +3006,61 @@ function renderSoaDetail(el, id, crossGroups, allTemplates, control, canEdit, co
       }
     }
   }
+}
+
+// ── Verknüpfte Dokumente öffnen (Issue #110) ─────────────────────────────────
+// Typ und Kennung kommen aus Serverdaten und gehen über data-Attribute/encodeURIComponent in Verweise; trotzdem nur erwartete Zeichen zulassen.
+const DOC_LINK_TYPE = /^[A-Za-z0-9 _.-]{1,60}$/
+const DOC_LINK_ID   = /^[A-Za-z0-9_.:-]{1,200}$/
+let _soaReturn = null          // { controlId, framework }: Rückweg aus dem Dokument zum SoA-Control
+let _soaPendingControl = null  // Control, das nach dem Neuaufbau des SoA wieder aufgeklappt wird
+
+// Verweis auf ein Dokument (öffnet in einem neuen Tab; beim Start von init() ausgewertet): …/ui/index.html#doc=<Typ>/<Kennung>
+function docDeepLink(type, id) { return `${location.pathname}#doc=${encodeURIComponent(type)}/${encodeURIComponent(id)}` }
+
+async function openLinkedDocument(type, id, controlId) {
+  if (!DOC_LINK_TYPE.test(type || '') || !DOC_LINK_ID.test(id || '')) return
+  _soaReturn = controlId ? { controlId, framework: soaActiveFramework } : null
+  await selectType(type)            // blendet die Modul-Ansicht aus und zeigt den Dokumentbereich
+  await loadTemplateById(type, id)
+  if (!currentTemplate || currentTemplate.id !== id) {   // nicht lesbar / nicht (mehr) vorhanden
+    showToast(t('soa_docUnavailable'), 'error')
+    if (_soaReturn) returnToSoaControl()
+    return
+  }
+  if (_soaReturn) showSoaBackBar()
+}
+
+function showSoaBackBar() {
+  dom('soaBackBar')?.remove()
+  const card = dom('editorCard')
+  if (!card || !_soaReturn) return
+  const bar = document.createElement('div')
+  bar.id = 'soaBackBar'; bar.className = 'soa-back-bar'
+  bar.innerHTML = `<button type="button" class="btn btn-secondary btn-sm" id="soaBackBtn"><i class="ph ph-arrow-left"></i> ${escHtml(t('soa_backToControl', { id: _soaReturn.controlId }))}</button>`
+  card.insertBefore(bar, card.firstChild)
+  dom('soaBackBtn').onclick = returnToSoaControl
+}
+
+function returnToSoaControl() {
+  const r = _soaReturn; _soaReturn = null
+  dom('soaBackBar')?.remove()
+  if (!r) return
+  soaActiveFramework = r.framework
+  _soaPendingControl = r.controlId
+  loadSection('soa')
+}
+
+// Verweis …#doc=<Typ>/<Kennung> beim Start: öffnet das Dokument (true, wenn ein Verweis vorlag)
+function openDeepLinkedDocument() {
+  const m = /^#doc=([^/]+)\/(.+)$/.exec(location.hash || '')
+  if (!m) return false
+  let type, id
+  try { type = decodeURIComponent(m[1]); id = decodeURIComponent(m[2]) } catch { return false }
+  history.replaceState(null, '', location.pathname + location.search)
+  if (!DOC_LINK_TYPE.test(type) || !DOC_LINK_ID.test(id)) return false
+  openLinkedDocument(type, id, null)
+  return true
 }
 
 async function saveSoaLinkedTemplates(id, linkedTemplates, detailEl, tableContainer) {
@@ -2958,13 +3083,14 @@ async function saveSoaLinkedTemplates(id, linkedTemplates, detailEl, tableContai
   if (idx >= 0) soaData[idx] = updated
 
   // Badge in Hauptzeile aktualisieren
-  const titleCell = tableContainer.querySelector(`tr[data-id="${id}"] .soa-ctrl-title`)
+  const titleCell = tableContainer.querySelector(`tr[data-id="${escVal(id)}"] .soa-ctrl-title`)
   if (titleCell) {
     titleCell.querySelector('.soa-linked-badge')?.remove()
     if (linkedTemplates.length > 0) {
       const badge = document.createElement('span')
       badge.className = 'soa-linked-badge'
-      badge.textContent = `${linkedTemplates.length} Document${linkedTemplates.length > 1 ? 's' : ''}`
+      badge.title = t('soa_showDetails')
+      badge.textContent = soaDocCount(linkedTemplates.length)
       titleCell.appendChild(badge)
     }
   }
@@ -3027,6 +3153,119 @@ function openSoaIsoImport() {
   inp.click()
 }
 
+// ── Eigene Gruppe (nutzerdefiniertes Framework) anlegen und Controls importieren — Inline-Panel, kein Overlay ──────────────
+// Zustand bleibt beim Neuzeichnen (Filterwechsel) erhalten; Server: POST /soa/frameworks[/import] (nur Administratoren)
+let soaGrp = null   // { id, label, color, fileName, body, preview }
+
+function soaGroupRerender() { const c = document.getElementById('soaContainer'); if (c) renderSoaContent(c) }
+function openSoaGroupPanel() { soaGrp = { id: '', label: '', color: '#0ea5e9', fileName: '', body: null, preview: null }; soaGroupRerender(); document.getElementById('soaGroupPanel')?.scrollIntoView({ block: 'nearest' }) }
+function closeSoaGroupPanel() { soaGrp = null; soaGroupRerender() }
+function soaGrpSet(key, value) { if (soaGrp) { soaGrp[key] = value; soaGrp.preview = null } }   // geänderte Angaben machen die Vorschau ungültig
+
+function soaGroupPanelHtml() {
+  const g = soaGrp
+  if (!g) return ''
+  const pv = g.preview
+  const existing = soaFrameworks.filter(f => f.custom)
+  const reasonRows = pv && pv.rejectedDetails && pv.rejectedDetails.length
+    ? `<details class="soa-group-rejected" open><summary>${t('soa_groupRejectedHeading')} (${pv.rejected})</summary><ul>${pv.rejectedDetails.map(r => `<li>${t('soa_groupRow', { n: r.index + 1 })}${r.id ? ` <code>${escHtml(r.id)}</code>` : ''}: ${escHtml(t('soa_groupReason_' + r.reason))}</li>`).join('')}</ul></details>` : ''
+  const previewHtml = pv ? `
+    <div class="soa-group-result">
+      <div class="soa-group-summary">${escHtml(t('soa_groupPreviewSummary', { added: pv.added, updated: pv.updated, rejected: pv.rejected, total: pv.total }))}</div>
+      ${pv.framework.exists ? `<div class="soa-group-hint">${t('soa_groupExists')}</div>` : ''}
+      ${pv.preview.length ? `<table class="soa-group-table"><thead><tr><th>${t('soa_groupId')}</th><th>${t('soa_themeCategory')}</th><th>${t('col_title')}</th><th>${t('soa_groupColResult')}</th></tr></thead><tbody>
+        ${pv.preview.map(r => `<tr><td><code>${escHtml(r.id)}</code></td><td>${escHtml(r.theme)}</td><td>${escHtml(r.title)}</td><td>${r.state === 'updated' ? t('soa_groupStateUpdated') : t('soa_groupStateAdded')}</td></tr>`).join('')}
+      </tbody></table>${pv.added + pv.updated > pv.preview.length ? `<div class="soa-group-hint">… ${pv.added + pv.updated - pv.preview.length}</div>` : ''}` : ''}
+      ${reasonRows}
+    </div>` : ''
+  return `
+    <div class="soa-group-panel" id="soaGroupPanel">
+      <div class="soa-group-head"><strong>${t('soa_groupTitle')}</strong><button class="btn btn-secondary btn-xs" onclick="closeSoaGroupPanel()">${t('close')}</button></div>
+      <p class="soa-group-intro">${t('soa_groupIntro')}</p>
+      <p class="soa-group-license"><i class="ph ph-warning"></i> ${t('soa_groupLicense')}</p>
+      <div class="soa-group-form">
+        <label>${t('soa_groupId')}
+          <input class="form-input" maxlength="50" list="sgIds" autocomplete="off" value="${escVal(g.id)}" placeholder="NEN7510" oninput="soaGrpSet('id', this.value.trim())">
+          <datalist id="sgIds">${existing.map(f => `<option value="${escVal(f.id)}">${escVal(f.label)}</option>`).join('')}</datalist>
+          <span class="soa-group-hint">${t('soa_groupIdHint')}</span></label>
+        <label>${t('soa_groupLabel')}
+          <input class="form-input" maxlength="120" value="${escVal(g.label)}" oninput="soaGrpSet('label', this.value)"></label>
+        <label>${t('soa_groupColor')}
+          <input type="color" class="soa-group-color" value="${escVal(g.color)}" oninput="soaGrpSet('color', this.value)"></label>
+        <label>${t('soa_groupFile')}
+          <input type="file" accept=".json,application/json" class="form-input" onchange="soaGrpFile(this)">
+          <span class="soa-group-hint">${g.fileName ? escHtml(g.fileName) + ' — ' : ''}<a href="/soa/frameworks/import/example" download>${t('soa_groupExample')}</a></span></label>
+      </div>
+      <div class="soa-group-actions">
+        <button class="btn btn-secondary btn-sm" onclick="soaGrpPreview()"><i class="ph ph-eye"></i> ${t('soa_groupPreview')}</button>
+        <button class="btn btn-primary btn-sm" onclick="soaGrpApply()" ${pv && pv.added + pv.updated > 0 ? '' : 'disabled'}><i class="ph ph-check"></i> ${t('soa_groupApply')}</button>
+        <button class="btn btn-secondary btn-sm" onclick="soaGrpCreateOnly()">${t('soa_groupCreateOnly')}</button>
+      </div>
+      ${previewHtml}
+    </div>`
+}
+
+async function soaGrpFile(input) {
+  const file = input.files && input.files[0]
+  if (!file || !soaGrp) return
+  let data
+  try { data = JSON.parse(await file.text()) } catch { input.value = ''; return showToast(t('err_invalidJson'), 'error') }
+  if (!data || typeof data !== 'object' || Array.isArray(data) || !Array.isArray(data.controls)) { input.value = ''; return showToast(t('soa_groupNeedFile'), 'error') }
+  soaGrp.body = data; soaGrp.fileName = file.name; soaGrp.preview = null
+  // Gruppe aus der Datei vorbelegen, ohne bereits Eingegebenes zu überschreiben
+  const fw = data.framework && typeof data.framework === 'object' ? data.framework : {}
+  if (!soaGrp.id && typeof fw.id === 'string') soaGrp.id = fw.id.trim()
+  if (!soaGrp.label && typeof fw.label === 'string') soaGrp.label = fw.label
+  if (typeof fw.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(fw.color) && soaGrp.color === '#0ea5e9') soaGrp.color = fw.color.toLowerCase()
+  soaGroupRerender()
+}
+
+function soaGrpRequest(dry) {
+  const g = soaGrp
+  if (!g.body) { showToast(t('soa_groupNeedFile'), 'error'); return null }
+  if (!g.id || (!g.label && !soaFrameworks.some(f => f.custom && f.id === g.id))) { showToast(t('soa_groupNeedId'), 'error'); return null }
+  return fetch('/soa/frameworks/import' + (dry ? '?dryRun=1' : ''), {
+    method: 'POST', headers: { ...apiHeaders('admin'), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ framework: { id: g.id, label: g.label, color: g.color }, controls: g.body.controls }),
+  })
+}
+
+async function soaGrpPreview() {
+  const req = soaGrp && soaGrpRequest(true)
+  if (!req) return
+  try {
+    const res = await req, data = await res.json()
+    if (!res.ok) { soaGrp.preview = data.preview ? data : null; soaGroupRerender(); return showToast(t('error') + ': ' + (data.error || res.status), 'error') }
+    soaGrp.preview = data; soaGroupRerender()
+  } catch (e) { showToast(t('err_network') + ': ' + e.message, 'error') }
+}
+
+async function soaGrpApply() {
+  const req = soaGrp && soaGrpRequest(false)
+  if (!req) return
+  try {
+    const res = await req, data = await res.json()
+    if (!res.ok) return showToast(t('error') + ': ' + (data.error || res.status), 'error')
+    const id = data.framework.id
+    showToast(t('soa_groupImported', { id, added: data.added, updated: data.updated }), data.rejected ? 'info' : 'success')
+    soaGrp = null; soaActiveFramework = id
+    renderSoa()   // der neue Tab ist sofort da, kein Neustart nötig
+  } catch (e) { showToast(t('err_network') + ': ' + e.message, 'error') }
+}
+
+async function soaGrpCreateOnly() {
+  const g = soaGrp
+  if (!g || !g.id || !g.label) return showToast(t('soa_groupNeedId'), 'error')
+  try {
+    const res = await fetch('/soa/frameworks', { method: 'POST', headers: { ...apiHeaders('admin'), 'Content-Type': 'application/json' }, body: JSON.stringify({ id: g.id, label: g.label, color: g.color }) })
+    const data = await res.json()
+    if (!res.ok) return showToast(t('error') + ': ' + (data.error || res.status), 'error')
+    showToast(t('soa_groupCreated', { id: data.id }), 'success')
+    soaGrp = null; soaActiveFramework = data.id
+    renderSoa()
+  } catch (e) { showToast(t('err_network') + ': ' + e.message, 'error') }
+}
+
 // ── Custom Controls ─────────────────────────────────────────────────────────
 
 function openCustomControlModal(id) {
@@ -3040,6 +3279,19 @@ function openCustomControlModal(id) {
           <button class="modal-close" onclick="document.getElementById('customCtrlModal').remove()"><i class="ph ph-x"></i></button>
         </div>
         <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+          ${existing ? '' : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label class="form-label">${t('soa_ctrlGroup')}</label>
+              <select id="ccGroup" class="form-input">
+                ${soaFrameworks.filter(f => f.id === 'CUSTOM' || f.custom).map(f => `<option value="${escVal(f.id)}" ${f.id === soaActiveFramework ? 'selected' : ''}>${escVal(f.label)}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="form-label">${t('soa_ctrlId')}</label>
+              <input id="ccControlId" class="form-input" maxlength="120" autocomplete="off" placeholder="NEN-1">
+              <small style="color:var(--text-subtle)">${t('soa_ctrlIdHint')}</small>
+            </div>
+          </div>`}
           <div>
             <label class="form-label">${t('col_title')} <span class="form-required">*</span></label>
             <input id="ccTitle" class="form-input" value="${escHtml(existing?.title||'')}" placeholder="${t('soa_controlTitlePlaceholder')}">
@@ -3065,7 +3317,7 @@ function openCustomControlModal(id) {
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" onclick="document.getElementById('customCtrlModal').remove()">${t('cancel')}</button>
-          <button class="btn btn-primary" onclick="submitCustomControlModal('${id||''}')">
+          <button class="btn btn-primary" data-id="${escVal(id||'')}" onclick="submitCustomControlModal(this.dataset.id)">
             <i class="ph ph-floppy-disk"></i> ${t('save')}
           </button>
         </div>
@@ -3084,36 +3336,43 @@ async function submitCustomControlModal(id) {
     description:   document.getElementById('ccDesc')?.value.trim()  || '',
     justification: document.getElementById('ccJust')?.value.trim()  || '',
   }
-  const url    = id ? `/soa/custom/${id}` : '/soa/custom'
+  const url    = id ? `/soa/custom/${encodeURIComponent(id)}` : '/soa/custom'
   const method = id ? 'PUT' : 'POST'
+  let group = soaActiveFramework
+  if (!id) {   // neu: Gruppe (CUSTOM oder eigene) und optionale Kennung
+    group = document.getElementById('ccGroup')?.value || 'CUSTOM'
+    body.framework = group
+    const wanted = document.getElementById('ccControlId')?.value.trim()
+    if (wanted) body.controlId = wanted
+  }
   const res = await fetch(url, { method, headers: { ...apiHeaders('contentowner'), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
   if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('error')); return }
   document.getElementById('customCtrlModal')?.remove()
-  // Reload the CUSTOM framework tab
+  // Tab der Gruppe neu laden
   const container = document.getElementById('soaContainer')
-  if (container) await switchFramework('CUSTOM', container)
+  if (container) await switchFramework(group, container)
 }
 
 async function deleteCustomControl(id, title) {
   if (!confirm(t('soa_deleteCustomConfirm', { title }))) return
-  const res = await fetch(`/soa/custom/${id}`, { method: 'DELETE', headers: apiHeaders('contentowner') })
+  const res = await fetch(`/soa/custom/${encodeURIComponent(id)}`, { method: 'DELETE', headers: apiHeaders('contentowner') })
   if (!res.ok) {
     const e = await res.json().catch(()=>({}))
     alert(e.error || t('soa_deleteCustomFailed'))
     return
   }
   const container = document.getElementById('soaContainer')
-  if (container) await switchFramework('CUSTOM', container)
+  if (container) await switchFramework(soaActiveFramework, container)
 }
 
 async function saveSoaRow(id, container) {
-  const row = container.querySelector(`tr[data-id="${id}"]`)
+  const row = container.querySelector(`tr[data-id="${escVal(id)}"]`)
   if (!row) return
 
-  const applicable = row.querySelector(`.soa-applicable[data-id="${id}"]`)?.checked ?? true
-  const status      = row.querySelector(`.soa-status-sel[data-id="${id}"]`)?.value || 'not_started'
-  const owner       = row.querySelector(`.soa-owner-input[data-id="${id}"]`)?.value || ''
-  const justification = row.querySelector(`.soa-just-input[data-id="${id}"]`)?.value || ''
+  const applicable = row.querySelector(`.soa-applicable[data-id="${escVal(id)}"]`)?.checked ?? true
+  const status      = row.querySelector(`.soa-status-sel[data-id="${escVal(id)}"]`)?.value || 'not_started'
+  const owner       = row.querySelector(`.soa-owner-input[data-id="${escVal(id)}"]`)?.value || ''
+  const justification = row.querySelector(`.soa-just-input[data-id="${escVal(id)}"]`)?.value || ''
 
   const res = await fetch(`/soa/${encodeURIComponent(id)}`, {
     method: 'PUT',
@@ -3255,9 +3514,9 @@ async function renderDashboard() {
     if (reviewPending?.length > 0)
       alerts.push({ color: '#f59e0b', icon: 'ph-shield-warning', text: t('dash_scanRisksPending', { count: reviewPending.length }), nav: 'risk' })
     if (alerts.length === 0) return '<p class="dash-empty" style="color:var(--success-text)"><i class="ph ph-check-circle"></i> ' + t('dash_noIssues') + '</p>'
-    return alerts.map(a => `<div class="dash-alert dash-link" data-nav="${a.nav}" style="border-left:3px solid ${a.color};padding:6px 10px;margin-bottom:6px;background:var(--surface);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px">
+    return alerts.map(a => `<div class="dash-alert dash-link" data-nav="${escVal(a.nav)}" style="border-left:3px solid ${a.color};padding:6px 10px;margin-bottom:6px;background:var(--surface);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px">
       <i class="ph ${a.icon}" style="color:${a.color};font-size:1rem"></i>
-      <span style="font-size:.85rem">${a.text}</span>
+      <span style="font-size:.85rem">${escHtml(a.text)}</span>
     </div>`).join('')
   })()
 
@@ -3547,10 +3806,10 @@ async function renderDashboard() {
       <div class="dash-section-title"><i class="ph ph-check-square"></i> ${t('dash_fwCompliance')}</div>
       <div class="fw-summary-grid">
         ${Object.values(soaSummary).map(fw => `
-          <div class="fw-summary-item dash-link" data-nav="soa" data-fw="${fw.framework}" title="${t('risk_openBtn')} ${fw.label}" style="cursor:pointer">
-            <span class="fw-label" style="color:${fw.color}">${fw.label}</span>
+          <div class="fw-summary-item dash-link" data-nav="soa" data-fw="${escHtml(fw.framework)}" title="${t('risk_openBtn')} ${escHtml(fw.label)}" style="cursor:pointer">
+            <span class="fw-label" style="color:${escVal(fw.color)}">${escVal(fw.label)}</span>
             <div class="fw-bar-track">
-              <div class="fw-bar-fill" style="width:${fw.implementationRate}%; background:${fw.color}"></div>
+              <div class="fw-bar-fill" style="width:${fw.implementationRate}%; background:${escVal(fw.color)}"></div>
             </div>
             <span class="fw-rate">${fw.implementationRate}%</span>
           </div>
@@ -3583,7 +3842,7 @@ async function renderDashboard() {
         <ul style="list-style:none;padding:0;margin:0;font-size:.8rem">
           ${upcoming.map(ev => `
             <li style="padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
-              <span class="cal-chip ${ev.type}" style="font-size:.7rem;padding:1px 5px;border-radius:3px">${ev.type.replace(/_/g,' ')}</span>
+              <span class="cal-chip ${escHtml(ev.type)}" style="font-size:.7rem;padding:1px 5px;border-radius:3px">${escHtml(ev.type.replace(/_/g,' '))}</span>
               <span>${escHtml(ev.title)}</span>
               <span style="margin-left:auto;color:var(--text-subtle)">${new Date(ev.date).toLocaleDateString('en-GB')}</span>
             </li>`).join('')}
@@ -3598,10 +3857,10 @@ async function renderDashboard() {
         ? `<p class="dash-empty">${t('dash_noActivity')}</p>`
         : `<ul class="activity-list">
             ${data.recentActivity.map(a => `
-              <li class="dash-link" data-nav-type="${a.type}" data-tmpl-id="${a.templateId}" data-tmpl-type="${a.type}" style="cursor:pointer">
-                <span class="status-dot ${a.status}"></span>
+              <li class="dash-link" data-nav-type="${escHtml(a.type)}" data-tmpl-id="${escVal(a.templateId)}" data-tmpl-type="${escHtml(a.type)}" style="cursor:pointer">
+                <span class="status-dot ${escHtml(a.status)}"></span>
                 <span class="act-title">${escHtml(a.title)}</span>
-                <span class="act-status">${statusLabels[a.status] || a.status}</span>
+                <span class="act-status">${escHtml(statusLabels[a.status] || a.status)}</span>
                 <span class="act-by">by ${escHtml(a.changedBy)}</span>
                 <span class="act-date">${new Date(a.changedAt).toLocaleString('en-GB')}</span>
               </li>
@@ -3759,13 +4018,13 @@ async function renderAdminTemplatesTab() {
           <tr>
             <td>${escHtml(tpl.title || '—')}</td>
             <td><span class="badge">${escHtml(tpl.type || '—')}</span></td>
-            <td><span class="badge status-badge ${STATUS_CLS[tpl.status] || ''}">${tpl.status || 'draft'}</span></td>
+            <td><span class="badge status-badge ${STATUS_CLS[tpl.status] || ''}">${escHtml(tpl.status || 'draft')}</span></td>
             <td>${escHtml(tpl.language || '—')}</td>
-            <td>${tpl.version || 1}</td>
+            <td>${escHtml(tpl.version || 1)}</td>
             <td style="color:var(--text-subtle);font-size:12px;">${tpl.updatedAt ? new Date(tpl.updatedAt).toLocaleDateString('en-GB') : '—'}</td>
             <td>
               <button class="btn btn-sm" style="color:var(--danger-text);" title="${t('delete')}"
-                onclick="adminDeleteTemplate('${escHtml(tpl.type)}','${escHtml(tpl.id)}','${escHtml(tpl.title || '')}')">
+                onclick="adminDeleteTemplate(${jsArg(tpl.type)},${jsArg(tpl.id)},${jsArg(tpl.title || '')})">
                 <i class="ph ph-trash"></i>
               </button>
             </td>
@@ -3825,7 +4084,7 @@ function _renderAdminListsUI(container) {
       <div class="admin-lists-sidebar">
         ${LIST_META.map(m => `
           <button class="admin-lists-nav-item ${m.id === _adminActiveList ? 'active' : ''}"
-                  onclick="_adminSelectList('${m.id}')">${escHtml(m.label)}</button>
+                  onclick="_adminSelectList(${jsArg(m.id)})">${escHtml(m.label)}</button>
         `).join('')}
       </div>
       <div class="admin-lists-panel" id="adminListsPanel"></div>
@@ -3850,7 +4109,7 @@ function _renderListPanel() {
     panel.innerHTML = `
       <div class="admin-lists-panel-header">
         <span class="admin-panel-title">${escHtml(meta.label)}</span>
-        <button class="btn btn-sm" onclick="_adminListReset('${meta.id}')" title="${t('admin_restoreDefaults')}">
+        <button class="btn btn-sm" onclick="_adminListReset(${jsArg(meta.id)})" title="${t('admin_restoreDefaults')}">
           <i class="ph ph-arrow-counter-clockwise"></i> ${t('reset')}
         </button>
       </div>
@@ -3874,7 +4133,7 @@ function _renderListPanel() {
     panel.innerHTML = `
       <div class="admin-lists-panel-header">
         <span class="admin-panel-title">${escHtml(meta.label)}</span>
-        <button class="btn btn-sm" onclick="_adminListReset('${meta.id}')" title="${t('admin_restoreDefaults')}">
+        <button class="btn btn-sm" onclick="_adminListReset(${jsArg(meta.id)})" title="${t('admin_restoreDefaults')}">
           <i class="ph ph-arrow-counter-clockwise"></i> ${t('reset')}
         </button>
       </div>
@@ -3903,7 +4162,7 @@ function _renderListPanel() {
                    onchange="_adminListUpdateObjectField(${idx},'label',this.value)">
             ${meta.extraSelect ? `
             <select class="input" style="width:170px"
-                    onchange="_adminListUpdateObjectField(${idx},'${meta.extraSelect.key}',this.value)">
+                    onchange="_adminListUpdateObjectField(${idx},${jsArg(meta.extraSelect.key)},this.value)">
               ${Object.entries(meta.extraSelect.options).map(([v, l]) =>
                 `<option value="${escHtml(v)}"${item[meta.extraSelect.key] === v ? ' selected' : ''}>${escHtml(l)}</option>`).join('')}
             </select>` : ''}
@@ -3925,9 +4184,9 @@ function _protGoalSelects(idx, item) {
     const cur = item.protection?.[g] ?? ''
     return `<label class="admin-prot-goal" title="${escHtml(label)}">
       <span>${escHtml(letter)}</span>
-      <select class="input" onchange="_adminListUpdateProtection(${idx},'${g}',this.value)">
+      <select class="input" onchange="_adminListUpdateProtection(${idx},${jsArg(g)},this.value)">
         <option value="">–</option>
-        ${lvl.map(l => `<option value="${l}"${String(cur) === String(l) ? ' selected' : ''}>${l}</option>`).join('')}
+        ${lvl.map(l => `<option value="${escVal(l)}"${String(cur) === String(l) ? ' selected' : ''}>${l}</option>`).join('')}
       </select>
     </label>`
   }).join('')
@@ -4077,6 +4336,11 @@ async function renderAdminOrgTab() {
       </div>
 
       <div class="org-section">
+        <h4 class="org-section-title"><i class="ph ph-file-pdf"></i> ${t('pdf_fontTitle')}</h4>
+        <div id="pdfFontBox"><p class="report-loading">${t('ui_loading')}</p></div>
+      </div>
+
+      <div class="org-section">
         <h4 class="org-section-title">${t('org_general')}</h4>
         <div class="org-grid">
           <label class="org-label">${t('org_name')}</label>
@@ -4087,6 +4351,14 @@ async function renderAdminOrgTab() {
           <input class="input" id="orgLogoText" value="${escHtml(s.logoText||'')}" placeholder="ISMS">
           <label class="org-label">${t('org_logo')}</label>
           <div id="orgLogoBox">${orgLogoBoxHtml(s.logo)}</div>
+          <label class="org-label">${t('org_street')}</label>
+          <input class="input" id="orgStreet" maxlength="120" value="${escHtml(s.orgStreet||'')}">
+          <label class="org-label">${t('org_zip')} / ${t('org_city')}</label>
+          <div style="display:flex;gap:8px"><input class="input" id="orgZip" maxlength="20" style="max-width:120px" value="${escHtml(s.orgZip||'')}"><input class="input" id="orgCity" maxlength="80" value="${escHtml(s.orgCity||'')}"></div>
+          <label class="org-label">${t('org_country')}</label>
+          <input class="input" id="orgCountry" maxlength="80" value="${escHtml(s.orgCountry||'')}">
+          <label class="org-label">${t('org_phone')}</label>
+          <input class="input" id="orgPhone" maxlength="40" value="${escHtml(s.orgPhone||'')}">
           <label class="org-label">${t('org_scope')}</label>
           <textarea class="input" id="orgScope" rows="3" style="resize:vertical">${escHtml(s.ismsScope||'')}</textarea>
         </div>
@@ -4124,6 +4396,10 @@ async function renderAdminOrgTab() {
               <i class="ph ph-warning"></i>
               <strong>${t('warning')}:</strong> ${t('org_2faWarning')}
             </div>
+            <div style="margin-top:6px;font-size:.78rem;color:var(--text-subtle)">
+              ${escHtml(t('org_2faCount', { n: sec.usersWithout2FA ?? '?', m: sec.usersTotal ?? '?' }))}
+              ${sec.adminsWith2FA === 0 ? `<br><strong>${escHtml(t('org_2faSelfHint'))}</strong>` : ''}
+            </div>
           </div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="saveSecuritySettings()">
@@ -4138,17 +4414,17 @@ async function renderAdminOrgTab() {
           ${t('admin_langConfigDesc')}
         </p>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px">
-          ${[{code:'de',label:'🇩🇪 Deutsch'},{code:'en',label:'🇬🇧 English'},{code:'fr',label:'🇫🇷 Français'},{code:'nl',label:'🇳🇱 Nederlands'},{code:'hu',label:'🇭🇺 Magyar'}].map(l => `
+          ${LANGUAGES.listedCodes().map(c => ({ code: c, label: `${LANGUAGES.get(c).flag} ${LANGUAGES.get(c).name}` })).map(l => `
             <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer">
-              <input type="checkbox" id="langAvail_${l.code}" ${(_langConfig?.available||['de','en','fr','nl','hu']).includes(l.code)?'checked':''}>
+              <input type="checkbox" id="langAvail_${escHtml(l.code)}" ${(_langConfig?.available||LANGUAGES.listedCodes()).includes(l.code)?'checked':''}>
               <span style="font-size:.9rem">${l.label}</span>
             </label>`).join('')}
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
           <label style="font-size:.85rem;color:var(--text-muted);flex-shrink:0">${t('admin_langDefault')}:</label>
           <select id="langDefault" style="padding:5px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem">
-            ${[{code:'de',label:'Deutsch'},{code:'en',label:'English'},{code:'fr',label:'Français'},{code:'nl',label:'Nederlands'},{code:'hu',label:'Magyar'}].map(l =>
-              `<option value="${l.code}" ${(_langConfig?.default||'en')===l.code?'selected':''}>${l.label}</option>`
+            ${LANGUAGES.listedCodes().map(c => ({ code: c, label: LANGUAGES.get(c).name })).map(l =>
+              `<option value="${escHtml(l.code)}" ${(_langConfig?.default||'en')===l.code?'selected':''}>${l.label}</option>`
             ).join('')}
           </select>
         </div>
@@ -4216,7 +4492,7 @@ async function renderAdminOrgTab() {
           <label class="org-label">${t('org_smtpHost')}</label>
           <input class="input" id="smtpHost" value="${escHtml(smtp.host||'')}" placeholder="smtp.example.com">
           <label class="org-label">${t('org_smtpPort')}</label>
-          <input class="input" id="smtpPort" value="${smtp.port||587}" type="number" style="max-width:120px">
+          <input class="input" id="smtpPort" value="${escVal(smtp.port||587)}" type="number" style="max-width:120px">
           <label class="org-label">${t('org_smtpEncryption')}</label>
           <div style="display:flex;align-items:center;gap:16px;padding:4px 0">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -4334,8 +4610,8 @@ async function renderAdminOrgTab() {
                     <td>${escHtml(u.head || '–')}</td>
                     <td style="color:var(--text-subtle);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(u.description||'')}</td>
                     <td style="white-space:nowrap">
-                      <button class="btn btn-secondary btn-xs" onclick="openOrgUnitModal('${u.id}')"><i class="ph ph-pencil"></i></button>
-                      <button class="btn btn-danger btn-xs" style="margin-left:4px" onclick="deleteOrgUnit('${u.id}','${escHtml(u.name)}')"><i class="ph ph-trash"></i></button>
+                      <button class="btn btn-secondary btn-xs" onclick="openOrgUnitModal(${jsArg(u.id)})"><i class="ph ph-pencil"></i></button>
+                      <button class="btn btn-danger btn-xs" style="margin-left:4px" onclick="deleteOrgUnit(${jsArg(u.id)},${jsArg(u.name)})"><i class="ph ph-trash"></i></button>
                     </td>
                   </tr>`
                 }).join('')
@@ -4354,6 +4630,68 @@ async function renderAdminOrgTab() {
       if (banner && st.envOverride) banner.style.display = 'block'
     }
   } catch {}
+  pdfFontRender()
+}
+
+// ── PDF-Schrift: Auswahl, eigene Schrift, Vorschau (Administrator) ──
+async function pdfFontRender() {
+  const box = document.getElementById('pdfFontBox')
+  if (!box) return
+  const r = await fetch('/admin/pdf-font', { headers: apiHeaders('admin') })
+  if (!r.ok) { box.textContent = ''; return }
+  const f = await r.json()
+  const opts = [
+    ...f.bundled.map(b => [b.id, t('pdf_font' + b.id.charAt(0).toUpperCase() + b.id.slice(1))]),
+    ['helvetica', t('pdf_fontHelvetica')],
+    ['custom', f.custom ? `${t('pdf_fontCustom')}: ${f.custom.label}` : t('pdf_fontCustom')],
+  ]
+  box.innerHTML = `
+    <p style="color:var(--text-subtle);max-width:820px">${t('pdf_fontIntro')}</p>
+    <p style="color:var(--text-subtle);max-width:820px;font-size:.9em">${t('pdf_fontMonoNote')}</p>
+    <div id="pdfFontChoices" style="display:grid;gap:6px;margin:8px 0">
+      ${opts.map(([id, label]) => `<label style="display:flex;gap:8px;align-items:center${id === 'custom' && !f.custom ? ';opacity:.55' : ''}">
+        <input type="radio" name="pdfFontChoice" value="${escVal(id)}"${f.choice === id ? ' checked' : ''}${id === 'custom' && !f.custom ? ' disabled' : ''}> ${escHtml(label)}</label>`).join('')}
+    </div>
+    <div style="margin:8px 0"><a class="btn btn-secondary btn-sm" id="pdfFontPreview" target="_blank" rel="noopener" href="/admin/pdf-font/preview.pdf?choice=${encodeURIComponent(f.choice)}"><i class="ph ph-eye"></i> ${t('pdf_fontPreview')}</a></div>
+    <details style="margin-top:12px;max-width:820px"${f.custom ? '' : ''}>
+      <summary style="cursor:pointer;font-weight:600">${t('pdf_fontCustom')}</summary>
+      <p style="color:var(--text-subtle)">${t('pdf_fontCustomIntro')}</p>
+      <div class="org-grid" style="margin-top:8px">
+        <label class="org-label">${t('pdf_fontCustomLabel')}</label>
+        <input class="input" id="pdfFontLabel" maxlength="80" value="${escVal(f.custom ? f.custom.label : '')}">
+        ${['regular', 'bold', 'italic', 'mono'].map(st => `<label class="org-label">${t('pdf_fontStyle' + st.charAt(0).toUpperCase() + st.slice(1))}${f.custom && f.custom.styles.includes(st) ? ' ✓' : ''}</label>
+        <input type="file" id="pdfFontFile_${st}" accept=".ttf,.otf,font/ttf,font/otf">`).join('')}
+      </div>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0"><input type="checkbox" id="pdfFontLicense"> <span>${t('pdf_fontLicenseCheck')}</span></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" id="pdfFontUpload"><i class="ph ph-upload-simple"></i> ${t('pdf_fontUpload')}</button>
+        ${f.custom ? `<button class="btn btn-danger btn-sm" id="pdfFontRemove"><i class="ph ph-trash"></i> ${t('pdf_fontRemove')}</button>` : ''}
+      </div>
+      <p id="pdfFontMsg" style="min-height:1.3em"></p>
+    </details>`
+  const msg = (text, bad) => { const m = document.getElementById('pdfFontMsg'); if (m) { m.textContent = text; m.style.color = bad ? 'var(--danger-text)' : 'var(--success-text)' } }
+  box.querySelectorAll('input[name=pdfFontChoice]').forEach(inp => inp.addEventListener('change', async () => {
+    const res = await fetch('/admin/pdf-font', { method: 'PUT', headers: apiHeaders('admin'), body: JSON.stringify({ choice: inp.value }) })
+    if (!res.ok) { const j = await res.json().catch(() => ({})); showToast(j.error || t('error'), 'error'); return pdfFontRender() }
+    await loadPdfFont()
+    showToast(t('pdf_fontSaved'), 'success')
+    pdfFontRender()
+  }))
+  document.getElementById('pdfFontUpload').onclick = async () => {
+    if (!document.getElementById('pdfFontLicense').checked) return msg(t('pdf_fontNeedLicense'), true)
+    const label = document.getElementById('pdfFontLabel').value.trim()
+    const files = ['regular', 'bold', 'italic', 'mono'].map(st => [st, document.getElementById('pdfFontFile_' + st).files[0]]).filter(([, file]) => file)
+    if (!files.length || (!files.some(([st]) => st === 'regular') && !(f.custom && f.custom.styles.includes('regular')))) return msg(t('pdf_fontNeedRegular'), true)
+    for (const [style, file] of files.sort(([a]) => (a === 'regular' ? -1 : 1))) {
+      const data = await new Promise((resolve, reject) => { const rd = new FileReader(); rd.onload = () => resolve(String(rd.result).replace(/^data:[^,]*,/, '')); rd.onerror = reject; rd.readAsDataURL(file) })
+      const res = await fetch('/admin/pdf-font/custom', { method: 'POST', headers: apiHeaders('admin'), body: JSON.stringify({ style, data, label, licenseConfirmed: true }) })
+      if (!res.ok) { const j = await res.json().catch(() => ({})); return msg(`${style}: ${j.error || t('error')}`, true) }
+    }
+    showToast(t('pdf_fontUploaded'), 'success')
+    pdfFontRender()
+  }
+  const rm = document.getElementById('pdfFontRemove')
+  if (rm) rm.onclick = async () => { await fetch('/admin/pdf-font/custom', { method: 'DELETE', headers: apiHeaders('admin') }); await loadPdfFont(); pdfFontRender() }
 }
 
 function orgLogoBoxHtml(logo) {
@@ -4391,6 +4729,34 @@ async function removeOrgLogo() {
   if (res.ok) document.getElementById('orgLogoBox').innerHTML = orgLogoBoxHtml(await res.json())
 }
 
+// Feste Leiste am oberen Rand, solange im Produktivbetrieb noch ein Konto das Demo-Passwort trägt (kein Schließen-Knopf; erscheint bei jedem Laden)
+async function showSeedPasswordNotice() {
+  if (!userCanTransition('admin')) return
+  try {
+    const r = await fetch('/admin/security-notice', { headers: apiHeaders('admin') })
+    const d = r.ok ? await r.json() : null
+    const old = document.getElementById('seedNoticeBar'); if (old) old.remove()
+    const topbar = document.querySelector('.topbar')
+    const baseH = 56   // --topbar-h aus style.css
+    const reset = () => { document.documentElement.style.removeProperty('--topbar-h'); if (topbar) { topbar.style.top = ''; topbar.style.height = '' } }
+    if (!d || !Array.isArray(d.seedAccounts) || !d.seedAccounts.length) { reset(); return }
+    const bar = document.createElement('div')
+    bar.id = 'seedNoticeBar'
+    bar.setAttribute('role', 'alert')
+    // fest am oberen Rand; Kopfzeile und Seitenleiste rücken um die Höhe der Leiste nach unten (kein Überdecken)
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:100000;background:#7a0c16;color:#fff;border-bottom:3px solid #ff5a67;padding:8px 16px;font-size:14px;font-weight:600;text-align:center'
+    bar.innerHTML = `<i class="ph ph-warning-octagon-fill"></i> ${escHtml(t('seedAdminText').replace('{names}', d.seedAccounts.join(', ')))}`
+    document.body.prepend(bar)
+    const fit = () => {
+      const h = bar.offsetHeight
+      document.documentElement.style.setProperty('--topbar-h', (baseH + h) + 'px')
+      if (topbar) { topbar.style.top = h + 'px'; topbar.style.height = baseH + 'px' }
+    }
+    fit()
+    window.addEventListener('resize', fit)
+  } catch { /* Hinweis ist ergänzend */ }
+}
+
 // Nach dem Wechsel in den Produktivbetrieb: Administratoren sehen oben im Dashboard, dass das Firmenlogo noch fehlt
 async function showLogoRequiredNotice(container) {
   if (!userCanTransition('admin')) return
@@ -4412,6 +4778,11 @@ async function saveOrgSettings() {
     orgShort:  document.getElementById('orgShort')?.value.trim(),
     logoText:  document.getElementById('orgLogoText')?.value.trim(),
     ismsScope: document.getElementById('orgScope')?.value.trim(),
+    orgStreet:  document.getElementById('orgStreet')?.value.trim(),
+    orgZip:     document.getElementById('orgZip')?.value.trim(),
+    orgCity:    document.getElementById('orgCity')?.value.trim(),
+    orgCountry: document.getElementById('orgCountry')?.value.trim(),
+    orgPhone:   document.getElementById('orgPhone')?.value.trim(),
     cisoName:  document.getElementById('orgCisoName')?.value.trim(),
     cisoEmail: document.getElementById('orgCisoEmail')?.value.trim(),
     gdpoName:  document.getElementById('orgGdpoName')?.value.trim(),
@@ -4434,7 +4805,7 @@ async function saveOrgSettings() {
 }
 
 async function saveLangConfig() {
-  const available = ['de','en','fr','nl','hu'].filter(c => document.getElementById('langAvail_'+c)?.checked)
+  const available = LANGUAGES.listedCodes().filter(c => document.getElementById('langAvail_'+c)?.checked)
   if (available.length === 0) {
     const msg = document.getElementById('langConfigMsg')
     msg.textContent = t('admin_langMinOne'); msg.style.color = 'var(--danger-text,#f87171)'; msg.style.display = ''
@@ -4472,8 +4843,10 @@ async function saveSecuritySettings() {
     msg.textContent = require2FA ? t('org_2faEnabled') : t('org_2faDisabled')
     msg.style.color = 'var(--success,#4ade80)'
   } else {
-    msg.textContent = t('err_saveFailed')
+    const data = await res.json().catch(() => ({}))
+    msg.textContent = data.code === 'ENFORCE_2FA_SELF' ? t('org_2faSelfBlocked', { n: data.usersWithout2FA ?? '?' }) : t('err_saveFailed')
     msg.style.color = 'var(--danger-text,#f87171)'
+    if (data.code === 'ENFORCE_2FA_SELF') { const cb = document.getElementById('org2FAEnforce'); if (cb) cb.checked = false; setTimeout(() => { msg.style.display = 'none' }, 12000); return }
   }
   setTimeout(() => { msg.style.display = 'none' }, 3000)
 }
@@ -4524,8 +4897,8 @@ function _renderNavOrderItems(order) {
             <i class="ph ph-dots-six-vertical" style="color:var(--text-subtle);font-size:1.1rem;cursor:grab"></i>
             <i class="ph ${escHtml(icon)}" style="width:18px;text-align:center"></i>
             <span style="flex:1;font-size:.88rem">${escHtml(label)}</span>
-            <button onclick="navOrderMove('${escHtml(sid)}',-1)" class="btn-icon-sm" title="${t('moveUp')}"><i class="ph ph-arrow-up"></i></button>
-            <button onclick="navOrderMove('${escHtml(sid)}',1)"  class="btn-icon-sm" title="${t('moveDown')}"><i class="ph ph-arrow-down"></i></button>
+            <button onclick="navOrderMove(${jsArg(sid)},-1)" class="btn-icon-sm" title="${t('moveUp')}"><i class="ph ph-arrow-up"></i></button>
+            <button onclick="navOrderMove(${jsArg(sid)},1)"  class="btn-icon-sm" title="${t('moveDown')}"><i class="ph ph-arrow-down"></i></button>
           </div>`
   }).join('')
 }
@@ -4790,11 +5163,11 @@ async function renderAdminAuditTab() {
                oninput="loadAuditLog()">
         <select class="select" id="auditFilterAction" onchange="loadAuditLog()" style="width:140px">
           <option value="">${t('auditLog_allActions')}</option>
-          ${Object.entries(AUDIT_ACTION_LABELS).map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}
+          ${Object.entries(AUDIT_ACTION_LABELS).map(([v,l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
         </select>
         <select class="select" id="auditFilterResource" onchange="loadAuditLog()" style="width:140px">
           <option value="">${t('auditLog_allRes')}</option>
-          ${Object.entries(AUDIT_RESOURCE_LABELS).map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}
+          ${Object.entries(AUDIT_RESOURCE_LABELS).map(([v,l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
         </select>
         <input class="input" id="auditFilterFrom" type="date" title="${t('reports_from')}" onchange="loadAuditLog()" style="width:140px">
         <input class="input" id="auditFilterTo"   type="date" title="${t('reports_to')}" onchange="loadAuditLog()" style="width:140px">
@@ -4847,7 +5220,7 @@ async function loadAuditLog() {
               <td style="font-size:12px;white-space:nowrap;color:var(--text-subtle)">
                 ${new Date(e.ts).toLocaleString('en-GB')}</td>
               <td style="font-size:12px">${escHtml(e.user)}</td>
-              <td><span class="badge audit-action-${e.action}">${escHtml(AUDIT_ACTION_LABELS[e.action]||e.action)}</span></td>
+              <td><span class="badge audit-action-${escVal(e.action)}">${escHtml(AUDIT_ACTION_LABELS[e.action]||e.action)}</span></td>
               <td><span class="badge">${escHtml(AUDIT_RESOURCE_LABELS[e.resource]||e.resource)}</span></td>
               <td style="font-size:12px;color:var(--text-subtle)">${escHtml(e.detail||e.resourceId||'')}</td>
             </tr>`).join('')}
@@ -4861,7 +5234,7 @@ async function loadAuditLog() {
     const curPage  = Math.floor(_auditOffset / _AUDIT_LIMIT) + 1
     const totPages = Math.max(1, Math.ceil(total / _AUDIT_LIMIT))
     pager.innerHTML = `
-      <span style="font-size:12px;color:var(--text-subtle)">${total} ${t('auditLog_total')}</span>
+      <span style="font-size:12px;color:var(--text-subtle)">${escVal(total)} ${t('auditLog_total')}</span>
       <button class="btn btn-sm" onclick="_auditOffset=Math.max(0,_auditOffset-${_AUDIT_LIMIT});loadAuditLog()"
               ${_auditOffset === 0 ? 'disabled' : ''}><i class="ph ph-caret-left"></i></button>
       <span style="font-size:12px">${curPage} / ${totPages}</span>
@@ -4977,7 +5350,18 @@ async function renderAdminMaintenanceTab() {
           <div class="settings-group" style="margin-bottom:10px">
             <label class="settings-label" for="aiOllamaUrlInput">${t('maint_ollamaUrl')}</label>
             <input class="form-input" id="aiOllamaUrlInput" placeholder="http://localhost:11434 (default)"
-                   style="max-width:320px" onblur="saveAiSettings()" />
+                   style="max-width:320px" onblur="saveAiSettings()" oninput="aiKeyHint()" />
+          </div>
+          <div class="settings-group" style="margin-bottom:10px">
+            <label class="settings-label" for="aiApiKeyInput">${t('maint_aiApiKey')}</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input class="form-input" id="aiApiKeyInput" type="password" autocomplete="new-password" spellcheck="false" maxlength="512"
+                     placeholder="${t('maint_aiApiKeyPlaceholder')}" style="max-width:320px" onchange="saveAiSettings()" oninput="aiKeyHint()" />
+              <button class="btn btn-secondary btn-sm" id="aiApiKeyClear" style="display:none" onclick="clearAiApiKey()"><i class="ph ph-trash"></i> ${t('maint_aiApiKeyRemove')}</button>
+            </div>
+            <p class="settings-desc" id="aiApiKeyState" style="margin-top:4px"></p>
+            <p class="settings-desc" id="aiApiKeyWarn" style="margin-top:4px;color:var(--warning-text);display:none">${t('maint_aiApiKeyInsecure')}</p>
+            <p class="settings-desc" style="margin-top:4px">${t('maint_aiApiKeyDesc')}</p>
           </div>
           <div class="settings-group" style="margin-bottom:14px">
             <label class="settings-label" for="aiEmbedModelInput">${t('maint_embeddingModel')}</label>
@@ -5108,13 +5492,30 @@ async function renderAdminMaintenanceTab() {
   } catch {}
 }
 
-function triggerExport() {
-  const a = document.createElement('a')
-  a.href = '/admin/export'
-  a.download = ''
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+// Vollexport per fetch statt einfachem Download-Link: Bei beendeter Sitzung (401, z. B. weil sich dasselbe Konto
+// anderswo angemeldet hat) zeigte der Browser sonst nur einen nichtssagenden Download-Fehler.
+async function triggerExport() {
+  try {
+    const res = await fetch('/admin/export', { headers: apiHeaders('admin'), credentials: 'include' })
+    if (res.status === 401) {
+      showToast(t('maint_exportSessionEnded'), 'error')
+      setTimeout(() => { window.location.href = '/ui/login.html' }, 2500)
+      return
+    }
+    if (!res.ok) { showToast(t('maint_exportFailed') + ' (HTTP ' + Number(res.status) + ')', 'error'); return }
+    const blob = await res.blob()
+    const m = (res.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = m ? m[1] : 'isms-export.json'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 10000)
+  } catch {
+    showToast(t('maint_exportFailed'), 'error')
+  }
 }
 
 async function runUpdateCheck(force = true) {
@@ -5130,7 +5531,7 @@ async function runUpdateCheck(force = true) {
     if (!res.ok || !data.ok) {
       box.innerHTML = `<span style="color:var(--danger-text,#f87171)"><i class="ph ph-warning-circle"></i> ${t('maint_updateCheckFailed')}${data.error ? ': ' + escHtml(data.error) : ''}</span>`
     } else if (data.updateAvailable) {
-      box.innerHTML = `<span style="color:var(--warning-text,#f0b429)"><i class="ph ph-arrow-circle-up"></i> ${t('maint_updateAvailable')} <strong>${escHtml(data.latestVersion)}</strong> (${t('maint_currentVersion')}: ${escHtml(data.currentVersion)}) — <a href="${escHtml(data.releaseUrl)}" target="_blank" rel="noopener noreferrer">${t('maint_updateViewRelease')}</a></span>`
+      box.innerHTML = `<span style="color:var(--warning-text,#f0b429)"><i class="ph ph-arrow-circle-up"></i> ${t('maint_updateAvailable')} <strong>${escHtml(data.latestVersion)}</strong> (${t('maint_currentVersion')}: ${escHtml(data.currentVersion)}) — <a href="${escHtml(safeUrl(data.releaseUrl))}" target="_blank" rel="noopener noreferrer">${t('maint_updateViewRelease')}</a></span>`
     } else {
       box.innerHTML = `<span style="color:var(--success,#4ade80)"><i class="ph ph-check-circle"></i> ${t('maint_updateUpToDate')} (${escHtml(data.currentVersion)})</span>`
     }
@@ -5168,13 +5569,10 @@ async function _loadStorageBackendInfo() {
     const res = await fetch('/api/storage-info', { credentials: 'include', headers: apiHeaders() })
     if (!res.ok) throw new Error()
     const { backend, restartPending } = await res.json()
-    const isJson   = backend === 'json'
-    const color    = isJson ? '#f59e0b' : '#4ade80'
-    const icon     = isJson ? 'ph-warning' : 'ph-check-circle'
-    const label    = isJson ? t('admin_backendJson') : t('admin_backendSqlite')
-    box.innerHTML  = `<i class="ph ${icon}" style="color:${color};margin-right:6px"></i>
-      <strong>${t('admin_activeBackend')}</strong> <code>${label}</code>
-      ${isJson ? ' &nbsp;— <span style="color:#f59e0b;font-weight:600">' + t('admin_notForProd') + '</span>' : ''}`
+    const NAMES = { json: null, sqlite: 'SQLite', mariadb: 'MariaDB', mysql: 'MariaDB', postgres: 'PostgreSQL', pg: 'PostgreSQL' }
+    const label = backend === 'json' ? t('admin_backendJson') : (NAMES[backend] || String(backend))
+    box.innerHTML  = `<i class="ph ph-check-circle" style="color:#4ade80;margin-right:6px"></i>
+      <strong>${t('admin_activeBackend')}</strong> <code>${escHtml(label)}</code>`
     if (hint) hint.style.display = restartPending ? '' : 'none'
   } catch {
     box.textContent = t('admin_backendUnavailable')
@@ -5200,6 +5598,8 @@ async function refreshAiStatus() {
     if (urlInp)   urlInp.value      = cfg.aiOllamaUrl  || ''
     if (modelInp) modelInp.value    = cfg.aiEmbedModel || ''
     if (genModelInp) genModelInp.value = cfg.aiGenModel || ''
+    window._aiKey = { set: !!cfg.aiApiKeySet, env: !!cfg.aiApiKeyFromEnv }   // nur Kennzeichen, der Schlüssel selbst kommt nie zurück
+    aiKeyHint()
     if (advanced) advanced.style.display = cfg.aiEnabled !== false ? '' : 'none'
 
     // Ollama-Status prüfen
@@ -5217,7 +5617,7 @@ async function refreshAiStatus() {
     const modeBadge = st.mode === 'semantic'
       ? `<span style="background:rgba(168,85,247,.15);color:#a855f7;border:1px solid rgba(168,85,247,.3);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:8px;">${t('ai_semanticActive')}</span>`
       : `<span style="background:rgba(255,255,255,.06);color:var(--text-subtle);border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:8px;">${t('ai_keywordFallback')}</span>`
-    const indexBadge = `<span style="color:var(--text-subtle);font-size:12px;margin-left:10px;">${st.indexed ?? 0} ${t('ai_docsIndexed')} ${st.model || 'nomic-embed-text'}</span>`
+    const indexBadge = `<span style="color:var(--text-subtle);font-size:12px;margin-left:10px;">${st.indexed ?? 0} ${t('ai_docsIndexed')} ${escVal(st.model || 'nomic-embed-text')}</span>`
 
     badge.innerHTML = enabledBadge + (cfg.aiEnabled !== false ? ollamaBadge + modeBadge + indexBadge : '')
   } catch {
@@ -5225,11 +5625,25 @@ async function refreshAiStatus() {
   }
 }
 
-async function saveAiSettings() {
+// Statuszeile zum API-Schlüssel und Warnung bei unverschlüsselter Adresse (nur Anzeige)
+function aiKeyHint() {
+  const st = window._aiKey || { set: false, env: false }
+  const typed = (document.getElementById('aiApiKeyInput')?.value || '').length > 0
+  const state = document.getElementById('aiApiKeyState'), warn = document.getElementById('aiApiKeyWarn'), clr = document.getElementById('aiApiKeyClear')
+  if (state) state.textContent = st.set ? t('maint_aiApiKeySet') : (st.env ? t('maint_aiApiKeyEnv') : t('maint_aiApiKeyNotSet'))
+  if (clr) clr.style.display = st.set ? '' : 'none'
+  const url = (document.getElementById('aiOllamaUrlInput')?.value || '').trim()
+  let insecure = false
+  try { const u = new URL(url); insecure = u.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(u.hostname) } catch {}
+  if (warn) warn.style.display = insecure && (st.set || st.env || typed) ? '' : 'none'
+}
+
+async function saveAiSettings(extra) {
   const toggle   = document.getElementById('aiEnabledToggle')
   const urlInp   = document.getElementById('aiOllamaUrlInput')
   const modelInp = document.getElementById('aiEmbedModelInput')
   const genModelInp = document.getElementById('aiGenModelInput')
+  const keyInp   = document.getElementById('aiApiKeyInput')
   const advanced = document.getElementById('aiAdvancedSettings')
 
   const payload = {
@@ -5237,21 +5651,31 @@ async function saveAiSettings() {
     aiOllamaUrl:  urlInp?.value.trim()   || '',
     aiEmbedModel: modelInp?.value.trim() || '',
     aiGenModel:   genModelInp?.value.trim() || '',
+    ...(extra || {}),
   }
+  const typedKey = keyInp ? keyInp.value : ''
+  if (typedKey && !(extra && extra.clearAiApiKey)) payload.aiApiKey = typedKey   // leeres Feld = gespeicherten Schlüssel unverändert lassen
   if (advanced) advanced.style.display = payload.aiEnabled ? '' : 'none'
 
   try {
-    await fetch('/admin/ai-settings', {
+    const res = await fetch('/admin/ai-settings', {
       method: 'PUT', credentials: 'include',
       headers: { ...apiHeaders('admin'), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    showToast(payload.aiEnabled ? t('admin_aiEnabled') : t('admin_aiDisabled'), payload.aiEnabled ? 'success' : 'info')
+    if (!res.ok) {   // z. B. ungültiger Schlüssel: die Meldung des Servers zeigen statt „gespeichert“
+      const err = await res.json().catch(() => ({}))
+      return showToast((err && err.error) || t('admin_aiSaveFailed'), 'error')
+    }
+    if (keyInp) keyInp.value = ''   // der Schlüssel bleibt nie im Feld stehen
+    showToast(payload.clearAiApiKey ? t('maint_aiApiKeyRemoved') : (payload.aiApiKey ? t('maint_aiApiKeySaved') : (payload.aiEnabled ? t('admin_aiEnabled') : t('admin_aiDisabled'))), payload.aiEnabled || payload.aiApiKey || payload.clearAiApiKey ? 'success' : 'info')
     refreshAiStatus()
   } catch {
     showToast(t('admin_aiSaveFailed'), 'error')
   }
 }
+
+function clearAiApiKey() { return saveAiSettings({ clearAiApiKey: true }) }
 
 async function triggerReindex() {
   const btn = document.getElementById('btnReindex')
@@ -5279,23 +5703,138 @@ async function triggerReindex() {
   btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> ' + t('admin_rebuildIndex')
 }
 
+// Demo-Reset: Zuerst öffnet sich die Anleitung zum Produktivbetrieb in einem eigenen Fenster; die Umstellung beginnt erst, wenn der
+// Administrator sie bewusst bestätigt (Knopf erst nach Scrollen bis zum Ende und Mindestzeit) und das Fenster schließt.
+// MUSS synchron aus dem Klick aufgerufen werden (Popup-Blocker). Liefert { ok, blocked?, failed? }.
+const DEMO_RESET_GUIDE_MSG = 'isms-demo-reset-guide-read'
+const DEMO_RESET_GUIDE_SECONDS = 15
+function showDemoResetGuide() {
+  const win = window.open('', 'ismsDemoResetGuide', 'width=960,height=820,scrollbars=yes,resizable=yes')
+  if (!win) return Promise.resolve({ ok: false, blocked: true })
+  const lang = LANGUAGES.norm(window.LANG)
+  const suffix = LANGUAGES.docSuffix(lang)
+  try { win.document.write('<!doctype html><meta charset="utf-8"><title>…</title><body style="font-family:sans-serif;padding:24px">…</body>') } catch { /* Fenster evtl. schon geschlossen */ }
+  return (async () => {
+    let md = ''
+    try {
+      const r = await fetch(`docs/module-login-security${suffix}.md`)
+      if (r.ok) md = await r.text()
+    } catch { /* unten behandelt */ }
+    if (!md || win.closed) { try { win.close() } catch {} return { ok: false, failed: !win.closed } }
+    const origin = location.origin
+    const base = origin + '/ui/'
+    const body = renderGuidanceMarkdown(md.replace(/\]\(images\//g, '](docs/images/'))   // Bilder der Anleitung liegen unter /ui/docs/images/
+    const labels = {
+      title: t('guide_demoReset_title'), intro: t('guide_demoReset_intro'), confirm: t('guide_demoReset_confirm'),
+      wait: t('guide_demoReset_wait'), scroll: t('guide_demoReset_scroll'), backup: t('guide_demoReset_backup'),
+    }
+    const js = JSON.stringify({ origin, msg: DEMO_RESET_GUIDE_MSG, seconds: DEMO_RESET_GUIDE_SECONDS, labels }).replace(/</g, '\\u003c')
+    const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><title>${escHtml(labels.title)}</title><base href="${escHtml(base)}">
+<style>
+body{font-family:system-ui,sans-serif;margin:0;color:#1d2330;background:#fff;line-height:1.55}
+header{position:sticky;top:0;background:#7a0c16;color:#fff;padding:12px 24px;font-weight:700;font-size:17px;z-index:2}
+.intro{background:#fff3cd;border-bottom:1px solid #e0c36a;padding:10px 24px;font-size:14px}
+.backup{background:#e7f3e8;border-bottom:1px solid #9cc79f;padding:10px 24px;font-size:14px}
+main{max-width:860px;margin:0 auto;padding:8px 24px 120px}
+main img{max-width:100%;border:1px solid #ccd;border-radius:6px}
+code{background:#eef;padding:1px 5px;border-radius:3px}
+pre{background:#f4f5f8;padding:10px;overflow:auto}
+table{border-collapse:collapse}td,th{border:1px solid #ccd;padding:4px 8px}
+footer{position:fixed;left:0;right:0;bottom:0;background:#f4f5f8;border-top:1px solid #ccd;padding:12px 24px;display:flex;gap:16px;align-items:center}
+button{font-size:15px;padding:9px 18px;border-radius:6px;border:1px solid #0b4ec2;background:#0b57d0;color:#fff;cursor:pointer}
+button[disabled]{background:#9aa6bd;border-color:#9aa6bd;cursor:not-allowed}
+#hint{font-size:13px;color:#555}
+</style></head><body>
+<header>⚠ ${escHtml(labels.title)}</header>
+<div class="intro">${escHtml(labels.intro)}</div>
+<div class="backup">💾 ${escHtml(labels.backup)}</div>
+<main id="guide">${body}</main>
+<footer><button id="ok" type="button" disabled>${escHtml(labels.confirm)}</button><span id="hint"></span></footer>
+<script>
+(function () {
+  var C = ${js}, start = Date.now(), scrolled = false
+  var ok = document.getElementById('ok'), hint = document.getElementById('hint')
+  function atEnd() { return window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 8 }
+  function tick() {
+    if (!scrolled && atEnd()) scrolled = true
+    var left = Math.max(0, C.seconds - Math.floor((Date.now() - start) / 1000))
+    if (scrolled && left === 0) { ok.disabled = false; hint.textContent = ''; return }
+    hint.textContent = !scrolled ? C.labels.scroll + (left ? ' · ' + C.labels.wait.replace('{n}', left) : '') : C.labels.wait.replace('{n}', left)
+  }
+  window.addEventListener('scroll', tick); setInterval(tick, 500); tick()
+  ok.addEventListener('click', function () {
+    if (ok.disabled) return
+    try { window.opener.postMessage({ type: C.msg }, C.origin) } catch (e) {}
+    window.close()
+  })
+})()
+</script></body></html>`
+    try { win.document.open(); win.document.write(html); win.document.close() } catch { return { ok: false, failed: true } }
+    return new Promise(resolve => {
+      let finished = false
+      const finish = ok => { if (finished) return; finished = true; clearInterval(poll); window.removeEventListener('message', onMsg); resolve({ ok }) }
+      const onMsg = e => { if (e.origin === origin && e.source === win && e.data && e.data.type === DEMO_RESET_GUIDE_MSG) finish(true) }
+      window.addEventListener('message', onMsg)
+      const poll = setInterval(() => { if (win.closed) finish(false) }, 500)   // anders geschlossen = nicht bestätigt
+    })
+  })()
+}
+
+// Bestätigung als eigener Dialog statt window.prompt(): Chrome unterdrückt Browser-Dialoge, wenn die Seite gerade nicht den Fokus hat — und das
+// ist unmittelbar nach dem Schließen des Anleitungsfensters oft der Fall (Eingabefeld „RESET“ erschien dann nie).
+function askDemoResetConfirmation() {
+  return new Promise(resolve => {
+    const id = 'demoResetConfirmModal'
+    const lines = String(t('admin_resetPrompt')).split('\n').map(l => `<p style="margin:0 0 8px">${escHtml(l)}</p>`).join('')
+    showModal(id, `
+      <div style="padding:20px 22px">
+        <h3 style="margin:0 0 12px;color:#e74c3c"><i class="ph ph-warning-octagon"></i> ${escHtml(t('maint_demoResetTitle'))}</h3>
+        ${lines}
+        <p style="margin:12px 0;padding:10px 12px;background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.5);border-radius:6px;font-size:13px">💾 ${escHtml(t('guide_demoReset_backup'))}</p>
+        <input id="demoResetConfirmInput" type="text" autocomplete="off" spellcheck="false" style="width:100%;box-sizing:border-box;margin:6px 0 14px">
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn" id="demoResetConfirmCancel" type="button">${escHtml(t('cancel'))}</button>
+          <button class="btn" id="demoResetConfirmGo" type="button" disabled style="background:rgba(231,76,60,.15);border-color:#e74c3c;color:#e74c3c">${escHtml(t('admin_demoResetBtn'))}</button>
+        </div>
+      </div>`, 520)
+    const overlay = document.getElementById(id)
+    const input = document.getElementById('demoResetConfirmInput')
+    const go = document.getElementById('demoResetConfirmGo')
+    let done = false
+    const finish = ok => { if (done) return; done = true; observer.disconnect(); overlay.remove(); resolve(ok) }
+    const observer = new MutationObserver(() => { if (!document.body.contains(overlay)) finish(false) })   // Klick neben den Dialog schließt ihn = Abbruch
+    observer.observe(document.body, { childList: true })
+    go.style.opacity = '.45'
+    input.addEventListener('input', () => { go.disabled = input.value.trim() !== 'RESET'; go.style.opacity = go.disabled ? '.45' : '1' })
+    input.addEventListener('keydown', e => { if (e.key === 'Enter' && !go.disabled) finish(true); if (e.key === 'Escape') finish(false) })
+    go.addEventListener('click', () => { if (input.value.trim() === 'RESET') finish(true) })
+    document.getElementById('demoResetConfirmCancel').addEventListener('click', () => finish(false))
+    input.placeholder = 'RESET'   // das einzutippende Wort, nicht übersetzt
+    input.focus()
+  })
+}
+
 async function triggerDemoReset() {
-  const confirm1 = prompt(t('admin_resetPrompt'))
-  if (confirm1 !== 'RESET') { showToast(t('admin_demoResetCancelled'), 'info'); return }
+  const guide = await showDemoResetGuide()   // erster Aufruf synchron im Klick (Popup-Blocker); danach erst Nachfrage und Umstellung
+  if (!guide.ok) { showToast(t(guide.blocked ? 'guide_demoReset_blocked' : guide.failed ? 'guide_demoReset_failed' : 'guide_demoReset_cancelled'), 'info'); return }
+  if (!(await askDemoResetConfirmation())) { showToast(t('admin_demoResetCancelled'), 'info'); return }
   const btn = document.getElementById('btnDemoReset')
   const msg = document.getElementById('demoResetResult')
   btn.disabled = true
   btn.innerHTML = '<i class="ph ph-spinner"></i> ' + t('admin_resetting')
   try {
-    const res = await fetch('/admin/demo-reset', { method: 'POST', headers: apiHeaders('admin') })
+    const res = await fetch('/admin/demo-reset', { method: 'POST', headers: { ...apiHeaders('admin'), 'X-Guide-Read': '1' } })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
       throw new Error(err.error || t('admin_resetError'))
     }
-    const restartRequired = res.headers.get('X-Restart-Required') === '1'
-    const envSwitched     = res.headers.get('X-Env-Switched') === '1'
-    const logoRequired    = res.headers.get('X-Logo-Required') === '1'
-
+    // Öffentliche Demo (DEMO_HOSTING): Der Ablauf war eine Attrappe, der Server hat nichts geändert — kein Export, keine Weiterleitung
+    if (res.headers.get('X-Demo-Hosting') === 'simulated') {
+      btn.disabled = false
+      btn.innerHTML = '<i class="ph ph-trash"></i> ' + t('admin_demoResetBtn')
+      msg.style.display = ''; msg.style.color = 'var(--warning, #f59e0b)'; msg.textContent = t('demoHosting_resetSimulated')
+      return
+    }
     // Trigger bundle file download
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
@@ -5304,22 +5843,8 @@ async function triggerDemoReset() {
     document.body.appendChild(a); a.click(); a.remove()
     URL.revokeObjectURL(url)
 
-    if (restartRequired) {
-      // Restart needed — no automatic redirect, show clear message instead
-      btn.disabled = false
-      btn.innerHTML = '<i class="ph ph-trash"></i> ' + t('admin_demoResetBtn')
-      msg.style.display = ''
-      msg.style.color = 'var(--warning, #f59e0b)'
-      msg.innerHTML = `
-        <strong>${t('admin_demoResetDone')}</strong><br>
-        ${envSwitched ? t('admin_envSwitched') : ''}<br>
-        ${logoRequired ? `<strong>${t('org_logoRequired')}</strong><br>` : ''}
-        <strong style="color:#e74c3c">⚠️ ${t('admin_restartTitle')}</strong> ${t('admin_restartRest')}<br>
-        <code style="font-size:11px">npm start</code> &nbsp;${t('ui_or')}&nbsp; <code style="font-size:11px">docker compose restart</code>
-      `
-    } else {
-      setTimeout(() => { window.location.href = '/ui/login.html' }, 800)
-    }
+    // Die Sitzung des Administrators ist beendet (Passwort zurückgesetzt); ein Neustart des Servers ist nicht nötig
+    setTimeout(() => { window.location.href = '/ui/login.html' }, 800)
   } catch (e) {
     btn.disabled = false
     btn.innerHTML = '<i class="ph ph-trash"></i> ' + t('admin_demoResetBtn')
@@ -5398,10 +5923,10 @@ async function renderAdminTrashTab() {
                 <td style="white-space:nowrap">${new Date(item.deletedAt).toLocaleDateString('en-GB')}</td>
                 <td style="color:${daysLeft < 7 ? '#f87171' : 'inherit'}">${daysLeft} ${t('reports_days')}</td>
                 <td style="display:flex;gap:6px">
-                  <button class="btn btn-secondary btn-sm" onclick="restoreTrashItem('${escHtml(item.module)}','${escHtml(item.id)}',${JSON.stringify(item.meta||{})})">
+                  <button class="btn btn-secondary btn-sm" onclick="restoreTrashItem(${jsArg(item.module)},${jsArg(item.id)},${escHtml(JSON.stringify(item.meta||{}))})">
                     <i class="ph ph-arrow-counter-clockwise"></i> ${t('restore')}
                   </button>
-                  <button class="btn btn-danger btn-sm" onclick="permanentDeleteTrashItem('${escHtml(item.module)}','${escHtml(item.id)}',${JSON.stringify(item.meta||{})})">
+                  <button class="btn btn-danger btn-sm" onclick="permanentDeleteTrashItem(${jsArg(item.module)},${jsArg(item.id)},${escHtml(JSON.stringify(item.meta||{}))})">
                     <i class="ph ph-trash"></i> ${t('trash_deletePermanent')}
                   </button>
                 </td>
@@ -5417,7 +5942,7 @@ async function renderAdminTrashTab() {
 async function restoreTrashItem(module, id, meta) {
   if (!confirm(t('trash_restoreItemConfirm'))) return
   let url
-  if (module === 'template') url = `/template/${meta.type}/${id}/restore`
+  if (module === 'template') url = `/template/${encodeURIComponent(meta.type)}/${id}/restore`
   else if (module === 'risk') url = `/risks/${id}/restore`
   else if (module === 'goal') url = `/goals/${id}/restore`
   else if (module === 'measure') url = `/measures/${id}/restore`
@@ -5446,7 +5971,7 @@ async function restoreTrashItem(module, id, meta) {
 async function permanentDeleteTrashItem(module, id, meta) {
   if (!confirm(t('trash_permanentDeleteConfirm'))) return
   let url
-  if (module === 'template') url = `/template/${meta.type}/${id}/permanent`
+  if (module === 'template') url = `/template/${encodeURIComponent(meta.type)}/${id}/permanent`
   else if (module === 'risk') url = `/risks/${id}/permanent`
   else if (module === 'goal') url = `/goals/${id}/permanent`
   else if (module === 'measure') url = `/measures/${id}/permanent`
@@ -5566,6 +6091,7 @@ const SOA_FW_META = [
   { id: 'ISO9000',  label: 'ISO 9000:2015',           color: '#2dd4bf', get desc() { return t('fwdesc_ISO9000') }, norms: ['ISO 9000'] },
   { id: 'ISO9001',  label: 'ISO 9001:2015',           color: '#f472b6', get desc() { return t('fwdesc_ISO9001') }, norms: ['ISO 9001'] },
   { id: 'CRA',      label: 'EU Cyber Resilience Act', color: '#e11d48', get desc() { return t('fwdesc_CRA') }, norms: ['CRA'] },
+  { id: 'CUSTOM',   label: 'Custom Controls',         color: '#64748b', get desc() { return t('fwdesc_CUSTOM') }, norms: [] },
 ]
 
 async function renderAdminModulesTab() {
@@ -5575,13 +6101,16 @@ async function renderAdminModulesTab() {
 
   let cfg = { ...MODULE_CONFIG }
   let fwCfg = { ...SOA_FW_CONFIG }
+  let customGroups = []
   try {
-    const [modRes, fwRes] = await Promise.all([
+    const [modRes, fwRes, grpRes] = await Promise.all([
       fetch('/admin/modules',        { headers: apiHeaders('admin') }),
       fetch('/admin/soa-frameworks', { headers: apiHeaders('admin') }),
+      fetch('/soa/frameworks/custom', { headers: apiHeaders('admin') }),
     ])
     if (modRes.ok) cfg   = await modRes.json()
     if (fwRes.ok)  fwCfg = await fwRes.json()
+    if (grpRes.ok) customGroups = await grpRes.json()
   } catch {}
 
   container.innerHTML = `
@@ -5605,7 +6134,7 @@ async function renderAdminModulesTab() {
                 <span class="module-toggle-slider"></span>
               </label>
             </div>
-            <p class="module-card-desc">${m.desc}</p>
+            <p class="module-card-desc">${escHtml(m.desc)}</p>
             ${m.norms.length ? `<div class="module-card-norms">${m.norms.map(n => `<span class="module-norm-badge">${n}</span>`).join('')}</div>` : ''}
             <div class="module-card-status">
               <span class="module-status-dot ${enabled ? 'active' : 'inactive'}"></span>
@@ -5632,15 +6161,15 @@ async function renderAdminModulesTab() {
           return `
           <div class="module-card ${enabled ? 'module-card-active' : 'module-card-inactive'}">
             <div class="module-card-header">
-              <i class="ph ph-shield module-card-icon" style="color:${fw.color}"></i>
-              <div class="module-card-title" style="color:${fw.color}">${fw.label}</div>
+              <i class="ph ph-shield module-card-icon" style="color:${escVal(fw.color)}"></i>
+              <div class="module-card-title" style="color:${escVal(fw.color)}">${escVal(fw.label)}</div>
               <label class="module-toggle">
                 <input type="checkbox" data-fw="${fw.id}" ${enabled ? 'checked' : ''} onchange="fwToggleChange(this)">
                 <span class="module-toggle-slider"></span>
               </label>
             </div>
-            <p class="module-card-desc">${fw.desc}</p>
-            <div class="module-card-norms">${fw.norms.map(n => `<span class="module-norm-badge" style="border-color:${fw.color};color:${fw.color}">${n}</span>`).join('')}</div>
+            <p class="module-card-desc">${escHtml(fw.desc)}</p>
+            <div class="module-card-norms">${fw.norms.map(n => `<span class="module-norm-badge" style="border-color:${escVal(fw.color)};color:${escVal(fw.color)}">${n}</span>`).join('')}</div>
             <div class="module-card-status">
               <span class="module-status-dot ${enabled ? 'active' : 'inactive'}"></span>
               ${enabled ? t('modules_active') : t('modules_disabled')}
@@ -5649,6 +6178,41 @@ async function renderAdminModulesTab() {
         }).join('')}
       </div>
 
+      <!-- Eigene Gruppen (nutzerdefinierte Frameworks) -->
+      <div class="admin-modules-header" style="margin-top:20px">
+        <h3 class="admin-panel-title"><i class="ph ph-stack"></i> ${t('modules_customGroups')}</h3>
+        <p class="admin-modules-desc">${t('modules_customGroupsDesc')}</p>
+      </div>
+      ${customGroups.length ? `<div class="admin-modules-grid" id="customGroupGrid">${customGroups.map(g => {
+        const enabled = fwCfg[g.id] !== false
+        return `
+        <div class="module-card ${enabled ? 'module-card-active' : 'module-card-inactive'}" data-group="${escVal(g.id)}">
+          <div class="module-card-header">
+            <i class="ph ph-shield module-card-icon" style="color:${escVal(g.color)}"></i>
+            <div class="module-card-title" style="color:${escVal(g.color)}">${escVal(g.label)}</div>
+            <label class="module-toggle">
+              <input type="checkbox" data-fw="${escVal(g.id)}" ${enabled ? 'checked' : ''} onchange="fwToggleChange(this)">
+              <span class="module-toggle-slider"></span>
+            </label>
+          </div>
+          <p class="module-card-desc"><code>${escVal(g.id)}</code> · ${escHtml(t('modules_groupControls', { n: g.count }))}</p>
+          <div class="module-card-status">
+            <span class="module-status-dot ${enabled ? 'active' : 'inactive'}"></span>
+            ${enabled ? t('modules_active') : t('modules_disabled')}
+          </div>
+          <div class="soa-group-card-actions">
+            <button class="btn btn-secondary btn-xs" data-id="${escVal(g.id)}" onclick="adminGroupEdit(this.dataset.id)" title="${t('modules_groupEdit')}"><i class="ph ph-pencil"></i> ${t('edit')}</button>
+            <button class="btn btn-danger btn-xs" data-id="${escVal(g.id)}" data-label="${escVal(g.label)}" data-count="${Number(g.count) || 0}" onclick="adminGroupDelete(this)" title="${t('modules_groupDelete')}"><i class="ph ph-trash"></i> ${t('delete')}</button>
+          </div>
+          <div class="soa-group-card-edit" style="display:none">
+            <input class="form-input" maxlength="120" value="${escVal(g.label)}" data-role="label">
+            <input type="color" class="soa-group-color" value="${escVal(g.color)}" data-role="color">
+            <button class="btn btn-primary btn-xs" data-id="${escVal(g.id)}" onclick="adminGroupSave(this.dataset.id)">${t('save')}</button>
+            <button class="btn btn-secondary btn-xs" data-id="${escVal(g.id)}" onclick="adminGroupEdit(this.dataset.id)">${t('cancel')}</button>
+          </div>
+        </div>`
+      }).join('')}</div>` : `<p class="admin-modules-desc">${t('modules_customGroupsNone')}</p>`}
+
       <div class="admin-modules-footer">
         <button class="btn btn-primary" onclick="saveModuleConfig()">
           <i class="ph ph-floppy-disk"></i> ${t('modules_saveApply')}
@@ -5656,6 +6220,42 @@ async function renderAdminModulesTab() {
         <p id="modulesSaveMsg" style="font-size:13px;margin-top:8px;display:none"></p>
       </div>
     </div>`
+}
+
+// ── Eigene Gruppen verwalten (Administration → Module) ──
+function adminGroupCard(id) { return [...document.querySelectorAll('#customGroupGrid .module-card')].find(c => c.dataset.group === id) || null }
+
+function adminGroupEdit(id) {
+  const box = adminGroupCard(id)?.querySelector('.soa-group-card-edit')
+  if (box) box.style.display = box.style.display === 'none' ? '' : 'none'
+}
+
+async function adminGroupSave(id) {
+  const card = adminGroupCard(id)
+  if (!card) return
+  const label = card.querySelector('[data-role="label"]').value, color = card.querySelector('[data-role="color"]').value
+  try {
+    const res = await fetch('/soa/frameworks/' + encodeURIComponent(id), { method: 'PUT', headers: { ...apiHeaders('admin'), 'Content-Type': 'application/json' }, body: JSON.stringify({ label, color }) })
+    const data = await res.json()
+    if (!res.ok) return showToast(t('error') + ': ' + (data.error || res.status), 'error')
+    const title = card.querySelector('.module-card-title'), icon = card.querySelector('.module-card-icon')
+    title.textContent = data.label; title.style.color = data.color; icon.style.color = data.color
+    card.querySelector('.soa-group-card-edit').style.display = 'none'
+    showToast(t('modules_groupSaved'), 'success')
+  } catch (e) { showToast(t('err_network') + ': ' + e.message, 'error') }
+}
+
+async function adminGroupDelete(btn) {
+  const id = btn.dataset.id, label = btn.dataset.label, count = Number(btn.dataset.count) || 0
+  if (count > 0) return showToast(t('modules_groupDeleteHasControls', { n: count }), 'error')
+  if (!confirm(t('modules_groupDeleteConfirm', { label }))) return
+  try {
+    const res = await fetch('/soa/frameworks/' + encodeURIComponent(id), { method: 'DELETE', headers: apiHeaders('admin') })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return showToast(data.count ? t('modules_groupDeleteHasControls', { n: data.count }) : t('error') + ': ' + (data.error || res.status), 'error')
+    adminGroupCard(id)?.remove()
+    if (!document.querySelector('#customGroupGrid .module-card')) renderAdminModulesTab()
+  } catch (e) { showToast(t('err_network') + ': ' + e.message, 'error') }
 }
 
 function fwToggleChange(checkbox) {
@@ -5764,7 +6364,7 @@ async function openOrgUnitModal(id) {
             <div>
               <label class="form-label">${t('col_type')}</label>
               <select id="ouType" class="select">
-                ${typeOpts.map(t => `<option value="${t.v}" ${unit?.type===t.v?'selected':''}>${t.l}</option>`).join('')}
+                ${typeOpts.map(t => `<option value="${escVal(t.v)}" ${unit?.type===t.v?'selected':''}>${t.l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -5792,7 +6392,7 @@ async function openOrgUnitModal(id) {
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" onclick="document.getElementById('orgUnitModal').remove()">${t('cancel')}</button>
-          <button class="btn btn-primary" onclick="submitOrgUnitModal('${id||''}')">
+          <button class="btn btn-primary" onclick="submitOrgUnitModal(${jsArg(id||'')})">
             <i class="ph ph-floppy-disk"></i> ${t('save')}
           </button>
         </div>
@@ -5919,16 +6519,16 @@ async function adminLoadUsers() {
           <tr>
             <td><strong>${escHtml(u.username)}</strong></td>
             <td>${escHtml(u.email || '—')}</td>
-            <td><span class="badge role-badge-${u.role}">${u.role}</span></td>
+            <td><span class="badge role-badge-${escHtml(u.role)}">${escHtml(u.role)}</span></td>
             <td style="max-width:220px;">${fns}</td>
             <td>${escHtml(u.domain || '—')}</td>
             <td class="admin-user-actions">
               <button class="btn btn-secondary btn-sm" title="${t('edit')}"
-                onclick='openUserModal(${JSON.stringify(u)})'>
+                onclick="openUserModal(${escHtml(JSON.stringify(u))})">
                 <i class="ph ph-pencil"></i>
               </button>
               <button class="btn btn-sm" style="color:var(--danger-text);" title="${t('delete')}"
-                onclick="adminDeleteUser('${escHtml(u.username)}')">
+                onclick="adminDeleteUser(${escHtml(JSON.stringify(String(u.username)))})">
                 <i class="ph ph-trash"></i>
               </button>
             </td>
@@ -5944,6 +6544,7 @@ async function adminLoadUsers() {
 const SYNC_MODULES = [
   { id: 'templates', key: 'sync_modTemplates' }, { id: 'soa', key: 'sync_modSoa' }, { id: 'risks', key: 'sync_modRisks' },
   { id: 'assets', key: 'sync_modAssets' }, { id: 'findings', key: 'sync_modFindings' }, { id: 'guidance', key: 'sync_modGuidance', readOnly: true },
+  { id: 'soaFrameworks', key: 'sync_modSoaFrameworks' },
 ]
 let _syncList = []
 let _syncForm = null      // null = nur Liste, 'new' = neues Konto, sonst ID des Kontos in Bearbeitung
@@ -5991,7 +6592,7 @@ async function renderAdminSyncAccounts() {
           <label class="form-label">${t('sync_enrollServer')}</label>
           <input id="syncEnrollUrl" class="form-input" value="${escHtml(_syncEnroll.serverUrl)}" style="max-width:420px;">
           <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-secondary btn-sm" onclick="syncEnroll('${_syncEnroll.id}', true)"><i class="ph ph-arrows-clockwise"></i> ${t('sync_enrollNew')}</button>
+            <button class="btn btn-secondary btn-sm" onclick="syncEnroll(${jsArg(_syncEnroll.id)}, true)"><i class="ph ph-arrows-clockwise"></i> ${t('sync_enrollNew')}</button>
             <button class="btn btn-primary btn-sm" onclick="syncEnrollClose()">${t('sync_close')}</button>
           </div>
         </div>
@@ -6015,7 +6616,7 @@ async function renderAdminSyncAccounts() {
           const cur = (editing && editing.permissions[m.id]) || 'none'
           const levels = m.readOnly ? ['none', 'read'] : ['none', 'read', 'write']
           return `<span>${t(m.key)}</span>
-            <select class="form-input" data-sync-module="${m.id}">${levels.map(l => `<option value="${l}" ${cur === l ? 'selected' : ''}>${escHtml(syncLevelLabel(l))}</option>`).join('')}</select>`
+            <select class="form-input" data-sync-module="${m.id}">${levels.map(l => `<option value="${escVal(l)}" ${cur === l ? 'selected' : ''}>${escHtml(syncLevelLabel(l))}</option>`).join('')}</select>`
         }).join('')}
       </div>
       <div id="syncFormMsg" class="report-error" style="margin-top:10px;"></div>
@@ -6039,7 +6640,7 @@ async function renderAdminSyncAccounts() {
             ? `<span style="color:var(--text-subtle);font-size:12px;">${t('sync_noDevices')}</span>`
             : a.devices.map(d => `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;">
                 <i class="ph ph-device-mobile"></i><span><strong>${escHtml(d.name)}</strong> · ${escHtml(d.lastUsedAt ? new Date(d.lastUsedAt).toLocaleString() : t('sync_never'))}</span>
-                <button class="btn btn-sm" style="color:var(--danger-text);padding:0 4px;" title="${escHtml(t('sync_removeDevice'))}" onclick="syncRemoveDevice('${a.id}','${d.id}')"><i class="ph ph-x"></i></button></div>`).join('')
+                <button class="btn btn-sm" style="color:var(--danger-text);padding:0 4px;" title="${escHtml(t('sync_removeDevice'))}" onclick="syncRemoveDevice(${jsArg(a.id)},${jsArg(d.id)})"><i class="ph ph-x"></i></button></div>`).join('')
           return `<tr>
             <td><strong>${escHtml(a.name)}</strong></td>
             <td style="max-width:300px;">${rights}</td>
@@ -6047,11 +6648,11 @@ async function renderAdminSyncAccounts() {
             <td>${a.expiresAt ? escHtml(new Date(a.expiresAt).toLocaleDateString()) : escHtml(t('sync_unlimited'))}</td>
             <td><span class="badge ${st.cls}">${escHtml(st.label)}</span></td>
             <td class="admin-user-actions">
-              <button class="btn btn-primary btn-sm" title="${escHtml(t('sync_deviceAdd'))}" onclick="syncEnroll('${a.id}')"><i class="ph ph-qr-code"></i></button>
-              <button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="syncEdit('${a.id}')"><i class="ph ph-pencil"></i></button>
-              <button class="btn btn-secondary btn-sm" title="${escHtml(t('sync_scriptKey'))}" onclick="syncScriptKey('${a.id}')"><i class="ph ph-key"></i></button>
-              <button class="btn btn-secondary btn-sm" title="${escHtml(t(a.active ? 'sync_disable' : 'sync_enable'))}" onclick="syncToggle('${a.id}')"><i class="ph ph-${a.active ? 'prohibit' : 'check-circle'}"></i></button>
-              <button class="btn btn-sm" style="color:var(--danger-text);" title="${escHtml(t('delete'))}" onclick="syncDelete('${a.id}')"><i class="ph ph-trash"></i></button>
+              <button class="btn btn-primary btn-sm" title="${escHtml(t('sync_deviceAdd'))}" onclick="syncEnroll(${jsArg(a.id)})"><i class="ph ph-qr-code"></i></button>
+              <button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="syncEdit(${jsArg(a.id)})"><i class="ph ph-pencil"></i></button>
+              <button class="btn btn-secondary btn-sm" title="${escHtml(t('sync_scriptKey'))}" onclick="syncScriptKey(${jsArg(a.id)})"><i class="ph ph-key"></i></button>
+              <button class="btn btn-secondary btn-sm" title="${escHtml(t(a.active ? 'sync_disable' : 'sync_enable'))}" onclick="syncToggle(${jsArg(a.id)})"><i class="ph ph-${a.active ? 'prohibit' : 'check-circle'}"></i></button>
+              <button class="btn btn-sm" style="color:var(--danger-text);" title="${escHtml(t('delete'))}" onclick="syncDelete(${jsArg(a.id)})"><i class="ph ph-trash"></i></button>
             </td></tr>`
         }).join('')}</tbody></table>`
 
@@ -6222,7 +6823,7 @@ function openUserModal(user) {
         <div class="modal-footer">
           <button class="btn btn-secondary"
             onclick="document.getElementById('userEditModal').remove()">${t('cancel')}</button>
-          <button class="btn btn-primary" onclick="submitUserModal('${isEdit ? user.username : ''}')">
+          <button class="btn btn-primary" onclick="submitUserModal(${escHtml(JSON.stringify(isEdit ? String(user.username) : ''))})">
             <i class="ph ph-floppy-disk"></i> ${t('save')}
           </button>
         </div>
@@ -6245,8 +6846,8 @@ async function submitUserModal(existingUsername) {
 
   if (!username || !email || !role) return show(t('admin_userRequired'))
   if (pw !== pw2) return show(t('admin_passwordMismatch'))
-  if (!existingUsername && (!pw || pw.length < 6)) return show(t('admin_passwordMin'))
-  if (pw && pw.length < 6) return show(t('admin_passwordMin'))
+  if (!existingUsername && (!pw || pw.length < 8)) return show(t('admin_passwordMin'))
+  if (pw && pw.length < 8) return show(t('admin_passwordMin'))
 
   const body = { email, role, domain, functions }
   if (pw) body.password = pw
@@ -6305,7 +6906,7 @@ async function adminLoadEntities() {
     tree.innerHTML = ''
     roots.forEach(e => tree.appendChild(renderEntityNode(e)))
   } catch (err) {
-    tree.innerHTML = `<p class="report-error">${t('error')}: ${err.message}</p>`
+    tree.innerHTML = `<p class="report-error">${t('error')}: ${escHtml(err.message)}</p>`
   }
 }
 
@@ -6315,11 +6916,11 @@ function renderEntityNode(e) {
   li.innerHTML = `
     <div class="admin-entity-row">
       <i class="ph ${e.type === 'holding' ? 'ph-building' : 'ph-office-chair'}"></i>
-      <span class="admin-entity-name">${e.name}</span>
-      <span class="admin-entity-code picker-id">${e.shortCode || ''}</span>
+      <span class="admin-entity-name">${escHtml(e.name)}</span>
+      <span class="admin-entity-code picker-id">${escHtml(e.shortCode || '')}</span>
       <div class="admin-entity-actions">
-        <button class="btn btn-secondary btn-sm" onclick='adminEditEntity(${JSON.stringify(e)})' title="${t('edit')}"><i class="ph ph-pencil"></i></button>
-        ${e.type !== 'holding' ? `<button class="btn btn-sm" style="color:#ef4444;" onclick="adminDeleteEntity('${e.id}','${e.name}')" title="${t('delete')}"><i class="ph ph-trash"></i></button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="adminEditEntity(${escHtml(JSON.stringify(e))})" title="${t('edit')}"><i class="ph ph-pencil"></i></button>
+        ${e.type !== 'holding' ? `<button class="btn btn-sm" style="color:#ef4444;" data-id="${escHtml(e.id)}" data-name="${escHtml(e.name)}" onclick="adminDeleteEntity(this.dataset.id, this.dataset.name)" title="${t('delete')}"><i class="ph ph-trash"></i></button>` : ''}
       </div>
     </div>
     ${e.children && e.children.length > 0 ? `<div class="admin-entity-children">${e.children.map(c => renderEntityNode(c).outerHTML).join('')}</div>` : ''}
@@ -6371,7 +6972,7 @@ function openEntityModal(entity) {
         <div class="modal-footer">
           <button class="btn btn-secondary"
             onclick="document.getElementById('entityEditModal').remove()">${t('cancel')}</button>
-          <button class="btn btn-primary" onclick="submitEntityModal('${isEdit ? entity.id : ''}')">
+          <button class="btn btn-primary" onclick="submitEntityModal(${jsArg(isEdit ? entity.id : '')})">
             <i class="ph ph-floppy-disk"></i> ${t('save')}
           </button>
         </div>
@@ -6519,15 +7120,15 @@ async function renderGoals() {
           const prog = g.progressCalc ?? 0
           const isOverdue = g.targetDate && new Date(g.targetDate) < now && !['achieved','cancelled'].includes(g.status)
           return `
-          <div class="goals-card" onclick="openGoalForm('${g.id}')">
+          <div class="goals-card" onclick="openGoalForm(${jsArg(g.id)})">
             <div class="goals-card-header">
               <div class="goals-card-title">
                 <span class="goals-priority-dot" style="background:${pri?.color||'#888'}" title="${pri?.label}"></span>
                 <strong>${escHtml(g.title)}</strong>
               </div>
               <div class="goals-card-badges">
-                <span class="goals-badge" style="background:${st?.color||'#888'}22;color:${st?.color||'#888'};border:1px solid ${st?.color||'#888'}44">${st?.label||g.status}</span>
-                <span class="goals-badge goals-badge-cat">${cat?.label||g.category}</span>
+                <span class="goals-badge" style="background:${st?.color||'#888'}22;color:${st?.color||'#888'};border:1px solid ${st?.color||'#888'}44">${escHtml(st?.label||g.status)}</span>
+                <span class="goals-badge goals-badge-cat">${escHtml(cat?.label||g.category)}</span>
               </div>
             </div>
             ${g.description ? `<p class="goals-card-desc">${escHtml(g.description.slice(0,120))}${g.description.length>120?'…':''}</p>` : ''}
@@ -6545,8 +7146,8 @@ async function renderGoals() {
               </div>
             </div>
             <div class="goals-card-actions" onclick="event.stopPropagation()">
-              ${goalCanEdit()  ? `<button class="btn btn-secondary btn-sm" onclick="openGoalForm('${g.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${goalCanDelete()? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGoal('${g.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${goalCanEdit()  ? `<button class="btn btn-secondary btn-sm" onclick="openGoalForm(${jsArg(g.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+              ${goalCanDelete()? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGoal(${jsArg(g.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </div>
           </div>`
         }).join('')}
@@ -6558,8 +7159,8 @@ async function renderGoals() {
 function goalKpiRow(kpi = {}) {
   return `<div class="goal-kpi-row">
     <input class="form-input" placeholder="${t('goals_metricKpi')}" style="flex:2" value="${escHtml(kpi.metric||'')}">
-    <input type="number" class="form-input" placeholder="${t('goals_target')}" style="width:90px" value="${kpi.targetValue||''}">
-    <input type="number" class="form-input" placeholder="${t('goals_current')}" style="width:90px" value="${kpi.currentValue||''}">
+    <input type="number" class="form-input" placeholder="${t('goals_target')}" style="width:90px" value="${escVal(kpi.targetValue||'')}">
+    <input type="number" class="form-input" placeholder="${t('goals_current')}" style="width:90px" value="${escVal(kpi.currentValue||'')}">
     <input class="form-input" placeholder="${t('goals_unit')}" style="width:80px" value="${escHtml(kpi.unit||'')}" title="${t('goals_unitHint')}">
     <button class="btn btn-sm" style="color:var(--danger-text)" onclick="this.closest('.goal-kpi-row').remove();updateGoalProgress()"><i class="ph ph-trash"></i></button>
   </div>`
@@ -6628,11 +7229,11 @@ async function openGoalForm(id = null) {
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">${t('goals_targetDate')}</label>
-            <input id="goalTargetDate" type="date" class="form-input" value="${g.targetDate||''}"></div>
+            <input id="goalTargetDate" type="date" class="form-input" value="${escVal(g.targetDate||'')}"></div>
           <div class="form-group"><label class="form-label">${t('goals_reviewDate')}</label>
-            <input id="goalReviewDate" type="date" class="form-input" value="${g.reviewDate||''}"></div>
+            <input id="goalReviewDate" type="date" class="form-input" value="${escHtml(g.reviewDate||'')}"></div>
           <div class="form-group"><label class="form-label">${t('goals_manualProgress')}</label>
-            <input id="goalProgress" type="number" class="form-input" min="0" max="100" value="${g.progress||0}" placeholder="0-100" title="${t('goals_progressHint')}"></div>
+            <input id="goalProgress" type="number" class="form-input" min="0" max="100" value="${escVal(g.progress||0)}" placeholder="0-100" title="${t('goals_progressHint')}"></div>
         </div>
 
         <div class="legal-form-section">
@@ -6657,7 +7258,7 @@ async function openGoalForm(id = null) {
       </div>
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="renderGoals()">${t('cancel')}</button>
-        <button class="btn btn-primary" onclick="saveGoal(${id?`'${id}'`:'null'})"><i class="ph ph-floppy-disk"></i> ${t('save')}</button>
+        <button class="btn btn-primary" onclick="saveGoal(${id?`${jsArg(id)}`:'null'})"><i class="ph ph-floppy-disk"></i> ${t('save')}</button>
       </div>
     </div>
   `
@@ -6747,7 +7348,7 @@ async function renderSettingsPanel() {
   const qs = roleSettings.qmSettings       || {}
 
   const incTypeOpts = Object.entries(INC_TYPE_LABELS).map(([v,l]) =>
-    `<option value="${v}" ${(cs.reportableTypes||[]).includes(v)?'selected':''}>${l}</option>`).join('')
+    `<option value="${escVal(v)}" ${(cs.reportableTypes||[]).includes(v)?'selected':''}>${escVal(l)}</option>`).join('')
 
   const cisoSection = showCiso ? `
     <div class="settings-section">
@@ -6757,7 +7358,7 @@ async function renderSettingsPanel() {
         <label class="org-label">${t('set_escalationEmail')}</label>
         <input class="input" id="cisoEscalationEmail" value="${escHtml(cs.escalationEmail||'')}" type="email" placeholder="ciso@company.com">
         <label class="org-label">${t('set_incidentSla')}</label>
-        <input class="input" id="cisoSLA" value="${cs.incidentResponseSLA||24}" type="number" min="1" max="168" style="width:100px">
+        <input class="input" id="cisoSLA" value="${escVal(cs.incidentResponseSLA||24)}" type="number" min="1" max="168" style="width:100px">
         <label class="org-label">${t('set_reportableFrom')}</label>
         <select class="select" id="cisoThreshold">
           <option value="low"      ${cs.reportableThreshold==='low'      ?'selected':''}>${t('riskl_low')}</option>
@@ -6782,9 +7383,9 @@ async function renderSettingsPanel() {
       <p class="settings-desc">${t('gdpr_cfgIntro')}</p>
       <div class="org-grid" style="max-width:600px">
         <label class="org-label">${t('set_dsarDeadline')}</label>
-        <input class="input" id="gdpoDsar" value="${gs.dsarDeadlineDays||30}" type="number" min="1" max="90" style="width:100px">
+        <input class="input" id="gdpoDsar" value="${escVal(gs.dsarDeadlineDays||30)}" type="number" min="1" max="90" style="width:100px">
         <label class="org-label">${t('set_dsarDeadlineExt')}</label>
-        <input class="input" id="gdpoDsarExt" value="${gs.dsarExtendedDays||90}" type="number" min="1" max="180" style="width:100px">
+        <input class="input" id="gdpoDsarExt" value="${escVal(gs.dsarExtendedDays||90)}" type="number" min="1" max="180" style="width:100px">
         <label class="org-label">${t('gdpr_72hActive')}</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px">
           <input type="checkbox" id="gdpo72h" ${gs.timer72hEnabled!==false?'checked':''}> ${t('ui_enabled')}
@@ -6846,7 +7447,7 @@ async function renderSettingsPanel() {
           <option value="planned"     ${is.otNetworkSegmentation==='planned'    ?'selected':''}>${t('ui_planned')}</option>
         </select>
         <label class="org-label">${t('set_patchCycle')}</label>
-        <input class="input" id="icsPatchCycle" value="${is.otPatchCycleWeeks||12}" type="number" min="1" max="52" style="width:100px">
+        <input class="input" id="icsPatchCycle" value="${escVal(is.otPatchCycleWeeks||12)}" type="number" min="1" max="52" style="width:100px">
         <label class="org-label">${t('set_maintenanceWindow')}</label>
         <input class="input" id="icsMaintenanceWindow" value="${escHtml(is.otMaintenanceWindow||'')}" placeholder="${escHtml(t('ph_maintWindowEg'))}">
         <label class="org-label">${t('set_emergencyContact')}</label>
@@ -6879,11 +7480,11 @@ async function renderSettingsPanel() {
           <option value="prüfungsausschuss"  ${rs.revReportsTo==='prüfungsausschuss'        ?'selected':''}>${t('set_auditCommittee')}</option>
         </select>
         <label class="org-label">${t('set_auditCycle')}</label>
-        <input class="input" id="revCycle" value="${rs.revCycleMonths||12}" type="number" min="1" max="36" style="width:100px">
+        <input class="input" id="revCycle" value="${escVal(rs.revCycleMonths||12)}" type="number" min="1" max="36" style="width:100px">
         <label class="org-label">${t('set_lastInternalAudit')}</label>
-        <input class="input" id="revLastAudit" type="date" value="${rs.revLastAuditDate||''}">
+        <input class="input" id="revLastAudit" type="date" value="${escVal(rs.revLastAuditDate||'')}">
         <label class="org-label">${t('set_nextPlannedAudit')}</label>
-        <input class="input" id="revNextAudit" type="date" value="${rs.revNextAuditDate||''}">
+        <input class="input" id="revNextAudit" type="date" value="${escVal(rs.revNextAuditDate||'')}">
         <label class="org-label">${t('set_externalAuditor')}</label>
         <input class="input" id="revExternal" value="${escHtml(rs.revExternalSupport||'')}" placeholder="${escHtml(t('ph_auditFirmEg'))}">
       </div>
@@ -6919,13 +7520,13 @@ async function renderSettingsPanel() {
         <label class="org-label">${t('set_certBody')}</label>
         <input class="input" id="qmCertBody" value="${escHtml(qs.qmCertBody||'')}" placeholder="${escHtml(t('ph_certBodyEg'))}">
         <label class="org-label">${t('set_certValidUntil')}</label>
-        <input class="input" id="qmCertValid" type="date" value="${qs.qmCertValidUntil||''}">
+        <input class="input" id="qmCertValid" type="date" value="${escVal(qs.qmCertValidUntil||'')}">
         <label class="org-label">${t('set_lastSurveillance')}</label>
-        <input class="input" id="qmLastAudit" type="date" value="${qs.qmLastAuditDate||''}">
+        <input class="input" id="qmLastAudit" type="date" value="${escVal(qs.qmLastAuditDate||'')}">
         <label class="org-label">${t('set_nextSurveillance')}</label>
-        <input class="input" id="qmNextAudit" type="date" value="${qs.qmNextAuditDate||''}">
+        <input class="input" id="qmNextAudit" type="date" value="${escVal(qs.qmNextAuditDate||'')}">
         <label class="org-label">${t('set_nextRecert')}</label>
-        <input class="input" id="qmRecert" type="date" value="${qs.qmRecertDate||''}">
+        <input class="input" id="qmRecert" type="date" value="${escVal(qs.qmRecertDate||'')}">
       </div>
       <div class="settings-actions" style="margin-top:10px">
         <button class="btn btn-primary btn-sm" onclick="saveQmSettings()">
@@ -6947,15 +7548,9 @@ async function renderSettingsPanel() {
           <h3><i class="ph ph-translate"></i> ${t('settings_lang')}</h3>
           <p class="settings-desc">${t('settings_langDesc')}</p>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px">
-            ${[
-              {code:'de', key:'settings_langDe'},
-              {code:'en', key:'settings_langEn'},
-              {code:'fr', key:'settings_langFr'},
-              {code:'nl', key:'settings_langNl'},
-              {code:'hu', key:'settings_langHu'},
-            ].filter(l => (_langConfig?.available||['de','en','fr','nl','hu']).includes(l.code)).map(l =>
-              `<button class="btn ${(window.LANG||'en')===l.code ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="switchAppLang('${l.code}')">
-                <i class="ph ph-flag"></i> ${t(l.key)}
+            ${LANGUAGES.listedCodes().filter(c => (_langConfig?.available||LANGUAGES.listedCodes()).includes(c)).map(c => ({ code: c })).map(l =>
+              `<button class="btn ${(window.LANG||'en')===l.code ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="switchAppLang(${jsArg(l.code)})">
+                <i class="ph ph-flag"></i> ${escHtml(langLabel(l.code))}
               </button>`
             ).join('')}
             <span id="langSaveMsg" style="font-size:13px;color:var(--success,#4ade80);display:none"></span>
@@ -7055,18 +7650,18 @@ async function loadTmplManagement() {
       return `<tr>
         <td style="color:var(--text-subtle);font-size:.8rem"><i class="ph ${typeIcon}"></i> ${escHtml(t.type)}</td>
         <td>${escHtml(t.title)}</td>
-        <td><span class="status-badge ${statusCls[t.status]||''}">${t.status}</span></td>
-        <td style="color:var(--text-subtle)">v${t.version}</td>
+        <td><span class="status-badge ${statusCls[t.status]||''}">${escHtml(t.status)}</span></td>
+        <td style="color:var(--text-subtle)">v${escHtml(t.version)}</td>
         <td style="white-space:nowrap;text-align:right">
-          <button class="btn btn-secondary btn-xs" title="${escHtml(window.t('edit'))}" onclick="tmplMgmtEdit('${escHtml(t.type)}','${t.id}')">
+          <button class="btn btn-secondary btn-xs" title="${escHtml(window.t('edit'))}" onclick="tmplMgmtEdit(${jsArg(t.type)},${jsArg(t.id)})">
             <i class="ph ph-pencil"></i>
           </button>
           ${isDraft ? `
-            <button class="btn btn-secondary btn-xs" style="margin-left:4px" title="${escHtml(window.t('ui_moveToTrash'))}" onclick="tmplMgmtSoftDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-secondary btn-xs" style="margin-left:4px" title="${escHtml(window.t('ui_moveToTrash'))}" onclick="tmplMgmtSoftDelete(${jsArg(t.type)},${jsArg(t.id)},${jsArg(t.title)})">
               <i class="ph ph-trash"></i>
             </button>
             ${isAdmin ? `
-            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="${escHtml(window.t('ui_deletePermanently'))}" onclick="tmplMgmtPermDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="${escHtml(window.t('ui_deletePermanently'))}" onclick="tmplMgmtPermDelete(${jsArg(t.type)},${jsArg(t.id)},${jsArg(t.title)})">
               <i class="ph ph-trash-simple"></i>
             </button>` : ''}
           ` : ''}
@@ -7107,10 +7702,10 @@ async function loadTmplManagement() {
           <td>${escHtml(t.title)}</td>
           <td><span class="status-badge status-archived">${window.t('ui_deletedBadge')}</span></td>
           <td style="white-space:nowrap;text-align:right">
-            <button class="btn btn-secondary btn-xs" title="${escHtml(window.t('restore'))}" onclick="tmplMgmtRestore('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-secondary btn-xs" title="${escHtml(window.t('restore'))}" onclick="tmplMgmtRestore(${jsArg(t.type)},${jsArg(t.id)},${jsArg(t.title)})">
               <i class="ph ph-arrow-counter-clockwise"></i>
             </button>
-            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="${escHtml(window.t('ui_deletePermanently'))}" onclick="tmplMgmtPermDelete('${escHtml(t.type)}','${t.id}','${escHtml(t.title)}')">
+            <button class="btn btn-danger btn-xs" style="margin-left:4px" title="${escHtml(window.t('ui_deletePermanently'))}" onclick="tmplMgmtPermDelete(${jsArg(t.type)},${jsArg(t.id)},${jsArg(t.title)})">
               <i class="ph ph-trash-simple"></i>
             </button>
           </td>
@@ -7170,7 +7765,7 @@ async function saveMyPassword() {
   if (!msg) return
   msg.style.display = ''
   if (!old || !nw) { msg.textContent = t('pw_fillAll'); msg.style.color = 'var(--danger-text)'; return }
-  if (nw.length < 6) { msg.textContent = t('pw_tooShort'); msg.style.color = 'var(--danger-text)'; return }
+  if (nw.length < 8) { msg.textContent = t('pw_tooShort'); msg.style.color = 'var(--danger-text)'; return }
   if (nw !== cnf)   { msg.textContent = t('pw_mismatch'); msg.style.color = 'var(--danger-text)'; return }
   const res = await fetch('/me/password', {
     method: 'PUT', headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
@@ -7420,6 +8015,10 @@ function loadTemplate(t) {
 // Angaben im Hinweis. Firmen-/Personendaten gehen nie hinaus — das Modell schreibt mit Platzhaltern, der Server füllt sie
 // nach der Antwort aus den Organisationsdaten (server/ai/safeDraft.js).
 function setupAiDraftControls(canEditDoc) {
+  const fill = dom('btnFillPh')
+  if (fill) fill.style.display = userCanTransition('editor') ? '' : 'none'
+  const imp = dom('btnTmplCsvImport')
+  if (imp) imp.style.display = userCanTransition('contentowner') ? '' : 'none'
   const btn = dom('btnAiDraft')
   if (!btn) return
   btn.style.display = canEditDoc ? '' : 'none'
@@ -7428,20 +8027,29 @@ function setupAiDraftControls(canEditDoc) {
 let _aiDraftCatalog = null
 let _aiDraftTimer = null
 
-async function aiDraftPolicy() {
+// opts (nur für BCM): { type: 'BCM Plan' | 'BCM Exercise', fieldId } — das Ergebnis geht dann in dieses Textfeld statt in den Dokument-Editor
+let _aiDraftOpts = null
+async function aiDraftPolicy(opts = null) {
+  _aiDraftOpts = opts
   if (!_aiDraftCatalog) {
     const r = await fetch('/api/ai/draft-catalog', { headers: apiHeaders('contentowner') })
     if (!r.ok) { alert(t('tmpl_aiDraftError')); return }
     _aiDraftCatalog = await r.json()
   }
   const cat = _aiDraftCatalog
-  if (!cat.enabled) { alert(t('tmpl_aiDraftDisabled')); return }
-  const type = currentTemplate ? currentTemplate.type : currentType
-  const entries = cat.entries.filter(e => e.type === type)
+  const type = opts ? opts.type : (currentTemplate ? currentTemplate.type : currentType)
+  const uiLangSort = window.LANG || 'en'
+  // Die Liste ist lang (bei Policy knapp 40 Einträge): alphabetisch nach Titel in der Sprache der Oberfläche
+  const entries = cat.entries.filter(e => e.type === type).sort((x, y) => (x.title[uiLangSort] || x.title.en).localeCompare(y.title[uiLangSort] || y.title.en, uiLangSort))
   if (!entries.length) { alert(t('tmpl_aiDraftNoTitles')); return }
   const uiLang = window.LANG || 'en'
-  const avail = (_langConfig?.available || cat.languages).filter(l => cat.languages.includes(l))
-  const defLang = avail.includes(currentTemplate?.language) ? currentTemplate.language : (avail.includes(_langConfig?.default) ? _langConfig.default : avail[0] || 'en')
+  // Sprachen: genau die in den Organisationseinstellungen (Sprachkonfiguration) ausgewählten Sprachen, soweit der Katalog sie kennt. Vorbelegt ist die
+  // Sprache der Oberfläche, sonst die Sprache des Dokuments, sonst die erste. Ist nichts gewählt, gelten Oberflächensprache und Englisch.
+  // Der Anfragetext entsteht in der gewählten Sprache und muss nicht nachbearbeitet werden. Bei nur einer Möglichkeit bleibt das Feld ausgeblendet.
+  const chosen = (Array.isArray(_langConfig?.available) ? _langConfig.available : []).filter(l => cat.languages.includes(l))
+  const avail = chosen.length ? chosen : [...new Set([cat.languages.includes(uiLang) ? uiLang : 'en', 'en'])]
+  const defLang = !opts && avail.includes(currentTemplate?.language) ? currentTemplate.language : (avail.includes(uiLang) ? uiLang : avail[0])
+  const langHide = avail.length < 2 ? ' style="display:none"' : ''
 
   showModal('aiDraftModal', `
     <h3 style="margin:0 0 8px"><i class="ph ph-sparkle"></i> ${t('tmpl_aiDraft')}</h3>
@@ -7449,23 +8057,28 @@ async function aiDraftPolicy() {
     <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center">
       <label for="aiDraftEntry">${t('tmpl_aiDraftDocument')}</label>
       <select id="aiDraftEntry" class="input">${entries.map(e => `<option value="${e.id}">${escHtml(e.title[uiLang] || e.title.en)}</option>`).join('')}</select>
-      <label for="aiDraftLangSel">${t('tmpl_aiDraftLanguage')}</label>
-      <select id="aiDraftLangSel" class="input">${avail.map(l => `<option value="${l}"${l === defLang ? ' selected' : ''}>${l.toUpperCase()}</option>`).join('')}</select>
+      <label for="aiDraftLangSel"${langHide}>${t('tmpl_aiDraftLanguage')}</label>
+      <select id="aiDraftLangSel" class="input"${langHide}>${avail.map(l => `<option value="${escVal(l)}"${l === defLang ? ' selected' : ''}>${escHtml(langLabel(l))}</option>`).join('')}</select>
       <label for="aiDraftHint">${t('tmpl_aiDraftHint')}</label>
       <input id="aiDraftHint" class="input" maxlength="${cat.maxHint}" placeholder="${escHtml(t('tmpl_aiDraftHintPh'))}">
     </div>
     <div id="aiDraftWarn" style="display:none;color:var(--danger-text,#e74c3c);font-size:13px;margin-top:10px"></div>
     <div style="margin-top:12px">
       <strong style="font-size:13px">${t('tmpl_aiDraftSent')}</strong>
-      <pre id="aiDraftPrompt" style="white-space:pre-wrap;font-size:12px;max-height:180px;overflow:auto;background:var(--surface-2,#0002);padding:8px;border-radius:6px;margin:4px 0"></pre>
+      <pre id="aiDraftPrompt" style="white-space:pre-wrap;font-size:13px;line-height:1.45;max-height:min(42vh,380px);overflow:auto;background:var(--surface-2,#0002);padding:8px;border-radius:6px;margin:4px 0"></pre>
       <div style="font-size:12px;color:var(--text-subtle)">${t('tmpl_aiDraftTarget')} <code>${escHtml(cat.destination || '?')}</code></div>
       <div style="font-size:12px;color:var(--text-subtle);margin-top:4px">${t('tmpl_aiDraftPlaceholders')} <code>${cat.placeholders.map(p => '{{' + p + '}}').join(' ')}</code></div>
       <div style="font-size:12px;color:var(--text-subtle);margin-top:4px">${t('tmpl_aiDraftLimit')}</div>
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+    <div style="font-size:12px;color:var(--text-subtle);margin-top:8px">${t('tmpl_aiDraftOwnAi')}</div>
+    ${cat.enabled ? '' : `<div style="font-size:13px;color:var(--warning-text,#f59e0b);margin-top:8px">${t('tmpl_aiDraftDisabled')}</div>`}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">
       <button class="btn btn-secondary btn-sm" onclick="document.getElementById('aiDraftModal').remove()">${t('cancel')}</button>
-      <button class="btn btn-primary btn-sm" id="aiDraftGo" onclick="aiDraftRun()"><i class="ph ph-sparkle"></i> ${t('tmpl_aiDraftGenerate')}</button>
+      <button class="btn btn-secondary btn-sm" id="aiDraftCopy" onclick="aiDraftCopy()"><i class="ph ph-copy"></i> ${t('tmpl_aiDraftCopy')}</button>
+      <button class="btn btn-primary btn-sm" id="aiDraftGo" onclick="aiDraftRun()" ${cat.enabled ? '' : 'disabled'}><i class="ph ph-sparkle"></i> ${t('tmpl_aiDraftGenerate')}</button>
     </div>`)
+  // Großes Fenster: Der gesendete Text soll ohne Scrollen lesbar sein
+  dom('aiDraftModal').firstElementChild.style.cssText += ';width:min(980px,96vw);max-width:none;max-height:94vh;overflow:auto;padding:22px 26px'
   for (const id of ['aiDraftEntry', 'aiDraftLangSel']) dom(id).addEventListener('change', aiDraftPreview)
   dom('aiDraftHint').addEventListener('input', () => { clearTimeout(_aiDraftTimer); _aiDraftTimer = setTimeout(aiDraftPreview, 250) })
   aiDraftPreview()
@@ -7477,22 +8090,35 @@ function aiDraftBody() {
 
 // Zeigt den Prompt, der gesendet würde; bei Funden im Hinweis wird gesperrt
 async function aiDraftPreview() {
-  const warn = dom('aiDraftWarn'), pre = dom('aiDraftPrompt'), go = dom('aiDraftGo')
+  const warn = dom('aiDraftWarn'), pre = dom('aiDraftPrompt'), go = dom('aiDraftGo'), cp = dom('aiDraftCopy')
   if (!warn || !pre) return
   const r = await fetch('/api/ai/draft-preview', { method: 'POST', headers: apiHeaders('contentowner'), body: JSON.stringify(aiDraftBody()) })
   const d = await r.json().catch(() => ({}))
   if (r.ok) {
-    warn.style.display = 'none'; pre.textContent = d.prompt; go.disabled = false
+    warn.style.display = 'none'; pre.textContent = d.prompt; go.disabled = !_aiDraftCatalog.enabled; cp.disabled = false
     return
   }
-  go.disabled = true; pre.textContent = ''
+  go.disabled = true; cp.disabled = true; pre.textContent = ''
   const kinds = (d.findings || []).map(f => `${t('tmpl_aiDraftKind_' + f.kind)}: „${f.match}“`).join('; ')
   warn.style.display = ''
   warn.textContent = d.code === 'pii' ? `${t('tmpl_aiDraftBlocked')} ${kinds}` : (d.code === 'hint_chars' ? t('tmpl_aiDraftBadChars') : (d.error || t('tmpl_aiDraftError')))
 }
 
+// Weg über eine eigene KI: den geprüften Text kopieren (der Nutzer fügt ihn in eine KI seiner Wahl ein)
+async function aiDraftCopy() {
+  const text = dom('aiDraftPrompt').textContent
+  if (!text) return
+  try { await navigator.clipboard.writeText(text) } catch {
+    const r = document.createRange(); r.selectNodeContents(dom('aiDraftPrompt'))
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r)
+    try { document.execCommand('copy') } catch { /* Auswahl bleibt markiert, Strg+C möglich */ }
+  }
+  showToast(t('tmpl_aiDraftCopied'), 'success')
+}
+
 async function aiDraftRun() {
-  const editor = dom('contentEditor')
+  const editor = _aiDraftOpts ? dom(_aiDraftOpts.fieldId) : dom('contentEditor')
+  if (!editor) return
   if (editor.value.trim() && !confirm(t('tmpl_aiDraftConfirmOverwrite'))) return
   const go = dom('aiDraftGo')
   const label = go.innerHTML
@@ -7503,8 +8129,10 @@ async function aiDraftRun() {
     const data = await res.json().catch(() => ({}))
     if (!res.ok) { alert(data.error || t('tmpl_aiDraftError')); return }
     editor.value = data.content
-    if (!dom('inputTitle').value.trim()) dom('inputTitle').value = data.title
-    if (_tmplPreviewOn) applyTemplateViewMode(currentTemplate)
+    if (!_aiDraftOpts) {
+      if (!dom('inputTitle').value.trim()) dom('inputTitle').value = data.title
+      if (_tmplPreviewOn) applyTemplateViewMode(currentTemplate)
+    }
     dom('aiDraftModal')?.remove()
     alert(t('tmpl_aiDraftSuccess') + (data.unresolved && data.unresolved.length ? '\n\n' + t('tmpl_aiDraftUnresolved') + ' ' + data.unresolved.map(p => '{{' + p + '}}').join(', ') : ''))
   } catch {
@@ -7514,6 +8142,102 @@ async function aiDraftRun() {
     go.innerHTML = label
   }
 }
+
+// ── CSV-Export und -Import der Dokumente ─────────────────────────────────────
+// Export: alle Dokumente aller Typen. Import: legt nur neue Entwürfe an; Vorschau vor dem Anlegen, vorhandene Dokumente bleiben unverändert.
+async function exportTemplatesCsv() {
+  const res = await fetch('/templates/export.csv', { headers: apiHeaders('reader') })
+  if (!res.ok) { alert(t('error')); return }
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url; a.download = `documents-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove()
+  URL.revokeObjectURL(url)
+}
+
+let _tmplCsvText = null
+
+function _csvReason(code, extra) {
+  const key = 'tmpl_csv_' + code
+  const txt = t(key)
+  return (txt === key ? code : txt) + (extra && extra.value ? ` („${extra.value}“)` : '') + (extra && extra.column ? ` (${extra.column})` : '')
+}
+
+async function importTemplatesCsv(input) {
+  const file = input.files && input.files[0]
+  input.value = ''
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) { alert(t('tmpl_csv_too_large')); return }
+  _tmplCsvText = await file.text()
+  const res = await fetch('/templates/import', { method: 'POST', headers: apiHeaders('contentowner'), body: JSON.stringify({ csv: _tmplCsvText, dryRun: true }) })
+  const d = await res.json().catch(() => ({}))
+  if (!res.ok) { alert(_csvReason(d.code || 'error', d)); return }
+  const rows = [
+    ...d.errors.map(e => `<li><strong>${t('tmpl_csvRow')} ${e.line}${e.title ? ' · ' + escHtml(e.title) : ''}:</strong> ${escHtml(_csvReason(e.code, e))}</li>`),
+    ...d.skipped.map(e => `<li><strong>${t('tmpl_csvRow')} ${e.line} · ${escHtml(e.title)}:</strong> ${escHtml(_csvReason(e.code))}</li>`),
+  ]
+  showModal('tmplCsvModal', `
+    <h3 style="margin:0 0 8px"><i class="ph ph-upload-simple"></i> ${t('tmpl_csvImport')}</h3>
+    <p style="margin:0 0 8px">${t('tmpl_csvSummary', { created: d.created, skipped: d.skipped.length, errors: d.errors.length })}</p>
+    <p style="font-size:13px;color:var(--text-subtle);margin:0 0 8px">${t('tmpl_csvNote')}</p>
+    ${rows.length ? `<ul style="max-height:220px;overflow:auto;font-size:13px;padding-left:18px">${rows.join('')}</ul>` : ''}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('tmplCsvModal').remove()">${t('cancel')}</button>
+      <button class="btn btn-primary btn-sm" id="tmplCsvGo" onclick="importTemplatesCsvRun()" ${d.created ? '' : 'disabled'}>${t('tmpl_csvDo', { n: d.created })}</button>
+    </div>`, 760)
+}
+
+async function importTemplatesCsvRun() {
+  const go = dom('tmplCsvGo'); go.disabled = true
+  const res = await fetch('/templates/import', { method: 'POST', headers: apiHeaders('contentowner'), body: JSON.stringify({ csv: _tmplCsvText }) })
+  const d = await res.json().catch(() => ({}))
+  _tmplCsvText = null
+  dom('tmplCsvModal')?.remove()
+  if (!res.ok) { alert(_csvReason(d.code || 'error', d)); return }
+  alert(t('tmpl_csvDone', { created: d.created }) + ((d.warnings || []).length ? '\n\n' + d.warnings.map(w => `${t('tmpl_csvRow')} ${w.line} · ${w.title}: ${_csvReason(w.code)}`).join('\n') : ''))
+  await selectType(currentType)
+}
+
+// ── Platzhalter in Texten ersetzen ({{COMPANY_NAME}} …) ──────────────────────
+// Auch für Text, der von Hand eingefügt wurde (z. B. Antwort einer anderen KI). Ersetzt wird serverseitig aus den Organisationsdaten
+// (dieselbe Funktion wie im KI-Dialog); leere Werte bleiben als Platzhalter stehen.
+const _PH_HINT = /\{\{\s*[A-Za-z_ ]+?\s*\}\}|\[\s*(?:COMPANY_NAME|ISMS_OWNER|DATA_PROTECTION_OFFICER|ISMS_SCOPE)\s*\]/
+
+async function _fillPhRequest(text) {
+  const res = await fetch('/api/ai/fill-placeholders', { method: 'POST', headers: apiHeaders('editor'), body: JSON.stringify({ text }) })
+  if (!res.ok) throw new Error('fill failed')
+  return res.json()
+}
+
+function _fillPhToast(r) {
+  if (!r.replaced && !r.unresolved.length) { showToast(t('tmpl_fillPhNone'), 'info'); return }
+  let msg = t('tmpl_fillPhDone', { n: r.replaced })
+  if (r.unresolved.length) msg += ' ' + t('tmpl_fillPhOpen', { list: r.unresolved.map(p => '{{' + p + '}}').join(', ') })
+  showToast(msg, r.unresolved.length ? 'warning' : 'success')
+}
+
+async function fillPlaceholders() {
+  const ed = dom('contentEditor')
+  try {
+    const r = await _fillPhRequest(ed.value)
+    ed.value = r.text
+    _fillPhToast(r)
+  } catch { showToast(t('error'), 'error') }
+}
+
+// Beim Einfügen in den Editor: bekannte Platzhalter sofort ersetzen, sonst normal einfügen
+document.addEventListener('paste', async e => {
+  const ed = e.target
+  if (!ed || ed.id !== 'contentEditor' || ed.readOnly || ed.disabled) return
+  const text = (e.clipboardData && e.clipboardData.getData('text/plain')) || ''
+  if (!_PH_HINT.test(text)) return
+  e.preventDefault()
+  const start = ed.selectionStart, end = ed.selectionEnd
+  let insert = text, r = null
+  try { r = await _fillPhRequest(text); insert = r.text } catch { /* ohne Ersetzung einfügen */ }
+  ed.setRangeText(insert, start, end, 'end')
+  ed.dispatchEvent(new Event('input', { bubbles: true }))
+  if (r) _fillPhToast(r)
+})
 
 // ── #61: Leseansicht statt Eingabefeld ───────────────────────────────────────
 //
@@ -7622,6 +8346,7 @@ function applyTemplateViewMode(tmpl) {
   if (save) save.style.display = canEdit ? '' : 'none'
   if (prev) prev.style.display = canEditText ? '' : 'none'
   if (label) label.textContent = _tmplPreviewOn ? t('tmpl_edit') : t('tmpl_preview')
+  const fillBtn = dom('btnFillPh');        if (fillBtn) fillBtn.style.display = canEditText ? '' : 'none'
   const titleEl = dom('inputTitle');       if (titleEl) titleEl.readOnly = !canEditText
   const reviewEl = dom('inputNextReview'); if (reviewEl) reviewEl.readOnly = !canEdit
   const hint = dom('tmplLockHint')
@@ -7744,8 +8469,8 @@ async function renderBreadcrumb(t) {
     if (crumbs.length <= 1) { nav.style.display = 'none'; return }
     nav.style.display = 'flex'
     nav.innerHTML = crumbs.map((c, i) => {
-      if (i === crumbs.length - 1) return `<span class="tmpl-breadcrumb-current">${c.title}</span>`
-      return `<span class="tmpl-breadcrumb-item" onclick="loadTemplateById('${c.type}','${c.id}')">${c.title}</span><span class="tmpl-breadcrumb-sep">›</span>`
+      if (i === crumbs.length - 1) return `<span class="tmpl-breadcrumb-current">${escHtml(c.title)}</span>`
+      return `<span class="tmpl-breadcrumb-item" onclick="loadTemplateById(${jsArg(c.type)},${jsArg(c.id)})">${escHtml(c.title)}</span><span class="tmpl-breadcrumb-sep">›</span>`
     }).join('')
   } catch { nav.style.display = 'none' }
 }
@@ -7758,7 +8483,13 @@ async function buildBreadcrumbChain(t) {
     if (visited.has(pid)) break
     visited.add(pid)
     try {
-      const ptype = pid.split('_')[0]
+      let ptype = pid.split('_')[0]
+      if (ptype.includes('-')) {
+        // Typen mit Leerzeichen („Risk Policy“) stehen in der Kennung mit „-“: Typ aus der Dokumentenliste holen
+        const lr = await fetch('/templates', { headers: apiHeaders('reader') })
+        const hit = lr.ok ? (await lr.json()).find(x => x.id === pid) : null
+        if (hit) ptype = hit.type
+      }
       const res = await fetch(`/template/${encodeURIComponent(ptype)}/${encodeURIComponent(pid)}`, { headers: apiHeaders('reader') })
       if (!res.ok) break
       const parent = await res.json()
@@ -7788,9 +8519,9 @@ function renderAttachmentsBar(t) {
     atts.map(a => {
       const sizeKB = Math.round((a.size || 0) / 1024)
       return `<span class="tmpl-att-chip">
-        <a href="/template/${t.type}/${t.id}/attachments/${a.id}/file" target="_blank" title="${a.originalName}">${a.originalName}</a>
+        <a href="/template/${escHtml(t.type)}/${t.id}/attachments/${a.id}/file" target="_blank" title="${escHtml(a.originalName)}">${escHtml(a.originalName)}</a>
         <span class="tmpl-att-size">(${sizeKB} KB)</span>
-        ${canEdit ? `<button class="tmpl-att-del" title="${escHtml(window.t('delete'))}" onclick="deleteAttachment('${t.type}','${t.id}','${a.id}')"><i class="ph ph-x"></i></button>` : ''}
+        ${canEdit ? `<button class="tmpl-att-del" title="${escHtml(window.t('delete'))}" onclick="deleteAttachment(${jsArg(t.type)},${jsArg(t.id)},${jsArg(a.id)})"><i class="ph ph-x"></i></button>` : ''}
       </span>`
     }).join('') +
     (canEdit ? `<button class="btn btn-secondary btn-sm tmpl-att-upload-btn" onclick="triggerAttachUpload()"><i class="ph ph-upload-simple"></i> ${window.t('ui_attach')}</button>
@@ -7853,7 +8584,7 @@ function renderDocAttachPanel(containerId, apiBase, collection, itemId, attachme
         ${canEdit ? `<label class="btn btn-secondary btn-sm" style="cursor:pointer">
           <i class="ph ph-upload-simple"></i> ${t('ui_upload')}
           <input type="file" style="display:none" accept=".pdf,.docx,.doc,.xlsx,.pptx"
-            onchange="uploadDocAttachment(this,'${apiBase}','${collection}','${itemId}','${containerId}')">
+            onchange="uploadDocAttachment(this,${jsArg(apiBase)},${jsArg(collection)},${jsArg(itemId)},${jsArg(containerId)})">
         </label>` : ''}
       </div>
       ${atts.length === 0
@@ -7871,7 +8602,7 @@ function renderDocAttachPanel(containerId, apiBase, collection, itemId, attachme
                 <span class="doc-attach-meta">${kb} KB · ${escHtml(a.uploadedBy || '')} · ${date}</span>
               </div>
               ${canEdit ? `<button class="btn-icon-sm" title="${escHtml(t('delete'))}"
-                onclick="deleteDocAttachment('${apiBase}','${collection}','${itemId}','${a.id}','${containerId}')">
+                onclick="deleteDocAttachment(${jsArg(apiBase)},${jsArg(collection)},${jsArg(itemId)},${jsArg(a.id)},${jsArg(containerId)})">
                 <i class="ph ph-trash"></i></button>` : ''}
             </div>`
           }).join('')
@@ -7931,7 +8662,7 @@ function renderTmplControlsBar(t) {
   }
   bar.style.display = 'flex'
   bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-link"></i> ${window.t('findings_linkedControls')}</span>` +
-    linked.map(cid => `<span class="tmpl-bar-pill">${cid}</span>`).join('') +
+    linked.map(cid => `<span class="tmpl-bar-pill">${escHtml(cid)}</span>`).join('') +
     `<button class="tmpl-bar-edit btn btn-secondary btn-sm" onclick="openControlPicker()"><i class="ph ph-pencil"></i></button>`
 }
 
@@ -7946,7 +8677,7 @@ function renderTmplEntityBar(t) {
   }
   bar.style.display = 'flex'
   bar.innerHTML = `<span class="tmpl-bar-label"><i class="ph ph-buildings"></i> ${window.t('tmpl_appliesTo')}</span>` +
-    ents.map(eid => `<span class="tmpl-bar-pill">${eid}</span>`).join('')
+    ents.map(eid => `<span class="tmpl-bar-pill">${escHtml(eid)}</span>`).join('')
 }
 
 async function openControlPicker() {
@@ -7967,7 +8698,7 @@ async function openControlPicker() {
   const fwSet = [...new Set(_pickerAllControls.map(c => c.framework))]
   const fwTabsEl = dom('controlPickerFwTabs')
   fwTabsEl.innerHTML = `<button class="picker-fw-tab${_pickerSelectedFw === null ? ' active' : ''}" onclick="setPickerFw(null)">${t('findings_tabList')}</button>` +
-    fwSet.map(fw => `<button class="picker-fw-tab" onclick="setPickerFw('${fw}')">${fw}</button>`).join('')
+    fwSet.map(fw => `<button class="picker-fw-tab" data-fw="${escHtml(fw)}" onclick="setPickerFw(this.dataset.fw)">${escHtml(fw)}</button>`).join('')
 
   renderPickerList()
   updatePickerCount()
@@ -8007,9 +8738,9 @@ function renderPickerList() {
   list.innerHTML = controls.map(c => {
     const checked = _pickerChecked.has(c.id)
     return `<label class="picker-row${checked ? ' checked' : ''}">
-      <input type="checkbox" ${checked ? 'checked' : ''} onchange="togglePickerControl('${c.id}', this.checked)" />
-      <span class="picker-id">${c.id}</span>
-      <span class="picker-title">${c.title}</span>
+      <input type="checkbox" ${checked ? 'checked' : ''} data-id="${escVal(c.id)}" onchange="togglePickerControl(this.dataset.id, this.checked)" />
+      <span class="picker-id">${escVal(c.id)}</span>
+      <span class="picker-title">${escHtml(c.title)}</span>
     </label>`
   }).join('')
 }
@@ -8143,9 +8874,9 @@ function _renderEntityPickerModal() {
   list.innerHTML = _entityCache.map(e => {
     const checked = _entityPickerSelected.has(e.id)
     return `<label class="picker-row${checked ? ' checked' : ''}">
-      <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleEntityPicker('${e.id}', this.checked)" />
-      <span class="picker-id">${e.shortCode || e.id}</span>
-      <span class="picker-title">${e.name}</span>
+      <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleEntityPicker(${jsArg(e.id)}, this.checked)" />
+      <span class="picker-id">${escHtml(e.shortCode || e.id)}</span>
+      <span class="picker-title">${escHtml(e.name)}</span>
     </label>`
   }).join('')
 
@@ -8186,6 +8917,9 @@ function clearEditor(){
   const lock = dom('tmplLockHint'); if (lock) lock.style.display = 'none'
   dom('inputTitle').value = ''
   dom('contentEditor').value = ''
+  const nr = dom('inputNextReview'); if (nr) nr.value = ''
+  const viewer = dom('contentViewer'); if (viewer) viewer.innerHTML = ''
+  _tmplPreviewOn = false
   updateStatusBadge('draft')
   dom('ownerInfo').textContent = ''
   renderLifecycleActions(null)
@@ -8193,6 +8927,8 @@ function clearEditor(){
   const eb = dom('tmplEntityBar');   if (eb) { eb.style.display = 'none'; eb.innerHTML = '' }
   const rank = ROLE_RANK[getCurrentRole()] || 0
   setupAiDraftControls(rank >= ROLE_RANK.contentowner, null)
+  // Leseansicht (freigegebene Dokumente, Leserrolle) und gesperrte Felder zurücksetzen: ohne Dokument zeigt die Maske wieder den leeren Editor
+  applyTemplateViewMode(null)
 }
 
 function loadTemplateHistory(type, id) {
@@ -8454,7 +9190,7 @@ async function renderGuidance() {
     <div class="guidance-cat-tabs" id="guidanceCatTabs">
       ${GUIDANCE_CATS.filter(c => !c.minRole || (ROLE_RANK[getCurrentRole()] || 0) >= (ROLE_RANK[c.minRole] || 0)).map(c => `
         <button class="guidance-cat-tab ${c.id === _guidanceCat ? 'active' : ''}"
-          data-cat="${c.id}" onclick="switchGuidanceCat('${c.id}')">
+          data-cat="${c.id}" onclick="switchGuidanceCat(${jsArg(c.id)})">
           <i class="ph ${c.icon}"></i> ${c.label}
         </button>
       `).join('')}
@@ -8506,7 +9242,7 @@ function renderGuidanceList() {
     const icon = d.type === 'pdf' ? 'ph-file-pdf' : d.type === 'docx' ? 'ph-file-doc' : 'ph-file-text'
     const active = d.id === _guidanceDocId ? 'active' : ''
     return `
-      <li class="guidance-doc-item ${active}" data-id="${d.id}" onclick="renderGuidanceDoc(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+      <li class="guidance-doc-item ${active}" data-id="${d.id}" onclick="renderGuidanceDoc(${escHtml(JSON.stringify(d))})">
         <i class="ph ${icon} guidance-doc-icon"></i>
         <span class="guidance-doc-title">${escHtml(d.title)}</span>
       </li>
@@ -8553,16 +9289,16 @@ function renderGuidanceDoc(doc) {
     <div class="guidance-viewer-toolbar">
       <span class="guidance-viewer-title">${escHtml(doc.title)}</span>
       <span class="badge" style="background:var(--surface-raised);color:var(--text-subtle);font-size:11px;">
-        v${doc.version || 1}
+        v${escHtml(doc.version || 1)}
       </span>
       ${doc.type === 'markdown' || doc.type === 'html' ? `
-        <button class="btn btn-secondary btn-sm" onclick="printGuidanceDoc('${doc.id}')" title="${t('guidance_printDocTitle')}">
+        <button class="btn btn-secondary btn-sm" onclick="printGuidanceDoc(${jsArg(doc.id)})" title="${t('guidance_printDocTitle')}">
           <i class="ph ph-file-pdf"></i> PDF
         </button>` : ''}
-      ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="openGuidanceEditor('${doc.id}')">
+      ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="openGuidanceEditor(${jsArg(doc.id)})">
         <i class="ph ph-pencil"></i> ${t('edit')}
       </button>` : ''}
-      ${canDel ? `<button class="btn btn-sm" style="color:var(--danger-text);" onclick="deleteGuidanceDoc('${doc.id}')">
+      ${canDel ? `<button class="btn btn-sm" style="color:var(--danger-text);" onclick="deleteGuidanceDoc(${jsArg(doc.id)})">
         <i class="ph ph-trash"></i>
       </button>` : ''}
     </div>
@@ -8669,7 +9405,7 @@ function renderGuidanceSearchResults(results, query) {
     const catLabel = catMeta ? catMeta.label : d.category
     return `
       <li class="guidance-doc-item ${d.id === _guidanceDocId ? 'active' : ''}" data-id="${d.id}"
-        onclick="renderGuidanceDoc(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+        onclick="renderGuidanceDoc(${escHtml(JSON.stringify(d))})">
         <i class="ph ${icon} guidance-doc-icon"></i>
         <div style="min-width:0">
           <span class="guidance-doc-title">${escHtml(d.title)}</span>
@@ -8757,7 +9493,7 @@ function openGuidanceEditor(docArg) {
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;padding:12px 0;">
           <button class="btn btn-secondary" onclick="closeGuidanceEditor()">${t('ui_cancel')}</button>
-          <button class="btn btn-primary" onclick="saveGuidanceEditor('${isEdit ? doc.id : ''}')">
+          <button class="btn btn-primary" onclick="saveGuidanceEditor(${jsArg(isEdit ? doc.id : '')})">
             <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
           </button>
         </div>
@@ -8969,7 +9705,7 @@ async function renderMeasures() {
   dom('editor').appendChild(container)
   const f = _measuresFilter
   const statusOpts = `<option value="">${escHtml(t('filter_allStatuses'))}</option>` +
-    Object.keys(MEASURE_STATUS_COLOR).map(s => `<option value="${s}" ${f.status === s ? 'selected' : ''}>${escHtml(t('measures_status_' + s))}</option>`).join('')
+    Object.keys(MEASURE_STATUS_COLOR).map(s => `<option value="${escVal(s)}" ${f.status === s ? 'selected' : ''}>${escHtml(t('measures_status_' + s))}</option>`).join('')
   container.innerHTML = `
     <div class="admin-fullpage">
       <div class="admin-fullpage-header">
@@ -8987,7 +9723,7 @@ async function renderMeasures() {
         <input class="form-input" style="max-width:170px;font-size:.82rem" placeholder="${escHtml(t('measures_fResponsible'))}" value="${escHtml(f.responsible)}" oninput="_measuresRespInput(this.value)">
         <select class="select" style="font-size:.82rem;width:auto;min-width:150px" onchange="_measuresFilter.origin=this.value;loadMeasuresList()">
           ${[['', 'measures_filterOriginAll'], ['tom', 'measures_originTom'], ['governance', 'measures_originGovernance'], ['risk', 'measures_originRisk'], ['finding', 'measures_originFinding']]
-            .map(([v, k]) => `<option value="${v}" ${f.origin === v ? 'selected' : ''}>${escHtml(t(k))}</option>`).join('')}
+            .map(([v, k]) => `<option value="${escVal(v)}" ${f.origin === v ? 'selected' : ''}>${escHtml(t(k))}</option>`).join('')}
         </select>
         <label class="measure-check"><input type="checkbox" ${f.overdue ? 'checked' : ''} onchange="_measuresFilter.overdue=this.checked;loadMeasuresList()"> ${t('measures_onlyOverdue')}</label>
         <span id="measuresChips"></span>
@@ -9042,7 +9778,7 @@ async function loadMeasuresList() {
         <th>${t('measures_fResponsible')}</th><th>${t('col_dueDate')}</th><th>${t('measures_colLinks')}</th><th></th>
       </tr></thead>
       <tbody>${list.map(m => `
-        <tr class="measure-row" onclick="openMeasureForm('${escHtml(m.id)}')">
+        <tr class="measure-row" onclick="openMeasureForm(${jsArg(m.id)})">
           <td class="measure-ref">${escHtml(m.ref)}</td>
           <td><strong>${escHtml(m.title)}</strong>${m.tom ? ` <span class="measure-badge measure-tom" title="${escHtml(t('measures_isTom'))}">${escHtml(t('measures_tomBadge'))}</span>` : ''}${m.governance ? ` <span class="measure-badge measure-tom" title="${escHtml(t('measures_isGovernance'))}">${escHtml(t('measures_govBadge'))}</span>` : ''}${m.description ? `<div class="measure-desc">${escHtml(m.description.slice(0, 140))}${m.description.length > 140 ? '…' : ''}</div>` : ''}</td>
           <td>${_measureBadge(m.status)}</td>
@@ -9054,8 +9790,8 @@ async function loadMeasuresList() {
             ${(m.linkedRisks || []).length ? `<span title="${escHtml(t('measures_linksRisks'))}"><i class="ph ph-warning"></i> ${m.linkedRisks.length}</span>` : ''}
           </td>
           <td class="measure-actions" onclick="event.stopPropagation()">
-            ${edit ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('measures_edit'))}" onclick="openMeasureForm('${escHtml(m.id)}')"><i class="ph ph-pencil"></i></button>` : ''}
-            ${del ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteMeasure('${escHtml(m.id)}')"><i class="ph ph-trash"></i></button>` : ''}
+            ${edit ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('measures_edit'))}" onclick="openMeasureForm(${jsArg(m.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+            ${del ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteMeasure(${jsArg(m.id)})"><i class="ph ph-trash"></i></button>` : ''}
           </td>
         </tr>`).join('')}
       </tbody>
@@ -9081,12 +9817,12 @@ function _measureRenderPicker(kind) {
   const listEl = dom(cfg.ids[1])
   if (!listEl) return
   listEl.innerHTML = shown.length
-    ? shown.map(x => `<label class="measure-pick"><input type="checkbox" ${sel.has(x.id) ? 'checked' : ''} ${ro ? 'disabled' : ''} onchange="_measureToggle('${kind}', this.dataset.id, this.checked)" data-id="${escHtml(x.id)}"> <span>${escHtml(label(x))}</span></label>`).join('') +
+    ? shown.map(x => `<label class="measure-pick"><input type="checkbox" ${sel.has(x.id) ? 'checked' : ''} ${ro ? 'disabled' : ''} onchange="_measureToggle(${jsArg(kind)}, this.dataset.id, this.checked)" data-id="${escHtml(x.id)}"> <span>${escHtml(label(x))}</span></label>`).join('') +
       (hits.length > shown.length ? `<div class="measure-pick-more">${escHtml(t('measures_pickerMore'))}</div>` : '')
     : `<div class="measure-pick-more">${escHtml(t('measures_pickerNone'))}</div>`
   const names = new Map(F[cfg.all].map(x => [x.id, label(x)]))
   dom(cfg.ids[2]).innerHTML = [...sel].map(id =>
-    `<span class="measure-chip">${escHtml(names.get(id) || id)}${ro ? '' : ` <button type="button" onclick="_measureToggle('${kind}', this.dataset.id, false)" data-id="${escHtml(id)}">&times;</button>`}</span>`).join('') || `<span class="soa-detail-none">${escHtml(t('measures_noneSelected'))}</span>`
+    `<span class="measure-chip">${escHtml(names.get(id) || id)}${ro ? '' : ` <button type="button" onclick="_measureToggle(${jsArg(kind)}, this.dataset.id, false)" data-id="${escHtml(id)}">&times;</button>`}</span>`).join('') || `<span class="soa-detail-none">${escHtml(t('measures_noneSelected'))}</span>`
 }
 function _measureTomToggle() { const f = dom('msTomFields'); if (f) f.style.display = dom('msTom').checked ? 'block' : 'none' }
 function _measureGovToggle() { const f = dom('msGovFields'); if (f) f.style.display = dom('msGov').checked ? 'block' : 'none' }
@@ -9122,7 +9858,7 @@ async function openMeasureForm(id = null, prefill = null) {
     risks: new Set(m ? (m.linkedRisks || []) : (prefill && prefill.kind === 'risk' ? [prefill.id] : [])),
   }
   const dis = readOnly ? 'disabled' : ''
-  const statusOpts = Object.keys(MEASURE_STATUS_COLOR).map(s => `<option value="${s}" ${(m ? m.status : 'planned') === s ? 'selected' : ''}>${escHtml(t('measures_status_' + s))}</option>`).join('')
+  const statusOpts = Object.keys(MEASURE_STATUS_COLOR).map(s => `<option value="${escVal(s)}" ${(m ? m.status : 'planned') === s ? 'selected' : ''}>${escHtml(t('measures_status_' + s))}</option>`).join('')
   container.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
@@ -9176,13 +9912,13 @@ async function openMeasureForm(id = null, prefill = null) {
           <div id="msGovFields" style="display:${m && m.governance ? 'block' : 'none'}">
             <div class="form-row">
               <div class="form-group"><label class="form-label">${t('measures_fSource')}</label>
-                <select id="msSource" class="select" ${dis}>${['management_review', 'internal_audit', 'external_audit', 'incident', 'other'].map(c => `<option value="${c}" ${(m && m.source ? m.source : 'management_review') === c ? 'selected' : ''}>${escHtml(t('measures_source_' + c))}</option>`).join('')}</select></div>
+                <select id="msSource" class="select" ${dis}>${['management_review', 'internal_audit', 'external_audit', 'incident', 'other'].map(c => `<option value="${escVal(c)}" ${(m && m.source ? m.source : 'management_review') === c ? 'selected' : ''}>${escHtml(t('measures_source_' + c))}</option>`).join('')}</select></div>
               <div class="form-group"><label class="form-label">${t('measures_fSourceRef')}</label>
                 <input id="msSourceRef" class="form-input" ${dis} value="${escHtml(m ? m.sourceRef : '')}"></div>
               <div class="form-group"><label class="form-label">${t('measures_fPriority')}</label>
-                <select id="msPriority" class="select" ${dis}>${['low', 'medium', 'high', 'critical'].map(c => `<option value="${c}" ${(m && m.priority ? m.priority : 'medium') === c ? 'selected' : ''}>${escHtml(t('measures_priority_' + c))}</option>`).join('')}</select></div>
+                <select id="msPriority" class="select" ${dis}>${['low', 'medium', 'high', 'critical'].map(c => `<option value="${escVal(c)}" ${(m && m.priority ? m.priority : 'medium') === c ? 'selected' : ''}>${escHtml(t('measures_priority_' + c))}</option>`).join('')}</select></div>
               <div class="form-group"><label class="form-label">${t('measures_fProgress')}</label>
-                <input id="msProgress" type="number" min="0" max="100" class="form-input" ${dis} value="${m ? m.progress || 0 : 0}"></div>
+                <input id="msProgress" type="number" min="0" max="100" class="form-input" ${dis} value="${escVal(m ? m.progress || 0 : 0)}"></div>
             </div>
             <div class="form-row">
               <div class="form-group"><label class="form-label">${t('measures_fOwnerEmail')}</label>
@@ -9219,7 +9955,7 @@ async function openMeasureForm(id = null, prefill = null) {
           </div>
         </div>
         ${readOnly ? '' : `<div class="training-form-section" style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="saveMeasure(${m ? `'${escHtml(m.id)}'` : 'null'})"><i class="ph ph-floppy-disk"></i> ${t('save')}</button>
+          <button class="btn btn-primary" onclick="saveMeasure(${m ? `${jsArg(m.id)}` : 'null'})"><i class="ph ph-floppy-disk"></i> ${t('save')}</button>
           <button class="btn btn-secondary" onclick="renderMeasures()">${t('cancel')}</button>
         </div>`}
       </div>
@@ -9273,9 +10009,9 @@ async function loadMeasuresBlock(kind, id, elId) {
   if (!dom(elId)) return
   el.innerHTML =
     (list.length
-      ? list.map(m => `<a class="measure-chip measure-chip-link" href="#" onclick="event.preventDefault();openMeasureFromLink('${escHtml(m.id)}')" title="${escHtml(m.title)}">${escHtml(m.ref)} ${escHtml(m.title.length > 48 ? m.title.slice(0, 47) + '…' : m.title)} ${_measureBadge(m.status)}</a>`).join('')
+      ? list.map(m => `<a class="measure-chip measure-chip-link" href="#" onclick="event.preventDefault();openMeasureFromLink(${jsArg(m.id)})" title="${escHtml(m.title)}">${escHtml(m.ref)} ${escHtml(m.title.length > 48 ? m.title.slice(0, 47) + '…' : m.title)} ${_measureBadge(m.status)}</a>`).join('')
       : `<span class="soa-detail-none">${t('measures_none')}</span>`) +
-    (measureCanEdit() ? ` <button class="btn btn-secondary btn-sm" onclick="newMeasureFor('${kind}','${escHtml(id)}')"><i class="ph ph-plus"></i> ${t('measures_add')}</button>` : '')
+    (measureCanEdit() ? ` <button class="btn btn-secondary btn-sm" onclick="newMeasureFor(${jsArg(kind)},${jsArg(id)})"><i class="ph ph-plus"></i> ${t('measures_add')}</button>` : '')
 }
 function openMeasureFromLink(id) { _measuresPending = { open: id }; loadSection('measures') }
 function newMeasureFor(kind, id) { _measuresPending = { newFor: { kind, id } }; loadSection('measures') }
@@ -9335,6 +10071,7 @@ const CAL_EVENT_CFG = {
   audit_planned:        { get label() { return t('cal_auditPlanned') },  cls:'cal-chip-audit', icon:'ph-clipboard-text' },
   audit_due:            { get label() { return t('cal_auditDue') },      cls:'cal-chip-audit', icon:'ph-clipboard-text' },
   audit_followup:       { get label() { return t('cal_auditFollowup') }, cls:'cal-chip-audit', icon:'ph-arrow-u-down-left' },
+  supplier_evidence:    { get label() { return t('cal_supplierEvidence') }, cls:'cal-chip-audit', icon:'ph-seal-check' },
 }
 
 let _calYear  = new Date().getFullYear()
@@ -9413,7 +10150,7 @@ function _renderCalMonth() {
 
     cells += `
       <div class="cal-cell ${isToday ? 'cal-today' : ''} ${isSel ? 'cal-selected' : ''} ${isPast && !isToday ? 'cal-past-day' : ''} ${evs.length ? 'cal-has-events' : ''}"
-           onclick="selectCalDay('${dateStr}')">
+           onclick="selectCalDay(${jsArg(dateStr)})">
         <div class="cal-day-num">${d}</div>
         <div class="cal-chips">${chips}${more}</div>
       </div>`
@@ -9448,7 +10185,7 @@ function _renderCalUpcoming() {
     const soon = ev.date <= in30
     return `
       <div class="cal-agenda-row ${ev.date < today ? 'cal-agenda-overdue' : soon ? 'cal-agenda-soon' : ''}"
-           onclick="selectCalDay('${ev.date}')">
+           onclick="selectCalDay(${escHtml(JSON.stringify(String(ev.date)))})">
         <div class="cal-agenda-date">${d}</div>
         <div class="cal-chip ${cfg.cls} cal-chip-sm" title="${escHtml(cfg.label||ev.type)}">
           <i class="ph ${cfg.icon||'ph-dot'}"></i>
@@ -9504,12 +10241,12 @@ function _renderCalDayDetail(dateStr) {
         return `
           <div class="cal-detail-card ${overdue ? 'cal-detail-overdue' : ''}">
             <div class="cal-detail-header">
-              <span class="cal-chip ${cfg.cls}"><i class="ph ${cfg.icon||'ph-dot'}"></i> ${cfg.label||ev.type}</span>
+              <span class="cal-chip ${cfg.cls}"><i class="ph ${cfg.icon||'ph-dot'}"></i> ${escHtml(cfg.label||ev.type)}</span>
               ${overdue ? '<span class="cal-overdue-badge">' + t('dash_overdue') + '</span>' : ''}
             </div>
             <div class="cal-detail-label">${escHtml(ev.label)}</div>
             ${ev.riskId ? `<button class="btn btn-secondary btn-sm" style="margin-top:6px;"
-              onclick="loadSection('risk');renderRisk().then(()=>openRiskDetail('${ev.riskId}'))">
+              onclick="loadSection('risk');renderRisk().then(()=>openRiskDetail(${escHtml(JSON.stringify(String(ev.riskId)))}))">
               <i class="ph ph-arrow-square-out"></i> ${t('cal_openRisk')}
             </button>` : ''}
           </div>`
@@ -9577,8 +10314,8 @@ const CVSS_BANDS = [
   { min: 0.0, max:  0.0, get label() { return t('assets_lvlNone') }, cls: 'cvss-none',     color: '#6b7280',
     descKey: 'cvss_descNone' },
 ]
-function riskCatLabel(cat) { return cat ? t(cat.labelKey) : '' }
-function riskTreatmentLabel(treatment) { return treatment ? t(treatment.labelKey) : '' }
+function riskCatLabel(cat) { return cat ? (cat.labelKey ? t(cat.labelKey) : escVal(cat.label || cat.id)) : '' }
+function riskTreatmentLabel(treatment) { return treatment ? (treatment.labelKey ? t(treatment.labelKey) : escVal(treatment.label || treatment.id)) : '' }
 function cvssDesc(info) { return info?.descKey ? t(info.descKey) : '' }
 
 function cvssInfo(score) {
@@ -9601,9 +10338,9 @@ function cvssBarHtml(score) {
   return `
     <div class="cvss-bar-wrap" title="CVSS ${parseFloat(score).toFixed(1)} / 10">
       <div class="cvss-bar-track">
-        <div class="cvss-bar-fill" style="width:${pct}%;background:${info.color}"></div>
+        <div class="cvss-bar-fill" style="width:${pct}%;background:${escVal(info.color)}"></div>
       </div>
-      <span class="cvss-bar-label" style="color:${info.color}">${parseFloat(score).toFixed(1)}</span>
+      <span class="cvss-bar-label" style="color:${escVal(info.color)}">${parseFloat(score).toFixed(1)}</span>
     </div>`
 }
 
@@ -9697,7 +10434,7 @@ async function renderRiskRegister(el) {
   const lvOpts = [{ id:'', label:t('filter_allLevels') }, ...Object.keys(RISK_LEVEL_CFG).reverse().map(id => ({ id, label: RISK_LEVEL_CFG[id].label }))].map(l =>
     `<option value="${l.id}" ${_riskFilterLevel === l.id ? 'selected':''}>${l.label}</option>`).join('')
   const catOpts = [{ id:'', label:t('filter_allCats') }, ...RISK_CATS].map(c =>
-    `<option value="${c.id}" ${_riskFilterCat === c.id ? 'selected':''}>${c.label || riskCatLabel(c)}</option>`).join('')
+    `<option value="${escVal(c.id)}" ${_riskFilterCat === c.id ? 'selected':''}>${c.label ? escVal(c.label) : riskCatLabel(c)}</option>`).join('')
   const stOpts = [{ id:'', label:t('filter_allStatuses') }, ...RISK_STATUSES].map(s =>
     `<option value="${s.id}" ${_riskFilterStatus === s.id ? 'selected':''}>${s.label}</option>`).join('')
 
@@ -9718,24 +10455,24 @@ async function renderRiskRegister(el) {
       </tr></thead>
       <tbody>
         ${risks.map(r => {
-          const lv = RISK_LEVEL_CFG[r.riskLevel] || { label: r.riskLevel, cls: '' }
+          const lv = RISK_LEVEL_CFG[r.riskLevel] || { label: escVal(r.riskLevel), cls: '' }
           const cat = RISK_CATS.find(c => c.id === r.category)
           const st  = RISK_STATUSES.find(s => s.id === r.status)
           const tr  = RISK_TREATMENTS.find(t => t.id === r.treatmentOption)
-          return `<tr class="risk-row${r.needsReview ? ' risk-needs-review' : ''}" onclick="openRiskDetail('${r.id}')">
+          return `<tr class="risk-row${r.needsReview ? ' risk-needs-review' : ''}" onclick="openRiskDetail(${jsArg(r.id)})">
             <td style="white-space:nowrap">
               <span class="risk-badge ${lv.cls}">${lv.label}</span>
               ${r.cvssScore != null ? cvssBadgeHtml(r.cvssScore) : ''}
             </td>
             <td class="risk-title-cell">${escHtml(r.title)}${r.needsReview ? ` <span class="badge-review-pending" title="${t('risk_approvalRequired')}">&#9888; ${t('ui_review')}</span>` : ''}</td>
             <td>${escHtml(riskCatLabel(cat) || r.category)}</td>
-            <td class="risk-score-cell">${r.probability} × ${r.impact} = <strong>${r.score}</strong></td>
+            <td class="risk-score-cell">${escVal(r.probability)} × ${escVal(r.impact)} = <strong>${escVal(r.score)}</strong></td>
             <td>${escHtml(riskTreatmentLabel(tr) || r.treatmentOption)}</td>
-            <td><span class="risk-status-badge risk-st-${r.status}">${st?.label || r.status}</span></td>
+            <td><span class="risk-status-badge risk-st-${escHtml(r.status)}">${escHtml(st?.label || r.status)}</span></td>
             <td>${escHtml(r.owner || '—')}</td>
             <td onclick="event.stopPropagation()" class="risk-actions">
-              ${canEditRisk(r) ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openRiskModal('${r.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${getCurrentRole()==='admin' ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteRisk('${r.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${canEditRisk(r) ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openRiskModal(${jsArg(r.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+              ${getCurrentRole()==='admin' ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteRisk(${jsArg(r.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
         }).join('')}
@@ -9840,7 +10577,7 @@ async function renderRiskHeatmap(el) {
       const list = cells[key] || []
       const cls  = levelColor(p, i)
       const dots = list.slice(0, 4).map(r =>
-        `<span class="hm-dot" title="${escHtml(r.title)}" onclick="openRiskDetail('${r.id}')"></span>`
+        `<span class="hm-dot" title="${escHtml(r.title)}" onclick="openRiskDetail(${jsArg(r.id)})"></span>`
       ).join('')
       const more = list.length > 4 ? `<span class="hm-more">+${list.length - 4}</span>` : ''
       grid += `<div class="hm-cell ${cls}" title="${p} × ${i} = ${p*i}">${dots}${more}<span class="hm-score">${p*i}</span></div>`
@@ -9862,7 +10599,7 @@ async function renderRiskHeatmap(el) {
     const score = r.probability * r.impact
     const cls   = levelColor(r.probability, r.impact)
     const owner = r.owner ? `<span class="hm-list-owner">${escHtml(r.owner)}</span>` : ''
-    return `<div class="hm-list-item" onclick="openRiskDetail('${r.id}')">
+    return `<div class="hm-list-item" onclick="openRiskDetail(${jsArg(r.id)})">
       <span class="hm-list-badge ${cls}">${score}</span>
       <span class="hm-list-title">${escHtml(r.title)}</span>${owner}
     </div>`
@@ -9939,12 +10676,12 @@ async function renderRiskTreatments(el) {
             <td>${escHtml(tp.responsible || '—')}</td>
             <td>${escHtml(ouName)}</td>
             <td class="${overdue ? 'risk-overdue' : ''}">${tp.dueDate ? new Date(tp.dueDate).toLocaleDateString('en-GB') : '—'}</td>
-            <td><span class="risk-tp-status risk-tp-${tp.status}">${statusLabel[tp.status] || tp.status}</span></td>
+            <td><span class="risk-tp-status risk-tp-${escHtml(tp.status)}">${escHtml(statusLabel[tp.status] || tp.status)}</span></td>
             ${canManageRisks() ? `<td>
-              <button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openTreatmentModal('${tp.riskId}','${tp.id}')">
+              <button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openTreatmentModal(${jsArg(tp.riskId)},${jsArg(tp.id)})">
                 <i class="ph ph-pencil"></i>
               </button>
-              <button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteTreatment('${tp.riskId}','${tp.id}')">
+              <button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteTreatment(${jsArg(tp.riskId)},${jsArg(tp.id)})">
                 <i class="ph ph-trash"></i>
               </button>
             </td>` : ''}
@@ -9986,7 +10723,7 @@ async function renderRiskCalendar(el) {
           <div class="cal-event ${past ? 'cal-past' : soon ? 'cal-soon' : ''}">
             <div class="cal-date">${new Date(ev.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
             <div class="cal-body">
-              <span class="cal-type-badge ${typeCls[ev.type] || ''}">${typeLabel[ev.type] || ev.type}</span>
+              <span class="cal-type-badge ${typeCls[ev.type] || ''}">${escHtml(typeLabel[ev.type] || ev.type)}</span>
               <span class="cal-label">${escHtml(ev.label)}</span>
             </div>
             <div class="cal-state">
@@ -10019,7 +10756,7 @@ async function renderRiskReports(el) {
     </div>`
 
   const top5rows = s.top5.map(r => {
-    const lv = RISK_LEVEL_CFG[r.riskLevel] || { label: r.riskLevel, cls: '' }
+    const lv = RISK_LEVEL_CFG[r.riskLevel] || { label: escVal(r.riskLevel), cls: '' }
     return `<tr>
       <td>${escHtml(r.title)}</td>
       <td><span class="risk-badge ${lv.cls}">${lv.label}</span></td>
@@ -10044,7 +10781,7 @@ async function renderRiskReports(el) {
         <h4>${t('risk_byLevel')}</h4>
         ${Object.entries(s.byLevel).map(([k,v]) => `
           <div class="risk-report-row">
-            <span class="risk-badge ${RISK_LEVEL_CFG[k]?.cls}" style="width:80px;">${RISK_LEVEL_CFG[k]?.label||k}</span>
+            <span class="risk-badge ${RISK_LEVEL_CFG[k]?.cls}" style="width:80px;">${RISK_LEVEL_CFG[k]?.label||escVal(k)}</span>
             ${bar(v, s.total, RISK_LEVEL_CFG[k]?.cls+'-bar')}
           </div>`).join('')}
       </div>
@@ -10079,10 +10816,10 @@ async function renderRiskReports(el) {
           <tbody>${pending.map(r => `<tr>
             <td>${escHtml(r.title)}</td>
             <td>${r.cvssScore != null ? cvssBadgeHtml(r.cvssScore) : '—'}</td>
-            <td><span class="risk-badge ${RISK_LEVEL_CFG[r.riskLevel]?.cls||''}">${RISK_LEVEL_CFG[r.riskLevel]?.label||r.riskLevel||'—'}</span></td>
+            <td><span class="risk-badge ${RISK_LEVEL_CFG[r.riskLevel]?.cls||''}">${RISK_LEVEL_CFG[r.riskLevel]?.label||escVal(r.riskLevel)||'—'}</span></td>
             <td style="font-size:.8rem;color:var(--text-muted)">${escHtml(r.scanRef||'')}</td>
-            <td style="font-size:.8rem">${(r.cveIds||[]).join(', ')||'—'}</td>
-            <td><button class="btn btn-primary btn-sm" onclick="approveRisk('${r.id}')"><i class="ph ph-check"></i> ${t('risk_approve')}</button></td>
+            <td style="font-size:.8rem">${escHtml((r.cveIds||[]).join(', ')||'—')}</td>
+            <td><button class="btn btn-primary btn-sm" onclick="approveRisk(${jsArg(r.id)})"><i class="ph ph-check"></i> ${t('risk_approve')}</button></td>
           </tr>`).join('')}
           </tbody>
         </table>
@@ -10092,13 +10829,13 @@ async function renderRiskReports(el) {
         <h4><i class="ph ph-scan" style="color:#3b82f6"></i> ${t('risk_scanImports')} (${scanRisks.length} ${t('risk_approved').toLowerCase()})</h4>
         <table class="risk-table">
           <thead><tr><th>${t('col_title')}</th><th>CVSS</th><th>${t('findings_severity')}</th><th>${t('risk_cvesCol')}</th><th>${t('risk_scoreCol')}</th><th>${t('col_status')}</th><th>${t('risk_approvedBy')}</th></tr></thead>
-          <tbody>${scanRisks.map(r => `<tr onclick="openRiskDetail('${r.id}')" style="cursor:pointer">
+          <tbody>${scanRisks.map(r => `<tr onclick="openRiskDetail(${jsArg(r.id)})" style="cursor:pointer">
             <td>${escHtml(r.title)}</td>
             <td>${r.cvssScore != null ? cvssBadgeHtml(r.cvssScore) : '—'}</td>
-            <td><span class="risk-badge ${RISK_LEVEL_CFG[r.riskLevel]?.cls||''}">${RISK_LEVEL_CFG[r.riskLevel]?.label||r.riskLevel||'—'}</span></td>
-            <td style="font-size:.8rem">${(r.cveIds||[]).join(', ')||'—'}</td>
+            <td><span class="risk-badge ${RISK_LEVEL_CFG[r.riskLevel]?.cls||''}">${RISK_LEVEL_CFG[r.riskLevel]?.label||escVal(r.riskLevel)||'—'}</span></td>
+            <td style="font-size:.8rem">${escHtml((r.cveIds||[]).join(', ')||'—')}</td>
             <td style="text-align:center">${r.score ?? '—'}</td>
-            <td><span class="risk-status-badge risk-st-${r.status}">${RISK_STATUSES.find(x=>x.id===r.status)?.label||r.status}</span></td>
+            <td><span class="risk-status-badge risk-st-${escHtml(r.status)}">${escHtml(RISK_STATUSES.find(x=>x.id===r.status)?.label||r.status)}</span></td>
             <td style="font-size:.8rem;color:var(--text-muted)">${escHtml(r.approvedBy||'—')}</td>
           </tr>`).join('')}
           </tbody>
@@ -10124,7 +10861,7 @@ async function openRiskDetail(id) {
   const supplierNames = Object.fromEntries((await asList(supRes)).map(x => [x.id, x.name]))
   const typeNames     = Object.fromEntries(ASSET_TYPES.map(at => [at.id, assetTypeLabel(at)]))
   const entityMap = Object.fromEntries(entities.map(e => [e.id, e.name]))
-  const lv  = RISK_LEVEL_CFG[r.riskLevel] || { label: r.riskLevel, cls: '' }
+  const lv  = RISK_LEVEL_CFG[r.riskLevel] || { label: escVal(r.riskLevel), cls: '' }
   const cat = RISK_CATS.find(c => c.id === r.category)
   const tr  = RISK_TREATMENTS.find(t => t.id === r.treatmentOption)
   const st  = RISK_STATUSES.find(s => s.id === r.status)
@@ -10142,7 +10879,7 @@ async function openRiskDetail(id) {
           <span class="risk-badge ${lv.cls}">${lv.label}</span>
           ${escHtml(r.title)}
         </h2>
-        ${canEditRisk(r) ? `<button class="btn btn-secondary btn-sm" onclick="openRiskModal('${r.id}')">
+        ${canEditRisk(r) ? `<button class="btn btn-secondary btn-sm" onclick="openRiskModal(${jsArg(r.id)})">
           <i class="ph ph-pencil"></i> ${t('edit')}
         </button>` : ''}
       </div>
@@ -10150,7 +10887,7 @@ async function openRiskDetail(id) {
       ${r.needsReview ? `<div class="scan-review-banner" style="margin-bottom:16px">
         <i class="ph ph-warning"></i>
         <span><strong>${t('risk_approvalRequired')}</strong> — ${t('risk_scanReviewText')}</span>
-        ${canManageRisks() ? `<button class="btn btn-primary btn-sm" onclick="approveRisk('${r.id}')"><i class="ph ph-check-circle"></i> ${t('risk_approve')}</button>` : ''}
+        ${canManageRisks() ? `<button class="btn btn-primary btn-sm" onclick="approveRisk(${jsArg(r.id)})"><i class="ph ph-check-circle"></i> ${t('risk_approve')}</button>` : ''}
       </div>` : ''}
 
       ${r.source === 'greenbone-scan' ? (() => {
@@ -10190,14 +10927,14 @@ async function openRiskDetail(id) {
         <div class="risk-detail-section">
           <h4>${t('risk_assessment')}</h4>
           <div class="risk-detail-row"><label>${t('col_category')}</label><span>${escHtml(riskCatLabel(cat)||r.category)}</span></div>
-          <div class="risk-detail-row"><label>${t('risk_probability')}</label><span>${r.probability} / 5</span></div>
-          <div class="risk-detail-row"><label>${t('risk_impact')}</label><span>${r.impact} / 5</span></div>
+          <div class="risk-detail-row"><label>${t('risk_probability')}</label><span>${escVal(r.probability)} / 5</span></div>
+          <div class="risk-detail-row"><label>${t('risk_impact')}</label><span>${escVal(r.impact)} / 5</span></div>
           <div class="risk-detail-row"><label>${t('risk_scoreCol')}</label><span><strong>${r.score}</strong> — <span class="risk-badge ${lv.cls}">${lv.label}</span></span></div>
           ${(r.inherentScore != null || r.targetScore != null) ? `
           <div class="risk-detail-row"><label>${t('risk_inherentShort')}</label><span>${riskRatingHtml(riskRatingOf(r.inherentProbability, r.inherentImpact))}</span></div>
           <div class="risk-detail-row"><label>${t('risk_targetShort')}</label><span>${riskRatingHtml(riskRatingOf(r.targetProbability, r.targetImpact))}</span></div>` : ''}
           <div class="risk-detail-row"><label>${t('risk_treatmentOpt')}</label><span>${escHtml(riskTreatmentLabel(tr)||r.treatmentOption)}</span></div>
-          <div class="risk-detail-row"><label>${t('col_status')}</label><span class="risk-status-badge risk-st-${r.status}">${st?.label||r.status}</span></div>
+          <div class="risk-detail-row"><label>${t('col_status')}</label><span class="risk-status-badge risk-st-${escHtml(r.status)}">${escHtml(st?.label||r.status)}</span></div>
           <div class="risk-detail-row"><label>${t('ui_owner')}</label><span>${escHtml(r.owner||'—')}</span></div>
           <div class="risk-detail-row"><label>${t('col_dueDate')}</label><span>${r.dueDate ? new Date(r.dueDate).toLocaleDateString() : '—'}</span></div>
           <div class="risk-detail-row"><label>${t('ui_review')}</label><span>${r.reviewDate ? new Date(r.reviewDate).toLocaleDateString('de-DE') : '—'}</span></div>
@@ -10207,7 +10944,7 @@ async function openRiskDetail(id) {
       <div class="risk-detail-section" style="margin-top:20px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <h4 style="margin:0;flex:1;">${t('risk_treatmentsTab')} (${(r.treatmentPlans||[]).length})</h4>
-          ${canManageRisks() ? `<button class="btn btn-primary btn-sm" onclick="openTreatmentModal('${r.id}',null)">
+          ${canManageRisks() ? `<button class="btn btn-primary btn-sm" onclick="openTreatmentModal(${jsArg(r.id)},null)">
             <i class="ph ph-plus"></i> ${t('risk_measure')}
           </button>` : ''}
         </div>
@@ -10219,10 +10956,10 @@ async function openRiskDetail(id) {
                 return `<div class="risk-tp-card">
                   <div class="risk-tp-header">
                     <strong>${escHtml(tp.title)}</strong>
-                    <span class="risk-tp-status risk-tp-${tp.status}">${tpStatusLabel[tp.status]||tp.status}</span>
+                    <span class="risk-tp-status risk-tp-${escHtml(tp.status)}">${escHtml(tpStatusLabel[tp.status]||tp.status)}</span>
                     ${canManageRisks() ? `
-                      <button class="btn btn-secondary btn-sm" onclick="openTreatmentModal('${r.id}','${tp.id}')"><i class="ph ph-pencil"></i></button>
-                      <button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteTreatment('${r.id}','${tp.id}')"><i class="ph ph-trash"></i></button>
+                      <button class="btn btn-secondary btn-sm" onclick="openTreatmentModal(${jsArg(r.id)},${jsArg(tp.id)})"><i class="ph ph-pencil"></i></button>
+                      <button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteTreatment(${jsArg(r.id)},${jsArg(tp.id)})"><i class="ph ph-trash"></i></button>
                     ` : ''}
                   </div>
                   <div class="risk-tp-meta">
@@ -10345,9 +11082,9 @@ async function openRiskModal(id) {
   ;(function flatten(nodes) { for (const n of nodes) { entities.push(n); flatten(n.children||[]) } })(entityTree)
 
   const catOpts = RISK_CATS.map(c =>
-    `<option value="${c.id}" ${risk?.category===c.id?'selected':''}>${c.label}</option>`).join('')
+    `<option value="${escVal(c.id)}" ${risk?.category===c.id?'selected':''}>${escVal(c.label)}</option>`).join('')
   const trOpts = RISK_TREATMENTS.map(t =>
-    `<option value="${t.id}" ${risk?.treatmentOption===t.id?'selected':''}>${t.label}</option>`).join('')
+    `<option value="${escVal(t.id)}" ${risk?.treatmentOption===t.id?'selected':''}>${escVal(t.label)}</option>`).join('')
   const stOpts = RISK_STATUSES.map(s =>
     `<option value="${s.id}" ${risk?.status===s.id?'selected':''}>${s.label}</option>`).join('')
   const selected = new Set(risk?.applicableEntities || [])
@@ -10361,7 +11098,7 @@ async function openRiskModal(id) {
       const icon = n.type === 'holding' ? 'ph-building' : 'ph-office-chair'
       const children = (n.children||[]).length ? `<div class="ent-tree-children">${buildEntityTree(n.children, depth+1)}</div>` : ''
       return `
-        <div class="ent-tree-node" data-id="${n.id}" data-type="${n.type}">
+        <div class="ent-tree-node" data-id="${n.id}" data-type="${escHtml(n.type)}">
           <label class="ent-tree-label ${n.type === 'holding' ? 'ent-tree-holding' : ''}">
             <input type="checkbox" class="ent-tree-cb" value="${n.id}"
               data-children='${JSON.stringify(childIds)}'
@@ -10369,7 +11106,7 @@ async function openRiskModal(id) {
               onchange="riskEntityCascade(this)">
             <i class="ph ${icon}"></i>
             <span>${escHtml(n.name)}</span>
-            ${n.shortCode ? `<span class="picker-id">${n.shortCode}</span>` : ''}
+            ${n.shortCode ? `<span class="picker-id">${escHtml(n.shortCode)}</span>` : ''}
           </label>
           ${children}
         </div>`
@@ -10382,7 +11119,7 @@ async function openRiskModal(id) {
   }
   const entTreeHtml = entityTree.length ? buildEntityTree(entityTree, 0) : ''
   const scaleOpts = n => [1,2,3,4,5].map(v =>
-    `<option value="${v}" ${risk?.[n]===v?'selected':''}>${v}</option>`).join('')
+    `<option value="${escVal(v)}" ${risk?.[n]===v?'selected':''}>${v}</option>`).join('')
   // Optionale Skala (Inherent / Ziel, #94): leere Auswahl = nicht bewertet
   const optScaleOpts = n => `<option value="">—</option>` + scaleOpts(n)
 
@@ -10495,11 +11232,11 @@ async function openRiskModal(id) {
             <div class="risk-form-row" style="margin-top:10px;">
               <div class="risk-form-field">
                 <label class="form-label">${t('col_dueDate')}</label>
-                <input id="rModalDue" class="form-input" type="date" value="${risk?.dueDate||''}" />
+                <input id="rModalDue" class="form-input" type="date" value="${escHtml(risk?.dueDate||'')}" />
               </div>
               <div class="risk-form-field">
                 <label class="form-label">${t('risk_reviewDate')}</label>
-                <input id="rModalReview" class="form-input" type="date" value="${risk?.reviewDate||''}" />
+                <input id="rModalReview" class="form-input" type="date" value="${escHtml(risk?.reviewDate||'')}" />
               </div>
             </div>
           </div>
@@ -10553,7 +11290,7 @@ function riskEntityCascade(cb) {
   // Cascade down: check/uncheck all children
   const childIds = JSON.parse(cb.dataset.children || '[]')
   childIds.forEach(id => {
-    const child = document.querySelector(`.ent-tree-cb[value="${id}"]`)
+    const child = document.querySelector(`.ent-tree-cb[value="${escVal(id)}"]`)
     if (child) child.checked = cb.checked
   })
   // Update indeterminate state on all parent checkboxes
@@ -10561,7 +11298,7 @@ function riskEntityCascade(cb) {
     const kids = JSON.parse(el.dataset.children || '[]')
     if (!kids.length) return
     const checkedCount = kids.filter(id => {
-      const c = document.querySelector(`.ent-tree-cb[value="${id}"]`)
+      const c = document.querySelector(`.ent-tree-cb[value="${escVal(id)}"]`)
       return c && c.checked
     }).length
     el.indeterminate = checkedCount > 0 && checkedCount < kids.length
@@ -10717,7 +11454,7 @@ async function openTreatmentModal(riskId, tpOrId) {
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
               <label class="form-label">${t('col_dueDate')}</label>
-              <input id="tpDue" class="form-input" type="date" value="${tp?.dueDate||''}" />
+              <input id="tpDue" class="form-input" type="date" value="${escHtml(tp?.dueDate||'')}" />
             </div>
             <div>
               <label class="form-label">${t('col_status')}</label>
@@ -10731,7 +11468,7 @@ async function openTreatmentModal(riskId, tpOrId) {
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" onclick="document.getElementById('treatmentModal').remove()">${t('ui_cancel')}</button>
-          <button class="btn btn-primary" onclick="submitTreatmentModal('${riskId}','${tp?.id||''}')">
+          <button class="btn btn-primary" onclick="submitTreatmentModal(${jsArg(riskId)},${jsArg(tp?.id||'')})">
             <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
           </button>
         </div>
@@ -10785,6 +11522,31 @@ function showToast(message, type = 'info') {
 
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+// Wert für ein HTML-Attribut oder Text: auch 0/false bleiben erhalten, null/undefined werden leer
+function escVal(v) {
+  return escHtml(String(v ?? ''))
+}
+
+// Wert als JavaScript-Zeichenketten-Literal für einen Inline-Handler (Ereignis-Attribut in doppelten Anführungszeichen): im Attribut steht  f(${jsArg(x)}).
+// escHtml() allein genügt dort NICHT: Es maskiert den Apostroph nicht, und der Browser entschlüsselt das Attribut, bevor der Handler als Code läuft —
+// ein Wert wie  x'); …//  zwischen Hochkommas im Aufruf würde Code ausführen. JSON.stringify erzeugt ein vollständig maskiertes Literal
+// (Anführungszeichen, Rückwärtsschrägstrich, Zeilenumbrüche), escHtml macht es attributsicher. Die Anführungszeichen um den Wert entfallen.
+// Kein anderer Weg in einen Handler (tests/inlineHandlerGuard.test.js).
+function jsArg(v) {
+  return escHtml(JSON.stringify(String(v ?? '')).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029'))
+}
+// Zahl für einen Handler (nur Zahlen; alles andere wird 0)
+function jsNum(v) {
+  const n = Number(v)
+  return Number.isFinite(n) ? String(n) : '0'
+}
+
+// Verweise aus gespeicherten Daten dürfen nur http(s) oder ein Pfad der eigenen Seite sein (kein javascript:, data:)
+function safeUrl(u) {
+  const s = String(u || '').trim()
+  return /^(https?:\/\/|\/(?!\/))/i.test(s) ? s : ''
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -10984,7 +11746,7 @@ async function switchGdprTab(tab) {
     if (tab === 'dsb')       await renderGdprDsb(content)
   } catch (e) {
     if (content.isConnected)
-      content.innerHTML = `<p style="color:var(--danger-text);padding:16px"><i class="ph ph-warning"></i> Error loading tab: ${e.message}</p>`
+      content.innerHTML = `<p style="color:var(--danger-text);padding:16px"><i class="ph ph-warning"></i> Error loading tab: ${escHtml(e.message)}</p>`
   }
 }
 
@@ -11026,7 +11788,8 @@ async function renderGdprVvt(el) {
 
   el.innerHTML = `
     <div class="gdpr-filter-bar">
-      ${gdprCanEdit() ? `<button class="btn btn-primary btn-sm" onclick="openVvtForm()"><i class="ph ph-plus"></i> ${t('ui_newEntry')}</button>` : ''}
+      ${gdprCanEdit() ? `<button class="btn btn-primary btn-sm" onclick="openVvtForm()"><i class="ph ph-plus"></i> ${t('ui_newEntry')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="openGdprTemplateDialog('vvt')"><i class="ph ph-copy"></i> ${t('gdpr_useTemplate')}</button>` : ''}
       <span class="gdpr-filter-count">${list.length} entries</span>
     </div>
     ${list.length === 0 ? `<p class="gdpr-empty">${t('gdpr_noRopaFound')}</p>` : `
@@ -11038,16 +11801,16 @@ async function renderGdprVvt(el) {
         ${list.map(v => {
           const lb = GDPR_LEGAL_BASES.find(x => x.id === v.legalBasis)
           const cats = (v.dataCategories || []).slice(0,3).join(', ') + (v.dataCategories?.length > 3 ? '…' : '')
-          return `<tr class="gdpr-row" onclick="openVvtForm('${v.id}')">
+          return `<tr class="gdpr-row" onclick="openVvtForm(${jsArg(v.id)})">
             <td><strong>${escHtml(v.title)}</strong></td>
             <td style="font-size:.78rem">${escHtml(lb?.label || v.legalBasis)}</td>
             <td style="font-size:.78rem">${escHtml(cats || '—')}</td>
             <td>${v.isHighRisk ? '<span class="gdpr-highrisk-badge"><i class="ph ph-warning"></i> ' + t('gdpr_highRisk') + '</span>' : '<span style="color:var(--text-subtle);font-size:.78rem">—</span>'}</td>
-            <td><span class="gdpr-status gdpr-st-${v.status}">${GDPR_VVT_STATUSES.find(s=>s.id===v.status)?.label || v.status}</span></td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(v.status)}">${escHtml(GDPR_VVT_STATUSES.find(s=>s.id===v.status)?.label || v.status)}</span></td>
             <td style="font-size:.78rem">${escHtml(v.owner || '—')}</td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
-              ${gdprCanEdit() ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openVvtForm('${v.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteGdprItem('vvt','${v.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${gdprCanEdit() ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openVvtForm(${jsArg(v.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteGdprItem('vvt',${jsArg(v.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
         }).join('')}
@@ -11056,13 +11819,13 @@ async function renderGdprVvt(el) {
   `
 }
 
-async function openVvtForm(id = null) {
+async function openVvtForm(id = null, prefill = null) {
   let item = null
   if (id) {
     const r = await fetch(`/gdpr/vvt/${id}`, { headers: apiHeaders() })
     if (r.ok) item = await r.json()
   }
-  const v = item || {}
+  const v = item || prefill || {}
 
   const lbOpts = GDPR_LEGAL_BASES.map(l =>
     `<option value="${l.id}" ${v.legalBasis === l.id ? 'selected':''}>${escHtml(l.label)}</option>`).join('')
@@ -11073,12 +11836,12 @@ async function openVvtForm(id = null) {
 
   const catChecks = GDPR_DATA_CATS.map(c =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
-       <input type="checkbox" value="${c}" ${(v.dataCategories||[]).includes(c)?'checked':''}> ${c}
-     </label>`).join('')
+       <input type="checkbox" value="${escVal(c)}" ${(v.dataCategories||[]).includes(c)?'checked':''}> ${escVal(c)}
+$1</label>`).join('')
   const subChecks = GDPR_SUBJECT_TYPES.map(s =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
-       <input type="checkbox" value="${s.id}" ${(v.dataSubjectTypes||[]).includes(s.id)?'checked':''}> ${s.label}
-     </label>`).join('')
+       <input type="checkbox" value="${escVal(s.id)}" ${(v.dataSubjectTypes||[]).includes(s.id)?'checked':''}> ${escVal(s.label)}
+$1</label>`).join('')
   const entityChecks = _gdprEntities.map(e =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
        <input type="checkbox" value="${e.id}" ${(v.applicableEntities||[]).includes(e.id)?'checked':''}> ${escHtml(e.name)}
@@ -11114,7 +11877,7 @@ async function openVvtForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_retentionPeriodText')}</label>
           <input id="vvtRetention" class="form-input" value="${escHtml(v.retentionPeriod||'')}" placeholder="${escHtml(t('ph_retentionLawEg'))}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_retentionPeriodMonths')}</label>
-          <input id="vvtRetentionMonths" type="number" class="form-input" value="${v.retentionMonths||''}" placeholder="e.g. 84"></div>
+          <input id="vvtRetentionMonths" type="number" class="form-input" value="${escVal(v.retentionMonths||'')}" placeholder="e.g. 84"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_deletionProcedure')}</label>
           <textarea id="vvtDeletion" class="form-input" rows="2">${escHtml(v.deletionProcedure||'')}</textarea></div>
         <div class="form-group" style="display:flex;gap:20px">
@@ -11135,7 +11898,7 @@ async function openVvtForm(id = null) {
       </div>
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchGdprTab('vvt')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveVvt(${id ? `'${id}'` : 'null'})">${t('ui_save')}</button>
+        <button class="btn btn-primary" onclick="saveVvt(${id ? `${jsArg(id)}` : 'null'})">${t('ui_save')}</button>
       </div>
     </div>
   `
@@ -11188,7 +11951,8 @@ async function renderGdprAv(el) {
 
   el.innerHTML = `
     <div class="gdpr-filter-bar">
-      ${gdprCanOwn() ? `<button class="btn btn-primary btn-sm" onclick="openAvForm()"><i class="ph ph-plus"></i> ${t('gdpr_newDpaContract')}</button>` : ''}
+      ${gdprCanOwn() ? `<button class="btn btn-primary btn-sm" onclick="openAvForm()"><i class="ph ph-plus"></i> ${t('gdpr_newDpaContract')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="openGdprTemplateDialog('av')"><i class="ph ph-copy"></i> ${t('gdpr_useTemplate')}</button>` : ''}
       <span class="gdpr-filter-count">${list.length} contracts</span>
     </div>
     ${list.length === 0 ? `<p class="gdpr-empty">${t('gdpr_noDpaFound')}</p>` : `
@@ -11200,16 +11964,16 @@ async function renderGdprAv(el) {
         ${list.map(a => {
           const cl = Object.values(a.art28Checklist || {}).filter(Boolean).length
           const st = GDPR_AV_STATUSES.find(s => s.id === a.status)
-          return `<tr class="gdpr-row" onclick="openAvForm('${a.id}')">
+          return `<tr class="gdpr-row" onclick="openAvForm(${jsArg(a.id)})">
             <td><strong>${escHtml(a.processorName)}</strong><br><small style="color:var(--text-subtle)">${escHtml(a.title)}</small></td>
-            <td><span class="gdpr-status gdpr-st-${a.status}">${st?.label || a.status}</span></td>
-            <td style="font-size:.78rem">${a.signatureDate || '—'}</td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(a.status)}">${escHtml(st?.label || a.status)}</span></td>
+            <td style="font-size:.78rem">${escHtml(a.signatureDate || '—')}</td>
             <td><span style="font-size:.78rem">${cl}/8</span> ${cl === 8 ? '<i class="ph ph-check-circle" style="color:#4ade80"></i>' : ''}</td>
-            <td style="font-size:.78rem">${a.effectiveUntil || '—'}</td>
+            <td style="font-size:.78rem">${escHtml(a.effectiveUntil || '—')}</td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
               ${a.filePath ? `<a href="/gdpr/av/${a.id}/file" target="_blank" class="btn btn-secondary btn-sm" title="${escHtml(t('ui_openDocument'))}"><i class="ph ph-file-pdf"></i></a>` : ''}
-              ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openAvForm('${a.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteGdprItem('av','${a.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" title="${escHtml(t('edit'))}" onclick="openAvForm(${jsArg(a.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" title="${escHtml(t('delete'))}" onclick="deleteGdprItem('av',${jsArg(a.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
         }).join('')}
@@ -11218,13 +11982,13 @@ async function renderGdprAv(el) {
   `
 }
 
-async function openAvForm(id = null) {
+async function openAvForm(id = null, prefill = null) {
   let item = null
   if (id) {
     const r = await fetch(`/gdpr/av/${id}`, { headers: apiHeaders() })
     if (r.ok) item = await r.json()
   }
-  const a = item || {}
+  const a = item || prefill || {}
   const cl = a.art28Checklist || {}
 
   const stOpts = GDPR_AV_STATUSES.map(s => `<option value="${s.id}" ${a.status === s.id ? 'selected':''}>${s.label}</option>`).join('')
@@ -11261,9 +12025,9 @@ async function openAvForm(id = null) {
         <div class="form-group"><label class="form-label">${t('col_status')}</label>
           <select id="avStatus" class="select">${stOpts}</select></div>
         <div class="form-group"><label class="form-label">${t('ui_signedOn')}</label>
-          <input id="avSignDate" type="date" class="form-input" value="${a.signatureDate||''}"></div>
+          <input id="avSignDate" type="date" class="form-input" value="${escHtml(a.signatureDate||'')}"></div>
         <div class="form-group"><label class="form-label">${t('ui_validUntil')}</label>
-          <input id="avEffUntil" type="date" class="form-input" value="${a.effectiveUntil||''}"></div>
+          <input id="avEffUntil" type="date" class="form-input" value="${escHtml(a.effectiveUntil||'')}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_art28Para3Checklist')}</label>
           <div class="gdpr-checklist">${checklistHtml}</div></div>
         <div class="form-group"><label class="form-label">${t('ui_notes')}</label>
@@ -11276,7 +12040,7 @@ async function openAvForm(id = null) {
       </div>
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchGdprTab('av')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveAv(${id ? `'${id}'` : 'null'})">${t('ui_save')}</button>
+        <button class="btn btn-primary" onclick="saveAv(${id ? `${jsArg(id)}` : 'null'})">${t('ui_save')}</button>
       </div>
     </div>
   `
@@ -11337,7 +12101,9 @@ async function renderGdprDsfa(el) {
 
   el.innerHTML = `
     <div class="gdpr-filter-bar">
-      ${gdprCanOwn() ? `<button class="btn btn-primary btn-sm" onclick="openDsfaForm()"><i class="ph ph-plus"></i> ${t('gdpr_newDpia')}</button>` : ''}
+      ${gdprCanOwn() ? `<button class="btn btn-primary btn-sm" onclick="openDsfaForm()"><i class="ph ph-plus"></i> ${t('gdpr_newDpia')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="openDsfaTemplateDialog()"><i class="ph ph-copy"></i> ${t('gdpr_dsfaFromTemplate')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="openDsfaPrecheck()"><i class="ph ph-list-checks"></i> ${t('gdpr_dsfaPrecheck')}</button>` : ''}
       <span class="gdpr-filter-count">${list.length} ${t('gdpr_dpiaCount')}</span>
     </div>
     ${list.length === 0 ? `<p class="gdpr-empty">${t('gdpr_noDpiaFound')}</p>` : `
@@ -11348,15 +12114,16 @@ async function renderGdprDsfa(el) {
       <tbody>
         ${list.map(d => {
           const st = GDPR_DSFA_STATUSES.find(s => s.id === d.status)
-          return `<tr class="gdpr-row" onclick="openDsfaForm('${d.id}')">
+          return `<tr class="gdpr-row" onclick="openDsfaForm(${jsArg(d.id)})">
             <td><strong>${escHtml(d.title)}</strong></td>
             <td style="font-size:.78rem">${escHtml(d.linkedVvtId || '—')}</td>
-            <td><span class="gdpr-risk gdpr-risk-${d.residualRisk}">${GDPR_RISK_LEVELS.find(l=>l.id===d.residualRisk)?.label || d.residualRisk}</span></td>
+            <td><span class="gdpr-risk gdpr-risk-${escHtml(d.residualRisk)}">${GDPR_RISK_LEVELS.find(l=>l.id===d.residualRisk)?.label || escHtml(d.residualRisk)}</span></td>
             <td>${d.dpoConsulted ? '<i class="ph ph-check-circle" style="color:#4ade80"></i>' : '<i class="ph ph-x-circle" style="color:#f87171"></i>'}</td>
-            <td><span class="gdpr-status gdpr-st-${d.status}">${st?.label || d.status}</span></td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(d.status)}">${escHtml(st?.label || d.status)}</span></td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
-              ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" onclick="openDsfaForm('${d.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('dsfa','${d.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" onclick="openDsfaForm(${jsArg(d.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+              <button class="btn btn-secondary btn-sm" title="PDF" onclick="exportDsfaPdf(${jsArg(d.id)})"><i class="ph ph-file-pdf"></i></button>
+              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('dsfa',${jsArg(d.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
         }).join('')}
@@ -11365,13 +12132,18 @@ async function renderGdprDsfa(el) {
   `
 }
 
-async function openDsfaForm(id = null) {
+let _dsfaPrecheckPending = null   // Ergebnis der Vorabprüfung, das mit der nächsten neuen DSFA gespeichert wird
+
+async function openDsfaForm(id = null, prefill = null) {
   let item = null
   if (id) {
     const r = await fetch(`/gdpr/dsfa/${id}`, { headers: apiHeaders() })
     if (r.ok) item = await r.json()
   }
-  const d = item || { risks: [] }
+  const d = item || prefill || { risks: [] }
+  if (!id && !_dsfaPrecheckPending) _dsfaPrecheckPending = null
+  const canDpo = gdprIsAdmin() || hasFunction('dso')
+  const pre = d.precheck || (!id ? _dsfaPrecheckPending : null)
 
   const stOpts = GDPR_DSFA_STATUSES.map(s => `<option value="${s.id}" ${d.status === s.id ? 'selected':''}>${s.label}</option>`).join('')
   const rrOpts = GDPR_RISK_LEVELS.map(l => `<option value="${l.id}" ${d.residualRisk === l.id ? 'selected':''}>${l.label}</option>`).join('')
@@ -11400,12 +12172,13 @@ async function openDsfaForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_linkedRopaId')}</label>
           <input id="dsfaVvtId" class="form-input" value="${escHtml(d.linkedVvtId||'')}" placeholder="vvt_seed_001"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_processingDesc')}</label>
-          <textarea id="dsfaDesc" class="form-input" rows="3">${escHtml(d.processingDescription||'')}</textarea></div>
+          <textarea id="dsfaDesc" class="form-input" rows="9">${escHtml(d.processingDescription||'')}</textarea></div>
         <div class="form-group"><label class="form-label">${t('gdpr_necessityAssessment')}</label>
-          <textarea id="dsfaNecessity" class="form-input" rows="3">${escHtml(d.necessityAssessment||'')}</textarea></div>
+          <textarea id="dsfaNecessity" class="form-input" rows="5">${escHtml(d.necessityAssessment||'')}</textarea></div>
         <div class="form-group"><label class="form-label">${t('gdpr_existingControls')}</label>
           <textarea id="dsfaControls" class="form-input" rows="2">${escHtml(d.existingControls||'')}</textarea></div>
 
+        ${pre ? `<div class="form-group" style="font-size:13px;color:var(--text-subtle)"><i class="ph ph-list-checks"></i> ${t('gdpr_dsfaPrecheck')}: <strong>${escHtml(t('gdpr_precheckResult_' + pre.result))}</strong>${pre.at ? ` (${escHtml(String(pre.at).slice(0, 10))}${pre.by ? ', ' + escHtml(pre.by) : ''})` : ''}</div>` : ''}
         <h4 style="margin:16px 0 8px;font-size:.9rem">${t('gdpr_identifiedRisks')}</h4>
         <div id="dsfaRisksContainer">${risksHtml}</div>
         <button class="btn btn-secondary btn-sm" onclick="addDsfaRisk()" style="margin-top:6px"><i class="ph ph-plus"></i> ${t('gdpr_addRisk')}</button>
@@ -11413,11 +12186,12 @@ async function openDsfaForm(id = null) {
         <div class="form-group" style="margin-top:16px"><label class="form-label">${t('gdpr_residualRisk')}</label>
           <select id="dsfaResidual" class="select">${rrOpts}</select></div>
         <div class="form-group">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="dsfaDpoConsulted" ${d.dpoConsulted?'checked':''}> ${t('gdpr_dpoConsulted')}
+          <label style="display:flex;align-items:center;gap:8px;cursor:${canDpo ? 'pointer' : 'not-allowed'}">
+            <input type="checkbox" id="dsfaDpoConsulted" ${d.dpoConsulted?'checked':''} ${canDpo ? '' : 'disabled'}> ${t('gdpr_dpoConsulted')}
           </label></div>
         <div class="form-group"><label class="form-label">${t('gdpr_dpoOpinion')}</label>
-          <textarea id="dsfaDpoOpinion" class="form-input" rows="2">${escHtml(d.dpoOpinion||'')}</textarea></div>
+          <textarea id="dsfaDpoOpinion" class="form-input" rows="3" ${canDpo ? '' : 'disabled'}>${escHtml(d.dpoOpinion||'')}</textarea>
+          <div style="font-size:12px;color:var(--text-subtle);margin-top:4px">${canDpo ? t('gdpr_dpoOpinionHintDpo') : t('gdpr_dpoOpinionHintOther')}${d.dpoOpinionBy ? ` · ${t('gdpr_dpoOpinionBy')} ${escHtml(d.dpoOpinionBy)}, ${escHtml(String(d.dpoOpinionAt || '').slice(0, 10))}` : ''}</div></div>
         <div class="form-group">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="checkbox" id="dsfaSaRequired" ${d.saConsultationRequired?'checked':''}> ${t('gdpr_priorConsultRequired')}
@@ -11436,20 +12210,23 @@ async function openDsfaForm(id = null) {
       </div>
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchGdprTab('dsfa')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveDsfa(${id ? `'${id}'` : 'null'})">${t('ui_save')}</button>
+        ${id ? `<button class="btn btn-secondary" onclick="exportDsfaPdf(${jsArg(id)})"><i class="ph ph-file-pdf"></i> PDF</button>` : ''}
+        <button class="btn btn-primary" onclick="saveDsfa(${id ? `${jsArg(id)}` : 'null'})">${t('ui_save')}</button>
       </div>
     </div>
   `
   initLinkPickers('dsfa')
+  dsfaBindScores(document.getElementById('dsfaRisksContainer'))
 }
 
 function dsfaRiskRow(rk = {}, idx) {
-  return `<div class="dsfa-risk-row" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:8px;padding:8px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)">
+  return `<div class="dsfa-risk-row" data-risk-id="${escHtml(rk.id || '')}" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:start;margin-bottom:8px;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px">
     <input class="form-input" placeholder="${escHtml(t('gdpr_riskDescPh'))}" style="font-size:.8rem" value="${escHtml(rk.description||'')}">
-    <input type="number" class="form-input" placeholder="${escHtml(t('gdpr_likelihoodPh'))}" min="1" max="5" style="font-size:.8rem" value="${rk.likelihood||1}" title="${escHtml(t('gdpr_likelihoodTitle'))}">
-    <input type="number" class="form-input" placeholder="${escHtml(t('gdpr_impactPh'))}" min="1" max="5" style="font-size:.8rem" value="${rk.impact||1}" title="${escHtml(t('gdpr_impactTitle'))}">
+    <input type="number" class="form-input" placeholder="${escHtml(t('gdpr_likelihoodPh'))}" min="1" max="5" style="font-size:.8rem" value="${escVal(rk.likelihood||1)}" title="${escHtml(t('gdpr_likelihoodTitle'))}">
+    <input type="number" class="form-input" placeholder="${escHtml(t('gdpr_impactPh'))}" min="1" max="5" style="font-size:.8rem" value="${escVal(rk.impact||1)}" title="${escHtml(t('gdpr_impactTitle'))}">
     <span style="font-size:.78rem;color:var(--text-subtle)">${t('ui_score')} <strong>${(rk.likelihood||1)*(rk.impact||1)}</strong></span>
     <button class="btn btn-sm" style="color:var(--danger-text)" onclick="this.closest('.dsfa-risk-row').remove()"><i class="ph ph-trash"></i></button>
+    <textarea class="form-input dsfa-mitigations" rows="2" style="grid-column:1 / -1;font-size:.8rem" placeholder="${escHtml(t('gdpr_mitigationsPh'))}">${escHtml((rk.mitigations || []).join('\n'))}</textarea>
   </div>`
 }
 
@@ -11458,7 +12235,11 @@ function addDsfaRisk() {
   if (!container) return
   const idx = container.querySelectorAll('.dsfa-risk-row').length
   container.insertAdjacentHTML('beforeend', dsfaRiskRow({}, idx))
-  // live score update
+  dsfaBindScores(container)
+}
+
+// Punktzahl je Zeile live aktualisieren (auch für vorbelegte Zeilen aus einer Vorlage)
+function dsfaBindScores(container) {
   container.querySelectorAll('.dsfa-risk-row').forEach(row => {
     const inputs = row.querySelectorAll('input[type=number]')
     inputs.forEach(inp => {
@@ -11479,8 +12260,9 @@ async function saveDsfa(id) {
     const inputs = row.querySelectorAll('input')
     const l = Math.min(5, Math.max(1, parseInt(inputs[1].value) || 1))
     const i = Math.min(5, Math.max(1, parseInt(inputs[2].value) || 1))
-    return { id: `dsfa_risk_${Date.now()}_${Math.random().toString(36).slice(2,4)}`,
-             description: inputs[0].value || '', likelihood: l, impact: i, score: l * i, mitigations: [] }
+    const mitigations = (row.querySelector('.dsfa-mitigations')?.value || '').split('\n').map(x => x.trim()).filter(Boolean)
+    return { id: row.dataset.riskId || `dsfa_risk_${Date.now()}_${Math.random().toString(36).slice(2,4)}`,
+             description: inputs[0].value || '', likelihood: l, impact: i, score: l * i, mitigations }
   })
 
   const applicableEntities = [...document.querySelectorAll('.dsfa-entity-cb')].filter(cb => cb.checked).map(cb => cb.value)
@@ -11504,14 +12286,165 @@ async function saveDsfa(id) {
     linkedControls: getLinkedValues('dsfa', 'ctrl'),
     linkedPolicies: getLinkedValues('dsfa', 'pol')
   }
+  // DSB-Felder nur senden, wenn das Konto sie ändern darf (der Server lehnt sonst Änderungen ab)
+  if (!(gdprIsAdmin() || hasFunction('dso'))) { delete payload.dpoConsulted; delete payload.dpoOpinion }
+  if (!id && _dsfaPrecheckPending) payload.precheck = _dsfaPrecheckPending
 
   const res = await fetch(id ? `/gdpr/dsfa/${id}` : '/gdpr/dsfa', {
     method: id ? 'PUT' : 'POST',
     headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || t('error')); return }
+  _dsfaPrecheckPending = null
   switchGdprTab('dsfa')
+}
+
+
+// ── Vorlagen für VVT, AV-Verträge, Datenpannen, Betroffenenanfragen und TOMs ──────────────────
+// Auswahl einer praxisbezogenen Vorlage; sie füllt das Formular vor und ist sorgfältig an das eigene Unternehmen anzupassen (keine Rechtsberatung).
+const GDPR_TEMPLATE_KINDS = { vvt: 'gdpr_tplKind_vvt', av: 'gdpr_tplKind_av', incident: 'gdpr_tplKind_incident', dsar: 'gdpr_tplKind_dsar', tom: 'gdpr_tplKind_tom' }
+
+async function openGdprTemplateDialog(kind) {
+  const r = await fetch(`/gdpr/templates/${encodeURIComponent(kind)}`, { headers: apiHeaders() })
+  const list = r.ok ? await r.json() : []
+  const uiLang = window.LANG || 'en'
+  list.sort((a, b) => a.title.localeCompare(b.title, uiLang))
+  showModal('gdprTplModal', `
+    <div>
+      <h3 style="margin:0 0 8px"><i class="ph ph-copy"></i> ${t('gdpr_useTemplate')} · ${t(GDPR_TEMPLATE_KINDS[kind])}</h3>
+      <p style="font-size:13px;color:var(--text-subtle);margin:0 0 10px">${t('gdpr_tplIntro')}</p>
+      <select id="gdprTplSel" class="input" style="width:100%" size="${Math.min(12, Math.max(4, list.length))}">${list.map((x, i) => `<option value="${escHtml(x.id)}"${i === 0 ? ' selected' : ''}>${escHtml(x.title)}</option>`).join('')}</select>
+      <p style="font-size:12px;color:var(--text-subtle);margin:10px 0 0">${t('gdpr_tplLimit')}</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('gdprTplModal').remove()">${t('ui_cancel')}</button>
+        <button class="btn btn-primary btn-sm" onclick="useGdprTemplate(${jsArg(kind)})">${t('gdpr_tplUse')}</button>
+      </div>
+    </div>`, 760)
+}
+
+async function useGdprTemplate(kind) {
+  const id = document.getElementById('gdprTplSel')?.value
+  if (!id) return
+  const r = await fetch(`/gdpr/templates/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`, { headers: apiHeaders() })
+  if (!r.ok) { alert(t('error')); return }
+  const tpl = await r.json()
+  document.getElementById('gdprTplModal')?.remove()
+  const open = { vvt: openVvtForm, av: openAvForm, incident: openIncidentForm, dsar: openDsarForm, tom: openTomForm }[kind]
+  await open(null, tpl)
+  if (tpl.unresolved && tpl.unresolved.length) showToast(t('gdpr_dsfaTplUnresolved', { list: tpl.unresolved.map(p => '{{' + p + '}}').join(', ') }), 'info')
+}
+
+// ── DSFA: Vorlagen, Vorabprüfung, Ausdruck ────────────────────────────────
+
+// Vorlage wählen: füllt Beschreibung, Notwendigkeit und Risiken samt Maßnahmen vor (Vorschlagswerte, vom Verantwortlichen zu prüfen)
+async function openDsfaTemplateDialog() {
+  const r = await fetch('/gdpr/dsfa-templates', { headers: apiHeaders() })
+  const list = r.ok ? await r.json() : []
+  showModal('dsfaTplModal', `
+    <div>
+      <h3 style="margin:0 0 8px"><i class="ph ph-copy"></i> ${t('gdpr_dsfaFromTemplate')}</h3>
+      <p style="font-size:13px;color:var(--text-subtle);margin:0 0 10px">${t('gdpr_dsfaTplIntro')}</p>
+      <select id="dsfaTplSel" class="input" style="width:100%">${list.map(x => `<option value="${escHtml(x.id)}">${escHtml(x.title)}</option>`).join('')}</select>
+      <p style="font-size:12px;color:var(--text-subtle);margin:10px 0 0">${t('gdpr_dsfaTplLimit')}</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('dsfaTplModal').remove()">${t('ui_cancel')}</button>
+        <button class="btn btn-primary btn-sm" onclick="useDsfaTemplate()">${t('gdpr_dsfaTplUse')}</button>
+      </div>
+    </div>`, 760)
+}
+
+async function useDsfaTemplate() {
+  const id = document.getElementById('dsfaTplSel')?.value
+  if (!id) return
+  const r = await fetch(`/gdpr/dsfa-templates/${encodeURIComponent(id)}`, { headers: apiHeaders() })
+  if (!r.ok) { alert(t('error')); return }
+  const tpl = await r.json()
+  document.getElementById('dsfaTplModal')?.remove()
+  await openDsfaForm(null, tpl)
+  if (tpl.unresolved && tpl.unresolved.length) showToast(t('gdpr_dsfaTplUnresolved', { list: tpl.unresolved.map(p => '{{' + p + '}}').join(', ') }), 'info')
+}
+
+// Vorabprüfung „Braucht es eine DSFA?“ (Art. 35 Abs. 3 und Kriterien der Leitlinie WP 248)
+async function openDsfaPrecheck() {
+  const r = await fetch('/gdpr/dsfa-precheck', { headers: apiHeaders() })
+  if (!r.ok) { alert(t('error')); return }
+  const c = await r.json()
+  const box = (cls, x) => `<label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:13px"><input type="checkbox" class="${cls}" value="${escHtml(x.id)}" onchange="dsfaPrecheckEval()"> <span>${escHtml(x.text)}</span></label>`
+  showModal('dsfaPreModal', `
+    <div>
+      <h3 style="margin:0 0 8px"><i class="ph ph-list-checks"></i> ${t('gdpr_dsfaPrecheck')}</h3>
+      <p style="font-size:13px;color:var(--text-subtle);margin:0 0 10px">${t('gdpr_precheckIntro')}</p>
+      <h4 style="margin:10px 0 4px;font-size:.9rem">${t('gdpr_precheckArt353')}</h4>
+      ${c.art353.map(x => box('pre-a', x)).join('')}
+      <h4 style="margin:14px 0 4px;font-size:.9rem">${t('gdpr_precheckCriteria')}</h4>
+      ${c.criteria.map(x => box('pre-c', x)).join('')}
+      <div id="dsfaPreResult" style="margin-top:14px;padding:10px;border-radius:6px;background:var(--surface-2,#0002);font-size:13px"></div>
+      <p style="font-size:12px;color:var(--text-subtle);margin:10px 0 0">${t('gdpr_precheckLists')}</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('dsfaPreModal').remove()">${t('ui_cancel')}</button>
+        <button class="btn btn-primary btn-sm" onclick="dsfaPrecheckContinue()">${t('gdpr_precheckContinue')}</button>
+      </div>
+    </div>`, 940)
+  dsfaPrecheckEval()
+}
+
+let _dsfaPreLast = null
+async function dsfaPrecheckEval() {
+  const sel = cls => [...document.querySelectorAll('.' + cls)].filter(x => x.checked).map(x => x.value)
+  const r = await fetch('/gdpr/dsfa-precheck', { method: 'POST', headers: apiHeaders(), body: JSON.stringify({ art353: sel('pre-a'), criteria: sel('pre-c') }) })
+  if (!r.ok) return
+  _dsfaPreLast = await r.json()
+  const el = document.getElementById('dsfaPreResult')
+  if (el) el.innerHTML = `<strong>${escHtml(_dsfaPreLast.text)}</strong>`
+}
+
+// Ergebnis merken und mit Vorlage weitermachen: Es wird mit der neuen DSFA gespeichert
+async function dsfaPrecheckContinue() {
+  if (!_dsfaPreLast) return
+  _dsfaPrecheckPending = { art353: _dsfaPreLast.art353, criteria: _dsfaPreLast.criteria, result: _dsfaPreLast.result }
+  document.getElementById('dsfaPreModal')?.remove()
+  await openDsfaTemplateDialog()
+}
+
+// Ausdruck / PDF einer DSFA (Druckfenster mit Firmenlogo)
+async function exportDsfaPdf(id) {
+  const r = await fetch(`/gdpr/dsfa/${id}`, { headers: apiHeaders() })
+  if (!r.ok) return
+  const d = await r.json()
+  const esc = escHtml
+  const nl = v => esc(v || '—').replace(/\n/g, '<br>')
+  const win = openPrintWindow()
+  if (!win) return alert(t('err_popupBlocked'))
+  const risk = (GDPR_RISK_LEVELS.find(l => l.id === d.residualRisk) || {}).label || d.residualRisk
+  const st = (GDPR_DSFA_STATUSES.find(s => s.id === d.status) || {}).label || d.status
+  const dec = { proceed: t('gdpr_decProceed'), modify: t('gdpr_decModify'), reject: t('gdpr_decReject') }[d.decision] || '—'
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(d.title)}</title>
+    <style>
+      body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 28px; }
+      h1 { font-size: 17px; margin: 0 0 2px; } h2 { font-size: 13px; border-bottom: 1px solid #ccc; padding-bottom: 3px; margin: 18px 0 6px; }
+      .sub { font-size: 11px; color: #666; margin-bottom: 14px; }
+      table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ccc; padding: 4px 8px; font-size: 11px; text-align: left; vertical-align: top; }
+      th { background: #f0f0f0; } ul { margin: 0; padding-left: 16px; } @media print { body { margin: 0; } }
+    </style></head><body>
+    <h1>${esc(d.title)}</h1>
+    <div class="sub">${esc(t('gdprtab_dsfa'))} · ${esc(t('col_status'))}: ${esc(st)} · ${esc(t('ui_owner'))}: ${esc(d.owner || '—')} · ${esc(String(d.updatedAt || d.createdAt || '').slice(0, 10))}</div>
+    ${d.precheck ? `<h2>${esc(t('gdpr_dsfaPrecheck'))}</h2><p>${esc(t('gdpr_precheckResult_' + d.precheck.result))} (${esc(String(d.precheck.at || '').slice(0, 10))}${d.precheck.by ? ', ' + esc(d.precheck.by) : ''})</p>` : ''}
+    <h2>${esc(t('gdpr_processingDesc'))}</h2><p>${nl(d.processingDescription)}</p>
+    <h2>${esc(t('gdpr_necessityAssessment'))}</h2><p>${nl(d.necessityAssessment)}</p>
+    <h2>${esc(t('gdpr_existingControls'))}</h2><p>${nl(d.existingControls)}</p>
+    <h2>${esc(t('gdpr_identifiedRisks'))}</h2>
+    <table><thead><tr><th>${esc(t('col_title'))}</th><th>${esc(t('gdpr_likelihoodPh'))}</th><th>${esc(t('gdpr_impactPh'))}</th><th>${esc(t('ui_score'))}</th><th>${esc(t('gdpr_mitigations'))}</th></tr></thead><tbody>
+      ${(d.risks || []).map(rk => `<tr><td>${esc(rk.description)}</td><td>${esc(rk.likelihood)}</td><td>${esc(rk.impact)}</td><td>${esc(rk.score)}</td><td>${(rk.mitigations || []).length ? '<ul>' + rk.mitigations.map(m => `<li>${esc(m)}</li>`).join('') + '</ul>' : '—'}</td></tr>`).join('')}
+    </tbody></table>
+    <h2>${esc(t('gdpr_residualRisk'))}</h2><p>${esc(risk)}</p>
+    <h2>${esc(t('gdpr_dpoOpinion'))}</h2><p>${esc(t('gdpr_dpoConsulted'))}: ${d.dpoConsulted ? '✓' : '✗'}${d.dpoOpinionBy ? ` · ${esc(d.dpoOpinionBy)}, ${esc(String(d.dpoOpinionAt || '').slice(0, 10))}` : ''}</p><p>${nl(d.dpoOpinion)}</p>
+    <p>${esc(t('gdpr_priorConsultRequired'))}: ${d.saConsultationRequired ? '✓' : '✗'}</p>
+    <h2>${esc(t('gdpr_decision'))}</h2><p>${esc(dec)}</p><p>${nl(d.decisionJustification)}</p>
+    ${d.approvedBy ? `<h2>${esc(t('gdpr_approvedBy'))}</h2><p>${esc(d.approvedBy)}, ${esc(String(d.approvedAt || '').slice(0, 10))}</p>` : ''}
+    <div class="sub" style="margin-top:20px">ISMS Builder · ${esc(new Date().toLocaleString())}</div>
+    <script>window.onload = () => window.print()<\/script></body></html>`)
+  win.document.close()
 }
 
 // ── Incidents (Datenpannen) ────────────────────────────────────────
@@ -11531,7 +12464,8 @@ async function renderGdprIncidents(el) {
 
   el.innerHTML = `
     <div class="gdpr-filter-bar">
-      ${gdprCanAudit() ? `<button class="btn btn-primary btn-sm" onclick="openIncidentForm()"><i class="ph ph-plus"></i> ${t('gdpr_newBreach')}</button>` : ''}
+      ${gdprCanAudit() ? `<button class="btn btn-primary btn-sm" onclick="openIncidentForm()"><i class="ph ph-plus"></i> ${t('gdpr_newBreach')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="openGdprTemplateDialog('incident')"><i class="ph ph-copy"></i> ${t('gdpr_useTemplate')}</button>` : ''}
       <span class="gdpr-filter-count">${list.length} data breach(es)</span>
     </div>
     ${list.length === 0 ? `<p class="gdpr-empty">${t('gdpr_noBreachesFound')}</p>` : `
@@ -11543,17 +12477,17 @@ async function renderGdprIncidents(el) {
         ${list.map(i => {
           const typ = GDPR_INC_TYPES.find(t => t.id === i.incidentType)
           const st  = GDPR_INC_STATUSES.find(s => s.id === i.status)
-          return `<tr class="gdpr-row" onclick="openIncidentForm('${i.id}')">
+          return `<tr class="gdpr-row" onclick="openIncidentForm(${jsArg(i.id)})">
             <td><strong>${escHtml(i.title)}</strong></td>
             <td style="font-size:.78rem">${escHtml(typ?.label || i.incidentType)}</td>
             <td style="font-size:.78rem">${i.discoveredAt ? new Date(i.discoveredAt).toLocaleDateString('en-GB') : '—'}</td>
             <td>${i.saNotificationRequired && !i.saNotifiedAt ? gdprTimerHtml(i.discoveredAt) : '—'}</td>
-            <td><span class="gdpr-risk gdpr-risk-${i.riskLevel}">${GDPR_RISK_LEVELS.find(l=>l.id===i.riskLevel)?.label || i.riskLevel}</span></td>
+            <td><span class="gdpr-risk gdpr-risk-${escHtml(i.riskLevel)}">${GDPR_RISK_LEVELS.find(l=>l.id===i.riskLevel)?.label || escHtml(i.riskLevel)}</span></td>
             <td>${i.saNotifiedAt ? `<i class="ph ph-check-circle" style="color:#4ade80"></i> ${new Date(i.saNotifiedAt).toLocaleDateString('en-GB')}` : (i.saNotificationRequired ? '<i class="ph ph-x-circle" style="color:#f87171"></i> ' + t('gdpr_pending') : '—')}</td>
-            <td><span class="gdpr-status gdpr-st-${i.status}">${st?.label || i.status}</span></td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(i.status)}">${escHtml(st?.label || i.status)}</span></td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
-              ${gdprCanAudit() ? `<button class="btn btn-secondary btn-sm" onclick="openIncidentForm('${i.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('incidents','${i.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${gdprCanAudit() ? `<button class="btn btn-secondary btn-sm" onclick="openIncidentForm(${jsArg(i.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('incidents',${jsArg(i.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
         }).join('')}
@@ -11562,21 +12496,21 @@ async function renderGdprIncidents(el) {
   `
 }
 
-async function openIncidentForm(id = null) {
+async function openIncidentForm(id = null, prefill = null) {
   let item = null
   if (id) {
     const r = await fetch(`/gdpr/incidents/${id}`, { headers: apiHeaders() })
     if (r.ok) item = await r.json()
   }
-  const inc = item || {}
+  const inc = item || prefill || {}
 
   const typeOpts = GDPR_INC_TYPES.map(t => `<option value="${t.id}" ${inc.incidentType === t.id ? 'selected':''}>${t.label}</option>`).join('')
   const stOpts   = GDPR_INC_STATUSES.map(s => `<option value="${s.id}" ${inc.status === s.id ? 'selected':''}>${s.label}</option>`).join('')
   const rlOpts   = GDPR_RISK_LEVELS.map(l => `<option value="${l.id}" ${inc.riskLevel === l.id ? 'selected':''}>${l.label}</option>`).join('')
   const catChecks = GDPR_DATA_CATS.map(c =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
-       <input type="checkbox" value="${c}" class="inc-cat-cb" ${(inc.dataCategories||[]).includes(c)?'checked':''}> ${c}
-     </label>`).join('')
+       <input type="checkbox" value="${escVal(c)}" class="inc-cat-cb" ${(inc.dataCategories||[]).includes(c)?'checked':''}> ${escVal(c)}
+$1</label>`).join('')
   const entityChecks = _gdprEntities.map(e =>
     `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:.8rem">
        <input type="checkbox" value="${e.id}" class="inc-entity-cb" ${(inc.applicableEntities||[]).includes(e.id)?'checked':''}> ${escHtml(e.name)}
@@ -11594,11 +12528,11 @@ async function openIncidentForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_breachType')}</label>
           <select id="incType" class="select">${typeOpts}</select></div>
         <div class="form-group"><label class="form-label">${t('gdpr_discoveredOn')}</label>
-          <input id="incDiscovered" type="datetime-local" class="form-input" value="${inc.discoveredAt ? inc.discoveredAt.slice(0,16) : ''}"></div>
+          <input id="incDiscovered" type="datetime-local" class="form-input" value="${escVal(inc.discoveredAt ? inc.discoveredAt.slice(0,16) : '')}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_affectedDataCategories')}</label>
           <div>${catChecks}</div></div>
         <div class="form-group"><label class="form-label">${t('gdpr_estimatedSubjects')}</label>
-          <input id="incAffected" type="number" class="form-input" value="${inc.estimatedAffected||''}"></div>
+          <input id="incAffected" type="number" class="form-input" value="${escVal(inc.estimatedAffected||'')}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_riskAssessment')}</label>
           <select id="incRiskLevel" class="select">${rlOpts}</select></div>
         <div class="form-group">
@@ -11608,7 +12542,7 @@ async function openIncidentForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_saRefNumber')}</label>
           <input id="incSaRef" class="form-input" value="${escHtml(inc.saReference||'')}" placeholder="${escHtml(t('gdpr_ifNotifiedPh'))}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_saNotifiedOn')}</label>
-          <input id="incSaNotified" type="datetime-local" class="form-input" value="${inc.saNotifiedAt ? inc.saNotifiedAt.slice(0,16) : ''}"></div>
+          <input id="incSaNotified" type="datetime-local" class="form-input" value="${escVal(inc.saNotifiedAt ? inc.saNotifiedAt.slice(0,16) : '')}"></div>
         <div class="form-group">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="checkbox" id="incDsRequired" ${inc.dsNotificationRequired?'checked':''}> ${t('gdpr_dsNotifyRequired')}
@@ -11626,7 +12560,7 @@ async function openIncidentForm(id = null) {
       </div>
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchGdprTab('incidents')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveIncident(${id ? `'${id}'` : 'null'})">${t('ui_save')}</button>
+        <button class="btn btn-primary" onclick="saveIncident(${id ? `${jsArg(id)}` : 'null'})">${t('ui_save')}</button>
       </div>
     </div>
   `
@@ -11676,7 +12610,8 @@ async function renderGdprDsar(el) {
 
   el.innerHTML = `
     <div class="gdpr-filter-bar">
-      ${gdprCanEdit() ? `<button class="btn btn-primary btn-sm" onclick="openDsarForm()"><i class="ph ph-plus"></i> ${t('gdpr_newRequest')}</button>` : ''}
+      ${gdprCanEdit() ? `<button class="btn btn-primary btn-sm" onclick="openDsarForm()"><i class="ph ph-plus"></i> ${t('gdpr_newRequest')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="openGdprTemplateDialog('dsar')"><i class="ph ph-copy"></i> ${t('gdpr_useTemplate')}</button>` : ''}
       <span class="gdpr-filter-count">${list.length} requests</span>
     </div>
     ${list.length === 0 ? `<p class="gdpr-empty">${t('gdpr_noDsarFound')}</p>` : `
@@ -11690,15 +12625,15 @@ async function renderGdprDsar(el) {
           const st  = GDPR_DSAR_STATUSES.find(s => s.id === d.status)
           const deadline = d.extendedDeadline || d.deadline
           const isOver   = deadline && new Date(deadline) < now && !['completed','refused'].includes(d.status)
-          return `<tr class="gdpr-row" onclick="openDsarForm('${d.id}')">
+          return `<tr class="gdpr-row" onclick="openDsarForm(${jsArg(d.id)})">
             <td style="font-size:.78rem">${escHtml(typ?.label || d.requestType)}</td>
             <td>${escHtml(d.dataSubjectName)}<br><small style="color:var(--text-subtle)">${escHtml(d.dataSubjectEmail)}</small></td>
             <td style="font-size:.78rem">${d.receivedAt ? new Date(d.receivedAt).toLocaleDateString('en-GB') : '—'}</td>
             <td style="font-size:.78rem;${isOver ? 'color:#f87171;font-weight:600' : ''}">${deadline ? new Date(deadline).toLocaleDateString('en-GB') : '—'}${isOver ? ' <i class="ph ph-warning" style="color:#f87171"></i>' : ''}</td>
-            <td><span class="gdpr-status gdpr-st-${d.status}">${st?.label || d.status}</span></td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(d.status)}">${escHtml(st?.label || d.status)}</span></td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
-              ${gdprCanEdit() ? `<button class="btn btn-secondary btn-sm" onclick="openDsarForm('${d.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('dsar','${d.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${gdprCanEdit() ? `<button class="btn btn-secondary btn-sm" onclick="openDsarForm(${jsArg(d.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('dsar',${jsArg(d.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
         }).join('')}
@@ -11707,13 +12642,13 @@ async function renderGdprDsar(el) {
   `
 }
 
-async function openDsarForm(id = null) {
+async function openDsarForm(id = null, prefill = null) {
   let item = null
   if (id) {
     const r = await fetch(`/gdpr/dsar/${id}`, { headers: apiHeaders() })
     if (r.ok) item = await r.json()
   }
-  const d = item || {}
+  const d = item || prefill || {}
 
   const typeOpts = GDPR_DSAR_TYPES.map(t => `<option value="${t.id}" ${d.requestType === t.id ? 'selected':''}>${t.label}</option>`).join('')
   const stOpts   = GDPR_DSAR_STATUSES.map(s => `<option value="${s.id}" ${d.status === s.id ? 'selected':''}>${s.label}</option>`).join('')
@@ -11736,7 +12671,7 @@ async function openDsarForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_dataSubjectEmail')}</label>
           <input id="dsarEmail" class="form-input" value="${escHtml(d.dataSubjectEmail||'')}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_receivedOnDeadline')}</label>
-          <input id="dsarReceived" type="date" class="form-input" value="${d.receivedAt ? d.receivedAt.slice(0,10) : new Date().toISOString().slice(0,10)}"></div>
+          <input id="dsarReceived" type="date" class="form-input" value="${escVal(d.receivedAt ? d.receivedAt.slice(0,10) : new Date().toISOString().slice(0,10))}"></div>
         <div class="form-group">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="checkbox" id="dsarVerified" ${d.identityVerified?'checked':''}> ${t('gdpr_identityVerified')}
@@ -11754,7 +12689,7 @@ async function openDsarForm(id = null) {
       </div>
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchGdprTab('dsar')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveDsar(${id ? `'${id}'` : 'null'})">${t('ui_save')}</button>
+        <button class="btn btn-primary" onclick="saveDsar(${id ? `${jsArg(id)}` : 'null'})">${t('ui_save')}</button>
       </div>
     </div>
   `
@@ -11797,7 +12732,8 @@ async function renderGdprToms(el) {
 
   el.innerHTML = `
     <div class="gdpr-filter-bar">
-      ${gdprCanOwn() ? `<button class="btn btn-primary btn-sm" onclick="openTomForm()"><i class="ph ph-plus"></i> ${t('gdpr_newTom')}</button>` : ''}
+      ${gdprCanOwn() ? `<button class="btn btn-primary btn-sm" onclick="openTomForm()"><i class="ph ph-plus"></i> ${t('gdpr_newTom')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="openGdprTemplateDialog('tom')"><i class="ph ph-copy"></i> ${t('gdpr_useTemplate')}</button>` : ''}
       <select class="select" style="font-size:.82rem" onchange="_gdprTomCategory=this.value;switchGdprTab('toms')">${catOpts}</select>
       <span class="gdpr-filter-count">${list.length} TOMs</span>
     </div>
@@ -11810,15 +12746,15 @@ async function renderGdprToms(el) {
         ${list.map(t => {
           const cat = GDPR_TOM_CATS.find(c => c.id === t.category)
           const st  = GDPR_TOM_STATUSES.find(s => s.id === t.status)
-          return `<tr class="gdpr-row" onclick="openTomForm('${t.id}')">
+          return `<tr class="gdpr-row" onclick="openTomForm(${jsArg(t.id)})">
             <td><strong>${escHtml(t.title)}</strong><br><small style="color:var(--text-subtle)">${escHtml(t.description?.slice(0,60) || '')}</small></td>
             <td style="font-size:.78rem">${escHtml(cat?.label || t.category)}</td>
-            <td><span class="gdpr-status gdpr-st-${t.status}">${st?.label || t.status}</span></td>
+            <td><span class="gdpr-status gdpr-st-${escHtml(t.status)}">${escHtml(st?.label || t.status)}</span></td>
             <td style="font-size:.78rem">${escHtml(t.owner || '—')}</td>
-            <td style="font-size:.78rem">${t.reviewDate || '—'}</td>
+            <td style="font-size:.78rem">${escHtml(t.reviewDate || '—')}</td>
             <td onclick="event.stopPropagation()" class="gdpr-actions">
-              ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" onclick="openTomForm('${t.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('toms','${t.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${gdprCanOwn() ? `<button class="btn btn-secondary btn-sm" onclick="openTomForm(${jsArg(t.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+              ${gdprIsAdmin() ? `<button class="btn btn-sm" style="color:var(--danger-text)" onclick="deleteGdprItem('toms',${jsArg(t.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
         }).join('')}
@@ -11827,13 +12763,13 @@ async function renderGdprToms(el) {
   `
 }
 
-async function openTomForm(id = null) {
+async function openTomForm(id = null, prefill = null) {
   let item = null
   if (id) {
     const r = await fetch(`/gdpr/toms/${id}`, { headers: apiHeaders() })
     if (r.ok) item = await r.json()
   }
-  const tom = item || {}
+  const tom = item || prefill || {}
 
   const catOpts = GDPR_TOM_CATS.map(c => `<option value="${c.id}" ${tom.category === c.id ? 'selected':''}>${c.label}</option>`).join('')
   const stOpts  = GDPR_TOM_STATUSES.map(s => `<option value="${s.id}" ${tom.status === s.id ? 'selected':''}>${s.label}</option>`).join('')
@@ -11869,14 +12805,14 @@ async function openTomForm(id = null) {
         <div class="form-group"><label class="form-label">${t('gdpr_retentionRule')}</label>
           <input id="tomRetention" class="form-input" value="${escHtml(tom.retentionRule||'')}" placeholder="${escHtml(t('ph_retentionEg'))}"></div>
         <div class="form-group"><label class="form-label">${t('ui_reviewDate')}</label>
-          <input id="tomReview" type="date" class="form-input" value="${tom.reviewDate||''}"></div>
+          <input id="tomReview" type="date" class="form-input" value="${escHtml(tom.reviewDate||'')}"></div>
         ${_gdprEntities.length ? `<div class="form-group"><label class="form-label">${t('ui_applicableEntities')}</label>
           <div>${entityChecks}</div></div>` : ''}
         ${renderLinksBlock('tom', tom.linkedControls||[], tom.linkedPolicies||[])}
       </div>
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchGdprTab('toms')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveTom(${id ? `'${id}'` : 'null'})">${t('ui_save')}</button>
+        <button class="btn btn-primary" onclick="saveTom(${id ? `${jsArg(id)}` : 'null'})">${t('ui_save')}</button>
       </div>
     </div>
   `
@@ -11943,7 +12879,7 @@ async function renderGdprDeletion(el) {
           <td>${escHtml(v.title)}</td>
           <td style="color:var(--color-danger)">${fmtDate(v.deletionDue)}</td>
           <td>${t('gdpr_nMonths', { n: v.retentionMonths })}</td>
-          ${canOwn ? `<td><button class="btn btn-sm btn-danger" onclick="confirmDeletion('${v.id}','${escHtml(v.title).replace(/'/g,"\\'")}')"><i class="ph ph-check"></i> ${t('gdpr_confirmDeletion')}</button></td>` : ''}
+          ${canOwn ? `<td><button class="btn btn-sm btn-danger" onclick="confirmDeletion(${jsArg(v.id)},${jsArg(v.title)})"><i class="ph ph-check"></i> ${t('gdpr_confirmDeletion')}</button></td>` : ''}
         </tr>`).join('')}
       </tbody>
     </table>` : `<p class="gdpr-empty" style="color:var(--color-success)"><i class="ph ph-check-circle"></i> ${t('gdpr_noDeletionDue')}</p>`}
@@ -12017,10 +12953,10 @@ async function renderGdprDsb(el) {
         <div class="form-group"><label class="form-label">${t('ui_phone')}</label>
           <input id="dsbPhone" class="form-input" value="${escHtml(d.phone||'')}"></div>
         <div class="form-group"><label class="form-label">${t('gdpr_appointedOn')}</label>
-          <input id="dsbApptDate" type="date" class="form-input" value="${d.appointmentDate||''}"></div>
+          <input id="dsbApptDate" type="date" class="form-input" value="${escVal(d.appointmentDate||'')}"></div>
       </div>
       <div class="form-group"><label class="form-label">${t('gdpr_contractUntilExternal')}</label>
-        <input id="dsbContractEnd" type="date" class="form-input" value="${d.contractEnd||''}"></div>
+        <input id="dsbContractEnd" type="date" class="form-input" value="${escVal(d.contractEnd||'')}"></div>
       <div class="form-group"><label class="form-label">${t('ui_notes')}</label>
         <textarea id="dsbNotes" class="form-input" rows="3">${escHtml(d.notes||'')}</textarea></div>
 
@@ -12078,12 +13014,14 @@ async function deleteGdprItem(resource, id) {
 
 // ── showModal helper (reused pattern) ────────────────────────────
 
-function showModal(id, innerHtml) {
+// `width` (px, optional): breiteres Fenster. Der Standard (380 px, abgeschnitten) reicht für Formulare mit mehreren Zeilen und Knöpfen nicht.
+function showModal(id, innerHtml, width) {
   document.getElementById(id)?.remove()
   const overlay = document.createElement('div')
   overlay.id = id
   overlay.className = 'modal-overlay'
-  overlay.innerHTML = `<div class="modal-dialog">${innerHtml}</div>`
+  const wide = width ? ` style="width:min(${parseInt(width, 10)}px,96vw);max-width:none;max-height:92vh;overflow:auto;padding:22px 26px"` : ''
+  overlay.innerHTML = `<div class="modal-dialog"${wide}>${innerHtml}</div>`
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove() })
   document.body.appendChild(overlay)
 }
@@ -12158,7 +13096,7 @@ async function switchTrainingTab(tab) {
     if (tab === 'plan')      await renderTrainingPlan(el)
     if (tab === 'evidence')  await renderTrainingEvidence(el)
   } catch(e) {
-    el.innerHTML = `<p style="color:var(--danger-text);padding:24px"><i class="ph ph-warning"></i> ${t('err_load')}: ${e.message}. ${t('err_restartServer')}</p>`
+    el.innerHTML = `<p style="color:var(--danger-text);padding:24px"><i class="ph ph-warning"></i> ${t('err_load')}: ${escHtml(e.message)}. ${t('err_restartServer')}</p>`
   }
 }
 
@@ -12191,10 +13129,10 @@ async function renderTrainingOverview(el) {
           const diff = i.dueDate ? Math.ceil((new Date(i.dueDate)-new Date())/86400000) : null
           const urgency = i.overdue ? 'overdue' : diff !== null && diff <= 7 ? 'due-soon' : ''
           return `<div class="training-overview-item ${urgency}">
-            <span class="badge ${TRAINING_STATUS_CLS[i.status]||''}">${TRAINING_STATUS_LABELS[i.status]||i.status}</span>
+            <span class="badge ${TRAINING_STATUS_CLS[i.status]||''}">${escHtml(TRAINING_STATUS_LABELS[i.status]||i.status)}</span>
             <strong>${escHtml(i.title)}</strong>
-            <span style="color:var(--text-subtle);font-size:.78rem">${TRAINING_CAT_LABELS[i.category]||i.category}</span>
-            <span class="training-due ${urgency}">${i.dueDate ? (i.overdue ? `${t('training_overdueSince')} ${i.dueDate}` : `${t('trn_dueLabel')}: ${i.dueDate}`) : '—'}</span>
+            <span style="color:var(--text-subtle);font-size:.78rem">${escHtml(TRAINING_CAT_LABELS[i.category]||i.category)}</span>
+            <span class="training-due ${urgency}">${i.dueDate ? (i.overdue ? `${t('training_overdueSince')} ${escVal(i.dueDate)}` : `${t('trn_dueLabel')}: ${escVal(i.dueDate)}`) : '—'}</span>
             <span style="color:var(--text-subtle);font-size:.78rem">${escHtml(i.assignees||'—')}</span>
           </div>`
         }).join('') || `<p style="color:var(--text-subtle)">${t('training_noUrgent')}</p>`}
@@ -12217,11 +13155,11 @@ async function renderTrainingPlan(el) {
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openTrainingForm()"><i class="ph ph-plus"></i> ${t('trn_newTraining')}</button>` : ''}
       <select id="trainingFilterStatus" class="select select-sm" onchange="filterTrainingPlan()">
         <option value="">${t('filter_allStatuses')}</option>
-        ${Object.entries(TRAINING_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(TRAINING_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="trainingFilterCat" class="select select-sm" onchange="filterTrainingPlan()">
         <option value="">${t('filter_allCats')}</option>
-        ${Object.entries(TRAINING_CAT_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(TRAINING_CAT_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
     </div>
     <div id="trainingPlanTable"></div>
@@ -12242,14 +13180,14 @@ function renderTrainingTable(list, isAdmin, canEdit) {
         ${list.map(i => `
           <tr class="${i.overdue?'training-row-overdue':''}">
             <td><strong>${escHtml(i.title)}</strong></td>
-            <td><span class="training-cat-chip">${TRAINING_CAT_LABELS[i.category]||i.category}</span></td>
-            <td><span class="badge ${TRAINING_STATUS_CLS[i.status]||''}">${TRAINING_STATUS_LABELS[i.status]||i.status}</span></td>
-            <td class="${i.overdue?'training-overdue-text':''}">${i.dueDate||'—'}</td>
+            <td><span class="training-cat-chip">${escHtml(TRAINING_CAT_LABELS[i.category]||i.category)}</span></td>
+            <td><span class="badge ${TRAINING_STATUS_CLS[i.status]||''}">${escHtml(TRAINING_STATUS_LABELS[i.status]||i.status)}</span></td>
+            <td class="${i.overdue?'training-overdue-text':''}">${escHtml(i.dueDate||'—')}</td>
             <td>${i.mandatory?'<i class="ph ph-check-circle" style="color:var(--success-text)"></i>':'—'}</td>
             <td style="font-size:.78rem;color:var(--text-subtle)">${escHtml(i.assignees||'—')}</td>
             ${canEdit ? `<td>
-              <button class="btn btn-secondary btn-xs" onclick="openTrainingForm('${i.id}')"><i class="ph ph-pencil"></i></button>
-              ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteTraining('${i.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              <button class="btn btn-secondary btn-xs" onclick="openTrainingForm(${jsArg(i.id)})"><i class="ph ph-pencil"></i></button>
+              ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteTraining(${jsArg(i.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>` : ''}
           </tr>`).join('')}
       </tbody>
@@ -12268,6 +13206,15 @@ async function filterTrainingPlan() {
   renderTrainingTable(list, rank >= ROLE_RANK.admin, rank >= ROLE_RANK.editor)
 }
 
+// Nachweistext: erst maskieren, dann nur http(s)-Adressen als Link ausgeben (kein javascript:, data:, mailto:)
+function linkifyEvidence(text) {
+  return escHtml(String(text || '')).replace(/https?:\/\/[^\s<>"']+/gi, url => {
+    const trail = (url.match(/[.,;:!?)\]]+$/) || [''])[0]
+    const href = trail ? url.slice(0, -trail.length) : url
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${href}</a>${trail}`
+  }).replace(/\r?\n/g, '<br>')
+}
+
 async function renderTrainingEvidence(el) {
   const res = await fetch('/training?status=completed', { headers: apiHeaders() })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -12278,23 +13225,32 @@ async function renderTrainingEvidence(el) {
     ${list.length === 0
       ? `<p style="color:var(--text-subtle)">${t('training_noEvidence')}</p>`
       : list.map(i => `
-        <div class="training-evidence-card">
+        <div class="training-evidence-card" role="button" tabindex="0" title="${escHtml(t('trn_openTrainingHint'))}"
+             onclick="openTrainingForm(${jsArg(i.id)}, 'evidence')"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openTrainingForm(${jsArg(i.id)}, 'evidence')}">
           <div class="training-evidence-header">
             <strong>${escHtml(i.title)}</strong>
-            <span class="training-cat-chip">${TRAINING_CAT_LABELS[i.category]||i.category}</span>
-            <span style="color:var(--text-subtle);font-size:.78rem">${t('ack_statusCompleted')}: ${i.completedDate||'—'}</span>
+            <span class="training-cat-chip">${escHtml(TRAINING_CAT_LABELS[i.category]||i.category)}</span>
+            <span style="color:var(--text-subtle);font-size:.78rem">${t('ack_statusCompleted')}: ${escHtml(i.completedDate||'—')}</span>
           </div>
           <div class="training-evidence-meta">
             <span><i class="ph ph-user"></i> ${escHtml(i.instructor||'—')}</span>
             <span><i class="ph ph-users"></i> ${escHtml(i.assignees||'—')}</span>
           </div>
-          ${i.evidence ? `<div class="training-evidence-text"><i class="ph ph-note-pencil"></i> ${escHtml(i.evidence)}</div>` : `<div class="training-evidence-text" style="color:var(--text-subtle);font-style:italic">${t('trn_noEvidenceText')}</div>`}
+          ${i.evidence ? `<div class="training-evidence-text"><i class="ph ph-note-pencil"></i> ${linkifyEvidence(i.evidence)}</div>` : `<div class="training-evidence-text" style="color:var(--text-subtle);font-style:italic">${t('trn_noEvidenceText')}</div>`}
+          <div class="training-evidence-actions" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
+            ${(i.attachments||[]).map(a => `<button type="button" class="btn btn-secondary btn-xs training-attach-link" title="${escHtml(a.originalName)}" onclick="downloadTrainingFile(${jsArg(i.id)},${jsArg(a.id)})"><i class="ph ph-paperclip"></i> ${escHtml(a.originalName)}</button>`).join('')}
+            <button type="button" class="btn btn-primary btn-xs" data-testid="confirmationBtn" onclick="downloadTrainingConfirmation(${jsArg(i.id)})"><i class="ph ph-file-pdf"></i> ${t('trn_downloadConfirmation')}</button>
+          </div>
         </div>`).join('')}
   `
 }
 
-async function openTrainingForm(id) {
+async function openTrainingForm(id, backTab) {
   const isEdit = !!id
+  const back = backTab || 'plan'
+  // aus dem Reiter „Nachweise“ geöffnet: immer nur ansehen (Ändern geht über den Reiter „Plan“)
+  const readOnly = !userCanTransition('editor') || back === 'evidence'
   let item = null
   if (isEdit) {
     const r = await fetch(`/training/${id}`, { headers: apiHeaders() })
@@ -12309,14 +13265,15 @@ async function openTrainingForm(id) {
   el.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
-        <button class="btn btn-secondary btn-sm" onclick="switchTrainingTab('plan')">
+        <button class="btn btn-secondary btn-sm" onclick="switchTrainingTab(${jsArg(back)})">
           <i class="ph ph-arrow-left"></i> ${t('trn_backToOverview')}
         </button>
         <h3 class="training-form-title">
           <i class="ph ph-graduation-cap"></i>
-          ${isEdit ? t('trn_editTraining') : t('trn_newTraining')}
+          ${readOnly ? t('trn_viewTraining') : (isEdit ? t('trn_editTraining') : t('trn_newTraining'))}
         </h3>
       </div>
+      ${readOnly ? `<p class="training-readonly-note"><i class="ph ph-lock-simple"></i> ${t('trn_readOnlyNote')}</p>` : ''}
       <div class="training-form-body">
         <div class="training-form-section">
           <div class="form-group">
@@ -12327,13 +13284,13 @@ async function openTrainingForm(id) {
             <div class="form-group">
               <label class="form-label">${t('col_category')}</label>
               <select id="tmCat" class="select">
-                ${Object.entries(TRAINING_CAT_LABELS).map(([v,l])=>`<option value="${v}"${item?.category===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(TRAINING_CAT_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.category===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_status')}</label>
               <select id="tmStatus" class="select">
-                ${Object.entries(TRAINING_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(TRAINING_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -12347,11 +13304,11 @@ async function openTrainingForm(id) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('col_dueDate')}</label>
-              <input id="tmDue" type="date" class="form-input" value="${item?.dueDate||''}" style="color-scheme:dark">
+              <input id="tmDue" type="date" class="form-input" value="${escHtml(item?.dueDate||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('trn_completedOn')}</label>
-              <input id="tmDone" type="date" class="form-input" value="${item?.completedDate||''}" style="color-scheme:dark">
+              <input id="tmDone" type="date" class="form-input" value="${escHtml(item?.completedDate||'')}" style="color-scheme:dark">
             </div>
           </div>
           <div class="form-row">
@@ -12374,22 +13331,101 @@ async function openTrainingForm(id) {
           <div class="form-group">
             <label class="form-label">${t('trn_evidenceNotes')}</label>
             <textarea id="tmEvidence" class="form-input" rows="4" placeholder="${t('trn_evidencePh')}">${escHtml(item?.evidence||'')}</textarea>
+            <div class="form-hint" style="font-size:.76rem;color:var(--text-subtle);margin-top:4px">${t('trn_evidenceHint')}</div>
+            ${readOnly && item?.evidence ? `<div class="training-evidence-text" style="margin-top:8px" data-testid="evidenceLinks">${linkifyEvidence(item.evidence)}</div>` : ''}
           </div>
           ${renderLinksBlock('tm', item?.linkedControls||[], item?.linkedPolicies||[])}
         </div>
+        ${isEdit ? `<div class="training-form-section">
+          <h4 class="training-form-section-title"><i class="ph ph-paperclip"></i> ${t('trn_attachments')}</h4>
+          <div id="tmAttachList" data-readonly="${escVal(readOnly ? '1' : '')}">${renderTrainingAttachments(id, item?.attachments || [], readOnly)}</div>
+          ${readOnly ? '' : `<div style="margin-top:8px">
+            <input type="file" id="tmAttachInput" style="display:none" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.txt" onchange="uploadTrainingAttachment(${jsArg(id)}, this)">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('tmAttachInput').click()"><i class="ph ph-upload-simple"></i> ${t('trn_addFile')}</button>
+          </div>`}
+          <div class="form-hint" style="font-size:.76rem;color:var(--text-subtle);margin-top:6px">${t('trn_attachmentsHint')}</div>
+          <div style="margin-top:12px">
+            ${item?.status === 'completed'
+              ? `<button type="button" class="btn btn-primary btn-sm" onclick="downloadTrainingConfirmation(${jsArg(id)})"><i class="ph ph-file-pdf"></i> ${t('trn_downloadConfirmation')}</button>`
+              : `<span style="font-size:.8rem;color:var(--text-subtle)"><i class="ph ph-info"></i> ${t('trn_confirmationOnlyCompleted')}</span>`}
+          </div>
+        </div>` : `<div class="training-form-section"><p class="form-hint" style="font-size:.8rem;color:var(--text-subtle);margin:0"><i class="ph ph-paperclip"></i> ${t('trn_saveFirstForFiles')}</p></div>`}
       </div>
       <div class="training-form-footer">
-        <button class="btn btn-secondary" onclick="switchTrainingTab('plan')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveTraining('${id||''}')">
+        <button class="btn btn-secondary" onclick="switchTrainingTab(${jsArg(back)})">${readOnly ? t('close') : t('ui_cancel')}</button>
+        ${readOnly ? '' : `<button class="btn btn-primary" onclick="saveTraining(${jsArg(id||'')}, ${jsArg(back)})">
           <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
-        </button>
+        </button>`}
       </div>
     </div>
   `
-  initLinkPickers('tm')
+  if (readOnly) {
+    el.querySelectorAll('.training-form-body input, .training-form-body textarea, .training-form-body select, .training-form-body button').forEach(x => { x.disabled = true })
+    el.querySelectorAll('.training-form-body .link-chip').forEach(x => x.removeAttribute('onclick'))
+  } else initLinkPickers('tm')
 }
 
-async function saveTraining(id) {
+function renderTrainingAttachments(trainingId, list, readOnly) {
+  if (!list.length) return `<p style="margin:0;font-size:.82rem;color:var(--text-subtle)">${t('trn_noAttachments')}</p>`
+  return list.map(a => `<div class="training-attach-row">
+      <i class="ph ph-paperclip"></i>
+      <a href="#" onclick="downloadTrainingFile(${jsArg(trainingId)},${jsArg(a.id)});return false">${escHtml(a.originalName)}</a>
+      <span class="training-attach-meta">${Math.max(1, Math.round((a.size||0)/1024))} kB · ${escHtml(String(a.uploadedAt||'').slice(0,10))} · ${escHtml(a.uploadedBy||'')}</span>
+      ${readOnly ? '' : `<button type="button" class="btn btn-secondary btn-xs" onclick="removeTrainingAttachment(${jsArg(trainingId)},${jsArg(a.id)})"><i class="ph ph-x"></i> ${t('trn_removeFile')}</button>`}
+    </div>`).join('')
+}
+
+async function refreshTrainingAttachments(id) {
+  const box = dom('tmAttachList')
+  if (!box) return
+  const r = await fetch(`/training/${id}`, { headers: apiHeaders() })
+  if (r.ok) box.innerHTML = renderTrainingAttachments(id, (await r.json()).attachments || [], !!box.dataset.readonly)
+}
+
+async function saveBlobResponse(res, fallbackName) {
+  const cd = res.headers.get('Content-Disposition') || ''
+  const m = /filename\*=UTF-8''([^;]+)/i.exec(cd) || /filename="([^"]+)"/i.exec(cd)
+  let name = fallbackName
+  if (m) { try { name = decodeURIComponent(m[1]) } catch { name = m[1] } }
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url; a.download = name
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 2000)
+}
+
+async function downloadTrainingFile(id, attId) {
+  const res = await fetch(`/training/${encodeURIComponent(id)}/attachments/${encodeURIComponent(attId)}/file`, { headers: apiHeaders() })
+  if (!res.ok) { alert(t('error')); return }
+  await saveBlobResponse(res, 'Nachweis')
+}
+
+async function downloadTrainingConfirmation(id) {
+  const res = await fetch(`/training/${encodeURIComponent(id)}/confirmation.pdf`, { headers: apiHeaders() })
+  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || t('error')); return }
+  await saveBlobResponse(res, 'Teilnahmebestaetigung.pdf')
+}
+
+async function uploadTrainingAttachment(id, input) {
+  const file = input.files && input.files[0]
+  if (!file) return
+  const fd = new FormData()
+  fd.append('file', file)
+  // kein Content-Type setzen: der Browser ergänzt die multipart-Grenze selbst
+  const res = await fetch(`/training/${encodeURIComponent(id)}/attachments`, { method: 'POST', headers: { 'X-User-Name': getCurrentUser(), 'X-User-Role': getCurrentRole() }, body: fd })
+  input.value = ''
+  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(t('file_uploadFailed') + ': ' + (e.error || res.status)); return }
+  await refreshTrainingAttachments(id)
+}
+
+async function removeTrainingAttachment(id, attId) {
+  if (!confirm(t('trn_removeConfirm'))) return
+  const res = await fetch(`/training/${encodeURIComponent(id)}/attachments/${encodeURIComponent(attId)}`, { method: 'DELETE', headers: apiHeaders() })
+  if (!res.ok) { alert(t('error')); return }
+  await refreshTrainingAttachments(id)
+}
+
+async function saveTraining(id, backTab) {
   const payload = {
     title:          dom('tmTitel')?.value?.trim() || '',
     category:       dom('tmCat')?.value || 'other',
@@ -12409,7 +13445,7 @@ async function saveTraining(id) {
   const method = id ? 'PUT' : 'POST'
   const res = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
   if (!res.ok) { const e = await res.json(); alert(e.error || t('error')); return }
-  switchTrainingTab('plan')
+  switchTrainingTab(backTab || 'plan')
 }
 
 async function deleteTraining(id) {
@@ -12500,7 +13536,7 @@ async function switchLegalTab(tab) {
     if (tab === 'ndas')      await renderLegalNdas(content)
     if (tab === 'policies')  await renderLegalPolicies(content)
   } catch (e) {
-    content.innerHTML = `<p style="color:var(--danger-text);padding:16px">Error: ${e.message}</p>`
+    content.innerHTML = `<p style="color:var(--danger-text);padding:16px">Error: ${escHtml(e.message)}</p>`
   }
 }
 
@@ -12522,15 +13558,15 @@ async function renderLegalContracts(el) {
       <tbody>${list.map(c => `
         <tr>
           <td><strong>${escHtml(c.title)}</strong></td>
-          <td>${LEGAL_CONTRACT_TYPE_LABELS[c.contractType]||c.contractType}</td>
+          <td>${LEGAL_CONTRACT_TYPE_LABELS[c.contractType]||escVal(c.contractType)}</td>
           <td>${escHtml(c.counterparty)}</td>
-          <td><span class="status-badge status-${c.status}">${LEGAL_CONTRACT_STATUS_LABELS[c.status]||c.status}</span></td>
+          <td><span class="status-badge status-${escHtml(c.status)}">${escHtml(LEGAL_CONTRACT_STATUS_LABELS[c.status]||c.status)}</span></td>
           <td class="${c.endDate && new Date(c.endDate) < new Date(Date.now()+60*86400000) ? 'text-warning' : ''}">${fmtDate(c.endDate)}</td>
           <td>${escHtml(c.owner||'—')}</td>
           <td style="text-align:center">${c.attachments?.length ? `<span class="gdpr-filter-count" style="font-size:.75rem">${c.attachments.length}</span>` : '—'}</td>
           <td>
-            ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="openLegalForm('contract','${c.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-            ${canAccess('admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteLegalItem('contracts','${c.id}')"><i class="ph ph-trash"></i></button>` : ''}
+            ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="openLegalForm('contract',${jsArg(c.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+            ${canAccess('admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteLegalItem('contracts',${jsArg(c.id)})"><i class="ph ph-trash"></i></button>` : ''}
           </td>
         </tr>`).join('')}
       </tbody>
@@ -12556,15 +13592,15 @@ async function renderLegalNdas(el) {
       <tbody>${list.map(n => `
         <tr>
           <td><strong>${escHtml(n.title)}</strong></td>
-          <td>${LEGAL_NDA_TYPE_LABELS[n.ndaType]||n.ndaType}</td>
+          <td>${LEGAL_NDA_TYPE_LABELS[n.ndaType]||escVal(n.ndaType)}</td>
           <td>${escHtml(n.counterparty)}</td>
-          <td><span class="status-badge status-${n.status}">${LEGAL_NDA_STATUS_LABELS[n.status]||n.status}</span></td>
+          <td><span class="status-badge status-${escHtml(n.status)}">${escHtml(LEGAL_NDA_STATUS_LABELS[n.status]||n.status)}</span></td>
           <td>${fmtDate(n.signingDate)}</td>
           <td class="${n.expiryDate && new Date(n.expiryDate) < new Date(Date.now()+30*86400000) ? 'text-warning' : ''}">${fmtDate(n.expiryDate)}</td>
           <td style="text-align:center">${n.attachments?.length ? `<span class="gdpr-filter-count" style="font-size:.75rem">${n.attachments.length}</span>` : '—'}</td>
           <td>
-            ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="openLegalForm('nda','${n.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-            ${canAccess('admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteLegalItem('ndas','${n.id}')"><i class="ph ph-trash"></i></button>` : ''}
+            ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="openLegalForm('nda',${jsArg(n.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+            ${canAccess('admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteLegalItem('ndas',${jsArg(n.id)})"><i class="ph ph-trash"></i></button>` : ''}
           </td>
         </tr>`).join('')}
       </tbody>
@@ -12589,16 +13625,16 @@ async function renderLegalPolicies(el) {
       <thead><tr><th>${t('col_title')}</th><th>${t('col_type')}</th><th>${t('col_status')}</th><th>${t('col_version')}</th><th>${t('col_published')}</th><th>${t('legal_nextReview')}</th><th><i class="ph ph-paperclip"></i></th><th>${t('admin_actions')}</th></tr></thead>
       <tbody>${list.map(p => `
         <tr>
-          <td><strong>${escHtml(p.title)}</strong>${p.url ? ` <a href="${escHtml(p.url)}" target="_blank" style="font-size:.8rem"><i class="ph ph-link"></i></a>` : ''}</td>
-          <td>${LEGAL_POLICY_TYPE_LABELS[p.policyType]||p.policyType}</td>
-          <td><span class="status-badge status-${p.status}">${LEGAL_POLICY_STATUS_LABELS[p.status]||p.status}</span></td>
-          <td>v${p.version}</td>
+          <td><strong>${escHtml(p.title)}</strong>${safeUrl(p.url) ? ` <a href="${escHtml(safeUrl(p.url))}" target="_blank" style="font-size:.8rem"><i class="ph ph-link"></i></a>` : ''}</td>
+          <td>${LEGAL_POLICY_TYPE_LABELS[p.policyType]||escVal(p.policyType)}</td>
+          <td><span class="status-badge status-${escHtml(p.status)}">${escHtml(LEGAL_POLICY_STATUS_LABELS[p.status]||p.status)}</span></td>
+          <td>v${escHtml(p.version)}</td>
           <td>${fmtDate(p.publishedAt)}</td>
           <td class="${p.nextReviewDate && new Date(p.nextReviewDate) < new Date() ? 'text-danger' : ''}">${fmtDate(p.nextReviewDate)}</td>
           <td style="text-align:center">${p.attachments?.length ? `<span class="gdpr-filter-count" style="font-size:.75rem">${p.attachments.length}</span>` : '—'}</td>
           <td>
-            ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="openLegalForm('policy','${p.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-            ${canAccess('admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteLegalItem('policies','${p.id}')"><i class="ph ph-trash"></i></button>` : ''}
+            ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="openLegalForm('policy',${jsArg(p.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+            ${canAccess('admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteLegalItem('policies',${jsArg(p.id)})"><i class="ph ph-trash"></i></button>` : ''}
           </td>
         </tr>`).join('')}
       </tbody>
@@ -12637,7 +13673,7 @@ async function openLegalForm(type, id) {
         <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
           <input type="file" id="legalAttachFile" class="form-input" style="flex:1;min-width:200px"
             accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.png,.jpg,.jpeg,.txt,.zip">
-          <button class="btn btn-secondary btn-sm" onclick="uploadLegalAttachment('${LEGAL_ENDPOINT[type]}','${id}')">
+          <button class="btn btn-secondary btn-sm" onclick="uploadLegalAttachment(${jsArg(LEGAL_ENDPOINT[type])},${jsArg(id)})">
             <i class="ph ph-upload-simple"></i> ${t('ui_upload')}
           </button>
         </div>
@@ -12656,7 +13692,7 @@ async function openLegalForm(type, id) {
           <div class="form-group">
             <label class="form-label">${t('col_type')}</label>
             <select id="lc_type" class="select">
-              ${Object.entries(LEGAL_CONTRACT_TYPE_LABELS).map(([v,l])=>`<option value="${v}"${item?.contractType===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_CONTRACT_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.contractType===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -12668,14 +13704,14 @@ async function openLegalForm(type, id) {
           <div class="form-group">
             <label class="form-label">${t('col_status')}</label>
             <select id="lc_status" class="select">
-              ${Object.entries(LEGAL_CONTRACT_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_CONTRACT_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">${t('legal_start')}</label><input id="lc_start" type="date" class="form-input" value="${item?.startDate||''}" style="color-scheme:dark"></div>
-          <div class="form-group"><label class="form-label">${t('legal_end')}</label><input id="lc_end" type="date" class="form-input" value="${item?.endDate||''}" style="color-scheme:dark"></div>
-          <div class="form-group"><label class="form-label">${t('legal_noticePeriod')}</label><input id="lc_notice" type="number" class="form-input" value="${item?.noticePeriodDays||''}" placeholder="e.g. 30"></div>
+          <div class="form-group"><label class="form-label">${t('legal_start')}</label><input id="lc_start" type="date" class="form-input" value="${escVal(item?.startDate||'')}" style="color-scheme:dark"></div>
+          <div class="form-group"><label class="form-label">${t('legal_end')}</label><input id="lc_end" type="date" class="form-input" value="${escVal(item?.endDate||'')}" style="color-scheme:dark"></div>
+          <div class="form-group"><label class="form-label">${t('legal_noticePeriod')}</label><input id="lc_notice" type="number" class="form-input" value="${escVal(item?.noticePeriodDays||'')}" placeholder="e.g. 30"></div>
           <div class="form-group"><label class="form-label">${t('legal_contractValue')}</label><input id="lc_value" class="form-input" value="${escHtml(item?.value||'')}" placeholder="${escHtml(t('ph_costEg'))}"></div>
         </div>
         <div class="form-row">
@@ -12706,13 +13742,13 @@ async function openLegalForm(type, id) {
           <div class="form-group">
             <label class="form-label">${t('col_type')}</label>
             <select id="ln_type" class="select">
-              ${Object.entries(LEGAL_NDA_TYPE_LABELS).map(([v,l])=>`<option value="${v}"${item?.ndaType===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_NDA_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.ndaType===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">${t('col_status')}</label>
             <select id="ln_status" class="select">
-              ${Object.entries(LEGAL_NDA_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_NDA_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -12722,9 +13758,9 @@ async function openLegalForm(type, id) {
             <input id="ln_party" class="form-input" value="${escHtml(item?.counterparty||'')}" placeholder="${t('legal_companyPersonPh')}">
           </div>
           <div class="form-group"><label class="form-label">${t('legal_signedOn')}</label>
-            <input id="ln_signed" type="date" class="form-input" value="${item?.signingDate||''}" style="color-scheme:dark"></div>
+            <input id="ln_signed" type="date" class="form-input" value="${escVal(item?.signingDate||'')}" style="color-scheme:dark"></div>
           <div class="form-group"><label class="form-label">${t('legal_expiresOn')}</label>
-            <input id="ln_expiry" type="date" class="form-input" value="${item?.expiryDate||''}" style="color-scheme:dark"></div>
+            <input id="ln_expiry" type="date" class="form-input" value="${escVal(item?.expiryDate||'')}" style="color-scheme:dark"></div>
         </div>
         <div class="form-group"><label class="form-label">${t('ui_ownerResp')}</label>
           <input id="ln_owner" class="form-input" value="${escHtml(item?.owner||'')}" placeholder="${t('ui_ownerRespPh')}"></div>
@@ -12746,13 +13782,13 @@ async function openLegalForm(type, id) {
           <div class="form-group">
             <label class="form-label">${t('col_type')}</label>
             <select id="lp_type" class="select">
-              ${Object.entries(LEGAL_POLICY_TYPE_LABELS).map(([v,l])=>`<option value="${v}"${item?.policyType===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_POLICY_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.policyType===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">${t('col_status')}</label>
             <select id="lp_status" class="select">
-              ${Object.entries(LEGAL_POLICY_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+              ${Object.entries(LEGAL_POLICY_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -12762,9 +13798,9 @@ async function openLegalForm(type, id) {
             <input id="lp_url" class="form-input" value="${escHtml(item?.url||'')}" placeholder="${escHtml(t('ui_urlPh'))}">
           </div>
           <div class="form-group"><label class="form-label">${t('legal_publishedOn')}</label>
-            <input id="lp_pub" type="date" class="form-input" value="${item?.publishedAt||''}" style="color-scheme:dark"></div>
+            <input id="lp_pub" type="date" class="form-input" value="${escVal(item?.publishedAt||'')}" style="color-scheme:dark"></div>
           <div class="form-group"><label class="form-label">${t('legal_nextReview')}</label>
-            <input id="lp_review" type="date" class="form-input" value="${item?.nextReviewDate||''}" style="color-scheme:dark"></div>
+            <input id="lp_review" type="date" class="form-input" value="${escHtml(item?.nextReviewDate||'')}" style="color-scheme:dark"></div>
         </div>
         <div class="form-group"><label class="form-label">${t('ui_ownerResp')}</label>
           <input id="lp_owner" class="form-input" value="${escHtml(item?.owner||'')}" placeholder="${t('ui_ownerRespPh')}"></div>
@@ -12782,7 +13818,7 @@ async function openLegalForm(type, id) {
   el.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
-        <button class="btn btn-secondary btn-sm" onclick="switchLegalTab('${LEGAL_BACK_TAB[type]}')">
+        <button class="btn btn-secondary btn-sm" onclick="switchLegalTab(${jsArg(LEGAL_BACK_TAB[type])})">
           <i class="ph ph-arrow-left"></i> ${t('ui_backToOverview')}
         </button>
         <h3 class="training-form-title">
@@ -12791,8 +13827,8 @@ async function openLegalForm(type, id) {
       </div>
       <div class="training-form-body">${formBody}</div>
       <div class="training-form-footer">
-        <button class="btn btn-secondary" onclick="switchLegalTab('${LEGAL_BACK_TAB[type]}')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveLegalItem('${type}','${id||''}')">
+        <button class="btn btn-secondary" onclick="switchLegalTab(${jsArg(LEGAL_BACK_TAB[type])})">${t('ui_cancel')}</button>
+        <button class="btn btn-primary" onclick="saveLegalItem(${jsArg(type)},${jsArg(id||'')})">
           <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
         </button>
       </div>
@@ -12812,7 +13848,7 @@ function _renderLegalAttachList(attachments, resource, itemId) {
       <i class="ph ph-file-text"></i>
       <a href="/legal/${resource}/${itemId}/attachments/${a.id}/file" target="_blank" class="legal-attach-name">${escHtml(a.originalName)}</a>
       <span class="legal-attach-meta">${fmtSize(a.size)} · ${new Date(a.uploadedAt).toLocaleDateString('en-GB')}</span>
-      ${canAccess('contentowner') ? `<button class="btn btn-danger btn-xs" onclick="deleteLegalAttachment('${resource}','${itemId}','${a.id}')"><i class="ph ph-trash"></i></button>` : ''}
+      ${canAccess('contentowner') ? `<button class="btn btn-danger btn-xs" onclick="deleteLegalAttachment(${jsArg(resource)},${jsArg(itemId)},${jsArg(a.id)})"><i class="ph ph-trash"></i></button>` : ''}
     </div>`).join('')}</div>`
 }
 
@@ -12992,13 +14028,13 @@ const ASSET_CRIT = {
 const ASSET_STATUS_LABELS = { get active() { return t('assl_stActive') }, get planned() { return t('assl_stPlanned') }, get decommissioned() { return t('assl_stDecommissioned') } }
 
 function assetClassBadge(cls) {
-  const c = ASSET_CLASS[cls] || { label: cls || '—', color: '#8C9BAB' }
-  return `<span class="asset-badge" style="color:${c.color};border-color:${c.color}">${c.label}</span>`
+  const c = ASSET_CLASS[cls] || { label: escVal(cls) || '—', color: '#8C9BAB' }
+  return `<span class="asset-badge" style="color:${escVal(c.color)};border-color:${escVal(c.color)}">${c.label}</span>`
 }
 
 function assetCritBadge(crit) {
-  const c = ASSET_CRIT[crit] || { label: crit || '—', color: '#8C9BAB' }
-  return `<span class="asset-badge" style="color:${c.color};border-color:${c.color}">${c.label}</span>`
+  const c = ASSET_CRIT[crit] || { label: escVal(crit) || '—', color: '#8C9BAB' }
+  return `<span class="asset-badge" style="color:${escVal(c.color)};border-color:${escVal(c.color)}">${c.label}</span>`
 }
 
 // ── Schutzziele (CIA + Authentizität) — Issue #29 ─────────────
@@ -13042,6 +14078,7 @@ function assetProtChips(a, nameById) {
 }
 
 async function renderAssets() {
+  _assetFilterState = null; _assetHighlightId = null   // frischer Einstieg in den Bereich: keine alten Filter
   dom('assetsContainer')?.remove()
   const main = document.querySelector('main') || document.body
   const container = document.createElement('div')
@@ -13088,8 +14125,69 @@ async function switchAssetsTab(tab) {
     if (tab === 'by-class')     await renderAssetsByClass(el)
     if (tab === 'dependencies') await renderAssetsGraph(el)
   } catch(e) {
-    el.innerHTML = `<p style="color:var(--danger-text);padding:24px"><i class="ph ph-warning"></i> Error: ${e.message}</p>`
+    el.innerHTML = `<p style="color:var(--danger-text);padding:24px"><i class="ph ph-warning"></i> Error: ${escHtml(e.message)}</p>`
   }
+}
+
+// ── Sortierung der Asset-Liste (Diskussion #111) ─────────────────────────────
+// Standard: Kategorie → Typ → Name (alphabetisch in der Sprache der Oberfläche, Zahlen natürlich: „Server 2“ vor „Server 10“; leerer Typ zuletzt).
+// Spaltenköpfe sortieren auf- und absteigend, ein dritter Klick stellt den Standard wieder her; die Wahl bleibt im Browser. Sortiert wird nur in der Anzeige.
+const ASSET_SORT_KEY = 'isms_asset_sort'
+const ASSET_SORT_COLS = ['name', 'type', 'prot', 'class', 'crit', 'owner', 'status', 'eol']
+let _assetSort = (() => { try { const v = JSON.parse(localStorage.getItem(ASSET_SORT_KEY) || 'null'); return v && ASSET_SORT_COLS.includes(v.key) && (v.dir === 'asc' || v.dir === 'desc') ? v : null } catch { return null } })()
+let _assetFilterState = null    // gemerkte Filter, damit sie nach dem Speichern/Zurückkehren erhalten bleiben
+let _assetHighlightId = null    // zuletzt gespeichertes Asset: wird kurz hervorgehoben und ins Bild gescrollt
+
+function sortAssets(list, sort) {
+  const col = new Intl.Collator(window.LANG || undefined, { numeric: true, sensitivity: 'base' })
+  const text = v => (v == null ? '' : String(v))
+  const cmpText = (x, y) => { const ex = !text(x), ey = !text(y); return ex || ey ? (ex ? 1 : 0) - (ey ? 1 : 0) : col.compare(text(x), text(y)) }   // leer zuletzt
+  const typeLabel = a => (a.type ? assetTypeLabel(a.type) : '')
+  const byDefault = (a, b) => col.compare(assetCatLabel(a.category), assetCatLabel(b.category)) || cmpText(typeLabel(a), typeLabel(b)) || col.compare(text(a.name), text(b.name))
+  const order = (obj, k) => { const i = Object.keys(obj).indexOf(k); return i < 0 ? 99 : i }
+  const protMax = a => { const e = a.effectiveProtection || a.protection || {}; return Math.max(0, ...ASSET_PROT_GOALS.map(g => Number(e[g.key]) || 0)) }
+  const primary = {
+    name:   (a, b) => col.compare(text(a.name), text(b.name)),
+    type:   (a, b) => cmpText(typeLabel(a), typeLabel(b)),
+    prot:   (a, b) => protMax(a) - protMax(b),
+    class:  (a, b) => order(ASSET_CLASS, a.classification) - order(ASSET_CLASS, b.classification),
+    crit:   (a, b) => order(ASSET_CRIT, a.criticality) - order(ASSET_CRIT, b.criticality),
+    owner:  (a, b) => cmpText(a.owner, b.owner),
+    status: (a, b) => cmpText(ASSET_STATUS_LABELS[a.status] || a.status, ASSET_STATUS_LABELS[b.status] || b.status),
+    eol:    (a, b) => cmpText(a.endOfLifeDate, b.endOfLifeDate),
+  }
+  const out = [...list]
+  if (!sort || !primary[sort.key]) return out.sort(byDefault)
+  const dir = sort.dir === 'desc' ? -1 : 1
+  return out.sort((a, b) => {
+    const empty = sort.key === 'type' || sort.key === 'owner' || sort.key === 'status' || sort.key === 'eol'
+    const ea = empty && !text(sort.key === 'type' ? typeLabel(a) : sort.key === 'owner' ? a.owner : sort.key === 'status' ? a.status : a.endOfLifeDate)
+    const eb = empty && !text(sort.key === 'type' ? typeLabel(b) : sort.key === 'owner' ? b.owner : sort.key === 'status' ? b.status : b.endOfLifeDate)
+    if (ea !== eb) return ea ? 1 : -1               // leere Werte stehen immer am Ende, unabhängig von der Richtung
+    return dir * primary[sort.key](a, b) || byDefault(a, b)
+  })
+}
+
+function setAssetSort(key) {
+  // Reihenfolge der Klicks: aufsteigend → absteigend → Standard
+  if (!_assetSort || _assetSort.key !== key) _assetSort = { key, dir: 'asc' }
+  else if (_assetSort.dir === 'asc') _assetSort = { key, dir: 'desc' }
+  else _assetSort = null
+  try { if (_assetSort) localStorage.setItem(ASSET_SORT_KEY, JSON.stringify(_assetSort)); else localStorage.removeItem(ASSET_SORT_KEY) } catch {}
+  _filterAssets()
+}
+
+// Zurück aus dem Formular in den Reiter, aus dem es geöffnet wurde (Liste, Nach Kategorie, …)
+function assetsFormBack() { switchAssetsTab(['list', 'by-category', 'by-class'].includes(_assetsTab) ? _assetsTab : 'list') }
+
+// Zuletzt gespeichertes Asset hervorheben und ins Bild holen
+function _flashSavedAsset() {
+  const id = _assetHighlightId; _assetHighlightId = null
+  if (!id) return
+  const row = document.querySelector(`#assetsTabContent tr[data-asset-id="${escVal(id)}"]`)
+  if (!row) return
+  row.classList.add('asset-row-new'); row.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  setTimeout(() => row.classList.remove('asset-row-new'), 3500)
 }
 
 async function renderAssetsList(el) {
@@ -13115,33 +14213,40 @@ async function renderAssetsList(el) {
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openAssetForm()"><i class="ph ph-plus"></i> ${t('assets_new')}</button>` : ''}
       <select id="assetFilterCat" onchange="_filterAssets()" title="${t('ui_category')}">
         <option value="">${t('filter_allCats')}</option>
-        ${Object.keys(ASSET_CAT_LABELS).map(v=>`<option value="${v}">${escHtml(assetCatLabel(v))}</option>`).join('')}
+        ${Object.keys(ASSET_CAT_LABELS).map(v=>`<option value="${escVal(v)}">${escHtml(assetCatLabel(v))}</option>`).join('')}
       </select>
       <select id="assetFilterClass" onchange="_filterAssets()" title="${t('assets_classification')}">
         <option value="">${t('assets_allClass')}</option>
-        ${Object.entries(ASSET_CLASS).map(([v,c])=>`<option value="${v}">${c.label}</option>`).join('')}
+        ${Object.entries(ASSET_CLASS).map(([v,c])=>`<option value="${escVal(v)}">${c.label}</option>`).join('')}
       </select>
       <select id="assetFilterCrit" onchange="_filterAssets()" title="${t('assets_criticality')}">
         <option value="">${t('assets_allCrit')}</option>
-        ${Object.entries(ASSET_CRIT).map(([v,c])=>`<option value="${v}">${c.label}</option>`).join('')}
+        ${Object.entries(ASSET_CRIT).map(([v,c])=>`<option value="${escVal(v)}">${c.label}</option>`).join('')}
       </select>
       <select id="assetFilterStatus" onchange="_filterAssets()" title="${t('col_status')}">
         <option value="">${t('filter_allStatuses')}</option>
-        ${Object.entries(ASSET_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(ASSET_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="assetFilterProtGoal" onchange="_filterAssets()" title="${escHtml(t('assets_protection'))}">
-        ${ASSET_PROT_GOALS.map(g=>`<option value="${g.key}">${escHtml(t(g.i18n))}</option>`).join('')}
+        ${ASSET_PROT_GOALS.map(g=>`<option value="${escVal(g.key)}">${escHtml(t(g.i18n))}</option>`).join('')}
       </select>
       <select id="assetFilterProtMin" onchange="_filterAssets()" title="${escHtml(t('assets_effective'))}">
         <option value="">${escHtml(t('assets_lvlNone'))}</option>
-        ${[1,2,3,4].map(v=>`<option value="${v}">≥ ${v}</option>`).join('')}
+        ${[1,2,3,4].map(v=>`<option value="${escVal(v)}">≥ ${v}</option>`).join('')}
       </select>
       <input id="assetSearch" placeholder="${t('ui_searchPh')}" oninput="_filterAssets()" style="flex:1;min-width:140px">
     </div>
     <div id="assetsTableWrap"></div>
   `
 
-  _renderAssetsTable(list, canEdit, isAdmin, entMap)
+  const fs_ = _assetFilterState
+  if (fs_ && Object.values(fs_).some(v => v && v !== 'c')) {   // Filter von vorher wiederherstellen (z. B. nach dem Speichern eines Assets)
+    for (const [id, v] of Object.entries({ assetFilterCat: fs_.cat, assetFilterClass: fs_.cls, assetFilterCrit: fs_.crit, assetFilterStatus: fs_.status, assetFilterProtGoal: fs_.protGoal, assetFilterProtMin: fs_.protMin, assetSearch: fs_.search })) { const f = dom(id); if (f && v != null) f.value = v }
+    await _filterAssets()
+  } else {
+    _renderAssetsTable(list, canEdit, isAdmin, entMap)
+  }
+  _flashSavedAsset()
 }
 
 // Namen aller je geladenen Assets, damit Vererbungsquellen benannt werden können
@@ -13155,17 +14260,23 @@ function _renderAssetsTable(list, canEdit, isAdmin, entMap) {
   const el = dom('assetsTableWrap')
   if (!el) return
   if (!list.length) { el.innerHTML = '<p style="color:var(--text-subtle);padding:16px">' + t('assets_none') + '</p>'; return }
+  list = sortAssets(list, _assetSort)
   const now = new Date()
+  const th = (key, label, title) => {   // sortierbarer Spaltenkopf
+    const on = _assetSort && _assetSort.key === key
+    const arrow = on ? (_assetSort.dir === 'asc' ? ' ▲' : ' ▼') : ''
+    return `<th class="asset-th-sort${on ? ' active' : ''}" data-sort="${key}" role="button" tabindex="0" aria-sort="${on ? (_assetSort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}" title="${escVal(title || t('assets_sortBy', { col: label }))}">${escHtml(label)}${arrow}</th>`
+  }
   el.innerHTML = `
     <table class="asset-table">
       <thead><tr>
-        <th>${t('ui_name')}</th><th>${t('col_type')}</th><th title="${escHtml(t('assets_inheritHint'))}">${escHtml(t('assets_protection'))}</th><th>${t('assets_classification')}</th><th>${t('assets_criticality')}</th><th>${t('ui_owner')}</th><th>${t('col_status')}</th><th>EoL</th>${canEdit?'<th></th>':''}
+        ${th('name', t('ui_name'))}${th('type', t('col_type'))}${th('prot', t('assets_protection'), t('assets_inheritHint'))}${th('class', t('assets_classification'))}${th('crit', t('assets_criticality'))}${th('owner', t('ui_owner'))}${th('status', t('col_status'))}${th('eol', 'EoL')}${canEdit?'<th></th>':''}
       </tr></thead>
       <tbody>
         ${list.map(a => {
           const eolDays = a.endOfLifeDate ? Math.ceil((new Date(a.endOfLifeDate) - now) / 86400000) : null
-          const eolStr  = a.endOfLifeDate ? (eolDays < 0 ? `<span style="color:#f87171">${t('ack_statusExpired')}</span>` : eolDays <= 90 ? `<span style="color:#f0b429">${a.endOfLifeDate}</span>` : a.endOfLifeDate) : '—'
-          return `<tr>
+          const eolStr  = a.endOfLifeDate ? (eolDays < 0 ? `<span style="color:#f87171">${t('ack_statusExpired')}</span>` : eolDays <= 90 ? `<span style="color:#f0b429">${escHtml(a.endOfLifeDate)}</span>` : escHtml(a.endOfLifeDate)) : '—'
+          return `<tr data-asset-id="${escVal(a.id)}">
             <td><strong>${escHtml(a.name)}</strong><br><span style="font-size:.75rem;color:var(--text-subtle)">${escHtml(assetCatLabel(a.category))}</span></td>
             <td style="font-size:.78rem;color:var(--text-subtle)">${escHtml(a.type ? assetTypeLabel(a.type) : '—')}</td>
             <td>${assetProtChips(a, _assetNames)}</td>
@@ -13175,14 +14286,18 @@ function _renderAssetsTable(list, canEdit, isAdmin, entMap) {
             <td style="font-size:.78rem">${escHtml(ASSET_STATUS_LABELS[a.status]||a.status)}</td>
             <td style="font-size:.78rem">${eolStr}</td>
             ${canEdit ? `<td>
-              <button class="btn btn-secondary btn-xs" onclick="openAssetForm('${a.id}')"><i class="ph ph-pencil"></i></button>
-              ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteAsset('${a.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              <button class="btn btn-secondary btn-xs" onclick="openAssetForm(${jsArg(a.id)})"><i class="ph ph-pencil"></i></button>
+              ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteAsset(${jsArg(a.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>` : ''}
           </tr>`
         }).join('')}
       </tbody>
     </table>
   `
+  el.querySelectorAll('th[data-sort]').forEach(h => {
+    h.onclick = () => setAssetSort(h.dataset.sort)
+    h.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setAssetSort(h.dataset.sort) } }
+  })
 }
 
 async function _filterAssets() {
@@ -13193,6 +14308,7 @@ async function _filterAssets() {
   const search = (dom('assetSearch')?.value || '').toLowerCase()
   const protGoal = dom('assetFilterProtGoal')?.value || 'c'
   const protMin  = dom('assetFilterProtMin')?.value  || ''
+  _assetFilterState = { cat, cls, crit, status, protGoal, protMin, search: dom('assetSearch')?.value || '' }
 
   const params = new URLSearchParams()
   if (cat)    params.set('category', cat)
@@ -13227,11 +14343,15 @@ async function renderAssetsByCategory(el) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const raw  = await res.json()
   const list = Array.isArray(raw) ? raw : []
+  const rank    = ROLE_RANK[getCurrentRole()] || 0
+  const canEdit = rank >= ROLE_RANK.editor, isAdmin = rank >= ROLE_RANK.admin
+  _cacheAssetNames(list)
 
+  // Kategorien alphabetisch (Anzeigename, Sprache der Oberfläche); darin Typ → Name wie in der Liste
+  const collator = new Intl.Collator(window.LANG || undefined, { numeric: true, sensitivity: 'base' })
   const grouped = {}
-  for (const catKey of Object.keys(ASSET_CAT_LABELS)) {
-    const catLabel = assetCatLabel(catKey)
-    grouped[catKey] = { label: catLabel, items: list.filter(a => a.category === catKey) }
+  for (const catKey of Object.keys(ASSET_CAT_LABELS).sort((x, y) => collator.compare(assetCatLabel(x), assetCatLabel(y)))) {
+    grouped[catKey] = { label: assetCatLabel(catKey), items: sortAssets(list.filter(a => a.category === catKey), null) }
   }
 
   el.innerHTML = Object.entries(grouped).map(([catKey, g]) => `
@@ -13244,19 +14364,24 @@ async function renderAssetsByCategory(el) {
       ${g.items.length === 0
         ? `<p style="color:var(--text-subtle);font-size:.82rem;padding:4px 0">${t('assets_noneInCategory')}</p>`
         : `<table class="asset-table">
-            <thead><tr><th>${t('ui_name')}</th><th>${t('col_type')}</th><th>${t('assets_classification')}</th><th>${t('assets_criticality')}</th><th>${t('col_status')}</th></tr></thead>
+            <thead><tr><th>${t('ui_name')}</th><th>${t('col_type')}</th><th>${t('assets_classification')}</th><th>${t('assets_criticality')}</th><th>${t('col_status')}</th>${canEdit ? '<th></th>' : ''}</tr></thead>
             <tbody>
-              ${g.items.map(a => `<tr>
+              ${g.items.map(a => `<tr data-asset-id="${escVal(a.id)}">
                 <td><strong>${escHtml(a.name)}</strong></td>
                 <td style="font-size:.78rem;color:var(--text-subtle)">${escHtml(a.type ? assetTypeLabel(a.type) : '—')}</td>
                 <td>${assetClassBadge(a.classification)}</td>
                 <td>${assetCritBadge(a.criticality)}</td>
                 <td style="font-size:.78rem">${escHtml(ASSET_STATUS_LABELS[a.status]||a.status)}</td>
+                ${canEdit ? `<td>
+                  <button class="btn btn-secondary btn-xs" onclick="openAssetForm(${jsArg(a.id)})" title="${escVal(t('edit'))}"><i class="ph ph-pencil"></i></button>
+                  ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteAsset(${jsArg(a.id)})" title="${escVal(t('delete'))}"><i class="ph ph-trash"></i></button>` : ''}
+                </td>` : ''}
               </tr>`).join('')}
             </tbody>
           </table>`}
     </div>
   `).join('')
+  _flashSavedAsset()
 }
 
 async function renderAssetsByClass(el) {
@@ -13273,7 +14398,7 @@ async function renderAssetsByClass(el) {
     <div class="asset-summary-grid">
       ${Object.entries(ASSET_CLASS).map(([k, c]) => `
         <div class="asset-summary-card">
-          <div class="assc-value" style="color:${c.color}">${summary.byClassification?.[k] || 0}</div>
+          <div class="assc-value" style="color:${escVal(c.color)}">${summary.byClassification?.[k] || 0}</div>
           <div class="assc-label">${c.label}</div>
         </div>
       `).join('')}
@@ -13356,7 +14481,7 @@ function _assetProtFields(item) {
 
     const opts = (optional ? `<option value=""${cur == null ? ' selected' : ''}>${escHtml(t('assets_lvlNone'))}</option>` : '')
       + [1, 2, 3, 4].map(v =>
-          `<option value="${v}"${cur === v ? ' selected' : ''}>${escHtml(ASSET_PROT_LEVELS[v].label)}</option>`
+          `<option value="${escVal(v)}"${cur === v ? ' selected' : ''}>${escHtml(ASSET_PROT_LEVELS[v].label)}</option>`
         ).join('')
 
     const from = (item && org[g.key] && org[g.key] !== item.id) ? org[g.key] : null
@@ -13439,7 +14564,7 @@ function _assetDepPicker(list) {
     .slice()
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
     .map(a => `<label class="asset-dep-item" data-name="${escHtml((a.name || '').toLowerCase())}">
-        <input type="checkbox" value="${a.id}"${_assetFormDeps.has(a.id) ? ' checked' : ''} onchange="_toggleAssetDep('${a.id}')">
+        <input type="checkbox" value="${a.id}"${_assetFormDeps.has(a.id) ? ' checked' : ''} onchange="_toggleAssetDep(${jsArg(a.id)})">
         <span>${escHtml(a.name || a.id)}</span>
         <span class="adi-meta">${escHtml(a.category ? assetCatLabel(a.category) : '')}</span>
       </label>`).join('')
@@ -13458,7 +14583,7 @@ function _toggleAssetDep(assetId) {
 
 function _removeAssetDep(assetId) {
   _assetFormDeps.delete(assetId)
-  const cb = document.querySelector(`#asDepList input[value="${assetId}"]`)
+  const cb = document.querySelector(`#asDepList input[value="${escVal(assetId)}"]`)
   if (cb) cb.checked = false
   _renderAssetDepTags()
 }
@@ -13472,7 +14597,7 @@ function _renderAssetDepTags() {
   }
   el.innerHTML = [..._assetFormDeps].map(depId => `<span class="asset-dep-tag">
       ${escHtml(_assetNames[depId] || depId)}
-      <button type="button" title="${escHtml(t('remove'))}" onclick="_removeAssetDep('${depId}')">&times;</button>
+      <button type="button" title="${escHtml(t('remove'))}" onclick="_removeAssetDep(${jsArg(depId)})">&times;</button>
     </span>`).join('')
 }
 
@@ -13512,7 +14637,7 @@ async function openAssetForm(id) {
   document.querySelectorAll('.training-tab').forEach(b => b.classList.remove('active'))
 
   const catOptions = Object.keys(ASSET_CAT_LABELS).map(v => [v, assetCatLabel(v)]).map(([v,l]) =>
-    `<option value="${v}"${item?.category===v?' selected':''}>${l}</option>`
+    `<option value="${escVal(v)}"${item?.category===v?' selected':''}>${l}</option>`
   ).join('')
 
   // Nach Kategorie gruppiert — die Zuordnung liefert der Server mit dem Typ.
@@ -13533,15 +14658,15 @@ async function openAssetForm(id) {
   })()
 
   const classOptions = Object.entries(ASSET_CLASS).map(([v,c]) =>
-    `<option value="${v}"${item?.classification===v?' selected':''}>${c.label}</option>`
+    `<option value="${escVal(v)}"${item?.classification===v?' selected':''}>${c.label}</option>`
   ).join('')
 
   const critOptions = Object.entries(ASSET_CRIT).map(([v,c]) =>
-    `<option value="${v}"${item?.criticality===v?' selected':''}>${c.label}</option>`
+    `<option value="${escVal(v)}"${item?.criticality===v?' selected':''}>${c.label}</option>`
   ).join('')
 
   const statusOptions = Object.entries(ASSET_STATUS_LABELS).map(([v,l]) =>
-    `<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`
+    `<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`
   ).join('')
 
   const entityOptions = `<option value="">${t('ui_noEntity')}</option>` +
@@ -13552,7 +14677,7 @@ async function openAssetForm(id) {
   el.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
-        <button class="btn btn-secondary btn-sm" onclick="switchAssetsTab('list')">
+        <button class="btn btn-secondary btn-sm" onclick="assetsFormBack()">
           <i class="ph ph-arrow-left"></i> ${t('ui_backToOverview')}
         </button>
         <h3 class="training-form-title">
@@ -13687,11 +14812,11 @@ async function openAssetForm(id) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('ui_purchaseDate')}</label>
-              <input id="asPurchase" type="date" class="form-input" value="${item?.purchaseDate||''}" style="color-scheme:dark">
+              <input id="asPurchase" type="date" class="form-input" value="${escVal(item?.purchaseDate||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('asset_eolDate')}</label>
-              <input id="asEol" type="date" class="form-input" value="${item?.endOfLifeDate||''}" style="color-scheme:dark">
+              <input id="asEol" type="date" class="form-input" value="${escHtml(item?.endOfLifeDate||'')}" style="color-scheme:dark">
             </div>
           </div>
         </div>
@@ -13706,8 +14831,8 @@ async function openAssetForm(id) {
 
       </div>
       <div class="training-form-footer">
-        <button class="btn btn-secondary" onclick="switchAssetsTab('list')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveAsset('${id||''}')">
+        <button class="btn btn-secondary" onclick="assetsFormBack()">${t('ui_cancel')}</button>
+        <button class="btn btn-primary" onclick="saveAsset(${jsArg(id||'')})">
           <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
         </button>
       </div>
@@ -13769,7 +14894,9 @@ async function saveAsset(id) {
   const method = id ? 'PUT' : 'POST'
   const res    = await fetch(url, { method, headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
   if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || t('err_saveFailed')); return }
-  switchAssetsTab('list')
+  const saved = await res.json().catch(() => ({}))
+  _assetHighlightId = id || saved.id || null     // die Zeile wird nach dem Zurückkehren kurz hervorgehoben
+  assetsFormBack()
 }
 
 async function deleteAsset(id) {
@@ -14173,15 +15300,15 @@ async function renderNis2Governance(el) {
     <div class="asset-filter-bar">
       <select id="nis2FilterPrio" onchange="_filterNis2()">
         <option value="">${escHtml(t('nis2_allPriorities'))}</option>
-        ${Object.keys(NIS2_PRIO).map(p => `<option value="${p}">${_nis2PrioLabel(p)}</option>`).join('')}
+        ${Object.keys(NIS2_PRIO).map(p => `<option value="${escVal(p)}">${_nis2PrioLabel(p)}</option>`).join('')}
       </select>
       <select id="nis2FilterStatus" onchange="_filterNis2()">
         <option value="">${escHtml(t('nis2_allStatuses'))}</option>
-        ${Object.entries(NIS2_STATUS).map(([v, s]) => `<option value="${v}">${escHtml(t(s.i18n))}</option>`).join('')}
+        ${Object.entries(NIS2_STATUS).map(([v, s]) => `<option value="${escVal(v)}">${escHtml(t(s.i18n))}</option>`).join('')}
       </select>
       <select id="nis2FilterSub" onchange="_filterNis2()">
         <option value="">${escHtml(t('nis2_allSubs'))}</option>
-        ${'abcdefghij'.split('').map(c => `<option value="${c}">${c})</option>`).join('')}
+        ${'abcdefghij'.split('').map(c => `<option value="${escVal(c)}">${c})</option>`).join('')}
       </select>
       <input id="nis2Search" placeholder="${t('ui_searchPh')}" oninput="_filterNis2()" style="flex:1;min-width:140px">
     </div>
@@ -14227,7 +15354,7 @@ function _renderNis2Table(items, canEdit) {
           <td style="font-size:.78rem">${escHtml(item.ownerEmail || '—')}</td>
           <td style="font-size:.78rem">${item.evidenceUrls.length ? `<i class="ph ph-paperclip"></i> ${item.evidenceUrls.length}` : '—'}</td>
           ${canEdit ? `<td>
-            <button class="btn btn-secondary btn-xs" onclick="openNis2ItemForm('${item.id}')">
+            <button class="btn btn-secondary btn-xs" onclick="openNis2ItemForm(${jsArg(item.id)})">
               <i class="ph ph-pencil"></i>
             </button>
           </td>` : ''}
@@ -14266,7 +15393,7 @@ async function openNis2ItemForm(id) {
   if (!el) return
 
   const statusOptions = Object.entries(NIS2_STATUS)
-    .map(([v, s]) => `<option value="${v}"${item.status === v ? ' selected' : ''}>${escHtml(t(s.i18n))}</option>`).join('')
+    .map(([v, s]) => `<option value="${escVal(v)}"${item.status === v ? ' selected' : ''}>${escHtml(t(s.i18n))}</option>`).join('')
 
   el.innerHTML = `
     <div class="training-form-page">
@@ -14327,7 +15454,7 @@ async function openNis2ItemForm(id) {
       </div>
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchNis2Tab('governance')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveNis2Item('${item.id}')">
+        <button class="btn btn-primary" onclick="saveNis2Item(${jsArg(item.id)})">
           <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
         </button>
       </div>
@@ -14396,7 +15523,7 @@ async function renderNis2Deadlines(el) {
         ? nis2Badge(t('nis2_stateOverdue'), '#f87171')
         : row.dueSoon.length ? nis2Badge(t('nis2_stateDueSoon'), '#f0b429') : nis2Badge(t('nis2_statePending'), '#8C9BAB')}</td>
       <td>
-        <button class="btn btn-secondary btn-xs" onclick="openNis2IncidentForm('${row.id}')">
+        <button class="btn btn-secondary btn-xs" onclick="openNis2IncidentForm(${jsArg(row.id)})">
           <i class="ph ph-arrow-right"></i> ${escHtml(t('nis2_details'))}
         </button>
       </td>
@@ -14443,7 +15570,7 @@ async function renderNis2Deadlines(el) {
               <td><strong>${escHtml(i.refNumber || i.id)}</strong>
                 <br><span style="font-size:.74rem;color:var(--text-subtle)">${escHtml(i.entityName || '—')}</span></td>
               <td style="font-size:.78rem">${escHtml(fmtDateTime(i.createdAt))}</td>
-              <td><button class="btn btn-secondary btn-xs" onclick="openNis2IncidentForm('${i.id}')">
+              <td><button class="btn btn-secondary btn-xs" onclick="openNis2IncidentForm(${jsArg(i.id)})">
                 <i class="ph ph-timer"></i> ${escHtml(t('nis2_startTracking'))}
               </button></td>
             </tr>`).join('')}
@@ -14490,7 +15617,7 @@ async function openNis2IncidentForm(id) {
         </div>
         <div class="training-form-footer">
           <button class="btn btn-secondary" onclick="switchNis2Tab('deadlines')">${t('ui_cancel')}</button>
-          ${canEdit ? `<button class="btn btn-primary" onclick="startNis2Tracking('${incident.id}')">
+          ${canEdit ? `<button class="btn btn-primary" onclick="startNis2Tracking(${jsArg(incident.id)})">
             <i class="ph ph-timer"></i> ${escHtml(t('nis2_startTracking'))}
           </button>` : ''}
         </div>
@@ -14518,14 +15645,14 @@ async function openNis2IncidentForm(id) {
       </p>
       <div class="form-group">
         <label class="form-label">${escHtml(t('nis2_reportContent'))}</label>
-        <textarea id="nis2Report_${p.phase}" class="form-input" rows="4"
+        <textarea id="nis2Report_${escHtml(p.phase)}" class="form-input" rows="4"
           ${canEdit ? '' : 'readonly'}>${escHtml(report.content || '')}</textarea>
       </div>
       ${canEdit ? `<div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" onclick="saveNis2Report('${incident.id}','${p.phase}')">
+        <button class="btn btn-secondary btn-sm" onclick="saveNis2Report(${jsArg(incident.id)},${jsArg(p.phase)})">
           <i class="ph ph-floppy-disk"></i> ${escHtml(t('nis2_saveReport'))}
         </button>
-        ${!p.submittedAt ? `<button class="btn btn-primary btn-sm" onclick="submitNis2Phase('${incident.id}','${p.phase}')">
+        ${!p.submittedAt ? `<button class="btn btn-primary btn-sm" onclick="submitNis2Phase(${jsArg(incident.id)},${jsArg(p.phase)})">
           <i class="ph ph-paper-plane-tilt"></i> ${escHtml(t('nis2_markSubmitted'))}
         </button>` : ''}
       </div>` : ''}
@@ -14553,7 +15680,7 @@ async function openNis2IncidentForm(id) {
       </div>
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchNis2Tab('deadlines')">${t('ui_back')}</button>
-        <button class="btn btn-primary" onclick="exportNis2Report('${incident.id}')">
+        <button class="btn btn-primary" onclick="exportNis2Report(${jsArg(incident.id)})">
           <i class="ph ph-download-simple"></i> ${escHtml(t('nis2_exportReport'))}
         </button>
       </div>
@@ -14712,8 +15839,8 @@ async function renderGovReviews(el) {
           <td>${govBadge(GOV_REVIEW_STATUS_LABELS[r.status]||r.status, GOV_REVIEW_STATUS_COLORS[r.status]||'#888')}</td>
           <td style="font-size:.82rem">${escHtml(r.chair||'—')}</td>
           <td style="white-space:nowrap">
-            <button class="btn btn-secondary btn-sm" onclick="openGovReviewForm('${r.id}')"><i class="ph ph-pencil"></i></button>
-            ${isAdmin ? `<button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteGovReview('${r.id}')"><i class="ph ph-trash"></i></button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="openGovReviewForm(${jsArg(r.id)})"><i class="ph ph-pencil"></i></button>
+            ${isAdmin ? `<button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteGovReview(${jsArg(r.id)})"><i class="ph ph-trash"></i></button>` : ''}
           </td>
         </tr>`).join('')}
       </tbody>
@@ -14736,15 +15863,15 @@ async function renderGovActions(el) {
     <div class="gov-filter-bar">
       <select id="govActStatusFilter" onchange="filterGovActions()">
         <option value="">${t('nis2_allStatuses')}</option>
-        ${Object.entries(GOV_ACTION_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(GOV_ACTION_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="govActPrioFilter" onchange="filterGovActions()">
         <option value="">${t('nis2_allPriorities')}</option>
-        ${Object.entries(GOV_PRIORITY_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(GOV_PRIORITY_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="govActSourceFilter" onchange="filterGovActions()">
         <option value="">${t('gov_allSources')}</option>
-        ${Object.entries(GOV_SOURCE_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(GOV_SOURCE_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <input id="govActSearch" type="text" placeholder="${t('ui_searchPh')}" oninput="filterGovActions()" style="flex:1;min-width:120px">
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openGovActionForm()"><i class="ph ph-plus"></i> ${t('gov_newAction')}</button>` : ''}
@@ -14795,8 +15922,8 @@ function filterGovActions() {
             <span style="font-size:.72rem;color:var(--text-subtle)">${a.progress||0}%</span>
           </td>
           <td style="white-space:nowrap">
-            <button class="btn btn-secondary btn-sm" onclick="openGovActionForm('${a.id}')"><i class="ph ph-pencil"></i></button>
-            ${isAdmin?`<button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteGovAction('${a.id}')"><i class="ph ph-trash"></i></button>`:''}
+            <button class="btn btn-secondary btn-sm" onclick="openGovActionForm(${jsArg(a.id)})"><i class="ph ph-pencil"></i></button>
+            ${isAdmin?`<button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteGovAction(${jsArg(a.id)})"><i class="ph ph-trash"></i></button>`:''}
           </td>
         </tr>`
       }).join('')}
@@ -14833,8 +15960,8 @@ async function renderGovMeetings(el) {
             ? `<span style="color:#4ade80"><i class="ph ph-check-circle"></i> ${t('yes')}</span>`
             : `<span style="color:#888"><i class="ph ph-clock"></i> ${t('nis2_statePending')}</span>`}</td>
           <td style="white-space:nowrap">
-            <button class="btn btn-secondary btn-sm" onclick="openGovMeetingForm('${m.id}')"><i class="ph ph-pencil"></i></button>
-            ${isAdmin ? `<button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteGovMeeting('${m.id}')"><i class="ph ph-trash"></i></button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="openGovMeetingForm(${jsArg(m.id)})"><i class="ph ph-pencil"></i></button>
+            ${isAdmin ? `<button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteGovMeeting(${jsArg(m.id)})"><i class="ph ph-trash"></i></button>` : ''}
           </td>
         </tr>`).join('')}
       </tbody>
@@ -14875,11 +16002,11 @@ async function openGovReviewForm(id = null) {
           </div>
           <div>
             <label class="form-label">${t('ui_date')}</label>
-            <input id="grDate" type="date" class="input" value="${review.date||''}">
+            <input id="grDate" type="date" class="input" value="${escHtml(review.date||'')}">
           </div>
           <div>
             <label class="form-label">${t('gov_nextReview')}</label>
-            <input id="grNextDate" type="date" class="input" value="${review.nextReviewDate||''}">
+            <input id="grNextDate" type="date" class="input" value="${escHtml(review.nextReviewDate||'')}">
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
@@ -14927,7 +16054,7 @@ async function openGovReviewForm(id = null) {
         <div id="govReviewAttachPanel"></div>` : ''}
 
         <div style="display:flex;gap:8px;margin-top:16px">
-          <button class="btn btn-primary" onclick="saveGovReview(${id?`'${id}'`:'null'})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
+          <button class="btn btn-primary" onclick="saveGovReview(${id?`${jsArg(id)}`:'null'})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
           <button class="btn btn-secondary" onclick="switchGovTab('reviews')">${t('ui_cancel')}</button>
         </div>
       </div>
@@ -15004,19 +16131,19 @@ async function openGovActionForm(id = null) {
           <div>
             <label class="form-label">${t('ui_source')}</label>
             <select id="gaSource" class="select">
-              ${Object.entries(GOV_SOURCE_LABELS).map(([v,l])=>`<option value="${v}" ${action.source===v?'selected':''}>${l}</option>`).join('')}
+              ${Object.entries(GOV_SOURCE_LABELS).map(([v,l])=>`<option value="${escVal(v)}" ${action.source===v?'selected':''}>${l}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="form-label">${t('ui_priority')}</label>
             <select id="gaPrio" class="select">
-              ${Object.entries(GOV_PRIORITY_LABELS).map(([v,l])=>`<option value="${v}" ${action.priority===v?'selected':''}>${l}</option>`).join('')}
+              ${Object.entries(GOV_PRIORITY_LABELS).map(([v,l])=>`<option value="${escVal(v)}" ${action.priority===v?'selected':''}>${l}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="form-label">${t('col_status')}</label>
             <select id="gaStatus" class="select">
-              ${Object.entries(GOV_ACTION_STATUS_LABELS).map(([v,l])=>`<option value="${v}" ${action.status===v?'selected':''}>${l}</option>`).join('')}
+              ${Object.entries(GOV_ACTION_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}" ${action.status===v?'selected':''}>${l}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -15035,15 +16162,15 @@ async function openGovActionForm(id = null) {
           </div>
           <div>
             <label class="form-label">${t('ui_dueDate')}</label>
-            <input id="gaDue" type="date" class="input" value="${action.dueDate||''}">
+            <input id="gaDue" type="date" class="input" value="${escHtml(action.dueDate||'')}">
           </div>
           <div>
             <label class="form-label">${t('ui_completedOn')}</label>
-            <input id="gaCompleted" type="date" class="input" value="${action.completedDate||''}">
+            <input id="gaCompleted" type="date" class="input" value="${escHtml(action.completedDate||'')}">
           </div>
         </div>
         <label class="form-label" style="margin-top:8px">${t('gov_progress')}</label>
-        <input id="gaProgress" type="number" min="0" max="100" class="input" value="${action.progress||0}" style="width:120px">
+        <input id="gaProgress" type="number" min="0" max="100" class="input" value="${escVal(action.progress||0)}" style="width:120px">
 
         <div class="gov-section-title">${t('ui_notes')}</div>
         <textarea id="gaNotes" class="input" rows="3">${escHtml(action.notes||'')}</textarea>
@@ -15054,7 +16181,7 @@ async function openGovActionForm(id = null) {
         <div id="govActionAttachPanel"></div>` : ''}
 
         <div style="display:flex;gap:8px;margin-top:16px">
-          <button class="btn btn-primary" onclick="saveGovAction(${id?`'${id}'`:'null'})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
+          <button class="btn btn-primary" onclick="saveGovAction(${id?`${jsArg(id)}`:'null'})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
           <button class="btn btn-secondary" onclick="switchGovTab('actions')">${t('ui_cancel')}</button>
         </div>
       </div>
@@ -15123,16 +16250,16 @@ async function openGovMeetingForm(id = null) {
           <div>
             <label class="form-label">${t('gov_committee')}</label>
             <select id="gmCommittee" class="select">
-              ${Object.entries(GOV_COMMITTEE_LABELS).map(([v,l])=>`<option value="${v}" ${meeting.committee===v?'selected':''}>${l}</option>`).join('')}
+              ${Object.entries(GOV_COMMITTEE_LABELS).map(([v,l])=>`<option value="${escVal(v)}" ${meeting.committee===v?'selected':''}>${l}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="form-label">${t('ui_date')}</label>
-            <input id="gmDate" type="date" class="input" value="${meeting.date||''}">
+            <input id="gmDate" type="date" class="input" value="${escHtml(meeting.date||'')}">
           </div>
           <div>
             <label class="form-label">${t('gov_nextMeeting')}</label>
-            <input id="gmNextDate" type="date" class="input" value="${meeting.nextMeetingDate||''}">
+            <input id="gmNextDate" type="date" class="input" value="${escVal(meeting.nextMeetingDate||'')}">
           </div>
         </div>
         <label class="form-label" style="margin-top:8px">${t('ui_location')}</label>
@@ -15177,7 +16304,7 @@ async function openGovMeetingForm(id = null) {
         <div id="govMeetingAttachPanel"></div>` : ''}
 
         <div style="display:flex;gap:8px;margin-top:16px">
-          <button class="btn btn-primary" onclick="saveGovMeeting(${id?`'${id}'`:'null'})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
+          <button class="btn btn-primary" onclick="saveGovMeeting(${id?`${jsArg(id)}`:'null'})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
           <button class="btn btn-secondary" onclick="switchGovTab('meetings')">${t('ui_cancel')}</button>
         </div>
       </div>
@@ -15236,13 +16363,13 @@ const BCM_RESULT_LABELS = { get pass() { return t('bcml_resPass') }, get fail() 
 const BCM_EXERCISE_TYPE_LABELS = { get tabletop() { return t('bcml_exTabletop') }, get simulation() { return t('bcml_exSimulation') }, get full_drill() { return t('bcml_exFullDrill') }, get walkthrough() { return t('bcml_exWalkthrough') } }
 
 function bcmCritBadge(v) {
-  return `<span class="bcm-badge ${v}">${BCM_CRIT_LABELS[v] || v}</span>`
+  return `<span class="bcm-badge ${escVal(v)}">${BCM_CRIT_LABELS[v] || escVal(v)}</span>`
 }
 function bcmStatusBadge(v) {
-  return `<span class="bcm-badge ${v}">${BCM_STATUS_LABELS[v] || v}</span>`
+  return `<span class="bcm-badge ${escVal(v)}">${BCM_STATUS_LABELS[v] || escVal(v)}</span>`
 }
 function bcmResultBadge(v) {
-  return `<span class="bcm-badge ${v||'not_tested'}">${BCM_RESULT_LABELS[v] || v || t('bcml_resNotTested')}</span>`
+  return `<span class="bcm-badge ${escVal(v) || 'not_tested'}">${BCM_RESULT_LABELS[v] || escVal(v) || t('bcml_resNotTested')}</span>`
 }
 
 async function renderBcm() {
@@ -15262,6 +16389,7 @@ async function renderBcm() {
     { id:'bia',       get label() { return t('bcm_tabBia') },       icon:'ph-clipboard-text' },
     { id:'plans',     get label() { return t('bcm_tabPlans') },     icon:'ph-file-doc' },
     { id:'exercises', get label() { return t('bcm_tabExercises') }, icon:'ph-flag-checkered' },
+    { id:'requirements', get label() { return t('bcm_tabRequirements') }, icon:'ph-list-checks' },
   ]
 
   container.innerHTML = `
@@ -15298,6 +16426,208 @@ async function switchBcmTab(tab) {
   if (tab === 'bia')       await renderBcmBia(el)
   if (tab === 'plans')     await renderBcmPlans(el)
   if (tab === 'exercises') await renderBcmExercises(el)
+  if (tab === 'requirements') await renderBcmRequirements(el)
+}
+
+// ── Register der Anforderungen (ISO 22301): Definitionen werden vom Administrator importiert, der Normtext wird nicht mitgeliefert ──
+let _bcmReq = { data: null, bia: [], plans: [], exercises: [], status: '', q: '', noEvidence: false, open: {} }
+
+function bcmReqText(map) {
+  if (!map || typeof map !== 'object') return ''
+  return map[window.LANG] || map.en || Object.values(map)[0] || ''
+}
+
+async function renderBcmRequirements(el) {
+  const isAdmin = (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.admin
+  const [r, bia, plans, ex] = await Promise.all([
+    fetch('/bcm/requirements', { headers: apiHeaders() }),
+    fetch('/bcm/bia', { headers: apiHeaders() }), fetch('/bcm/plans', { headers: apiHeaders() }), fetch('/bcm/exercises', { headers: apiHeaders() }),
+  ])
+  if (!r.ok) throw new Error(`HTTP ${r.status}`)
+  _bcmReq.data = await r.json()
+  _bcmReq.bia = bia.ok ? await bia.json() : []
+  _bcmReq.plans = plans.ok ? await plans.json() : []
+  _bcmReq.exercises = ex.ok ? await ex.json() : []
+  const reqs = _bcmReq.data.requirements
+  const tools = `<a class="btn btn-secondary btn-sm" href="#" onclick="downloadBcmReqFile('/bcm/requirements/template.csv','bcm-requirements-template.csv');return false"><i class="ph ph-download-simple"></i> ${t('bcmr_template')}</a>`
+  if (!reqs.length) {
+    el.innerHTML = `<div class="training-evidence-card" style="cursor:default">
+      <h3 style="margin:0 0 8px"><i class="ph ph-list-checks"></i> ${t('bcmr_emptyTitle')}</h3>
+      <p style="margin:0 0 12px;font-size:.88rem;color:var(--text-subtle)">${escHtml(t('bcmr_emptyText'))}</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${isAdmin ? `<button class="btn btn-primary btn-sm" data-testid="bcmrImportBtn" onclick="openBcmReqImport()"><i class="ph ph-upload-simple"></i> ${t('bcmr_import')}</button>` : ''}${tools}</div>
+    </div>`
+    return
+  }
+  const sm = _bcmReq.data.summary
+  const pct = n => sm.total ? Math.round(n * 100 / sm.total) : 0
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <strong style="font-size:.9rem">${t('bcmr_coverage')}:</strong>
+      <span class="bcm-badge approved">${t('bcmr_status_implemented')} ${sm.implemented}</span>
+      <span class="bcm-badge reviewed">${t('bcmr_status_partial')} ${sm.partial}</span>
+      <span class="bcm-badge draft">${t('bcmr_status_not_started')} ${sm.notStarted}</span>
+      <span class="bcm-badge">${t('bcmr_status_not_applicable')} ${sm.notApplicable}</span>
+      <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">${isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="openBcmReqImport()"><i class="ph ph-upload-simple"></i> ${t('bcmr_import')}</button>` : ''}
+        <a class="btn btn-secondary btn-sm" href="#" onclick="downloadBcmReqFile('/bcm/requirements/export.csv','bcm-requirements.csv');return false"><i class="ph ph-download-simple"></i> ${t('bcmr_export')}</a>${tools}</span>
+    </div>
+    <div style="height:8px;border-radius:4px;background:var(--surface-overlay);overflow:hidden;display:flex;margin-bottom:12px" title="${sm.implemented}/${sm.total}">
+      <div style="width:${pct(sm.implemented)}%;background:#22c55e"></div><div style="width:${pct(sm.partial)}%;background:#f59e0b"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <input id="bcmrSearch" class="form-input" style="max-width:240px" placeholder="${escHtml(t('bcmr_search'))}" value="${escHtml(_bcmReq.q)}" oninput="_bcmReq.q=this.value;renderBcmReqTree()">
+      <select id="bcmrStatus" class="select" onchange="_bcmReq.status=this.value;renderBcmReqTree()">
+        <option value="">${t('bcmr_filterAll')}</option>
+        ${['not_started','partial','implemented','not_applicable'].map(v => `<option value="${escVal(v)}"${_bcmReq.status===v?' selected':''}>${t('bcmr_status_' + v)}</option>`).join('')}
+      </select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem"><input type="checkbox" id="bcmrNoEv" ${_bcmReq.noEvidence?'checked':''} onchange="_bcmReq.noEvidence=this.checked;renderBcmReqTree()"> ${t('bcmr_noEvidenceOnly')}</label>
+    </div>
+    <div id="bcmrTree"></div>
+    <p style="font-size:.76rem;color:var(--text-subtle);margin-top:14px"><i class="ph ph-info"></i> ${escHtml(t('bcmr_licenseNote'))}</p>`
+  renderBcmReqTree()
+}
+
+function bcmReqAssessment(r) {
+  return (_bcmReq.data.assessments || []).find(a => a.framework === r.framework && a.id === r.id) || null
+}
+function bcmReqHasEvidence(a) { return !!(a && (a.evidenceNote || (a.linkedBia||[]).length || (a.linkedPlans||[]).length || (a.linkedExercises||[]).length)) }
+
+function bcmReqHint(r) {
+  if (r.id === '8.2.2' && _bcmReq.bia.length) return t('bcmr_hintBia', { n: _bcmReq.bia.length })
+  if (r.id === '8.4.4') { const n = _bcmReq.plans.filter(p => p.status === 'approved' || p.status === 'tested').length; if (n) return t('bcmr_hintPlans', { n }) }
+  if (r.id === '8.5') { const n = _bcmReq.exercises.filter(e => e.result && e.result !== 'planned').length; if (n) return t('bcmr_hintExercises', { n }) }
+  return ''
+}
+
+function renderBcmReqTree() {
+  const box = dom('bcmrTree'); if (!box) return
+  const reqs = _bcmReq.data.requirements
+  const children = new Map()
+  for (const r of reqs) { const k = r.parent || ''; if (!children.has(k)) children.set(k, []); children.get(k).push(r) }
+  const cmp = (a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })
+  const q = _bcmReq.q.trim().toLowerCase()
+  const matches = r => {
+    const a = bcmReqAssessment(r), st = (a && a.status) || 'not_started'
+    if (_bcmReq.status && st !== _bcmReq.status) return false
+    if (_bcmReq.noEvidence && (st === 'not_applicable' || bcmReqHasEvidence(a))) return false
+    if (q && !(r.id.toLowerCase().includes(q) || bcmReqText(r.title).toLowerCase().includes(q) || bcmReqText(r.summary).toLowerCase().includes(q))) return false
+    return true
+  }
+  const keep = r => matches(r) || (children.get(r.id) || []).some(keep)
+  const filtering = !!(_bcmReq.status || _bcmReq.noEvidence || q)
+  let shown = 0
+  const row = (r, depth) => {
+    const kids = (children.get(r.id) || []).sort(cmp).filter(keep)
+    const a = bcmReqAssessment(r), st = (a && a.status) || 'not_started'
+    const isLeaf = !(children.get(r.id) || []).length
+    const open = filtering || _bcmReq.open[r.id] !== false
+    if (matches(r)) shown++
+    const hint = bcmReqHint(r)
+    const links = a ? (a.linkedBia||[]).length + (a.linkedPlans||[]).length + (a.linkedExercises||[]).length : 0
+    const stCls = { implemented: 'approved', partial: 'reviewed', not_started: 'draft', not_applicable: '' }[st]
+    return `<div class="bcmr-row" style="margin-left:${depth * 18}px" data-id="${escHtml(r.id)}">
+      <div class="bcmr-line">
+        ${kids.length ? `<button type="button" class="btn btn-secondary btn-xs" onclick="_bcmReq.open[${jsArg(r.id)}]=${!open};renderBcmReqTree()"><i class="ph ph-caret-${open ? 'down' : 'right'}"></i></button>` : '<span style="width:26px;display:inline-block"></span>'}
+        <strong class="bcmr-id">${escHtml(r.id)}</strong>
+        <span class="bcmr-title">${escHtml(bcmReqText(r.title))}</span>
+        ${r.amendment ? `<span class="bcm-badge draft" title="${escHtml(t('bcmr_amendment'))}">${escHtml(r.amendment)}</span>` : ''}
+        ${r.retired ? `<span class="bcm-badge">${t('bcmr_retired')}</span>` : ''}
+        ${isLeaf ? `<span class="bcm-badge ${stCls}">${t('bcmr_status_' + st)}</span>` : ''}
+        ${isLeaf && links ? `<span class="bcmr-meta"><i class="ph ph-link"></i> ${links}</span>` : ''}
+        ${isLeaf && a && a.responsible ? `<span class="bcmr-meta"><i class="ph ph-user"></i> ${escHtml(a.responsible)}</span>` : ''}
+        ${isLeaf ? `<button type="button" class="btn btn-secondary btn-xs" style="margin-left:auto" data-testid="bcmrOpen" onclick="openBcmReqDialog(${jsArg(r.framework)},${jsArg(r.id)})">${(ROLE_RANK[getCurrentRole()]||0) >= ROLE_RANK.editor ? t('bcmr_edit') : t('bcmr_view')}</button>` : ''}
+      </div>
+      ${r.summary && Object.keys(r.summary).length && isLeaf ? `<div class="bcmr-sum">${escHtml(bcmReqText(r.summary))}</div>` : ''}
+      ${hint ? `<div class="bcmr-hint"><i class="ph ph-lightbulb"></i> ${escHtml(hint)}</div>` : ''}
+      ${open ? kids.map(k => row(k, depth + 1)).join('') : ''}
+    </div>`
+  }
+  const roots = (children.get('') || []).sort(cmp).filter(keep)
+  const html = roots.map(r => row(r, 0)).join('')
+  box.innerHTML = html || `<p style="color:var(--text-subtle)">${t('bcmr_noMatch')}</p>`
+}
+
+function openBcmReqDialog(framework, id) {
+  const r = _bcmReq.data.requirements.find(x => x.framework === framework && x.id === id); if (!r) return
+  const a = bcmReqAssessment(r) || {}
+  const canEdit = (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.editor
+  const dis = canEdit ? '' : ' disabled'
+  const multi = (name, list, sel, label) => `<div class="form-group"><label class="form-label">${label}</label>
+    <select id="${name}" class="select" multiple size="4" style="width:100%"${dis}>${list.map(o => `<option value="${escHtml(o.id)}"${(sel||[]).includes(o.id) ? ' selected' : ''}>${escHtml(o.title || o.name || o.id)}</option>`).join('')}</select></div>`
+  showModal('bcmReqDialog', `
+    <h3 style="margin-top:0">${escHtml(r.id)} — ${escHtml(bcmReqText(r.title))}</h3>
+    ${r.summary && Object.keys(r.summary).length ? `<p style="font-size:.85rem;color:var(--text-subtle);white-space:pre-wrap">${escHtml(bcmReqText(r.summary))}</p>` : ''}
+    <div class="form-group"><label class="form-label">${t('col_status')}</label>
+      <select id="bcmrfStatus" class="select"${dis}>${['not_started','partial','implemented','not_applicable'].map(v => `<option value="${escVal(v)}"${(a.status||'not_started')===v?' selected':''}>${t('bcmr_status_' + v)}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">${t('bcmr_responsible')}</label><input id="bcmrfResp" class="form-input" value="${escHtml(a.responsible||'')}"${dis}></div>
+    <div class="form-group"><label class="form-label">${t('bcmr_justification')}</label><textarea id="bcmrfJust" class="form-input" rows="2"${dis}>${escHtml(a.justification||'')}</textarea></div>
+    <div class="form-group"><label class="form-label">${t('bcmr_evidence')}</label><textarea id="bcmrfEv" class="form-input" rows="3"${dis}>${escHtml(a.evidenceNote||'')}</textarea></div>
+    <div class="form-group"><label class="form-label">${t('bcmr_lastReview')}</label><input id="bcmrfRev" type="date" class="form-input" value="${escHtml(a.lastReviewDate||'')}"${dis}></div>
+    ${multi('bcmrfBia', _bcmReq.bia, a.linkedBia, t('bcmr_linkedBia'))}${multi('bcmrfPlans', _bcmReq.plans, a.linkedPlans, t('bcmr_linkedPlans'))}${multi('bcmrfEx', _bcmReq.exercises, a.linkedExercises, t('bcmr_linkedExercises'))}
+    <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-secondary" onclick="document.getElementById('bcmReqDialog').remove()">${t('close')}</button>
+      ${canEdit ? `<button class="btn btn-primary" data-testid="bcmrSave" onclick="saveBcmReq(${jsArg(framework)},${jsArg(id)})">${t('ui_save')}</button>` : ''}</div>`, 640)
+}
+
+async function saveBcmReq(framework, id) {
+  const sel = elId => [...dom(elId).selectedOptions].map(o => o.value)
+  const body = { status: dom('bcmrfStatus').value, responsible: dom('bcmrfResp').value, justification: dom('bcmrfJust').value, evidenceNote: dom('bcmrfEv').value,
+    lastReviewDate: dom('bcmrfRev').value, linkedBia: sel('bcmrfBia'), linkedPlans: sel('bcmrfPlans'), linkedExercises: sel('bcmrfEx') }
+  const res = await fetch(`/bcm/requirements/${encodeURIComponent(framework)}/${encodeURIComponent(id)}/assessment`, { method: 'PUT', headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  if (!res.ok) { const e = await res.json().catch(() => ({})); alert((e.error || t('bcmr_saveFailed'))); return }
+  dom('bcmReqDialog')?.remove()
+  switchBcmTab('requirements')
+}
+
+async function downloadBcmReqFile(url, name) {
+  const res = await fetch(url, { headers: apiHeaders() })
+  if (!res.ok) { alert(t('error')); return }
+  const u = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a'); a.href = u; a.download = name
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(u), 2000)
+}
+
+let _bcmImportFile = null
+function openBcmReqImport() {
+  _bcmImportFile = null
+  showModal('bcmReqImportDialog', `
+    <h3 style="margin-top:0">${t('bcmr_importTitle')}</h3>
+    <p style="font-size:.85rem;color:var(--text-subtle)">${escHtml(t('bcmr_importHelp'))}</p>
+    <input type="file" id="bcmrFile" accept=".csv,.json,.txt" class="form-input" onchange="previewBcmReqImport(this)">
+    <div id="bcmrPreview" style="margin-top:12px;font-size:.85rem"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;position:sticky;bottom:-22px;background:var(--surface-raised,var(--surface));padding:10px 0"><button class="btn btn-secondary" onclick="document.getElementById('bcmReqImportDialog').remove()">${t('close')}</button>
+      <button class="btn btn-primary" id="bcmrApply" data-testid="bcmrApply" disabled onclick="applyBcmReqImport()">${t('bcmr_apply')}</button></div>`, 720)
+}
+
+async function postBcmReqFile(file, dry) {
+  const fd = new FormData(); fd.append('file', file)
+  const res = await fetch('/bcm/requirements/import' + (dry ? '?dryRun=1' : ''), { method: 'POST', headers: { 'X-User-Name': getCurrentUser(), 'X-User-Role': getCurrentRole() }, body: fd })
+  return { ok: res.ok, body: await res.json().catch(() => ({})) }
+}
+
+async function previewBcmReqImport(input) {
+  const file = input.files && input.files[0]; _bcmImportFile = file || null
+  const box = dom('bcmrPreview'), btn = dom('bcmrApply'); if (!box) return
+  btn.disabled = true
+  if (!file) { box.innerHTML = ''; return }
+  const r = await postBcmReqFile(file, true)
+  if (!r.ok && !r.body.rejectedByReason) { box.innerHTML = `<span style="color:var(--danger-text)">${escHtml(r.body.error || t('error'))}</span>`; return }
+  const b = r.body
+  const reasons = Object.entries(b.rejectedByReason || {}).map(([k, n]) => `<li>${n} × ${escHtml(t('bcmr_reason_' + k))}</li>`).join('')
+  const details = (b.rejectedDetails || []).slice(0, 10).map(d => `<li>${d.index === null ? '' : '#' + (d.index + 2) + ' '}${escHtml(d.id || '—')}: ${escHtml(t('bcmr_reason_' + d.reason))}</li>`).join('')
+  box.innerHTML = `<p><strong>${escHtml(t('bcmr_previewSummary', { added: b.added, updated: b.updated, rejected: b.rejected, total: b.total }))}</strong></p>
+    ${b.added + b.updated ? `<p class="bcmr-notyet"><i class="ph ph-warning"></i> ${escHtml(t('bcmr_notYetApplied'))}</p>` : ''}
+    ${b.unknownColumns && b.unknownColumns.length ? `<p style="color:var(--text-subtle)">${escHtml(t('bcmr_unknownColumns', { cols: b.unknownColumns.join(', ') }))}</p>` : ''}
+    ${reasons ? `<ul style="margin:4px 0 8px 18px">${reasons}</ul>` : ''}${details ? `<ul style="margin:4px 0 8px 18px;color:var(--text-subtle)">${details}</ul>` : ''}`
+  btn.disabled = !(b.added + b.updated)
+}
+
+async function applyBcmReqImport() {
+  if (!_bcmImportFile) return
+  const r = await postBcmReqFile(_bcmImportFile, false)
+  if (!r.ok) { alert(r.body.error || t('error')); return }
+  dom('bcmReqImportDialog')?.remove()
+  alert(t('bcmr_importDone', { added: r.body.added, updated: r.body.updated }))
+  switchBcmTab('requirements')
 }
 
 async function renderBcmBia(el) {
@@ -15335,12 +16665,12 @@ async function renderBcmBia(el) {
               <td>${escHtml(b.processOwner)}</td>
               <td>${escHtml(b.department)}</td>
               <td>${bcmCritBadge(b.criticality)}</td>
-              <td>${b.rto}</td>
-              <td>${b.rpo}</td>
+              <td>${escVal(b.rto)}</td>
+              <td>${escVal(b.rpo)}</td>
               <td>${bcmStatusBadge(b.status)}</td>
               <td style="white-space:nowrap">
-                ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openBiaForm('${b.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-                ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteBia('${b.id}')"><i class="ph ph-trash"></i></button>` : ''}
+                ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openBiaForm(${jsArg(b.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+                ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteBia(${jsArg(b.id)})"><i class="ph ph-trash"></i></button>` : ''}
               </td>
             </tr>`).join('') : `<tr><td colspan="8" class="dash-empty">${t('bcm_noBia')}</td></tr>`}
         </tbody>
@@ -15350,14 +16680,14 @@ async function renderBcmBia(el) {
 
   el.innerHTML = `
     <div class="bcm-filter-bar">
-      ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openBiaForm()"><i class="ph ph-plus"></i> ${t('bcm_newBia')}</button>` : ''}
+      ${canEdit ? `<button class="btn btn-secondary btn-sm" data-testid="bcmTplBtn" onclick="openBcmTemplateDialog('bia')"><i class="ph ph-copy"></i> ${t('bcm_useTemplate')}</button> <button class="btn btn-primary btn-sm" onclick="openBiaForm()"><i class="ph ph-plus"></i> ${t('bcm_newBia')}</button>` : ''}
       <select id="bcmBiaCrit" class="select" style="max-width:150px">
         <option value="">${t('assets_allCrit')}</option>
-        ${Object.entries(BCM_CRIT_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(BCM_CRIT_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="bcmBiaStatus" class="select" style="max-width:150px">
         <option value="">${t('filter_allStatuses')}</option>
-        ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
     </div>
     <div id="bcmBiaTable">${renderTable()}</div>
@@ -15373,13 +16703,45 @@ async function renderBcmBia(el) {
   })
 }
 
-async function openBiaForm(id = null) {
+// ── Vorlagen für BIA, Pläne und Übungen (server/bcmTemplates.js) ──
+const BCM_TEMPLATE_KINDS = { bia: 'bcm_tplKindBia', plan: 'bcm_tplKindPlan', exercise: 'bcm_tplKindExercise' }
+
+async function openBcmTemplateDialog(kind) {
+  const r = await fetch(`/bcm/templates/${encodeURIComponent(kind)}`, { headers: apiHeaders() })
+  const list = r.ok ? await r.json() : []
+  list.sort((a, b) => a.title.localeCompare(b.title, window.LANG || 'en'))
+  showModal('bcmTplModal', `
+    <div>
+      <h3 style="margin:0 0 8px"><i class="ph ph-copy"></i> ${t('bcm_useTemplate')} · ${t(BCM_TEMPLATE_KINDS[kind])}</h3>
+      <p style="font-size:13px;color:var(--text-subtle);margin:0 0 10px">${t('bcm_tplIntro')}</p>
+      <select id="bcmTplSel" class="input" style="width:100%" size="${Math.min(12, Math.max(4, list.length))}">${list.map((x, i) => `<option value="${escHtml(x.id)}"${i === 0 ? ' selected' : ''}>${escHtml(x.title)}</option>`).join('')}</select>
+      <p style="font-size:12px;color:var(--text-subtle);margin:10px 0 0">${t('bcm_tplLimit')}</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('bcmTplModal').remove()">${t('ui_cancel')}</button>
+        <button class="btn btn-primary btn-sm" data-testid="bcmTplUse" onclick="useBcmTemplate(${jsArg(kind)})">${t('bcm_tplUse')}</button>
+      </div>
+    </div>`, 700)
+}
+
+async function useBcmTemplate(kind) {
+  const id = document.getElementById('bcmTplSel')?.value
+  if (!id) return
+  const r = await fetch(`/bcm/templates/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`, { headers: apiHeaders() })
+  if (!r.ok) { alert(t('error')); return }
+  const tpl = await r.json()
+  document.getElementById('bcmTplModal')?.remove()
+  const open = { bia: openBiaForm, plan: openPlanForm, exercise: openExerciseForm }[kind]
+  await open(null, tpl)
+  if (tpl.unresolved && tpl.unresolved.length) showToast(t('gdpr_dsfaTplUnresolved', { list: tpl.unresolved.map(p => '{{' + p + '}}').join(', ') }), 'info')
+}
+
+async function openBiaForm(id = null, prefill = null) {
   const isEdit = !!id
   let item = null
   if (isEdit) {
     const r = await fetch(`/bcm/bia/${id}`, { headers: apiHeaders() })
     if (r.ok) item = await r.json()
-  }
+  } else if (prefill) item = prefill   // Vorlage: Vorschlagswerte, vom Prozessverantwortlichen zu prüfen
   const el = dom('bcmTabContent')
   if (!el) return
 
@@ -15419,13 +16781,13 @@ async function openBiaForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('assets_criticality')}</label>
               <select id="biaCrit" class="select">
-                ${Object.entries(BCM_CRIT_LABELS).map(([v,l])=>`<option value="${v}"${item?.criticality===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_CRIT_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.criticality===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_status')}</label>
               <select id="biaStatus" class="select">
-                ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -15435,15 +16797,15 @@ async function openBiaForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('bcm_rtoFull')}</label>
-              <input id="biaRto" type="number" min="0" class="form-input" value="${item?.rto??''}" placeholder="${t('bcm_rtoPh')}">
+              <input id="biaRto" type="number" min="0" class="form-input" value="${escVal(item?.rto??'')}" placeholder="${t('bcm_rtoPh')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('bcm_rpoFull')}</label>
-              <input id="biaRpo" type="number" min="0" class="form-input" value="${item?.rpo??''}" placeholder="${t('bcm_rpoPh')}">
+              <input id="biaRpo" type="number" min="0" class="form-input" value="${escVal(item?.rpo??'')}" placeholder="${t('bcm_rpoPh')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('bcm_mtpdFull')}</label>
-              <input id="biaMtpd" type="number" min="0" class="form-input" value="${item?.mtpd??''}" placeholder="${t('bcm_mtpdPh')}">
+              <input id="biaMtpd" type="number" min="0" class="form-input" value="${escVal(item?.mtpd??'')}" placeholder="${t('bcm_mtpdPh')}">
             </div>
           </div>
         </div>
@@ -15463,7 +16825,7 @@ async function openBiaForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('ui_lastReview')}</label>
-              <input id="biaReview" type="date" class="form-input" value="${item?.lastReviewDate||''}" style="color-scheme:dark">
+              <input id="biaReview" type="date" class="form-input" value="${escVal(item?.lastReviewDate||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('ui_entity')}</label>
@@ -15484,7 +16846,7 @@ async function openBiaForm(id = null) {
         <div id="bcmBiaAttachPanel"></div></div>` : ''}
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchBcmTab('bia')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveBia('${id||''}')">
+        <button class="btn btn-primary" onclick="saveBia(${jsArg(id||'')})">
           <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
         </button>
       </div>
@@ -15565,16 +16927,16 @@ async function renderBcmPlans(el) {
           ${rows.length ? rows.map(p => {
             const overdue = p.nextTest && p.nextTest < today
             return `<tr class="${overdue?'overdue':''}">
-              <td><strong>${escHtml(p.title)}</strong><br><small style="color:var(--text-subtle)">${BCM_PLAN_TYPE_LABELS[p.type]||p.type} · v${escHtml(p.version||'1.0')}</small></td>
-              <td>${BCM_PLAN_TYPE_LABELS[p.type]||p.type}</td>
+              <td><strong>${escHtml(p.title)}</strong><br><small style="color:var(--text-subtle)">${escHtml(BCM_PLAN_TYPE_LABELS[p.type]||p.type)} · v${escHtml(p.version||'1.0')}</small></td>
+              <td>${escHtml(BCM_PLAN_TYPE_LABELS[p.type]||p.type)}</td>
               <td>${escHtml(p.planOwner)}</td>
               <td>${bcmStatusBadge(p.status)}</td>
-              <td>${p.lastTested||'—'}</td>
-              <td class="${overdue?'bcm-overdue':''}">${p.nextTest||'—'}${overdue?` <i class="ph ph-warning-circle" title="${escHtml(t('bcm_overdue'))}"></i>`:''}</td>
+              <td>${escHtml(p.lastTested||'—')}</td>
+              <td class="${overdue?'bcm-overdue':''}">${escHtml(p.nextTest||'—')}${overdue?` <i class="ph ph-warning-circle" title="${escHtml(t('bcm_overdue'))}"></i>`:''}</td>
               <td>${bcmResultBadge(p.testResult)}</td>
               <td style="white-space:nowrap">
-                ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openPlanForm('${p.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-                ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deletePlan('${p.id}')"><i class="ph ph-trash"></i></button>` : ''}
+                ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openPlanForm(${jsArg(p.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+                ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deletePlan(${jsArg(p.id)})"><i class="ph ph-trash"></i></button>` : ''}
               </td>
             </tr>`
           }).join('') : `<tr><td colspan="8" class="dash-empty">${t('bcm_noPlansFound')}</td></tr>`}
@@ -15585,14 +16947,14 @@ async function renderBcmPlans(el) {
 
   el.innerHTML = `
     <div class="bcm-filter-bar">
-      ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openPlanForm()"><i class="ph ph-plus"></i> ${t('bcm_newPlan')}</button>` : ''}
+      ${canEdit ? `<button class="btn btn-secondary btn-sm" data-testid="bcmTplBtn" onclick="openBcmTemplateDialog('plan')"><i class="ph ph-copy"></i> ${t('bcm_useTemplate')}</button> <button class="btn btn-primary btn-sm" onclick="openPlanForm()"><i class="ph ph-plus"></i> ${t('bcm_newPlan')}</button>` : ''}
       <select id="bcmPlanType" class="select" style="max-width:180px">
         <option value="">${t('ui_allTypes')}</option>
-        ${Object.entries(BCM_PLAN_TYPE_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(BCM_PLAN_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="bcmPlanStatus" class="select" style="max-width:160px">
         <option value="">${t('filter_allStatuses')}</option>
-        ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
     </div>
     <div id="bcmPlansTable">${renderTable()}</div>
@@ -15608,13 +16970,13 @@ async function renderBcmPlans(el) {
   })
 }
 
-async function openPlanForm(id = null) {
+async function openPlanForm(id = null, prefill = null) {
   const isEdit = !!id
   let item = null
   if (isEdit) {
     const r = await fetch(`/bcm/plans/${id}`, { headers: apiHeaders() })
     if (r.ok) item = await r.json()
-  }
+  } else if (prefill) item = prefill
   const el = dom('bcmTabContent')
   if (!el) return
 
@@ -15644,13 +17006,13 @@ async function openPlanForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('col_type')}</label>
               <select id="planType" class="select">
-                ${Object.entries(BCM_PLAN_TYPE_LABELS).map(([v,l])=>`<option value="${v}"${item?.type===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_PLAN_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.type===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_status')}</label>
               <select id="planStatus" class="select">
-                ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${v}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_STATUS_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.status===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -15674,16 +17036,16 @@ async function openPlanForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('bcm_lastTest')}</label>
-              <input id="planLastTested" type="date" class="form-input" value="${item?.lastTested||''}" style="color-scheme:dark">
+              <input id="planLastTested" type="date" class="form-input" value="${escHtml(item?.lastTested||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('bcm_nextTest')}</label>
-              <input id="planNextTest" type="date" class="form-input" value="${item?.nextTest||''}" style="color-scheme:dark">
+              <input id="planNextTest" type="date" class="form-input" value="${escHtml(item?.nextTest||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('bcm_testResult')}</label>
               <select id="planTestResult" class="select">
-                ${Object.entries(BCM_RESULT_LABELS).map(([v,l])=>`<option value="${v}"${item?.testResult===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_RESULT_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.testResult===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -15702,6 +17064,7 @@ async function openPlanForm(id = null) {
           <div class="form-group">
             <label class="form-label">${t('bcm_emergencyProcs')}</label>
             <textarea id="planProcs" class="form-input" rows="6" placeholder="${t('bcm_procsPh')}">${escHtml(item?.procedures||'')}</textarea>
+            ${(ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.contentowner ? `<div style="margin-top:6px"><button type="button" class="btn btn-secondary btn-sm" data-testid="bcmAiPlan" onclick="aiDraftPolicy({ type: 'BCM Plan', fieldId: 'planProcs' })"><i class="ph ph-sparkle"></i> ${t('tmpl_aiDraft')}</button></div>` : ''}
           </div>
           ${renderLinksBlock('plan', item?.linkedControls||[], item?.linkedPolicies||[])}
         </div>
@@ -15710,7 +17073,7 @@ async function openPlanForm(id = null) {
         <div id="bcmPlanAttachPanel"></div></div>` : ''}
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchBcmTab('plans')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="savePlan('${id||''}')">
+        <button class="btn btn-primary" onclick="savePlan(${jsArg(id||'')})">
           <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
         </button>
       </div>
@@ -15773,7 +17136,7 @@ async function renderBcmExercises(el) {
 
   el.innerHTML = `
     <div class="bcm-filter-bar">
-      ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openExerciseForm()"><i class="ph ph-plus"></i> ${t('bcm_newExercise')}</button>` : ''}
+      ${canEdit ? `<button class="btn btn-secondary btn-sm" data-testid="bcmTplBtn" onclick="openBcmTemplateDialog('exercise')"><i class="ph ph-copy"></i> ${t('bcm_useTemplate')}</button> <button class="btn btn-primary btn-sm" onclick="openExerciseForm()"><i class="ph ph-plus"></i> ${t('bcm_newExercise')}</button>` : ''}
     </div>
     <table class="bcm-table">
       <thead><tr>
@@ -15784,14 +17147,14 @@ async function renderBcmExercises(el) {
         ${list.length ? list.map(e => `
           <tr>
             <td><strong>${escHtml(e.title)}</strong></td>
-            <td>${BCM_EXERCISE_TYPE_LABELS[e.type]||e.type}</td>
-            <td>${e.date||'—'}</td>
+            <td>${escHtml(BCM_EXERCISE_TYPE_LABELS[e.type]||e.type)}</td>
+            <td>${escHtml(e.date||'—')}</td>
             <td>${escHtml(e.conductor)}</td>
             <td>${bcmResultBadge(e.result)}</td>
             <td>${e.linkedPlanId ? escHtml(planMap[e.linkedPlanId]||e.linkedPlanId) : '—'}</td>
             <td style="white-space:nowrap">
-              ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openExerciseForm('${e.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-              ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteExercise('${e.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openExerciseForm(${jsArg(e.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+              ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteExercise(${jsArg(e.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`).join('') : `<tr><td colspan="7" class="dash-empty">${t('bcm_noExercisesFound')}</td></tr>`}
       </tbody>
@@ -15799,13 +17162,13 @@ async function renderBcmExercises(el) {
   `
 }
 
-async function openExerciseForm(id = null) {
+async function openExerciseForm(id = null, prefill = null) {
   const isEdit = !!id
   let item = null
   if (isEdit) {
     const r = await fetch(`/bcm/exercises/${id}`, { headers: apiHeaders() })
     if (r.ok) item = await r.json()
-  }
+  } else if (prefill) item = prefill
   const el = dom('bcmTabContent')
   if (!el) return
 
@@ -15835,17 +17198,17 @@ async function openExerciseForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('bcm_exerciseType')}</label>
               <select id="exType" class="select">
-                ${Object.entries(BCM_EXERCISE_TYPE_LABELS).map(([v,l])=>`<option value="${v}"${item?.type===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_EXERCISE_TYPE_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.type===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('ui_date')}</label>
-              <input id="exDate" type="date" class="form-input" value="${item?.date||''}" style="color-scheme:dark">
+              <input id="exDate" type="date" class="form-input" value="${escHtml(item?.date||'')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('bcm_result')}</label>
               <select id="exResult" class="select">
-                ${Object.entries(BCM_RESULT_LABELS).map(([v,l])=>`<option value="${v}"${item?.result===v?' selected':''}>${l}</option>`).join('')}
+                ${Object.entries(BCM_RESULT_LABELS).map(([v,l])=>`<option value="${escVal(v)}"${item?.result===v?' selected':''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -15866,6 +17229,11 @@ async function openExerciseForm(id = null) {
             <label class="form-label">${t('ui_participantsCsv')}</label>
             <textarea id="exParticipants" class="form-input" rows="2" placeholder="${t('bcm_participantsPh')}">${escHtml((item?.participants||[]).join(', '))}</textarea>
           </div>
+          <div class="form-group">
+            <label class="form-label">${t('bcm_scenario')}</label>
+            <textarea id="exScenario" class="form-input" rows="8" maxlength="8000" placeholder="${t('bcm_scenarioPh')}">${escHtml(item?.scenario||'')}</textarea>
+            ${(ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.contentowner ? `<div style="margin-top:6px"><button type="button" class="btn btn-secondary btn-sm" data-testid="bcmAiExercise" onclick="aiDraftPolicy({ type: 'BCM Exercise', fieldId: 'exScenario' })"><i class="ph ph-sparkle"></i> ${t('tmpl_aiDraft')}</button></div>` : ''}
+          </div>
         </div>
         <div class="training-form-section">
           <h4 class="training-form-section-title"><i class="ph ph-note-pencil"></i> ${t('bcm_resultsFollowup')}</h4>
@@ -15879,7 +17247,7 @@ async function openExerciseForm(id = null) {
           </div>
           <div class="form-group">
             <label class="form-label">${t('bcm_nextExercise')}</label>
-            <input id="exNext" type="date" class="form-input" value="${item?.nextExercise||''}" style="color-scheme:dark">
+            <input id="exNext" type="date" class="form-input" value="${escVal(item?.nextExercise||'')}" style="color-scheme:dark">
           </div>
           ${renderLinksBlock('ex', item?.linkedControls||[], item?.linkedPolicies||[])}
         </div>
@@ -15888,7 +17256,7 @@ async function openExerciseForm(id = null) {
         <div id="bcmExerciseAttachPanel"></div></div>` : ''}
       <div class="training-form-footer">
         <button class="btn btn-secondary" onclick="switchBcmTab('exercises')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveExercise('${id||''}')">
+        <button class="btn btn-primary" onclick="saveExercise(${jsArg(id||'')})">
           <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
         </button>
       </div>
@@ -15909,6 +17277,7 @@ async function saveExercise(id) {
     date:         dom('exDate')?.value            || '',
     conductor:    dom('exConductor')?.value?.trim()|| '',
     participants: splitList(dom('exParticipants')?.value),
+    scenario:     dom('exScenario')?.value        || '',
     linkedPlanId: dom('exPlan')?.value            || '',
     result:       dom('exResult')?.value          || 'planned',
     findings:     dom('exFindings')?.value        || '',
@@ -15966,11 +17335,24 @@ function _supplierCritColor(c) {
 }
 
 function supCritBadge(v) {
-  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:700;background:${_supplierCritColor(v)}22;color:${_supplierCritColor(v)};border:1px solid ${_supplierCritColor(v)}44">${SUP_CRIT_LABELS[v] || v}</span>`
+  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:700;background:${_supplierCritColor(v)}22;color:${_supplierCritColor(v)};border:1px solid ${_supplierCritColor(v)}44">${SUP_CRIT_LABELS[v] || escVal(v)}</span>`
 }
+// Nachweis-Link (Zertifikat/Bericht) und Ablaufdatum in der Liste. Der Link wird nur als Verweis ausgegeben, wenn er mit http(s) beginnt
+// (der Server lehnt anderes ab; Daten aus Importen oder Altständen werden hier trotzdem nicht blind übernommen).
+function supEvidenceCell(s, today) {
+  const safeUrl = typeof s.evidenceUrl === 'string' && /^https?:\/\//i.test(s.evidenceUrl) ? s.evidenceUrl : ''
+  const expired = s.evidenceValidUntil && s.evidenceValidUntil < today
+  const label = s.evidenceLabel || t('sup_evidenceOpen')
+  const link = safeUrl ? `<a href="${escHtml(safeUrl)}" target="_blank" rel="noopener noreferrer"><i class="ph ph-link"></i> ${escHtml(label)}</a>` : ''
+  const until = s.evidenceValidUntil
+    ? `<small class="${expired ? 'bcm-overdue' : ''}">${escHtml(t('sup_evidenceUntil'))} ${escHtml(s.evidenceValidUntil)}${expired ? ' <i class="ph ph-warning-circle" title="' + escHtml(t('sup_evidenceExpired')) + '"></i>' : ''}</small>`
+    : ''
+  return (link || until) ? `${link}${link && until ? '<br>' : ''}${until}` : '—'
+}
+
 function supStatusBadge(v) {
   const cls = { active: 'var(--success-text,#4ade80)', under_review: 'var(--warning-text,#f0b429)', inactive: 'var(--text-subtle)', terminated: 'var(--danger-text,#f87171)' }
-  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:600;color:${cls[v]||'var(--text-subtle)'};">${SUP_STATUS_LABELS[v] || v}</span>`
+  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:600;color:${cls[v]||'var(--text-subtle)'};">${SUP_STATUS_LABELS[v] || escVal(v)}</span>`
 }
 
 // ── Lieferanten-Schnelltriage (#63) ──
@@ -16004,11 +17386,11 @@ function _supplierTriageColor(level) {
 function supTriageBadge(triageResult) {
   const level = triageResult?.level || 'unassessed'
   const color = _supplierTriageColor(level)
-  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:700;background:${color}22;color:${color};border:1px solid ${color}44">${SUP_TRIAGE_LEVEL_LABELS[level] || level}</span>`
+  return `<span style="display:inline-block;padding:2px 7px;border-radius:3px;font-size:.75rem;font-weight:700;background:${color}22;color:${color};border:1px solid ${color}44">${SUP_TRIAGE_LEVEL_LABELS[level] || escVal(level)}</span>`
 }
 function _triageSelectOptions(labels, current) {
   return `<option value="">${t('supl_triageNotAnswered')}</option>` +
-    Object.entries(labels).map(([v, l]) => `<option value="${v}"${current === v ? ' selected' : ''}>${l}</option>`).join('')
+    Object.entries(labels).map(([v, l]) => `<option value="${escVal(v)}"${current === v ? ' selected' : ''}>${l}</option>`).join('')
 }
 
 async function renderSuppliers() {
@@ -16028,6 +17410,7 @@ async function renderSuppliers() {
     { id: 'list',      get label() { return t('suppliers_tabList') }, icon: 'ph-list-bullets' },
     { id: 'critical',  get label() { return t('dash_critSuppliers') }, icon: 'ph-warning-octagon' },
     { id: 'dataaccess',get label() { return t('suppliers_tabData') }, icon: 'ph-database' },
+    { id: 'templates', get label() { return t('sup_tplTab') }, icon: 'ph-list-checks' },
   ]
 
   container.innerHTML = `
@@ -16060,7 +17443,7 @@ async function renderSuppliers() {
           { label: t('dash_withDataAccess'), value: s.withDataAccess, color: 'var(--warning-text,#f0b429)' },
         ].map(k => `
           <div class="dash-card kpi" style="flex:1;min-width:120px;padding:12px 16px;text-align:center">
-            <div style="font-size:1.5rem;font-weight:700;color:${k.color}">${k.value}</div>
+            <div style="font-size:1.5rem;font-weight:700;color:${escVal(k.color)}">${k.value}</div>
             <div style="font-size:.75rem;color:var(--text-subtle)">${k.label}</div>
           </div>
         `).join('')
@@ -16084,6 +17467,7 @@ async function switchSuppliersTab(tab) {
   const el = dom('suppliersTabContent')
   if (!el) return
   el.innerHTML = `<p class="report-loading">${t('ui_loading')}</p>`
+  if (tab === 'templates') return openAssessmentTemplates()
 
   const res = await fetch('/suppliers', { headers: apiHeaders() })
   const list = res.ok ? await res.json() : []
@@ -16112,7 +17496,7 @@ async function switchSuppliersTab(tab) {
         <thead><tr>
           <th>${t('col_name')}</th><th>${t('col_type')}</th><th>${t('col_criticality')}</th><th>${t('col_status')}</th>
           <th>${t('supl_triage')}</th>
-          <th>${t('col_country')}</th><th>${t('col_nextAudit')}</th><th>${t('col_auditResult')}</th><th>${t('admin_actions')}</th>
+          <th>${t('col_country')}</th><th>${t('col_nextAudit')}</th><th>${t('sup_evidenceCol')}</th><th>${t('col_auditResult')}</th><th>${t('admin_actions')}</th>
         </tr></thead>
         <tbody>
           ${rows.length ? rows.map(s => {
@@ -16127,15 +17511,16 @@ async function switchSuppliersTab(tab) {
               <td>${supStatusBadge(s.status)}</td>
               <td>${supTriageBadge(s.triageResult)}</td>
               <td>${escHtml(s.country || '—')}</td>
-              <td class="${overdue ? 'bcm-overdue' : ''}">${s.nextAuditDate || '—'}${overdue ? ' <i class="ph ph-warning-circle" title="' + escHtml(t('bcm_overdue')) + '"></i>' : ''}</td>
+              <td class="${overdue ? 'bcm-overdue' : ''}">${escHtml(s.nextAuditDate || '—')}${overdue ? ' <i class="ph ph-warning-circle" title="' + escHtml(t('bcm_overdue')) + '"></i>' : ''}</td>
+              <td>${supEvidenceCell(s, today)}</td>
               <td>${escHtml(SUP_AUDIT_LABELS[s.auditResult] || s.auditResult || '—')}</td>
               <td style="white-space:nowrap">
-                <button class="btn btn-secondary btn-xs" title="${escHtml(t('sup_selfAssessments'))}" onclick="openSupplierAssessments('${s.id}')"><i class="ph ph-clipboard-text"></i></button>
-                ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openSupplierForm('${s.id}')"><i class="ph ph-pencil"></i></button>` : ''}
-                ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteSupplier('${s.id}')"><i class="ph ph-trash"></i></button>` : ''}
+                <button class="btn btn-secondary btn-xs" title="${escHtml(t('sup_selfAssessments'))}" onclick="openSupplierAssessments(${jsArg(s.id)})"><i class="ph ph-clipboard-text"></i></button>
+                ${canEdit ? `<button class="btn btn-secondary btn-xs" onclick="openSupplierForm(${jsArg(s.id)})"><i class="ph ph-pencil"></i></button>` : ''}
+                ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteSupplier(${jsArg(s.id)})"><i class="ph ph-trash"></i></button>` : ''}
               </td>
             </tr>`
-          }).join('') : `<tr><td colspan="9" class="dash-empty">${t('suppliers_none')}</td></tr>`}
+          }).join('') : `<tr><td colspan="10" class="dash-empty">${t('suppliers_none')}</td></tr>`}
         </tbody>
       </table>
     `
@@ -16146,19 +17531,19 @@ async function switchSuppliersTab(tab) {
       ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openSupplierForm()"><i class="ph ph-plus"></i> ${t('sup_newSupplier')}</button>` : ''}
       <select id="supFilterType" class="select" style="max-width:160px">
         <option value="">${t('ui_allTypes')}</option>
-        ${Object.entries(SUP_TYPE_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(SUP_TYPE_LABELS).map(([v, l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="supFilterCrit" class="select" style="max-width:160px">
         <option value="">${t('assets_allCrit')}</option>
-        ${Object.entries(SUP_CRIT_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(SUP_CRIT_LABELS).map(([v, l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="supFilterStatus" class="select" style="max-width:160px">
         <option value="">${t('filter_allStatuses')}</option>
-        ${Object.entries(SUP_STATUS_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(SUP_STATUS_LABELS).map(([v, l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
       <select id="supFilterTriage" class="select" style="max-width:180px">
         <option value="">${t('supl_triageAllLevels')}</option>
-        ${Object.entries(SUP_TRIAGE_LEVEL_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        ${Object.entries(SUP_TRIAGE_LEVEL_LABELS).map(([v, l]) => `<option value="${escVal(v)}">${l}</option>`).join('')}
       </select>
     </div>
     <div id="suppliersTable">${renderTable()}</div>
@@ -16199,7 +17584,7 @@ async function openSupplierForm(id = null) {
   el.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
-        <button class="btn btn-secondary btn-sm" onclick="switchSuppliersTab('${_suppliersTab}')">
+        <button class="btn btn-secondary btn-sm" onclick="switchSuppliersTab(${jsArg(_suppliersTab)})">
           <i class="ph ph-arrow-left"></i> ${t('sup_backToList')}
         </button>
         <h3 class="training-form-title">
@@ -16219,19 +17604,19 @@ async function openSupplierForm(id = null) {
             <div class="form-group">
               <label class="form-label">${t('col_type')}</label>
               <select id="supType" class="select">
-                ${Object.entries(SUP_TYPE_LABELS).map(([v, l]) => `<option value="${v}"${item?.type === v ? ' selected' : ''}>${l}</option>`).join('')}
+                ${Object.entries(SUP_TYPE_LABELS).map(([v, l]) => `<option value="${escVal(v)}"${item?.type === v ? ' selected' : ''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('assets_criticality')}</label>
               <select id="supCrit" class="select">
-                ${Object.entries(SUP_CRIT_LABELS).map(([v, l]) => `<option value="${v}"${item?.criticality === v ? ' selected' : ''}>${l}</option>`).join('')}
+                ${Object.entries(SUP_CRIT_LABELS).map(([v, l]) => `<option value="${escVal(v)}"${item?.criticality === v ? ' selected' : ''}>${l}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">${t('col_status')}</label>
               <select id="supStatus" class="select">
-                ${Object.entries(SUP_STATUS_LABELS).map(([v, l]) => `<option value="${v}"${item?.status === v ? ' selected' : ''}>${l}</option>`).join('')}
+                ${Object.entries(SUP_STATUS_LABELS).map(([v, l]) => `<option value="${escVal(v)}"${item?.status === v ? ' selected' : ''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -16301,22 +17686,35 @@ async function openSupplierForm(id = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">${t('sup_lastAudit')}</label>
-              <input id="supLastAudit" type="date" class="form-input" value="${item?.lastAuditDate || ''}" style="color-scheme:dark">
+              <input id="supLastAudit" type="date" class="form-input" value="${escVal(item?.lastAuditDate || '')}" style="color-scheme:dark">
             </div>
             <div class="form-group">
               <label class="form-label">${t('sup_nextAudit')}</label>
-              <input id="supNextAudit" type="date" class="form-input" value="${item?.nextAuditDate || ''}" style="color-scheme:dark">
+              <input id="supNextAudit" type="date" class="form-input" value="${escHtml(item?.nextAuditDate || '')}" style="color-scheme:dark">
+            </div>
+            <div class="form-group">
+              <label class="form-label">${t('sup_evidenceUrl')}</label>
+              <input id="supEvidenceUrl" type="url" class="form-input" maxlength="2000" value="${escHtml(item?.evidenceUrl || '')}" placeholder="https://…">
+            </div>
+            <div class="form-group">
+              <label class="form-label">${t('sup_evidenceLabel')}</label>
+              <input id="supEvidenceLabel" class="form-input" maxlength="120" value="${escHtml(item?.evidenceLabel || '')}" placeholder="${escHtml(t('sup_evidenceLabelPh'))}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">${t('sup_evidenceValidUntil')}</label>
+              <input id="supEvidenceValidUntil" type="date" class="form-input" value="${escHtml(item?.evidenceValidUntil || '')}" style="color-scheme:dark">
+              <small class="form-hint">${t('sup_evidenceHint')}</small>
             </div>
             <div class="form-group">
               <label class="form-label">${t('sup_auditResult')}</label>
               <select id="supAuditResult" class="select">
-                ${Object.entries(SUP_AUDIT_LABELS).map(([v, l]) => `<option value="${v}"${item?.auditResult === v ? ' selected' : ''}>${l}</option>`).join('')}
+                ${Object.entries(SUP_AUDIT_LABELS).map(([v, l]) => `<option value="${escVal(v)}"${item?.auditResult === v ? ' selected' : ''}>${l}</option>`).join('')}
               </select>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">${t('sup_riskScore')}</label>
-            <input id="supRiskScore" type="number" min="0" max="25" class="form-input" value="${item?.riskScore ?? 0}" style="max-width:120px">
+            <input id="supRiskScore" type="number" min="0" max="25" class="form-input" value="${escVal(item?.riskScore ?? 0)}" style="max-width:120px">
           </div>
           <div class="form-group">
             <label class="form-label">${t('sup_secReqsCsv')}</label>
@@ -16359,8 +17757,8 @@ async function openSupplierForm(id = null) {
 
       </div>
       <div class="training-form-footer">
-        <button class="btn btn-secondary" onclick="switchSuppliersTab('${_suppliersTab}')">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveSupplier('${id || ''}')">
+        <button class="btn btn-secondary" onclick="switchSuppliersTab(${jsArg(_suppliersTab)})">${t('ui_cancel')}</button>
+        <button class="btn btn-primary" onclick="saveSupplier(${jsArg(id || '')})">
           <i class="ph ph-floppy-disk"></i> ${t('ui_save')}
         </button>
       </div>
@@ -16390,6 +17788,9 @@ async function saveSupplier(id) {
     avContractId:         dom('supAvContractId')?.value?.trim()  || '',
     lastAuditDate:        dom('supLastAudit')?.value             || '',
     nextAuditDate:        dom('supNextAudit')?.value             || '',
+    evidenceUrl:          dom('supEvidenceUrl')?.value?.trim()   || '',
+    evidenceLabel:        dom('supEvidenceLabel')?.value?.trim() || '',
+    evidenceValidUntil:   dom('supEvidenceValidUntil')?.value    || '',
     auditResult:          dom('supAuditResult')?.value           || 'not_scheduled',
     riskScore:            parseInt(dom('supRiskScore')?.value)   || 0,
     securityRequirements: splitList(dom('supSecReqs')?.value),
@@ -16421,6 +17822,301 @@ async function deleteSupplier(id) {
 }
 
 // ════════════════════════════════════════════════════════════
+// FRAGEBOGEN-VORLAGEN (welche Fragen, welche Pflicht)
+// ════════════════════════════════════════════════════════════
+
+// Zustand der Fragenauswahl (Vorlagen-Editor und "Fragen für diesen Lieferanten anpassen")
+let _qp = { catalog: 'standard', sections: [], sel: {}, custom: [] }
+let _qpCatalogs = []
+let _qpTemplates = []
+
+async function _qpLoad() {
+  const lang = encodeURIComponent(window.LANG || 'de')
+  const [c, tp] = await Promise.all([
+    fetch(`/assessment-templates/catalogs?lang=${lang}`, { headers: apiHeaders() }),
+    fetch(`/assessment-templates?lang=${lang}`, { headers: apiHeaders() }),
+  ])
+  _qpCatalogs  = c.ok  ? await c.json()  : []
+  _qpTemplates = tp.ok ? await tp.json() : []
+}
+
+// spec = { catalog, selection:[{id,required,comment}], custom:[{id,text,type,required,comment}] }
+function qpInit(spec) {
+  const cat = _qpCatalogs.find(c => c.id === spec.catalog) || _qpCatalogs[0] || { id: 'standard', sections: [] }
+  _qp = { catalog: cat.id, sections: cat.sections, sel: {}, custom: (spec.custom || []).map(c => ({ ...c })) }
+  ;(spec.selection || []).forEach(x => { _qp.sel[x.id] = { required: x.required === true, comment: x.comment === true } })
+}
+
+function qpResult() {
+  const selection = []
+  _qp.sections.forEach(s => s.questions.forEach(q => {
+    const x = _qp.sel[q.id]
+    if (x) selection.push({ id: q.id, required: x.required, comment: q.type === 'yesno' && x.comment })
+  }))
+  const custom = _qp.custom.filter(c => c.text.trim()).map(c => ({ id: c.id, text: c.text.trim(), type: c.type, required: c.required === true, comment: c.type === 'yesno' && c.comment === true }))
+  return { catalog: _qp.catalog, selection, custom }
+}
+
+function qpHtml(readOnly) {
+  const dis = readOnly ? ' disabled' : ''
+  const rows = _qp.sections.map((s, si) => {
+    const allOn = s.questions.every(q => _qp.sel[q.id])
+    const head = `<tr class="qp-sec"><td colspan="4"><label><input type="checkbox" data-kind="sec" data-sec="${si}"${allOn ? ' checked' : ''}${dis}> <strong>${escHtml(s.section)}</strong></label></td></tr>`
+    const qs = s.questions.map(q => {
+      const x = _qp.sel[q.id]
+      return `<tr>
+        <td style="width:34px"><input type="checkbox" data-kind="ask" data-id="${escVal(q.id)}"${x ? ' checked' : ''}${dis} aria-label="${escVal(t('sup_tplAsked'))}"></td>
+        <td>${escHtml(q.text)}</td>
+        <td style="width:70px;text-align:center"><input type="checkbox" data-kind="req" data-id="${escVal(q.id)}"${x && x.required ? ' checked' : ''}${x ? '' : ' disabled'}${dis} aria-label="${escVal(t('sup_tplRequired'))}"></td>
+        <td style="width:90px;text-align:center">${q.type === 'yesno' ? `<input type="checkbox" data-kind="com" data-id="${escVal(q.id)}"${x && x.comment ? ' checked' : ''}${x ? '' : ' disabled'}${dis} aria-label="${escVal(t('sup_tplComment'))}">` : '—'}</td>
+      </tr>`
+    }).join('')
+    return head + qs
+  }).join('')
+  const custom = _qp.custom.map((c, i) => `<tr>
+      <td></td>
+      <td><input class="form-input" data-kind="ctext" data-i="${i}" value="${escVal(c.text)}" maxlength="1000" placeholder="${escVal(t('sup_tplCustomPh'))}"${dis}>
+        <select class="form-select" data-kind="ctype" data-i="${i}" style="margin-top:4px"${dis}>
+          ${['yesno', 'text', 'textarea'].map(ty => `<option value="${escVal(ty)}"${c.type === ty ? ' selected' : ''}>${escHtml(t('sup_tplType' + ty.charAt(0).toUpperCase() + ty.slice(1)))}</option>`).join('')}
+        </select></td>
+      <td style="text-align:center"><input type="checkbox" data-kind="creq" data-i="${i}"${c.required ? ' checked' : ''}${dis} aria-label="${escVal(t('sup_tplRequired'))}"></td>
+      <td style="text-align:center">${c.type === 'yesno' ? `<input type="checkbox" data-kind="ccom" data-i="${i}"${c.comment ? ' checked' : ''}${dis} aria-label="${escVal(t('sup_tplComment'))}">` : '—'}
+        ${readOnly ? '' : `<button type="button" class="btn btn-danger btn-xs" data-kind="cdel" data-i="${i}" title="${escVal(t('delete'))}"><i class="ph ph-trash"></i></button>`}</td>
+    </tr>`).join('')
+  const r = qpResult()
+  const n = r.selection.length + r.custom.length
+  const req = r.selection.filter(x => x.required).length + r.custom.filter(x => x.required).length
+  return `
+    <p class="qp-summary" style="margin:8px 0;color:var(--text-subtle)">${escHtml(t('sup_tplSummary', { n, r: req }))}</p>
+    <table class="bcm-table qp-table">
+      <thead><tr><th></th><th>${t('sup_tplQuestions')}</th><th>${t('sup_tplRequiredCol')}</th><th>${t('sup_tplComment')}</th></tr></thead>
+      <tbody>${rows}${custom ? `<tr class="qp-sec"><td colspan="4"><strong>${t('sup_tplCustom')}</strong></td></tr>${custom}` : ''}</tbody>
+    </table>
+    ${readOnly ? '' : `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn btn-secondary btn-sm" data-kind="all"><i class="ph ph-check-square"></i> ${t('sup_tplAll')}</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-kind="none"><i class="ph ph-square"></i> ${t('sup_tplNone')}</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-kind="cadd"><i class="ph ph-plus"></i> ${t('sup_tplAddCustom')}</button>
+    </div>`}`
+}
+
+function qpRender(elId, readOnly) {
+  const el = dom(elId)
+  if (!el) return
+  el.innerHTML = qpHtml(readOnly)
+  if (el.dataset.qpBound) return
+  el.dataset.qpBound = '1'
+  // Eine Weiche für alle Schalter: Änderungen im Zustand ablegen und neu zeichnen
+  const handle = (ev, isInput) => {
+    const x = ev.target.closest('[data-kind]')
+    if (!x || !el.contains(x)) return
+    const k = x.dataset.kind, id = x.dataset.id, i = Number(x.dataset.i)
+    const askAll = on => _qp.sections.forEach(s => s.questions.forEach(q => { if (on) _qp.sel[q.id] = _qp.sel[q.id] || { required: q.type === 'yesno', comment: q.comment === true }; else delete _qp.sel[q.id] }))
+    if (isInput) { if (k === 'ctext') { _qp.custom[i].text = x.value; el.querySelector('.qp-summary').textContent = t('sup_tplSummary', { n: qpResult().selection.length + qpResult().custom.length, r: qpResult().selection.filter(y => y.required).length + qpResult().custom.filter(y => y.required).length }) } return }
+    if (k === 'ask')  { if (x.checked) { const q = _qp.sections.flatMap(s => s.questions).find(q => q.id === id); _qp.sel[id] = { required: q && q.type === 'yesno', comment: !!(q && q.comment === true) } } else delete _qp.sel[id] }
+    else if (k === 'req') _qp.sel[id].required = x.checked
+    else if (k === 'com') _qp.sel[id].comment = x.checked
+    else if (k === 'sec') _qp.sections[Number(x.dataset.sec)].questions.forEach(q => { if (x.checked) _qp.sel[q.id] = _qp.sel[q.id] || { required: q.type === 'yesno', comment: q.comment === true }; else delete _qp.sel[q.id] })
+    else if (k === 'all')  askAll(true)
+    else if (k === 'none') askAll(false)
+    else if (k === 'cadd') _qp.custom.push({ id: 'c_' + Math.random().toString(36).slice(2, 10), text: '', type: 'yesno', required: false, comment: false })
+    else if (k === 'cdel') _qp.custom.splice(i, 1)
+    else if (k === 'ctype') _qp.custom[i].type = x.value
+    else if (k === 'creq')  _qp.custom[i].required = x.checked
+    else if (k === 'ccom')  _qp.custom[i].comment = x.checked
+    else return
+    qpRender(elId, readOnly)
+  }
+  el.addEventListener('change', ev => handle(ev, false))
+  el.addEventListener('click', ev => { if (ev.target.closest('button[data-kind]')) handle(ev, false) })
+  el.addEventListener('input', ev => handle(ev, true))
+}
+
+async function openAssessmentTemplates() {
+  const el = dom('suppliersTabContent')
+  if (!el) return
+  const canEdit = (ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.editor
+  await _qpLoad()
+  const rows = _qpTemplates.map(tp => {
+    const n = (tp.selection || []).length + (tp.custom || []).length
+    const req = (tp.selection || []).filter(x => x.required).length + (tp.custom || []).filter(x => x.required).length
+    const cat = (_qpCatalogs.find(c => c.id === tp.catalog) || {}).title || tp.catalog
+    return `<tr>
+      <td><strong>${escHtml(tp.name)}</strong>${tp.builtin ? ` <span class="badge badge-info">${t('sup_tplBuiltin')}</span>` : ''}${tp.description ? `<div style="color:var(--text-subtle);font-size:.85em">${escHtml(tp.description)}</div>` : ''}</td>
+      <td>${escHtml(cat)}</td><td>${n}</td><td>${req}</td>
+      <td>${canEdit ? `<button class="btn btn-secondary btn-xs" data-tpl="${escVal(tp.id)}" data-act="${tp.builtin ? 'copy' : 'edit'}">${tp.builtin ? t('sup_tplCopy') : t('edit')}</button>
+        ${tp.builtin ? '' : `<button class="btn btn-secondary btn-xs" data-tpl="${escVal(tp.id)}" data-act="copy" title="${escVal(t('sup_tplCopy'))}"><i class="ph ph-copy"></i></button>
+        <button class="btn btn-danger btn-xs" data-tpl="${escVal(tp.id)}" data-act="del" title="${escVal(t('delete'))}"><i class="ph ph-trash"></i></button>`}` : ''}</td>
+    </tr>`
+  }).join('')
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <h3 style="margin:0">${t('sup_tplTitle')}</h3>
+      ${canEdit ? `<button class="btn btn-primary btn-sm" data-act="new"><i class="ph ph-plus"></i> ${t('sup_tplNew')}</button>` : ''}
+    </div>
+    <p style="color:var(--text-subtle);max-width:760px">${t('sup_tplIntro')}</p>
+    <p style="color:var(--text-subtle);max-width:760px;font-size:.85em">${t('sup_tplLangNote')}</p>
+    <table class="bcm-table"><thead><tr><th>${t('col_name')}</th><th>${t('sup_tplCatalog')}</th><th>${t('sup_tplQuestions')}</th><th>${t('sup_tplRequiredCol')}</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div id="portalSetup"></div>`
+  if ((ROLE_RANK[getCurrentRole()] || 0) >= ROLE_RANK.admin) renderPortalSetup(dom('portalSetup'))
+  el.onclick = async ev => {
+    const b = ev.target.closest('[data-act]')
+    if (!b) return
+    const act = b.dataset.act, id = b.dataset.tpl
+    if (act === 'new') return openTemplateEditor(null, { catalog: 'standard', selection: [], custom: [] }, true)
+    const tp = _qpTemplates.find(x => x.id === id)
+    if (!tp) return
+    if (act === 'edit') return openTemplateEditor(tp.id, tp)
+    if (act === 'copy') return openTemplateEditor(null, { ...tp, name: tp.name + ' (2)' }, false)
+    if (act === 'del' && confirm(t('sup_tplDeleteConfirm'))) {
+      const r = await fetch(`/assessment-templates/${encodeURIComponent(id)}`, { method: 'DELETE', headers: apiHeaders() })
+      if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || t('error')); return }
+      openAssessmentTemplates()
+    }
+  }
+}
+
+function openTemplateEditor(id, tp, fresh) {
+  const el = dom('suppliersTabContent')
+  if (!el) return
+  el.onclick = null
+  const spec = fresh ? (_qpTemplates.find(x => x.id === 'builtin:standard') || tp) : tp
+  qpInit(spec)
+  el.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" id="tplBack"><i class="ph ph-arrow-left"></i> ${t('ui_back')}</button>
+        <h3 style="margin:0">${id ? t('edit') : t('sup_tplNew')}</h3>
+      </div>
+      <div class="form-grid" style="margin-top:16px;max-width:900px">
+        <label class="form-label">${t('sup_tplName')}</label>
+        <input id="tplName" class="form-input" maxlength="120" value="${escVal(fresh ? '' : (tp.name || ''))}">
+        <label class="form-label">${t('sup_tplDesc')}</label>
+        <input id="tplDesc" class="form-input" maxlength="500" value="${escVal(tp.description || '')}">
+        <label class="form-label">${t('sup_tplCatalog')}</label>
+        <select id="tplCatalog" class="form-select">${_qpCatalogs.map(c => `<option value="${escVal(c.id)}"${c.id === _qp.catalog ? ' selected' : ''}>${escHtml(c.title)}</option>`).join('')}</select>
+      </div>
+      <div id="tplPicker" style="margin-top:12px;max-width:1000px"></div>
+      <p id="tplErr" style="color:var(--danger-text);min-height:1.2em"></p>
+      <div style="display:flex;gap:10px"><button class="btn btn-primary" id="tplSave"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
+      <button class="btn btn-secondary" id="tplCancel">${t('ui_cancel')}</button></div>
+    </div>`
+  qpRender('tplPicker')
+  const back = () => switchSuppliersTab('templates')
+  dom('tplBack').onclick = back; dom('tplCancel').onclick = back
+  dom('tplCatalog').onchange = ev => {
+    const def = _qpTemplates.find(x => x.id === 'builtin:' + ev.target.value)
+    qpInit({ ...def, custom: _qp.custom })
+    qpRender('tplPicker')
+  }
+  dom('tplSave').onclick = async () => {
+    const err = dom('tplErr'); err.textContent = ''
+    const name = dom('tplName').value.trim()
+    const r = qpResult()
+    if (!name) { err.textContent = t('sup_tplNeedName'); return }
+    if (r.selection.length + r.custom.length < 1) { err.textContent = t('sup_tplNeedQuestion'); return }
+    const res = await fetch(id ? `/assessment-templates/${encodeURIComponent(id)}` : '/assessment-templates', {
+      method: id ? 'PUT' : 'POST',
+      headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description: dom('tplDesc').value.trim(), ...r }),
+    })
+    if (!res.ok) { const e = await res.json().catch(() => ({})); err.textContent = e.error || t('error'); return }
+    back()
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// LIEFERANTEN-BRIEFKASTEN (Anschluss, Einrichtung, Abholen)
+// ════════════════════════════════════════════════════════════
+let _portalEnabled = false
+let _portalStatus = {}
+
+async function _portalLoadStatus() {
+  try {
+    const r = await fetch('/supplier-portal/status', { headers: apiHeaders() })
+    _portalStatus = r.ok ? await r.json() : {}
+  } catch { _portalStatus = {} }
+  _portalEnabled = _portalStatus.enabled === true
+}
+
+async function portalPoll(supplierId) {
+  const r = await fetch('/supplier-portal/poll', { method: 'POST', headers: apiHeaders() })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok) { alert(j.error || t('error')); return }
+  alert(t('sup_portPolled', { i: j.imported, s: j.skipped }) + (j.errors && j.errors.length ? '\n' + j.errors.slice(0, 5).join('\n') : ''))
+  openSupplierAssessments(supplierId)
+}
+
+// Rückfall: Datei mit { answers: [...] } vom Briefkasten wählen
+function portalImportFile(supplierId) {
+  const inp = document.createElement('input')
+  inp.type = 'file'; inp.accept = '.json,application/json'
+  inp.onchange = async () => {
+    const f = inp.files[0]
+    if (!f) return
+    let data
+    try { data = JSON.parse(await f.text()) } catch { alert(t('error')); return }
+    const r = await fetch('/supplier-portal/import', { method: 'POST', headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ answers: Array.isArray(data) ? data : data.answers }) })
+    const j = await r.json().catch(() => ({}))
+    if (!r.ok) { alert(j.error || t('error')); return }
+    alert(t('sup_portPolled', { i: j.imported, s: j.skipped }))
+    openSupplierAssessments(supplierId)
+  }
+  inp.click()
+}
+
+// Einrichtungsblock auf der Seite „Fragebogen-Vorlagen“ (nur Administratoren)
+async function renderPortalSetup(host, keepOpen) {
+  const r = await fetch('/supplier-portal/config', { headers: apiHeaders() })
+  if (!r.ok) return
+  const c = await r.json()
+  host.innerHTML = `
+    <details style="margin-top:22px;max-width:900px"${(keepOpen || !c.enabled) ? ' open' : ''}>
+      <summary style="cursor:pointer;font-weight:700;font-size:1.05em"><i class="ph ph-mailbox"></i> ${t('sup_portTitle')}</summary>
+      <p style="color:var(--text-subtle)">${t('sup_portIntro')}</p>
+      <div class="form-grid" style="max-width:760px">
+        <label class="form-label">${t('sup_portUrl')}</label>
+        <input id="portUrl" class="form-input" value="${escVal(c.url)}" placeholder="https://briefkasten.example.org">
+        <label class="form-label">${t('sup_portPublicUrl')}</label>
+        <input id="portPublicUrl" class="form-input" value="${escVal(c.publicUrl)}">
+        <label class="form-label">${t('sup_portApiKey')}</label>
+        <input id="portApiKey" class="form-input" type="password" autocomplete="new-password" placeholder="${escVal(c.apiKeySet ? t('sup_portApiKeySet') : '')}">
+        <label class="form-label">${t('sup_portKey')}</label>
+        <div>${c.keyReady ? escHtml(t('sup_portKeyReady', { d: c.keyCreatedAt ? new Date(c.keyCreatedAt).toLocaleDateString() : '—' })) : escHtml(t('sup_portKeyNone'))}
+          <div style="margin-top:6px"><button class="btn btn-secondary btn-sm" id="portKeyBtn">${c.keyReady ? t('sup_portKeyReplace') : t('sup_portKeyCreate')}</button></div></div>
+        <label class="form-label">${t('sup_portEnabled')}</label>
+        <label><input type="checkbox" id="portEnabled"${c.enabled ? ' checked' : ''}${c.keyReady ? '' : ' disabled'}></label>
+      </div>
+      <p id="portMsg" style="min-height:1.3em"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" id="portSave">${t('sup_portSave')}</button>
+        <button class="btn btn-secondary btn-sm" id="portTest">${t('sup_portTest')}</button>
+      </div>
+    </details>`
+  const msg = (text, bad) => { const m = dom('portMsg'); m.textContent = text; m.style.color = bad ? 'var(--danger-text)' : 'var(--success-text)' }
+  const put = body => fetch('/supplier-portal/config', { method: 'PUT', headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  dom('portSave').onclick = async () => {
+    const body = { url: dom('portUrl').value.trim(), publicUrl: dom('portPublicUrl').value.trim(), enabled: dom('portEnabled').checked }
+    if (dom('portApiKey').value) body.apiKey = dom('portApiKey').value
+    const res = await put(body); const j = await res.json().catch(() => ({}))
+    if (!res.ok) return msg(j.error || t('error'), true)
+    msg(t('sup_portSaved')); renderPortalSetup(host, true)
+  }
+  dom('portTest').onclick = async () => {
+    const res = await fetch('/supplier-portal/test', { method: 'POST', headers: apiHeaders() }); const j = await res.json().catch(() => ({}))
+    if (!res.ok) return msg(j.error || t('error'), true)
+    j.ok ? msg(t('sup_portTestOk', { n: j.waiting })) : msg(j.error || t('error'), true)
+  }
+  dom('portKeyBtn').onclick = async () => {
+    if (c.keyReady && !confirm(t('sup_portKeyReplaceConfirm'))) return
+    const res = await fetch('/supplier-portal/key', { method: 'POST', headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ replace: c.keyReady }) })
+    const j = await res.json().catch(() => ({}))
+    if (!res.ok) return msg(j.error || t('error'), true)
+    renderPortalSetup(host, true)
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 // SUPPLIER SELF-ASSESSMENTS
 // ════════════════════════════════════════════════════════════
 
@@ -16442,7 +18138,8 @@ function _assessmentAnswersTable(a) {
         ? (val === 'yes' ? `✓ ${t('yes')}` : val === 'no' ? `✗ ${t('no')}` : '—')
         : escHtml(val)
       const color = q.type === 'yesno' ? (val === 'yes' ? 'var(--success-text)' : val === 'no' ? 'var(--danger-text)' : '') : ''
-      return `<tr><td style="width:65%">${escHtml(q.text)}</td><td style="font-weight:600;color:${color}">${display}</td></tr>`
+      const note = ans && ans.note ? `<div style="font-weight:400;color:var(--text-subtle);white-space:pre-wrap">${escHtml(ans.note)}</div>` : ''
+      return `<tr><td style="width:65%">${escHtml(q.text)}${q.required ? ' <span title="' + escVal(t('sup_tplRequired')) + '" style="color:var(--danger-text)">*</span>' : ''}</td><td style="font-weight:600;color:${color}">${display}${note}</td></tr>`
     }).join('')
     return `<tr><td colspan="2" style="background:var(--bg-subtle,#f4f5f7);font-weight:700;padding:8px 12px">${escHtml(section.section)}</td></tr>${qHtml}`
   }).join('')
@@ -16462,6 +18159,7 @@ async function openSupplierAssessments(supplierId) {
     fetch(`/assessments?supplierId=${encodeURIComponent(supplierId)}`, { headers: apiHeaders() }),
   ])
   const list = listRes.ok ? await listRes.json() : []
+  await _portalLoadStatus()
 
   const STATUS_BADGE = {
     pending:   `<span class="badge badge-warn">${t('sup_statPending')}</span>`,
@@ -16471,7 +18169,7 @@ async function openSupplierAssessments(supplierId) {
     rejected:  `<span class="badge badge-danger">${t('sup_statRejected')}</span>`,
   }
 
-  const LANG_FLAG = { de: '🇩🇪', en: '🇬🇧', fr: '🇫🇷', nl: '🇳🇱', hu: '🇭🇺' }
+  const LANG_FLAG = Object.fromEntries(LANGUAGES.list.map(l => [l.code, l.flag]))
 
   const rows = list.map(a => {
     const scoreHtml = a.score !== null
@@ -16479,16 +18177,18 @@ async function openSupplierAssessments(supplierId) {
       : '—'
     const langFlag = LANG_FLAG[a.language] || ''
     return `<tr>
-      <td>${langFlag} ${escHtml(a.title)}</td>
+      <td>${langFlag} ${escHtml(a.title)}${a.delivery === 'portal' ? ` <span class="badge badge-info">${t('sup_portBadge')}</span>` : ''}${a.answeredVia === 'form' ? ` <span class="badge badge-info">${t('sup_viaForm')}</span>` : ''}${(a.missingRequired || []).length ? ` <span class="badge badge-warn" title="${escVal(t('sup_portIncomplete'))}">!</span>` : ''}</td>
       <td>${STATUS_BADGE[a.status] || escHtml(a.status)}</td>
       <td>${scoreHtml}</td>
-      <td>${a.dueDate || '—'}</td>
+      <td>${escHtml(a.dueDate || '—')}</td>
       <td>${a.submittedAt ? new Date(a.submittedAt).toLocaleDateString('de-DE') : '—'}</td>
       <td style="white-space:nowrap">
-        ${a.status === 'pending' ? `<button class="btn btn-secondary btn-xs" title="${escHtml(t('sup_copyLink'))}" data-token="${a.token}" onclick="copyAssessmentLink(this)"><i class="ph ph-link"></i></button>` : ''}
-        ${(canEdit && a.status === 'submitted') ? `<button class="btn btn-primary btn-xs" onclick="openAssessmentReview('${a.id}')"><i class="ph ph-check-circle"></i> ${t('ui_review')}</button>` : ''}
-        ${(canEdit && a.status !== 'pending') ? `<button class="btn btn-secondary btn-xs" onclick="openAssessmentDetail('${a.id}')"><i class="ph ph-eye"></i></button>` : ''}
-        ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteAssessment('${a.id}', '${supplierId}')"><i class="ph ph-trash"></i></button>` : ''}
+        ${a.status === 'pending' ? `<button class="btn btn-secondary btn-xs" title="${escHtml(t('sup_copyLink'))}" data-token="${escVal(a.token)}" data-link="${escVal(a.portalLink || '')}" onclick="copyAssessmentLink(this)"><i class="ph ph-link"></i></button>` : ''}
+        ${(canEdit && a.status === 'pending') ? `<button class="btn btn-secondary btn-xs" title="${escVal(t('sup_pdfBtn'))}" onclick="downloadAssessmentForm(${jsArg(a.id)})"><i class="ph ph-file-pdf"></i></button>
+        <button class="btn btn-secondary btn-xs" title="${escVal(t('sup_manualBtn'))}" onclick="openAssessmentManual(${jsArg(a.id)}, ${jsArg(supplierId)})"><i class="ph ph-pencil-simple-line"></i></button>` : ''}
+        ${(canEdit && a.status === 'submitted') ? `<button class="btn btn-primary btn-xs" onclick="openAssessmentReview(${jsArg(a.id)})"><i class="ph ph-check-circle"></i> ${t('ui_review')}</button>` : ''}
+        ${(canEdit && a.status !== 'pending') ? `<button class="btn btn-secondary btn-xs" onclick="openAssessmentDetail(${jsArg(a.id)})"><i class="ph ph-eye"></i></button>` : ''}
+        ${isAdmin ? `<button class="btn btn-danger btn-xs" onclick="deleteAssessment(${jsArg(a.id)}, ${jsArg(supplierId)})"><i class="ph ph-trash"></i></button>` : ''}
       </td>
     </tr>`
   }).join('')
@@ -16500,10 +18200,13 @@ async function openSupplierAssessments(supplierId) {
           <i class="ph ph-arrow-left"></i> ${t('ui_back')}
         </button>
         <h3 style="margin:0">${t('sup_selfAssessments')}: ${escHtml(supplierName)}</h3>
-        ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openCreateAssessment('${supplierId}')">
+        ${canEdit ? `<button class="btn btn-primary btn-sm" onclick="openCreateAssessment(${jsArg(supplierId)})">
           <i class="ph ph-plus"></i> ${t('sup_newAssessmentLink')}
         </button>` : ''}
+        ${(canEdit && _portalEnabled) ? `<button class="btn btn-secondary btn-sm" onclick="portalPoll(${jsArg(supplierId)})"><i class="ph ph-download-simple"></i> ${t('sup_portPoll')}</button>
+        <button class="btn btn-secondary btn-sm" onclick="portalImportFile(${jsArg(supplierId)})"><i class="ph ph-file-arrow-up"></i> ${t('sup_portImport')}</button>` : ''}
       </div>
+      ${(canEdit && _portalEnabled && _portalStatus.lastPollAt) ? `<p style="color:var(--text-subtle);font-size:.85em;margin:6px 0 0">${escHtml(t('sup_portLastPoll', { d: new Date(_portalStatus.lastPollAt).toLocaleString() }))}</p>` : ''}
 
       ${list.length ? `
         <table class="bcm-table" style="margin-top:16px">
@@ -16516,31 +18219,109 @@ async function openSupplierAssessments(supplierId) {
     </div>`
 }
 
+// PDF-Formular herunterladen (Cookie-Anmeldung, daher fetch statt Link)
+async function downloadAssessmentForm(id) {
+  const r = await fetch(`/assessments/${encodeURIComponent(id)}/form.pdf`, { headers: apiHeaders() })
+  if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || t('error')); return }
+  const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || 'Selbstauskunft.pdf'
+  const url = URL.createObjectURL(await r.blob())
+  const a = document.createElement('a'); a.href = url; a.download = name
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
+}
+
+// Antworten aus einem zurückgesendeten Formular eintragen
+async function openAssessmentManual(id, supplierId) {
+  const el = dom('suppliersTabContent')
+  if (!el) return
+  const r = await fetch(`/assessments/${encodeURIComponent(id)}`, { headers: apiHeaders() })
+  if (!r.ok) return
+  const a = await r.json()
+  let n = 0
+  const sections = a.questions.map(sec => `<h4 style="margin:18px 0 6px">${escHtml(sec.section)}</h4>` + sec.questions.map(q => {
+    n++
+    const star = q.required ? ' <span style="color:var(--danger-text)">*</span>' : ''
+    const id = escVal(q.id)
+    let input
+    if (q.type === 'yesno') input = `<label><input type="radio" name="m_${id}" value="yes"> ${t('yes')}</label><label style="margin-left:18px"><input type="radio" name="m_${id}" value="no"> ${t('no')}</label>` + (q.comment ? `<input class="form-input" data-note="${id}" maxlength="2000" placeholder="${escVal(t('supf_comment'))}" style="margin-top:6px">` : '')
+    else if (q.type === 'textarea') input = `<textarea class="form-textarea" data-text="${id}" rows="3" maxlength="2000"></textarea>`
+    else input = `<input class="form-input" data-text="${id}" maxlength="2000">`
+    return `<div class="manual-q" data-qid="${id}" style="margin:10px 0"><div style="font-weight:600">${n}. ${escHtml(q.text)}${star}</div>${input}</div>`
+  }).join('')).join('')
+  el.innerHTML = `
+    <div class="training-form-page">
+      <div class="training-form-header">
+        <button class="btn btn-secondary btn-sm" onclick="openSupplierAssessments(${jsArg(supplierId)})"><i class="ph ph-arrow-left"></i> ${t('ui_back')}</button>
+        <h3 style="margin:0">${escHtml(t('sup_manualTitle', { supplier: a.supplierName }))}</h3>
+      </div>
+      <p style="color:var(--text-subtle);max-width:760px">${t('sup_manualHint')}</p>
+      <div id="manualForm" style="max-width:860px">${sections}</div>
+      <p id="manualErr" style="color:var(--danger-text);min-height:1.3em"></p>
+      <button class="btn btn-primary" id="manualSave"><i class="ph ph-floppy-disk"></i> ${t('sup_manualSave')}</button>
+    </div>`
+  dom('manualSave').onclick = async () => {
+    const answers = []
+    a.questions.forEach(sec => sec.questions.forEach(q => {
+      const box = document.querySelector(`#manualForm [data-qid="${CSS.escape(q.id)}"]`)
+      let value = ''
+      if (q.type === 'yesno') value = box.querySelector('input[type=radio]:checked')?.value || ''
+      else value = box.querySelector('[data-text]').value.trim()
+      const ans = { id: q.id, value }
+      const note = box.querySelector('[data-note]')?.value.trim()
+      if (note) ans.note = note
+      answers.push(ans)
+    }))
+    const post = allowIncomplete => fetch(`/assessments/${encodeURIComponent(id)}/answers`, { method: 'POST', headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ answers, allowIncomplete }) })
+    let res = await post(false)
+    if (res.status === 400) {
+      const j = await res.json().catch(() => ({}))
+      if (j.missing) {
+        dom('manualErr').textContent = t('sup_manualMissing')
+        if (!confirm(t('sup_manualMissing') + '\n\n' + t('sup_portIncomplete') + '?')) return
+        res = await post(true)
+      }
+    }
+    if (!res.ok) { const j = await res.json().catch(() => ({})); dom('manualErr').textContent = j.error || t('error'); return }
+    openSupplierAssessments(supplierId)
+  }
+}
+
 async function openCreateAssessment(supplierId) {
   const el = dom('suppliersTabContent')
   if (!el) return
   const supplierName = await _getSupplierName(supplierId)
+  await _portalLoadStatus()
+  // Sprachen: wie bei der KI-Maske die in den Organisationseinstellungen gewählten (nur Sprachen mit vollständiger Übersetzung);
+  // Vorbelegung ist die Oberflächensprache, bei nur einer Sprache entfällt die Auswahl
+  const uiLang = window.LANG || 'de'
+  const listed = LANGUAGES.listedCodes()
+  const chosen = (Array.isArray(_langConfig?.available) ? _langConfig.available : []).filter(l => listed.includes(l))
+  const assLangs = chosen.length ? chosen : [...new Set([listed.includes(uiLang) ? uiLang : 'en', 'en'])]
+  const assDefLang = assLangs.includes(uiLang) ? uiLang : assLangs[0]
+  let org = {}
+  try { const r = await fetch('/admin/org-settings', { headers: apiHeaders() }); if (r.ok) org = await r.json() } catch {}
 
   el.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
-        <button class="btn btn-secondary btn-sm" onclick="openSupplierAssessments('${supplierId}')">
+        <button class="btn btn-secondary btn-sm" onclick="openSupplierAssessments(${jsArg(supplierId)})">
           <i class="ph ph-arrow-left"></i> ${t('ui_back')}
         </button>
         <h3 style="margin:0">${t('sup_newAssessmentLinkTitle', { supplier: escHtml(supplierName) })}</h3>
       </div>
       <div class="form-grid" style="margin-top:20px;max-width:600px">
-        <label class="form-label">${t('sup_language')}</label>
-        <select id="assLanguage" class="form-select" onchange="updateAssTitle(this)">
-          <option value="de">🇩🇪 Deutsch</option>
-          <option value="en">🇬🇧 English</option>
-          <option value="fr">🇫🇷 Français</option>
-          <option value="nl">🇳🇱 Nederlands</option>
-          <option value="hu">🇭🇺 Magyar</option>
+        <label class="form-label"${assLangs.length < 2 ? ' style="display:none"' : ''}>${t('sup_language')}</label>
+        <select id="assLanguage" class="form-select" onchange="updateAssTitle(this)"${assLangs.length < 2 ? ' style="display:none"' : ''}>
+          ${assLangs.map(c => `<option value="${escHtml(c)}"${c === assDefLang ? ' selected' : ''}>${escHtml(LANGUAGES.get(c).flag + ' ' + LANGUAGES.get(c).name)}</option>`).join('')}
         </select>
 
         <label class="form-label">${t('col_title')}</label>
-        <input id="assTitle" class="form-input" value="Lieferanten-Selbstauskunft" />
+        <input id="assTitle" class="form-input" value="${escVal(ASS_DEFAULT_TITLES[assDefLang] || ASS_DEFAULT_TITLES.en)}" />
+
+        <label class="form-label">${t('sup_contactName')}</label>
+        <input id="assContactName" class="form-input" maxlength="200" value="${escVal(org.cisoName || '')}" />
+        <label class="form-label">${t('sup_contactEmail')}</label>
+        <input id="assContactEmail" class="form-input" maxlength="200" value="${escVal(org.cisoEmail || '')}" />
 
         <label class="form-label">${t('sup_dueDateOptional')}</label>
         <input id="assDueDate" type="date" class="form-input" />
@@ -16548,17 +18329,39 @@ async function openCreateAssessment(supplierId) {
         <label class="form-label">${t('sup_noteToSupplier')}</label>
         <textarea id="assNote" class="form-textarea" rows="2" placeholder="${escHtml(t('assess_notePh'))}"></textarea>
 
+        ${_portalEnabled ? `<label class="form-label">${t('sup_portDelivery')}</label>
+        <select id="assDelivery" class="form-select">
+          <option value="portal">${escHtml(t('sup_portDeliveryPortal'))}</option>
+          <option value="direct">${escHtml(t('sup_portDeliveryDirect'))}</option>
+        </select>` : ''}
+        <label class="form-label">${t('sup_tplChoose')}</label>
+        <select id="assTemplate" class="form-select"></select>
+        <details id="assAdjust" style="grid-column:1/-1">
+          <summary style="cursor:pointer;font-weight:600">${t('sup_tplAdjust')}</summary>
+          <p style="color:var(--text-subtle);font-size:.85em;margin:6px 0">${t('sup_tplCopyNote')}</p>
+          <div id="assPicker"></div>
+        </details>
+
         <div style="display:flex;gap:10px;margin-top:8px">
-          <button class="btn btn-primary" onclick="createAssessment('${supplierId}')">
+          <button class="btn btn-primary" onclick="createAssessment(${jsArg(supplierId)})">
             <i class="ph ph-link"></i> ${t('sup_generateLink')}
           </button>
-          <button class="btn btn-secondary" onclick="openSupplierAssessments('${supplierId}')">${t('ui_cancel')}</button>
+          <button class="btn btn-secondary" onclick="openSupplierAssessments(${jsArg(supplierId)})">${t('ui_cancel')}</button>
         </div>
       </div>
     </div>`
+  // Vorlagenauswahl; Standard ist der bisherige Fragebogen
+  await _qpLoad()
+  const sel = dom('assTemplate')
+  if (sel) {
+    sel.innerHTML = _qpTemplates.map(tp => `<option value="${escVal(tp.id)}">${escHtml(tp.name)}</option>`).join('')
+    const load = () => { const tp = _qpTemplates.find(x => x.id === sel.value); if (tp) { qpInit(tp); qpRender('assPicker') } }
+    sel.onchange = load
+    load()
+  }
 }
 
-const ASS_DEFAULT_TITLES = { de: 'Lieferanten-Selbstauskunft', en: 'Supplier Self-Assessment', fr: 'Auto-évaluation fournisseur', nl: 'Leveranciers zelfevaluatie', hu: 'Szállítói önértékelés' }
+const ASS_DEFAULT_TITLES = { de: 'Lieferanten-Selbstauskunft', en: 'Supplier Self-Assessment', fr: 'Auto-évaluation fournisseur', nl: 'Leveranciers zelfevaluatie', hu: 'Szállítói önértékelés', et: 'Tarnija enesehindamine' }
 
 function updateAssTitle(sel) {
   const t = dom('assTitle')
@@ -16576,6 +18379,15 @@ async function createAssessment(supplierId) {
     title:   dom('assTitle')?.value?.trim()   || ASS_DEFAULT_TITLES[lang],
     dueDate: dom('assDueDate')?.value         || '',
     note:    dom('assNote')?.value?.trim()    || '',
+    templateId: dom('assTemplate')?.value     || '',
+    contactName:  dom('assContactName')?.value?.trim()  || '',
+    contactEmail: dom('assContactEmail')?.value?.trim() || '',
+  }
+  if (dom('assDelivery')) payload.delivery = dom('assDelivery').value
+  if (_qp.sections.length) {
+    const r = qpResult()
+    if (r.selection.length + r.custom.length < 1) { alert(t('sup_tplNeedQuestion')); return }
+    payload.spec = r
   }
   const res = await fetch('/assessments', {
     method: 'POST',
@@ -16584,7 +18396,7 @@ async function createAssessment(supplierId) {
   })
   if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || t('error')); return }
   const a    = await res.json()
-  const link = `${location.origin}/supplier-assessment/${a.token}`
+  const link = a.portalLink || `${location.origin}/supplier-assessment/${a.token}`
   const el   = dom('suppliersTabContent')
   if (!el) return
   el.innerHTML = `
@@ -16596,7 +18408,7 @@ async function createAssessment(supplierId) {
         <p style="margin:0 0 8px;font-weight:600">${t('sup_assessmentLinkFor', { supplier: escHtml(a.supplierName) })}</p>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="text" class="form-input" id="assessLinkInput" value="${escHtml(link)}" readonly style="font-family:monospace;font-size:13px;flex:1" />
-          <button class="btn btn-primary" data-token="${a.token}" onclick="copyAssessmentLink(this)">
+          <button class="btn btn-primary" data-token="${escVal(a.token)}" data-link="${escVal(a.portalLink || '')}" onclick="copyAssessmentLink(this)">
             <i class="ph ph-copy"></i> ${t('sup_copyLink')}
           </button>
         </div>
@@ -16605,7 +18417,7 @@ async function createAssessment(supplierId) {
         </p>
       </div>
       <div style="margin-top:16px;display:flex;gap:10px">
-        <button class="btn btn-secondary" onclick="openSupplierAssessments('${supplierId}')">
+        <button class="btn btn-secondary" onclick="openSupplierAssessments(${jsArg(supplierId)})">
           <i class="ph ph-arrow-left"></i> ${t('sup_backToAssessments')}
         </button>
       </div>
@@ -16614,7 +18426,7 @@ async function createAssessment(supplierId) {
 
 function copyAssessmentLink(btn) {
   const token = btn.dataset.token
-  const link  = `${location.origin}/supplier-assessment/${token}`
+  const link  = btn.dataset.link || `${location.origin}/supplier-assessment/${token}`
   navigator.clipboard.writeText(link).then(() => {
     const old = btn.innerHTML
     btn.innerHTML = `<i class="ph ph-check"></i> ${t('sup_copied')}`
@@ -16633,7 +18445,7 @@ async function openAssessmentDetail(id) {
   el.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
-        <button class="btn btn-secondary btn-sm" onclick="openSupplierAssessments('${a.supplierId}')">
+        <button class="btn btn-secondary btn-sm" onclick="openSupplierAssessments(${jsArg(a.supplierId)})">
           <i class="ph ph-arrow-left"></i> ${t('ui_back')}
         </button>
         <h3 style="margin:0">${escHtml(a.title)} — ${escHtml(a.supplierName)}</h3>
@@ -16661,7 +18473,7 @@ async function openAssessmentReview(id) {
   el.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
-        <button class="btn btn-secondary btn-sm" onclick="openSupplierAssessments('${a.supplierId}')">
+        <button class="btn btn-secondary btn-sm" onclick="openSupplierAssessments(${jsArg(a.supplierId)})">
           <i class="ph ph-arrow-left"></i> ${t('ui_back')}
         </button>
         <h3 style="margin:0">${t('sup_reviewTitle', { title: escHtml(a.title), supplier: escHtml(a.supplierName) })}</h3>
@@ -16681,10 +18493,10 @@ async function openAssessmentReview(id) {
           <option value="rejected">${t('sup_statRejected')}</option>
         </select>
         <div style="display:flex;gap:10px;margin-top:8px">
-          <button class="btn btn-primary" onclick="submitAssessmentReview('${id}', '${a.supplierId}')">
+          <button class="btn btn-primary" onclick="submitAssessmentReview(${jsArg(id)}, ${jsArg(a.supplierId)})">
             <i class="ph ph-check"></i> ${t('sup_saveReview')}
           </button>
-          <button class="btn btn-secondary" onclick="openSupplierAssessments('${a.supplierId}')">${t('ui_cancel')}</button>
+          <button class="btn btn-secondary" onclick="openSupplierAssessments(${jsArg(a.supplierId)})">${t('ui_cancel')}</button>
         </div>
       </div>
     </div>`
@@ -16742,7 +18554,7 @@ async function renderPolicyAcks() {
       <h2 class="reports-title"><i class="ph ph-check-circle"></i> ${t('nav_policyAcks')}</h2>
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted)">
         <i class="ph ${modeIcons[mode]}"></i>
-        ${t('ack_mode')}: <strong>${modeLabels[mode] || mode}</strong>
+        ${t('ack_mode')}: <strong>${modeLabels[mode] || escVal(mode)}</strong>
         ${getCurrentRole() === 'admin' ? `<button class="btn btn-secondary btn-sm" onclick="renderPolicyAckSettings()"><i class="ph ph-gear"></i> ${t('ack_changeMode')}</button>` : ''}
       </div>
     </div>
@@ -16799,13 +18611,13 @@ async function _renderDistributionList(container, mode) {
             <td>${escHtml(d.targetGroup || '–')}</td>
             <td>${d.dueDate ? new Date(d.dueDate).toLocaleDateString('de-DE') : '–'}</td>
             <td style="min-width:140px">${progressHtml}</td>
-            <td><span class="status-badge" style="background:${statusColor[d.status]||'#666'}20;color:${statusColor[d.status]||'#666'};border:1px solid ${statusColor[d.status]||'#666'}40">${statusLabel[d.status]||d.status}</span></td>
+            <td><span class="status-badge" style="background:${statusColor[d.status]||'#666'}20;color:${statusColor[d.status]||'#666'};border:1px solid ${statusColor[d.status]||'#666'}40">${escHtml(statusLabel[d.status]||d.status)}</span></td>
             <td style="font-size:12px;color:var(--text-muted)">${new Date(d.createdAt).toLocaleDateString('de-DE')}</td>
             <td style="white-space:nowrap">
-              <button class="btn btn-secondary btn-sm" onclick="openDistributionDetail('${d.id}')"><i class="ph ph-eye"></i></button>
-              ${d.mode === 'email_campaign' ? `<button class="btn btn-secondary btn-sm" title="${t('ack_sendReminder')}" onclick="sendAckReminder('${d.id}')"><i class="ph ph-envelope"></i></button>` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="openDistributionDetail(${jsArg(d.id)})"><i class="ph ph-eye"></i></button>
+              ${d.mode === 'email_campaign' ? `<button class="btn btn-secondary btn-sm" title="${t('ack_sendReminder')}" onclick="sendAckReminder(${jsArg(d.id)})"><i class="ph ph-envelope"></i></button>` : ''}
               <a href="/distributions/${d.id}/export/csv" class="btn btn-secondary btn-sm" title="${escHtml(t('ui_csvExport'))}"><i class="ph ph-download-simple"></i></a>
-              ${getCurrentRole() === 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteDistribution('${d.id}')"><i class="ph ph-trash"></i></button>` : ''}
+              ${getCurrentRole() === 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteDistribution(${jsArg(d.id)})"><i class="ph ph-trash"></i></button>` : ''}
             </td>
           </tr>`
         }).join('')}
@@ -16826,7 +18638,7 @@ function _renderNewDistributionForm(container, mode) {
       <div class="form-section-header"><h3><i class="ph ph-plus-circle"></i> ${t('ack_newDistribution')}</h3></div>
 
       <div class="info-box" style="margin-bottom:20px">
-        <i class="ph ph-info"></i> <strong>${t('ack_activeMode')}:</strong> ${modeInfo[mode] || mode}
+        <i class="ph ph-info"></i> <strong>${t('ack_activeMode')}:</strong> ${modeInfo[mode] || escVal(mode)}
       </div>
 
       <label class="form-label">${t('ack_policyApprovedOnly')} <span style="color:#f87171">*</span></label>
@@ -16941,8 +18753,8 @@ async function openDistributionDetail(id) {
           <td>${escHtml(a.recipientEmail||'–')}</td>
           <td>${escHtml(a.recipientName||'–')}</td>
           <td>${a.acknowledgedAt ? new Date(a.acknowledgedAt).toLocaleString() : `<span style="color:#fbbf24">${t('ack_pending')}</span>`}</td>
-          <td style="font-size:12px;color:var(--text-muted)">${a.method||'–'}</td>
-          ${getCurrentRole()==='admin'?`<td><button class="btn btn-danger btn-sm" onclick="deleteAck('${a.id}','${id}')"><i class="ph ph-trash"></i></button></td>`:''}
+          <td style="font-size:12px;color:var(--text-muted)">${escVal(a.method)||'–'}</td>
+          ${getCurrentRole()==='admin'?`<td><button class="btn btn-danger btn-sm" onclick="deleteAck(${jsArg(a.id)},${jsArg(id)})"><i class="ph ph-trash"></i></button></td>`:''}
         </tr>`).join('')}</tbody>
       </table>`
 
@@ -16959,7 +18771,7 @@ async function openDistributionDetail(id) {
           <label class="form-label">${t('col_name')}</label>
           <input type="text" id="manAckName" class="form-input" placeholder="Alice Müller"/>
         </div>
-        <button class="btn btn-primary" onclick="addManualAck('${id}')"><i class="ph ph-plus"></i> ${t('add')}</button>
+        <button class="btn btn-primary" onclick="addManualAck(${jsArg(id)})"><i class="ph ph-plus"></i> ${t('add')}</button>
       </div>
     </div>
   ` : ''
@@ -16970,7 +18782,7 @@ async function openDistributionDetail(id) {
       <h4 style="margin-bottom:8px"><i class="ph ph-upload-simple"></i> ${t('ack_importCsv')}</h4>
       <p style="color:var(--text-muted);font-size:13px;margin-bottom:8px">${t('ack_csvFormat')}: <code>email;name;date</code> (${t('ack_csvHint')})</p>
       <textarea id="csvImportData" class="form-textarea" rows="4" placeholder="alice@firma.de;Alice Müller;2026-03-13&#10;bob@firma.de;Bob Schmidt;"></textarea>
-      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="importAcksCsv('${id}')"><i class="ph ph-upload-simple"></i> ${t('import_action')}</button>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="importAcksCsv(${jsArg(id)})"><i class="ph ph-upload-simple"></i> ${t('import_action')}</button>
     </div>
   ` : ''
 
@@ -16982,7 +18794,7 @@ async function openDistributionDetail(id) {
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px">
-        <div class="kpi-card"><div class="kpi-label">${t('ack_mode')}</div><div class="kpi-value">${modeLabels[dist.mode]||dist.mode}</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('ack_mode')}</div><div class="kpi-value">${modeLabels[dist.mode]||escVal(dist.mode)}</div></div>
         <div class="kpi-card"><div class="kpi-label">${t('ack_targetGroup')}</div><div class="kpi-value" style="font-size:14px">${escHtml(dist.targetGroup||'–')}</div></div>
         <div class="kpi-card"><div class="kpi-label">${t('ack_deadline')}</div><div class="kpi-value" style="font-size:14px">${dist.dueDate ? new Date(dist.dueDate).toLocaleDateString() : '–'}</div></div>
         ${dist.mode !== 'distribution_only' ? `
@@ -16992,8 +18804,8 @@ async function openDistributionDetail(id) {
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
         <a href="/distributions/${id}/export/csv" class="btn btn-secondary btn-sm"><i class="ph ph-download-simple"></i> ${t('ui_csvExport')}</a>
-        ${dist.mode === 'email_campaign' ? `<button class="btn btn-secondary btn-sm" onclick="sendAckReminder('${id}')"><i class="ph ph-envelope"></i> ${t('ack_sendReminder')}</button>` : ''}
-        <select id="distStatusSel" class="select" style="max-width:180px;padding:6px 10px;font-size:13px" onchange="updateDistStatus('${id}',this.value)">
+        ${dist.mode === 'email_campaign' ? `<button class="btn btn-secondary btn-sm" onclick="sendAckReminder(${jsArg(id)})"><i class="ph ph-envelope"></i> ${t('ack_sendReminder')}</button>` : ''}
+        <select id="distStatusSel" class="select" style="max-width:180px;padding:6px 10px;font-size:13px" onchange="updateDistStatus(${jsArg(id)},this.value)">
           <option value="active"${dist.status==='active'?' selected':''}>${t('ack_statusActive')}</option>
           <option value="completed"${dist.status==='completed'?' selected':''}>${t('ack_statusCompleted')}</option>
           <option value="expired"${dist.status==='expired'?' selected':''}>${t('ack_statusExpired')}</option>
@@ -17093,10 +18905,10 @@ async function renderPolicyAckSettings() {
           { val:'distribution_only', icon:'ph-file-text',  title:t('ack_modeDistributionOnly'),    desc:t('ack_modeDistributionOnlyDesc') },
         ].map(opt => `
           <label style="display:flex;align-items:flex-start;gap:14px;padding:16px;border:2px solid ${current===opt.val?'var(--brand-color)':'var(--border-color)'};border-radius:8px;cursor:pointer;background:${current===opt.val?'var(--brand-color)18':'transparent'}">
-            <input type="radio" name="ackMode" value="${opt.val}" ${current===opt.val?'checked':''} style="margin-top:3px;accent-color:var(--brand-color)"/>
+            <input type="radio" name="ackMode" value="${escVal(opt.val)}" ${current===opt.val?'checked':''} style="margin-top:3px;accent-color:var(--brand-color)"/>
             <div>
-              <div style="font-weight:600"><i class="ph ${opt.icon}"></i> ${opt.title}</div>
-              <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${opt.desc}</div>
+              <div style="font-weight:600"><i class="ph ${opt.icon}"></i> ${escHtml(opt.title)}</div>
+              <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${escHtml(opt.desc)}</div>
             </div>
           </label>
         `).join('')}
@@ -17212,7 +19024,7 @@ async function renderAudits() {
       { label: t('audit_kpiUpcoming'),   value: s.upcoming,   color: '#60a5fa' },
       { label: t('audit_kpiNonconform'), value: s.nonconform, color: s.nonconform > 0 ? '#f0b429' : 'var(--success-text)' },
     ].map(k => `<div class="dash-card kpi" style="flex:1;min-width:120px;padding:12px 16px;text-align:center">
-      <div style="font-size:1.5rem;font-weight:700;color:${k.color}">${k.value}</div>
+      <div style="font-size:1.5rem;font-weight:700;color:${escVal(k.color)}">${k.value}</div>
       <div style="font-size:.75rem;color:var(--text-subtle)">${escHtml(k.label)}</div></div>`).join('')
   }
 
@@ -17275,7 +19087,7 @@ async function renderAuditList(el) {
         const items = a.checklist || []
         const nc = items.filter(i => i.result === 'nonconform').length
         const overdue = (a.status === 'planned' || a.status === 'in_progress') && a.plannedEnd && a.plannedEnd < today
-        return `<tr class="risk-row${overdue ? ' overdue' : ''}" onclick="openAuditDetail('${a.id}')">
+        return `<tr class="risk-row${overdue ? ' overdue' : ''}" onclick="openAuditDetail(${jsArg(a.id)})">
           <td style="font-family:monospace;white-space:nowrap">${escHtml(a.ref)}</td>
           <td><strong>${escHtml(a.title)}</strong>${a.standard ? `<br><small style="color:var(--text-subtle)">${escHtml(a.standard)}</small>` : ''}</td>
           <td>${escHtml(AU_TYPES[a.type]?.label || a.type)}</td>
@@ -17284,8 +19096,8 @@ async function renderAuditList(el) {
           <td>${auStatusBadge(a.status)}</td>
           <td>${items.length}${nc ? ` <span style="color:#f87171">(${nc} ✗)</span>` : ''}</td>
           <td onclick="event.stopPropagation()" style="white-space:nowrap">
-            ${auCanWrite() ? `<button class="btn btn-secondary btn-xs" onclick="openAuditForm('${a.id}')"><i class="ph ph-pencil"></i></button>
-            <button class="btn btn-danger btn-xs" onclick="deleteAudit('${a.id}')"><i class="ph ph-trash"></i></button>` : ''}
+            ${auCanWrite() ? `<button class="btn btn-secondary btn-xs" onclick="openAuditForm(${jsArg(a.id)})"><i class="ph ph-pencil"></i></button>
+            <button class="btn btn-danger btn-xs" onclick="deleteAudit(${jsArg(a.id)})"><i class="ph ph-trash"></i></button>` : ''}
           </td></tr>`
       }).join('') : `<tr><td colspan="8" class="dash-empty">${t('audit_empty')}</td></tr>`}</tbody>
     </table>`
@@ -17305,10 +19117,10 @@ async function openAuditDetail(id) {
   el.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
-        <button class="btn btn-secondary btn-sm" onclick="switchAuditsTab('${_auTab}')"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
+        <button class="btn btn-secondary btn-sm" onclick="switchAuditsTab(${jsArg(_auTab)})"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
         <h3 class="training-form-title" style="flex:1"><i class="ph ph-clipboard-text"></i> ${escHtml(a.ref)} · ${escHtml(a.title)} ${auStatusBadge(a.status)}</h3>
-        <button class="btn btn-secondary btn-sm" onclick="printAuditReport('${a.id}')"><i class="ph ph-file-pdf"></i> ${t('audit_report')}</button>
-        ${canWrite ? `<button class="btn btn-secondary btn-sm" onclick="openAuditForm('${a.id}')"><i class="ph ph-pencil"></i> ${t('edit')}</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="printAuditReport(${jsArg(a.id)})"><i class="ph ph-file-pdf"></i> ${t('audit_report')}</button>
+        ${canWrite ? `<button class="btn btn-secondary btn-sm" onclick="openAuditForm(${jsArg(a.id)})"><i class="ph ph-pencil"></i> ${t('edit')}</button>` : ''}
       </div>
       <div class="training-form-body">
         <div class="training-form-section">
@@ -17361,21 +19173,21 @@ async function openAuditDetail(id) {
 function auItemRows(a, i, canWrite) {
   const editing = _auEditItem === i.id
   const resultCell = canWrite
-    ? `<select class="select" style="min-width:140px" onchange="auSetResult('${a.id}','${i.id}',this.value)">
-        ${Object.entries(AU_RESULTS).map(([v, r]) => `<option value="${v}"${i.result === v ? ' selected' : ''}>${escHtml(r.label)}</option>`).join('')}</select>`
+    ? `<select class="select" style="min-width:140px" onchange="auSetResult(${jsArg(a.id)},${jsArg(i.id)},this.value)">
+        ${Object.entries(AU_RESULTS).map(([v, r]) => `<option value="${escVal(v)}"${i.result === v ? ' selected' : ''}>${escHtml(r.label)}</option>`).join('')}</select>`
     : auResultBadge(i.result)
   const finding = (a.findings || []).find(f => f.id === i.findingId)
   const findingCell = i.findingId
     ? `<span style="font-family:monospace">${escHtml(finding?.ref || i.findingId)}</span>`
     : (canWrite && i.result === 'nonconform'
-        ? `<button class="btn btn-secondary btn-xs" onclick="auCreateFinding('${a.id}','${i.id}')"><i class="ph ph-magnifying-glass"></i> ${t('audit_createFinding')}</button>` : '—')
+        ? `<button class="btn btn-secondary btn-xs" onclick="auCreateFinding(${jsArg(a.id)},${jsArg(i.id)})"><i class="ph ph-magnifying-glass"></i> ${t('audit_createFinding')}</button>` : '—')
   return `<tr>
       <td style="white-space:nowrap">${escHtml(i.controlId || '—')}</td>
       <td>${escHtml(i.question)}${i.evidence || i.notes ? `<br><small style="color:var(--text-subtle)">${escHtml([i.evidence, i.notes].filter(Boolean).join(' · '))}</small>` : ''}</td>
       <td>${resultCell}</td>
       <td>${findingCell}</td>
-      <td style="white-space:nowrap">${canWrite ? `<button class="btn btn-secondary btn-xs" onclick="_auEditItem=${editing ? 'null' : `'${i.id}'`};openAuditDetail('${a.id}')"><i class="ph ph-pencil"></i></button>
-        <button class="btn btn-danger btn-xs" onclick="auDeleteItem('${a.id}','${i.id}')"><i class="ph ph-trash"></i></button>` : ''}</td>
+      <td style="white-space:nowrap">${canWrite ? `<button class="btn btn-secondary btn-xs" onclick="_auEditItem=${editing ? 'null' : `${jsArg(i.id)}`};openAuditDetail(${jsArg(a.id)})"><i class="ph ph-pencil"></i></button>
+        <button class="btn btn-danger btn-xs" onclick="auDeleteItem(${jsArg(a.id)},${jsArg(i.id)})"><i class="ph ph-trash"></i></button>` : ''}</td>
     </tr>${editing ? `<tr><td colspan="5">${auItemEditor(a.id, i)}</td></tr>` : ''}`
 }
 
@@ -17395,8 +19207,8 @@ function auItemEditor(auditId, item) {
       <div class="form-group"><label class="form-label">${t('audit_notes')}</label>
         <textarea id="auiNo_${k}" class="form-textarea" rows="2">${escHtml(item?.notes || '')}</textarea></div>
     </div>
-    <button class="btn btn-primary btn-sm" onclick="auSaveItem('${auditId}',${item ? `'${item.id}'` : 'null'})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
-    ${item ? `<button class="btn btn-secondary btn-sm" onclick="_auEditItem=null;openAuditDetail('${auditId}')">${t('ui_cancel')}</button>` : ''}
+    <button class="btn btn-primary btn-sm" onclick="auSaveItem(${jsArg(auditId)},${item ? `${jsArg(item.id)}` : 'null'})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
+    ${item ? `<button class="btn btn-secondary btn-sm" onclick="_auEditItem=null;openAuditDetail(${jsArg(auditId)})">${t('ui_cancel')}</button>` : ''}
   </div>`
 }
 
@@ -17444,7 +19256,7 @@ async function openAuditForm(id = null, preset = {}) {
   el.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
-        <button class="btn btn-secondary btn-sm" onclick="${id ? `openAuditDetail('${id}')` : `switchAuditsTab('${_auTab}')`}"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
+        <button class="btn btn-secondary btn-sm" onclick="${id ? `openAuditDetail(${jsArg(id)})` : `switchAuditsTab(${jsArg(_auTab)})`}"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
         <h3 class="training-form-title"><i class="ph ph-clipboard-text"></i> ${id ? t('audit_edit') : t('audit_new')}</h3>
       </div>
       <div class="training-form-body">
@@ -17490,8 +19302,8 @@ async function openAuditForm(id = null, preset = {}) {
         </div>
       </div>
       <div class="training-form-footer">
-        <button class="btn btn-secondary" onclick="${id ? `openAuditDetail('${id}')` : `switchAuditsTab('${_auTab}')`}">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveAudit('${id || ''}')"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
+        <button class="btn btn-secondary" onclick="${id ? `openAuditDetail(${jsArg(id)})` : `switchAuditsTab(${jsArg(_auTab)})`}">${t('ui_cancel')}</button>
+        <button class="btn btn-primary" onclick="saveAudit(${jsArg(id || '')})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
       </div>
     </div>`
 }
@@ -17529,11 +19341,11 @@ async function renderAuditPrograms(el) {
     </div>
     <table class="bcm-table">
       <thead><tr><th>${t('audit_ref')}</th><th>${t('audit_year')}</th><th>${t('col_title')}</th><th>${t('col_status')}</th><th>${t('audit_tabAudits')}</th><th style="width:90px"></th></tr></thead>
-      <tbody>${programs.length ? programs.map(p => `<tr class="risk-row" onclick="openAuditProgram('${p.id}')">
-        <td style="font-family:monospace">${escHtml(p.ref)}</td><td>${p.year}</td><td><strong>${escHtml(p.title)}</strong></td>
+      <tbody>${programs.length ? programs.map(p => `<tr class="risk-row" onclick="openAuditProgram(${jsArg(p.id)})">
+        <td style="font-family:monospace">${escHtml(p.ref)}</td><td>${escVal(p.year)}</td><td><strong>${escHtml(p.title)}</strong></td>
         <td>${auBadge(p.status === 'approved' ? t('audit_programApproved') : t('audit_programDraft'), p.status === 'approved' ? '#4ade80' : '#f0b429')}</td>
         <td>${countBy[p.id] || 0}</td>
-        <td onclick="event.stopPropagation()">${auCanWrite() ? `<button class="btn btn-danger btn-xs" onclick="deleteAuditProgram('${p.id}')"><i class="ph ph-trash"></i></button>` : ''}</td>
+        <td onclick="event.stopPropagation()">${auCanWrite() ? `<button class="btn btn-danger btn-xs" onclick="deleteAuditProgram(${jsArg(p.id)})"><i class="ph ph-trash"></i></button>` : ''}</td>
       </tr>`).join('') : `<tr><td colspan="6" class="dash-empty">${t('audit_noPrograms')}</td></tr>`}</tbody>
     </table>`
 }
@@ -17564,11 +19376,11 @@ async function openAuditProgram(id) {
         <button class="btn btn-secondary btn-sm" onclick="switchAuditsTab('program')"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
         <h3 class="training-form-title" style="flex:1"><i class="ph ph-calendar-check"></i> ${escHtml(p.ref)} · ${escHtml(p.title)} (${p.year})
           ${auBadge(approved ? t('audit_programApproved') : t('audit_programDraft'), approved ? '#4ade80' : '#f0b429')}</h3>
-        <button class="btn btn-secondary btn-sm" onclick="exportAuditProgramCsv('${p.id}')"><i class="ph ph-file-csv"></i> CSV</button>
-        <button class="btn btn-secondary btn-sm" onclick="exportAuditProgramPdf('${p.id}')"><i class="ph ph-file-pdf"></i> PDF</button>
-        ${w && !approved ? `<button class="btn btn-secondary btn-sm" onclick="openAuditProgramForm('${p.id}')"><i class="ph ph-pencil"></i> ${t('edit')}</button>
-          <button class="btn btn-primary btn-sm" onclick="approveAuditProgram('${p.id}')"><i class="ph ph-check-circle"></i> ${t('audit_approve')}</button>` : ''}
-        ${w && approved ? `<button class="btn btn-secondary btn-sm" onclick="reopenAuditProgram('${p.id}')"><i class="ph ph-arrow-counter-clockwise"></i> ${t('audit_reopen')}</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="exportAuditProgramCsv(${jsArg(p.id)})"><i class="ph ph-file-csv"></i> CSV</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportAuditProgramPdf(${jsArg(p.id)})"><i class="ph ph-file-pdf"></i> PDF</button>
+        ${w && !approved ? `<button class="btn btn-secondary btn-sm" onclick="openAuditProgramForm(${jsArg(p.id)})"><i class="ph ph-pencil"></i> ${t('edit')}</button>
+          <button class="btn btn-primary btn-sm" onclick="approveAuditProgram(${jsArg(p.id)})"><i class="ph ph-check-circle"></i> ${t('audit_approve')}</button>` : ''}
+        ${w && approved ? `<button class="btn btn-secondary btn-sm" onclick="reopenAuditProgram(${jsArg(p.id)})"><i class="ph ph-arrow-counter-clockwise"></i> ${t('audit_reopen')}</button>` : ''}
       </div>
       <div class="training-form-body">
         ${approved ? `<div class="tmpl-lock-hint">${t('audit_programLocked')} — ${t('tmpl_approvedBy')} ${escHtml(p.approvedBy || '')}, ${escHtml((p.approvedAt || '').slice(0, 10))}</div>` : ''}
@@ -17578,9 +19390,9 @@ async function openAuditProgram(id) {
         </div>
         <div class="training-form-section">
           <h4 class="training-form-section-title" style="display:flex;align-items:center;gap:8px"><i class="ph ph-calendar-dots"></i> ${t('audit_tabAudits')} (${p.audits.length})
-            ${w ? `<button class="btn btn-secondary btn-xs" style="margin-left:auto" onclick="openAuditForm(null,{programId:'${p.id}',plannedStart:'${p.year}-01-01'})"><i class="ph ph-plus"></i> ${t('audit_addToProgram')}</button>` : ''}</h4>
+            ${w ? `<button class="btn btn-secondary btn-xs" style="margin-left:auto" onclick="openAuditForm(null,{programId:${jsArg(p.id)},plannedStart:${jsArg(p.year + '-01-01')}})"><i class="ph ph-plus"></i> ${t('audit_addToProgram')}</button>` : ''}</h4>
           ${p.audits.length ? auQuarters(p.audits).map(g => `<h5 style="margin:12px 0 4px">${escHtml(g.label)}</h5>
-            <table class="bcm-table"><tbody>${g.list.map(a => `<tr class="risk-row" onclick="openAuditDetail('${a.id}')">
+            <table class="bcm-table"><tbody>${g.list.map(a => `<tr class="risk-row" onclick="openAuditDetail(${jsArg(a.id)})">
               <td style="font-family:monospace;width:130px">${escHtml(a.ref)}</td><td><strong>${escHtml(a.title)}</strong></td>
               <td>${escHtml(AU_TYPES[a.type]?.label || a.type)}</td><td style="white-space:nowrap">${auPeriod(a)}</td><td>${auStatusBadge(a.status)}</td></tr>`).join('')}</tbody></table>`).join('')
             : `<p class="asset-prot-hint">${t('audit_empty')}</p>`}
@@ -17596,7 +19408,7 @@ async function openAuditProgramForm(id = null) {
   el.innerHTML = `
     <div class="training-form-page">
       <div class="training-form-header">
-        <button class="btn btn-secondary btn-sm" onclick="${id ? `openAuditProgram('${id}')` : `switchAuditsTab('program')`}"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
+        <button class="btn btn-secondary btn-sm" onclick="${id ? `openAuditProgram(${jsArg(id)})` : `switchAuditsTab('program')`}"><i class="ph ph-arrow-left"></i> ${t('audit_backToList')}</button>
         <h3 class="training-form-title"><i class="ph ph-calendar-check"></i> ${id ? t('audit_programEdit') : t('audit_programNew')}</h3>
       </div>
       <div class="training-form-body"><div class="training-form-section">
@@ -17604,14 +19416,14 @@ async function openAuditProgramForm(id = null) {
           <div class="form-group" style="flex:3"><label class="form-label">${t('col_title')} <span class="form-required">*</span></label>
             <input id="apTitle" class="form-input" value="${escHtml(p?.title || '')}"></div>
           <div class="form-group"><label class="form-label">${t('audit_year')}</label>
-            <input id="apYear" type="number" min="2000" max="2100" class="form-input" value="${p?.year || new Date().getFullYear()}"></div>
+            <input id="apYear" type="number" min="2000" max="2100" class="form-input" value="${escVal(p?.year || new Date().getFullYear())}"></div>
         </div>
         <div class="form-group"><label class="form-label">${t('audit_objectives')}</label><textarea id="apObjectives" class="form-textarea" rows="4">${escHtml(p?.objectives || '')}</textarea></div>
         <div class="form-group"><label class="form-label">${t('audit_scope')}</label><textarea id="apScope" class="form-textarea" rows="4">${escHtml(p?.scope || '')}</textarea></div>
       </div></div>
       <div class="training-form-footer">
-        <button class="btn btn-secondary" onclick="${id ? `openAuditProgram('${id}')` : `switchAuditsTab('program')`}">${t('ui_cancel')}</button>
-        <button class="btn btn-primary" onclick="saveAuditProgram('${id || ''}')"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
+        <button class="btn btn-secondary" onclick="${id ? `openAuditProgram(${jsArg(id)})` : `switchAuditsTab('program')`}">${t('ui_cancel')}</button>
+        <button class="btn btn-primary" onclick="saveAuditProgram(${jsArg(id || '')})"><i class="ph ph-floppy-disk"></i> ${t('ui_save')}</button>
       </div>
     </div>`
 }
@@ -17683,7 +19495,7 @@ function exportAuditsPdf() {
     <table><thead><tr><th>${t('audit_ref')}</th><th>${t('col_title')}</th><th>${t('audit_type')}</th><th>${t('audit_period')}</th>
       <th>${t('audit_leadAuditor')}</th><th>${t('col_status')}</th><th>${t('audit_kpiNonconform')}</th></tr></thead>
     <tbody>${rows.map(r => `<tr><td>${escHtml(r.ref)}</td><td>${escHtml(r.title)}</td><td>${escHtml(r.type)}</td>
-      <td>${escHtml(r.start)} – ${escHtml(r.end)}</td><td>${escHtml(r.lead)}</td><td>${escHtml(r.status)}</td><td>${r.nc}</td></tr>`).join('')}</tbody></table>`)
+      <td>${escHtml(r.start)} – ${escHtml(r.end)}</td><td>${escHtml(r.lead)}</td><td>${escHtml(r.status)}</td><td>${escVal(r.nc)}</td></tr>`).join('')}</tbody></table>`)
 }
 
 /** Auditbericht: Stammdaten, Prüfpunkte, zugeordnete Findings, Fazit. */

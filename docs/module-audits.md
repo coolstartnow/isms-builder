@@ -118,6 +118,12 @@ Administratoren wiederhergestellt oder endgültig gelöscht werden.
 
 ---
 
+## Rahmenwerke: ISO, NEN 7510, TISAX
+
+Ein Prüfpunkt kann sich auf jedes Control im SoA beziehen — auch auf die Controls eigener Gruppen wie NEN 7510 oder TISAX (die Kennung steht in der Vorschlagsliste des Feldes „Control“). Das Audit-Modul unterstützt Planung, Durchführung und Nachverfolgung interner Audits; es ersetzt weder eine Zertifizierung noch ein TISAX-Assessment.
+
+> **Rechtlicher Hinweis:** Die Normtexte von ISO 27001/9000/9001, NEN 7510 und der TISAX-Prüfkataloge (VDA ISA) unterliegen den Rechten ihrer Herausgeber (Urheber- und Markenrecht) und werden von ISMS Builder nicht mitgeliefert. Beispiel-Controls in Demo-Daten sind eigene, erfundene Platzhaltertexte ohne Bezug zum Wortlaut der Normen — unvollständig und weder für Zertifizierungen noch für TISAX-Assessments verwendbar. Importieren Sie nur Texte, die Sie lizenzrechtlich verwenden dürfen. Das ist keine Rechtsberatung.
+
 ## Audit-Hinweis
 
 Alle Änderungen werden im Audit-Log protokolliert. Das Audit-Management ersetzt keinen Auditbericht im Sinne

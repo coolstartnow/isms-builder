@@ -22,11 +22,14 @@ L'ISMS Builder automatise entièrement ce processus :
 
 | Action | Rôle minimum |
 |---|---|
-| Consulter l'aperçu des confirmations | `reader` |
+| Voir les chiffres du tableau de bord (« Campagnes actives », « Confirmations en attente ») | `reader` |
+| Consulter l'aperçu des distributions et le détail des confirmations (menu « Accusés de réception des politiques ») | `contentowner` |
 | Créer et envoyer une distribution | `contentowner` |
 | Envoyer un rappel | `contentowner` |
 | Saisir ou importer manuellement une confirmation | `contentowner` |
 | Supprimer une distribution | `admin` |
+
+Les lecteurs ne voient que les chiffres agrégés du tableau de bord. Les listes de destinataires (adresse e-mail, nom, date et adresse IP de la confirmation) sont réservées au content owner, car elles contiennent des données personnelles.
 
 ---
 

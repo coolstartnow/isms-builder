@@ -26,7 +26,8 @@ const upload = multer({
 })
 
 // ── GET /admin/scan-import/status ─────────────────────────────────────────────
-router.get('/admin/scan-import/status', requireAuth, authorize('reader'), (req, res) => {
+// wie der Upload; kein Zugriff durch Leser
+router.get('/admin/scan-import/status', requireAuth, authorize('auditor'), (req, res) => {
   try {
     const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
     res.json(state)

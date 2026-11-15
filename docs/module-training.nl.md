@@ -46,6 +46,38 @@ Velden:
 
 ---
 
+## Bewijs vastleggen (tabblad „Bewijzen”)
+
+Bewijs is **geen apart record**, maar het veld **„Bewijs / notities”** van een training. Het tabblad **„Bewijzen”** heeft daarom geen knop „Nieuw”: het toont alleen trainingen met status **Afgerond** en de daar ingevulde bewijstekst.
+
+Zo gaat u te werk:
+1. **Tabblad „Plan”** → open de training met het potlood (of maak ze aan met „+ Nieuwe training”).
+2. Zet de **status** op *Afgerond* en vul de afrondingsdatum in.
+3. Vul in de sectie **„Bewijzen”** het veld **„Bewijs / notities”** in: presentielijst, certificaatnummers, links (`http`/`https`) naar de opgeslagen documenten.
+4. **Opslaan.** De training verschijnt nu in het tabblad „Bewijzen”; een klik op de kaart toont de training alleen ter inzage (wijzigen kan uitsluitend in het tabblad „Plan”).
+
+Let op: een training die nog niet *Afgerond* is, verschijnt niet in het tabblad „Bewijzen”, ook niet met bewijstekst. Bestanden voegt u in hetzelfde formulier toe bij „Bijlagen” (zie hieronder).
+
+---
+
+## Bijlagen en deelnamebevestiging
+
+**Bijlagen** (presentielijst, certificaat van een aanbieder, foto's): tabblad „Plan” → training openen → sectie **„Bijlagen”** → „Bestand toevoegen”. Dat kan zodra de training is opgeslagen.
+- Toegestaan: PDF, PNG, JPG, DOCX, XLSX en TXT tot 20 MB per bestand. Zowel de extensie **als** de inhoud worden gecontroleerd; andere of vermomde bestanden worden geweigerd.
+- Accounts vanaf Editor mogen uploaden en verwijderen; elk account met leesrecht mag downloaden. In het tabblad „Bewijzen” staan de bijlagen als knoppen op de kaart.
+- **„Verwijderen” verbergt de bijlage alleen in de lijst.** Het bestand blijft als bewijs op de server (map `training-files/` in de gegevensmap). Maak ook van deze map een back-up; ze maakt geen deel uit van de JSON-export.
+- Elke upload en verwijdering staat in het auditlog.
+
+**Deelnamebevestiging (PDF):** knop „Deelnamebevestiging (PDF)” in het tabblad „Bewijzen” (op de kaart) en in het formulier.
+- Ze bestaat **alleen voor trainingen met status „Afgerond”**. Bij elke andere status meldt het systeem dat ze na afronding wordt afgegeven.
+- **Eén bevestiging per training** (niet per deelnemer): titel, categorie, beschrijving, afrondingsdatum, docent/aanbieder, deelnemers (veld „Toegewezen aan”), verplicht ja/nee, gekoppelde controls, bedrijfslogo en -naam. De accentkleur volgt de categorie, de taal volgt de standaardtaal van de installatie.
+- **De controlecode** wordt berekend uit ID, titel, afrondingsdatum, docent en deelnemers (SHA-256, eerste 12 tekens). Wijzigen deze gegevens, dan verandert de code; zo ziet u of een oudere bevestiging nog bij de huidige stand van de training past.
+- **Het is een interne verklaring van het bedrijf, geen certificering** door derden; dat staat ook op het document. Er staat geen handtekening op.
+- Beperking: het lettertype van de pdf kent geen Hongaarse tekens ő/ű; ze verschijnen als ö/ü.
+- Elke uitgifte staat met de controlecode in het auditlog.
+
+---
+
 ## Voortgang en indicatoren
 
 Het trainingsoverzicht toont:
@@ -75,5 +107,4 @@ De auditor verwacht:
 2. Bewijzen van uitgevoerde trainingen (presentielijsten, certificaten)
 3. Een dekkingsgraad die alle relevante medewerkers omvat
 
-Aanbeveling: trainingsbewijzen als bijlage (PDF) toevoegen aan de betreffende
-trainingsvermelding, zodat ze direct beschikbaar zijn bij de audit.
+Aanbeveling: vermeld presentielijst en links (http/https) in het veld „Bewijs / notities” en voeg certificaten en lijsten als bestand toe bij „Bijlagen”, zodat ze direct beschikbaar zijn bij de audit. In het tabblad „Bewijzen” toont een klik op een kaart de training alleen ter inzage (wijzigen kan in het tabblad „Plan”); links in de bewijstekst zijn klikbaar.

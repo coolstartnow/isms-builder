@@ -432,6 +432,26 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0; }
 .btn-export:hover { background: var(--accent-subtle); text-decoration: none; }
 .btn-import-iso { padding: 5px 14px; border-radius: var(--radius-md); background: rgba(227,179,65,.12); color: #e3b341; font-size: 12px; border: 1px solid rgba(227,179,65,.4); cursor: pointer; font-family: inherit; transition: background .15s; white-space: nowrap; }
 .btn-import-iso:hover { background: rgba(227,179,65,.22); }
+/* Eigene SoA-Gruppe: Inline-Panel (kein Overlay) und Verwaltung */
+.soa-group-panel { margin: 0 0 16px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.soa-group-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; color: var(--text-inverse); font-size: 15px; }
+.soa-group-intro { margin: 0 0 8px; font-size: 12.5px; color: var(--text-subtle); line-height: 1.5; }
+.soa-group-license { margin: 0 0 12px; font-size: 12.5px; color: var(--warning-text); }
+.soa-group-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.soa-group-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-subtle); }
+.soa-group-hint { font-size: 11.5px; color: var(--text-subtle); }
+.soa-group-color { width: 56px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-md); background: transparent; cursor: pointer; }
+.soa-group-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.soa-group-result { margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 10px; }
+.soa-group-summary { font-weight: 600; color: var(--text-inverse); font-size: 13px; margin-bottom: 6px; }
+.soa-group-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0; }
+.soa-group-table th, .soa-group-table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.soa-group-table th { color: var(--text-subtle); font-weight: 600; }
+.soa-group-rejected { margin-top: 8px; font-size: 12px; color: var(--warning-text); }
+.soa-group-rejected ul { margin: 4px 0 0 18px; padding: 0; }
+.soa-group-card-actions { display: flex; gap: 6px; margin-top: 10px; }
+.soa-group-card-edit { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.soa-group-card-edit .form-input { flex: 1 1 140px; min-width: 120px; }
 .soa-fw-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .soa-fw-tab { padding: 5px 16px; border-radius: 20px; border: 1px solid var(--fw-color, var(--border)); background: transparent; color: var(--fw-color, var(--text-subtle)); font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s; }
 .soa-fw-tab:hover { background: color-mix(in srgb, var(--fw-color, #888) 15%, transparent); }
@@ -492,7 +512,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0; }
 .soa-tmpl-picker      { flex: 1; padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg); color: var(--text); font-size: 12px; }
 .soa-tmpl-add-btn     { padding: 5px 12px; border: none; border-radius: var(--radius-md); background: var(--success-subtle); color: var(--success-text); font-size: 12px; cursor: pointer; font-family: inherit; transition: background .15s; }
 .soa-tmpl-add-btn:hover { background: var(--success); color: #fff; }
-.soa-linked-badge { font-size: 10px; padding: 1px 7px; background: var(--success-subtle); color: var(--success-text); border-radius: 8px; margin-left: 7px; vertical-align: middle; border: 1px solid var(--success); }
+.soa-tmpl-open        { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; }
+.soa-tmpl-open:hover  { text-decoration: underline; border-bottom-color: transparent; }
+.soa-tmpl-newtab      { margin-left: 2px; opacity: .7; text-decoration: none; color: inherit; font-size: 13px; line-height: 1; }
+.soa-tmpl-newtab:hover { opacity: 1; }
+.soa-back-bar         { padding: 4px 0 12px; }
+.soa-ctrl-title:hover, .soa-id:hover { background: var(--bg-hover, rgba(127,127,127,.08)); }
+.soa-linked-badge { cursor: pointer;  font-size: 10px; padding: 1px 7px; background: var(--success-subtle); color: var(--success-text); border-radius: 8px; margin-left: 7px; vertical-align: middle; border: 1px solid var(--success); }
 
 /* ═══════════════════════════════════════════════════════════
    2FA MODAL
@@ -2418,3 +2444,32 @@ tr.review-upcoming { background: rgba(234,179,8,.05); }
 .toast-error   { border-left-color: #f87171; }
 .toast-info    { border-left-color: #60a5fa; }
 .toast-out { opacity: 0; }
+
+/* Nachweise (Training): Karte öffnet die Schulung */
+.training-evidence-card { cursor: pointer; }
+.training-evidence-card:hover, .training-evidence-card:focus-visible { border-color: var(--accent, var(--border)); outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #4f8cff) 35%, transparent); }
+.training-evidence-text a { color: var(--accent, #4f8cff); text-decoration: underline; word-break: break-all; }
+.training-readonly-note { margin: 0 0 12px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--surface-overlay); color: var(--text-subtle); font-size: .82rem; }
+.training-evidence-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; cursor: default; }
+.training-attach-link { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.training-attach-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: .85rem; flex-wrap: wrap; }
+.training-attach-meta { color: var(--text-subtle); font-size: .76rem; }
+
+/* BCM: Register der Anforderungen */
+.bcmr-row { border-left: 2px solid var(--border); padding: 2px 0 2px 8px; margin-bottom: 2px; }
+.bcmr-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 3px 0; }
+.bcmr-id { min-width: 42px; font-variant-numeric: tabular-nums; }
+.bcmr-title { font-size: .9rem; }
+.bcmr-meta { font-size: .76rem; color: var(--text-subtle); }
+.bcmr-sum { font-size: .8rem; color: var(--text-subtle); margin: 0 0 4px 34px; max-width: 900px; white-space: pre-wrap; }
+.bcmr-hint { font-size: .78rem; color: var(--text-subtle); margin: 0 0 4px 34px; }
+.bcmr-notyet { margin: 6px 0; padding: 8px 10px; border-radius: var(--radius-md); background: color-mix(in srgb, #f59e0b 18%, transparent); font-weight: 600; }
+
+/* Asset-Liste: sortierbare Spaltenköpfe und Hervorhebung des zuletzt gespeicherten Assets (Diskussion #111) */
+.asset-table th.asset-th-sort { cursor: pointer; user-select: none; white-space: nowrap; }
+.asset-table th.asset-th-sort:hover { color: var(--text); }
+.asset-table th.asset-th-sort.active { color: var(--accent-text, var(--text)); }
+.asset-table th.asset-th-sort:focus-visible { outline: 2px solid var(--accent-text, #60a5fa); outline-offset: -2px; }
+@keyframes assetRowFlash { 0% { background: rgba(96,165,250,.35); } 100% { background: transparent; } }
+.asset-table tr.asset-row-new td { animation: assetRowFlash 3.2s ease-out; }
+

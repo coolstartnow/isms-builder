@@ -153,6 +153,44 @@ components:
               items:
                 type: object
 
+    SoaGroupDefinition:
+      type: object
+      required: [id, label]
+      properties:
+        id:
+          type: string
+          pattern: '^[A-Z0-9][A-Z0-9_-]{1,49}$'
+        label:
+          type: string
+          maxLength: 120
+        color:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+    SoaGroupImport:
+      type: object
+      required: [controls]
+      properties:
+        framework:
+          $ref: '#/components/schemas/SoaGroupDefinition'
+        controls:
+          type: array
+          maxItems: 2000
+          items:
+            type: object
+            required: [id, theme, title]
+            properties:
+              id:
+                type: string
+                maxLength: 120
+              theme:
+                type: string
+                maxLength: 80
+              title:
+                type: string
+                maxLength: 512
+              description:
+                type: string
+                maxLength: 4000
     SoaControl:
       type: object
       properties:
@@ -552,10 +590,49 @@ paths:
         '401':
           description: Not authenticated
 
+  /auth/security-notice:
+    get:
+      tags: [auth]
+      summary: Security notice for the login page (public, no account names)
+      description: >
+        In production, `seedPasswords` is true while an account (admin, alice, bob, carla, dana) still has its publicly known
+        demo password. Such sign-ins are rejected with 401 and code `SEED_PASSWORD_BLOCKED`.
+      responses:
+        '200':
+          description: Notice state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  seedPasswords:
+                    type: boolean
+
+  /admin/security-notice:
+    get:
+      tags: [admin]
+      summary: Accounts that still carry a demo password in production (administrators only)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Affected accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  seedAccounts:
+                    type: array
+                    items:
+                      type: string
+        '403':
+          description: Forbidden
+
   /logout:
     get:
       tags: [auth]
-      summary: Logout — clears session cookie
+      summary: Logout — ends the server-side session of the presented token and clears the cookie
       security:
         - cookieAuth: []
       responses:
@@ -671,6 +748,44 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Template'
+
+  /templates/export.csv:
+    get:
+      tags: [templates]
+      summary: Export all documents of all types as CSV (UTF-8 with BOM)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: CSV file (id, type, title, language, status, version, owner, nextReviewDate, parent, content)
+
+  /templates/import:
+    post:
+      tags: [templates]
+      summary: Import documents from CSV (contentowner). Only creates new drafts, never changes existing documents
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [csv]
+              properties:
+                csv:
+                  type: string
+                  description: CSV text (comma or semicolon, optional BOM)
+                dryRun:
+                  type: boolean
+                  description: Only check and count, write nothing
+      responses:
+        '200':
+          description: Dry-run result (created, skipped, errors)
+        '201':
+          description: Drafts created (created, skipped, errors, warnings)
+        '400':
+          description: File could not be read (code empty, missing_column, too_many_rows, too_large, unterminated_quote)
 
   /templates/tree:
     get:
@@ -1370,12 +1485,124 @@ paths:
   /soa/frameworks:
     get:
       tags: [soa]
-      summary: List active frameworks
+      summary: List active frameworks (built-in first, then own groups with custom=true)
       security:
         - cookieAuth: []
       responses:
         '200':
-          description: Array of framework keys
+          description: Array of framework objects (id, label, color, custom)
+    post:
+      tags: [soa]
+      summary: Create an own SoA group (admin)
+      description: >
+        id 2-50 characters (A-Z, 0-9, _ and -), not one of the built-in IDs and not CUSTOM; label 1-120 characters; color #RRGGBB.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SoaGroupDefinition'
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: invalid_id, reserved_id, invalid_label or invalid_color (field code)
+        '409':
+          description: A group with this ID already exists
+
+  /soa/frameworks/custom:
+    get:
+      tags: [soa]
+      summary: All own groups including disabled ones, with the number of controls (admin)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Array of own groups with count
+
+  /soa/frameworks/{id}:
+    put:
+      tags: [soa]
+      summary: Change label and color of an own group (admin; the ID cannot be changed)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated group
+        '403':
+          description: Built-in frameworks cannot be changed
+        '404':
+          description: Group not found
+    delete:
+      tags: [soa]
+      summary: Delete an own group (admin; only if it has no controls)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '403':
+          description: Built-in frameworks cannot be changed
+        '404':
+          description: Group not found
+        '409':
+          description: The group still contains controls (response field count)
+
+  /soa/frameworks/import:
+    post:
+      tags: [soa]
+      summary: Import controls into an own group (admin)
+      description: >
+        Body { framework: {id,label,color}, controls: [{id,theme,title,description?}] }, at most 2 MB and 2000 rows.
+        With dryRun=1 only the preview is returned and nothing is written. An unknown group is created on import.
+        Existing controls of the same group only get title, theme and description refreshed; applicability, status, owner,
+        justification and links stay. Nothing is deleted. IDs are unique across all frameworks.
+        No standard texts are shipped; import only content you are licensed to use.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: dryRun
+          in: query
+          schema:
+            type: string
+            enum: ['1', 'true']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SoaGroupImport'
+      responses:
+        '200':
+          description: Summary (framework, total, added, updated, rejected, rejectedByReason, rejectedDetails, preview)
+        '400':
+          description: Unexpected format, too many rows, invalid group, or no valid controls
+        '403':
+          description: Not an administrator
+
+  /soa/frameworks/import/example:
+    get:
+      tags: [soa]
+      summary: Example file with invented controls (admin)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: JSON example (no standard text)
 
   /soa/summary:
     get:
@@ -2270,6 +2497,175 @@ paths:
         '200':
           description: BCM summary
 
+  /bcm/templates/{kind}:
+    get:
+      tags: [bcm]
+      summary: List templates for BIA, plans or exercises (kind = bia | plan | exercise; reader+)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [bia, plan, exercise]
+        - name: lang
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [de, en, fr, nl, hu]
+      responses:
+        '200':
+          description: List of { id, title }
+        '404':
+          description: Unknown kind
+
+  /bcm/templates/{kind}/{id}:
+    get:
+      tags: [bcm]
+      summary: Template values for a form (editor+; practice-oriented suggestions in own words, no standard text)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: lang
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Field values plus unresolved placeholders
+        '404':
+          description: Not found
+
+  /bcm/requirements:
+    get:
+      tags: [bcm]
+      summary: Register of standard requirements (e.g. ISO 22301) with implementation status and coverage (reader+)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: requirements (imported definitions), assessments (status per requirement), summary
+
+  /bcm/requirements/import:
+    post:
+      tags: [bcm]
+      summary: Import requirement definitions from CSV or JSON (admin; the standard's text is not shipped, the company imports it from its licensed edition)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: dryRun
+          in: query
+          required: false
+          description: 1 = only check and report (new, updated, rejected with reasons), nothing is saved
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Summary (added, updated, rejected, rejectedByReason, rejectedDetails)
+        '400':
+          description: File not readable, too large (2 MB), too many rows (2000) or no valid row
+        '403':
+          description: Admin role required
+
+  /bcm/requirements/template.csv:
+    get:
+      tags: [bcm]
+      summary: Import template with invented example rows (reader+)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: CSV
+
+  /bcm/requirements/export.csv:
+    get:
+      tags: [bcm]
+      summary: Export the requirements with their implementation status (reader+)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: CSV (cells starting with = + - @ are neutralised)
+
+  /bcm/requirements/{framework}/{id}/assessment:
+    put:
+      tags: [bcm]
+      summary: Set the implementation status of one requirement (editor+; not_applicable needs a justification; linked BIA, plans and exercises must exist)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: framework
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [not_started, partial, implemented, not_applicable]
+                responsible:
+                  type: string
+                justification:
+                  type: string
+                evidenceNote:
+                  type: string
+                lastReviewDate:
+                  type: string
+                linkedBia:
+                  type: array
+                  items:
+                    type: string
+                linkedPlans:
+                  type: array
+                  items:
+                    type: string
+                linkedExercises:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Saved assessment
+        '400':
+          description: Invalid value or unknown link target
+        '404':
+          description: Requirement not found
+
   /bcm/bia:
     get:
       tags: [bcm]
@@ -3105,6 +3501,125 @@ paths:
       responses:
         '200':
           description: File binary
+
+  /gdpr/templates/{kind}:
+    get:
+      tags: [gdpr]
+      summary: List the templates of one kind (vvt, av, incident, dsar, tom)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: kind
+          required: true
+          schema:
+            type: string
+            enum: [vvt, av, incident, dsar, tom]
+        - in: query
+          name: lang
+          schema:
+            type: string
+            enum: [de, en, fr, nl, hu]
+      responses:
+        '200':
+          description: id and title in the requested language
+        '404':
+          description: Unknown kind
+
+  /gdpr/templates/{kind}/{id}:
+    get:
+      tags: [gdpr]
+      summary: Get a pre-filled suggestion for the form of that kind; the placeholders for the company name and the data protection officer are filled from the organisation data
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: kind
+          required: true
+          schema:
+            type: string
+            enum: [vvt, av, incident, dsar, tom]
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: lang
+          schema:
+            type: string
+            enum: [de, en, fr, nl, hu]
+      responses:
+        '200':
+          description: Suggestion for the form (practice-oriented, must be adapted to the own company, no legal advice)
+        '404':
+          description: Unknown kind or template
+
+  /gdpr/dsfa-templates:
+    get:
+      tags: [gdpr]
+      summary: List the DPIA templates (types of processing)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: id and title in the interface language
+
+  /gdpr/dsfa-templates/{id}:
+    get:
+      tags: [gdpr]
+      summary: Get a pre-filled DPIA outline (description, necessity, risks with measures); the placeholder for the company name is filled from the organisation data
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: lang
+          schema:
+            type: string
+            enum: [de, en, fr, nl, hu]
+      responses:
+        '200':
+          description: Outline for the DPIA form (suggested values, not an assessment of the individual case)
+        '404':
+          description: Unknown template
+
+  /gdpr/dsfa-precheck:
+    get:
+      tags: [gdpr]
+      summary: Criteria of the DPIA pre-check (cases under Art. 35(3) GDPR and the nine criteria of guideline WP 248)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: art353 and criteria with texts
+    post:
+      tags: [gdpr]
+      summary: Evaluate the pre-check (required, likely, optional)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                art353:
+                  type: array
+                  items:
+                    type: string
+                criteria:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: result and text
 
   /gdpr/dsfa:
     get:
@@ -4044,6 +4559,111 @@ paths:
         '200':
           description: Permanently deleted
 
+  /training/{id}/attachments:
+    post:
+      tags: [training]
+      summary: Attach an evidence file to a training record (editor+; PDF, PNG, JPG, DOCX, XLSX, TXT up to 20 MB, type checked by extension and file header)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Attachment metadata (no server path)
+        '400':
+          description: File type, content or size not accepted
+        '404':
+          description: Training record not found
+
+  /training/{id}/attachments/{attId}/file:
+    get:
+      tags: [training]
+      summary: Download an attachment (reader+)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The file as attachment (nosniff)
+        '404':
+          description: Not found or removed
+
+  /training/{id}/attachments/{attId}:
+    delete:
+      tags: [training]
+      summary: Remove an attachment from the list (editor+); the file is kept on the server as evidence
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Removed
+        '404':
+          description: Not found
+
+  /training/{id}/confirmation.pdf:
+    get:
+      tags: [training]
+      summary: Confirmation of participation as PDF (reader+; only for completed trainings; internal record, not a certification)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: lang
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [de, en, fr, nl, hu]
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '409':
+          description: Training is not completed (code not_completed)
+
   /training/{id}/restore:
     post:
       tags: [training]
@@ -4237,6 +4857,28 @@ paths:
         '400':
           description: Unknown entry or language, invalid hint, or personal/technical data found (code pii, findings)
 
+  /api/ai/fill-placeholders:
+    post:
+      tags: [ai]
+      summary: Replace the placeholders {{COMPANY_NAME}}, {{ISMS_OWNER}}, {{DATA_PROTECTION_OFFICER}}, {{ISMS_SCOPE}} in a text from the organisation data (editor)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+      responses:
+        '200':
+          description: Text with placeholders replaced, number replaced, placeholders left open (empty value in the organisation data)
+        '400':
+          description: text missing
+
   /api/ai/generate-policy:
     post:
       tags: [ai]
@@ -4271,6 +4913,56 @@ paths:
           description: AI service not reachable or answer empty
         '503':
           description: AI integration disabled
+
+  /admin/ai-settings:
+    get:
+      tags: [admin]
+      summary: AI settings (admin)
+      description: >
+        aiEnabled, aiOllamaUrl, aiEmbedModel, aiGenModel, and aiApiKeySet / aiApiKeyFromEnv (flags only).
+        The API key itself is never returned.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: AI settings
+    put:
+      tags: [admin]
+      summary: Update AI settings (admin)
+      description: >
+        Optional aiApiKey (at most 512 visible ASCII characters, sent as Authorization Bearer to the AI address; empty = keep the stored key)
+        and clearAiApiKey=true to remove it. The key is write-only and never appears in responses, exports or the audit log.
+        Not available on the public demo.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                aiEnabled:
+                  type: boolean
+                aiOllamaUrl:
+                  type: string
+                aiEmbedModel:
+                  type: string
+                aiGenModel:
+                  type: string
+                aiApiKey:
+                  type: string
+                  maxLength: 512
+                  writeOnly: true
+                clearAiApiKey:
+                  type: boolean
+      responses:
+        '200':
+          description: Saved (ok, settings, aiApiKeySet)
+        '400':
+          description: API key too long or containing characters that are not allowed (code too_long, invalid_chars)
+        '403':
+          description: Not an administrator
 
   /admin/org-settings:
     get:
@@ -4376,10 +5068,10 @@ paths:
         - cookieAuth: []
       responses:
         '200':
-          description: Security settings
+          description: Security settings (require2FA, usersWithout2FA, usersTotal, adminsWith2FA)
     put:
       tags: [admin]
-      summary: Update security policy (admin)
+      summary: Update security policy (admin). Switching require2FA on needs the acting administrator to have 2FA set up
       security:
         - cookieAuth: []
       requestBody:
@@ -4393,7 +5085,9 @@ paths:
                   type: boolean
       responses:
         '200':
-          description: Updated
+          description: Updated (require2FA, usersWithout2FA)
+        '409':
+          description: Code ENFORCE_2FA_SELF — the acting administrator has no 2FA set up yet; nothing was changed (emergency path for lock-outs - scripts/emergency-2fa.js)
 
   /admin/role-settings:
     get:
@@ -4754,6 +5448,9 @@ paths:
         it is linked to (risk, finding, SoA control, policy) is readable. `visibleIds.measures`
         lists the ids of all readable measures (not just changed ones) so a client can drop
         measures it may no longer see.
+        `epoch` identifies the data generation: it changes on every server start and after every data replacement (demo import/bundle/reset).
+        A client whose stored epoch differs fetches everything once (without `since`), because records that arrive with an old timestamp
+        would otherwise never reach it.
         Only available with STORAGE_BACKEND=json (otherwise 501).
       security:
         - syncKeyAuth: []
@@ -4765,7 +5462,7 @@ paths:
         - name: modules
           in: query
           required: false
-          description: Comma-separated subset of templates, soa, risks, assets, findings, guidance, measures
+          description: Comma-separated subset of templates, soa, risks, assets, findings, guidance, soaFrameworks, measures
           schema: { type: string }
       responses:
         '200':
@@ -4777,6 +5474,7 @@ paths:
                 properties:
                   protocolVersion: { type: integer, example: 2 }
                   serverTime: { type: string, format: date-time }
+                  epoch: { type: string, description: Data generation; changes on server start and after data replacement }
                   modules:
                     type: object
                     additionalProperties:
@@ -4908,7 +5606,7 @@ paths:
                 name: { type: string, maxLength: 80 }
                 permissions:
                   type: object
-                  description: Level per module (templates, soa, risks, assets, findings, guidance); at least one must not be `none`; guidance is capped at `read`
+                  description: Level per module (templates, soa, risks, assets, findings, guidance, soaFrameworks); at least one must not be `none`; guidance is capped at `read`
                   additionalProperties: { type: string, enum: [none, read, write] }
                 expiresAt: { type: string, format: date-time, nullable: true }
       responses:

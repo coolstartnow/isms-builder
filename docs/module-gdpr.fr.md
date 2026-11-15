@@ -71,7 +71,47 @@ mesures correctives, statut d'approbation.
 
 > **Rôle minimum pour AIPD :** `contentowner`
 
+> **En détail :** modèles, examen préalable, vérification par le DPD et impression sont décrits dans le guide « Module : Analyse d’impact relative à la protection des données (AIPD) » (`docs/module-dsfa.fr.md`).
+
 ---
+
+## Modèles pour les entrées
+
+Chaque onglet propose des modèles qui préremplissent un nouveau formulaire avec une proposition pratique : **activités de traitement (registre)**, **contrats de sous-traitance**, **violations de données**, **droits des personnes concernées** (lettres de réponse) et **TOM**. L’**AIPD** a ses propres modèles, voir le guide « Module : Analyse d’impact relative à la protection des données (AIPD) ».
+
+**Comment faire :** dans l’onglet, cliquez sur **Utiliser un modèle**, choisissez le modèle et cliquez sur **Appliquer le modèle**. Le formulaire s’ouvre avec la proposition. Vous vérifiez, adaptez et enregistrez. Une entrée n’existe qu’une fois enregistrée ; le modèle lui-même n’est jamais modifié.
+
+> **Important :** Tous les modèles sont orientés pratique mais doivent être **soigneusement adaptés à votre propre entreprise**. Ils ne constituent **pas un conseil juridique** et ne doivent pas être compris comme tel. Les délais, bases juridiques et durées de conservation sont des propositions que vous devez vérifier au regard du droit qui vous est applicable. Vous saisissez vous-même les noms, prestataires, chiffres et responsabilités.
+
+### Activités de traitement (registre) (14)
+
+Sont préremplis la finalité, la base juridique, les catégories de données, les personnes concernées, les destinataires, la conservation et la procédure de suppression ; « risque élevé » n’est coché que là où il s’applique en général. Les mois de conservation ne sont indiqués que lorsqu’une valeur indicative courte est usuelle.
+
+Comptabilité et facturation; Dispositif de lancement d’alerte (canal de signalement); Enregistrement du temps et contrôle d’accès; Exploitation du site web et analyse d’audience; Exploitation informatique, journalisation et sécurité de l’information; Formulaire de contact et demandes générales; Gestion de la clientèle (CRM); Gestion des candidatures; Gestion des fournisseurs et partenaires commerciaux; Gestion du personnel et paie; Newsletter et marketing par e-mail; Support client et système de tickets; Vidéosurveillance; Événements et formations.
+
+### Contrats de sous-traitance (12)
+
+Sont préremplis le titre et l’étendue du traitement. Sous-traitant, pays, dates du contrat et **liste de contrôle de l’art. 28** restent vides ; vous ne cochez que ce que le contrat contient réellement.
+
+Centre d’appels et prestataire de service client; Destruction de documents et élimination de supports; Hébergement cloud et centre de données; Hébergement web et agence de sites web; Logiciel CRM et marketing; Logiciel RH et de paie (SaaS); Prestataire informatique, maintenance et télémaintenance; Service de messagerie, d’agenda et de collaboration; Service de sauvegarde et d’archivage; Service d’IA (p. ex. assistant ou traitement de texte); Système de support et de tickets; Vidéosurveillance et service de sécurité.
+
+### Violations de données (10)
+
+Sont préremplis le type, les catégories de données, les personnes concernées, les mesures immédiates, les mesures de suivi, le risque et une **suggestion** quant à la notification de l’autorité de contrôle et des personnes concernées. Il vous appartient de décider au cas par cas si une notification est nécessaire.
+
+Accès non autorisé via un compte compromis; Attaque par rançongiciel; E-mail ou document envoyé par erreur; Erreur de configuration : données exposées publiquement ou partagées trop largement; Hameçonnage avec divulgation d’identifiants; Perte ou vol d’un ordinateur portable, smartphone ou support de données; Publication accidentelle de données personnelles; Suppression ou modification accidentelle de données; Utilisation abusive des droits d’accès par des collaborateurs; Vol ou perte de documents papier.
+
+### Droits des personnes concernées, lettres de réponse (10)
+
+Le texte de réponse est prérempli avec phrase d’introduction et de conclusion. Les espaces réservés `{{COMPANY_NAME}}` et `{{DATA_PROTECTION_OFFICER}}` sont remplis à partir des données de l’organisation. Il existe aussi des textes pour la demande de justificatif d’identité, la prolongation du délai et le refus ; les points ouverts figurent entre parenthèses.
+
+Demande de justificatif d’identité (art. 12, par. 6); Information sur la prolongation du délai (art. 12, par. 3); Refus d’une demande (art. 12, par. 4 et 5); Réponse concernant les décisions automatisées (art. 22); Réponse à une demande de limitation du traitement (art. 18); Réponse à une demande de portabilité des données (art. 20); Réponse à une demande de rectification (art. 16); Réponse à une demande d’accès (art. 15); Réponse à une demande d’effacement (art. 17); Réponse à une opposition (art. 21).
+
+### TOM (24)
+
+Sont préremplis le titre, la catégorie, la description et les conseils de mise en œuvre ; le statut est « Planifié ». Vous saisissez vous-même ce qui est réellement mis en œuvre.
+
+Authentification multifacteur; Bureau propre et verrouillage d’écran; Chiffrement des disques et des appareils; Chiffrement des sauvegardes et des supports amovibles; Chiffrement du transport (TLS) et accès à distance sécurisés; Choix et contrôle des sous-traitants; Concept de suppression; Concept d’autorisations par rôles; Contrôle de saisie (traçabilité des modifications); Contrôle de séparation et limitation des finalités; Contrôle d’accès physique aux bâtiments et salles serveurs; Durées de conservation et archivage; Développement sécurisé et protection des données de test; Engagement de confidentialité; Formation à la protection des données et sensibilisation; Gestion de la protection des données et implication du DPD; Gestion des correctifs et des vulnérabilités; Journalisation et analyse; Pare-feu et segmentation du réseau; Planification d’urgence et de reprise; Processus pour les violations de données; Protection contre les logiciels malveillants; Pseudonymisation et anonymisation; Sauvegarde et restauration testée.
 
 ## Violations de données
 

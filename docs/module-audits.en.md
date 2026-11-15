@@ -116,6 +116,12 @@ deleted permanently by administrators.
 
 ---
 
+## Frameworks: ISO, NEN 7510, TISAX
+
+A checklist item can refer to any control in the SoA — including the controls of own groups such as NEN 7510 or TISAX (the ID appears in the suggestion list of the “Control” field). The audit module supports the planning, execution and follow-up of internal audits; it replaces neither a certification nor a TISAX assessment.
+
+> **Legal notice:** The standard texts of ISO 27001/9000/9001, NEN 7510 and the TISAX assessment catalogues (VDA ISA) are subject to the rights of their publishers (copyright and trademark law) and are not shipped with ISMS Builder. Example controls in demo data are our own invented placeholder texts with no connection to the wording of the standards — incomplete and usable neither for certifications nor for TISAX assessments. Only import texts you are licensed to use. This is not legal advice.
+
 ## Audit Note
 
 All changes are recorded in the audit log. Audit Management does not replace an audit report from a certification body,

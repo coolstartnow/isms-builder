@@ -23,11 +23,14 @@ De ISMS Builder automatiseert dit proces volledig:
 
 | Actie | Minimale rol |
 |---|---|
-| Bevestigingsoverzicht inzien | `reader` |
+| Kerncijfers op het dashboard zien (“Actieve distributierondes”, “Openstaande bevestigingen”) | `reader` |
+| Distributieoverzicht en details van de bevestigingen inzien (menu-item “Beleidsbevestigingen”) | `contentowner` |
 | Distributie aanmaken en verzenden | `contentowner` |
 | Herinnering versturen | `contentowner` |
 | Bevestiging handmatig vastleggen of importeren | `contentowner` |
 | Distributie verwijderen | `admin` |
+
+Lezers zien alleen de samengevatte cijfers op het dashboard. De ontvangerslijsten met e-mailadres, naam, tijdstip en IP-adres van de bevestiging zijn voorbehouden aan de contentowner, omdat ze persoonsgegevens bevatten.
 
 ---
 

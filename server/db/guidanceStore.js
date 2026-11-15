@@ -187,41 +187,52 @@ ensureDir()
 const ARCH_DOCS_ROOT = path.join(__dirname, '../../docs/architecture')
 const PROJECT_ROOT   = path.join(__dirname, '../../')
 
+// Dokumentationsdateien je Sprache aus dem Sprachregister (docs/<name><Endung>.md); nur vorhandene Dateien, der Rest fällt auf Englisch zurück
+const _langReg = require('../languages')
+function docFiles(base) {
+  const out = {}
+  for (const code of _langReg.codes()) {
+    const f = path.join(PROJECT_ROOT, 'docs', base + _langReg.docSuffix(code) + '.md')
+    if (fs.existsSync(f)) out[code] = f
+  }
+  return out
+}
+
 const ARCH_SEED = [
   {
     seedId:        'seed_readme',
-    title:         { de: 'ISMS Builder – Projektübersicht (README)',             en: 'ISMS Builder – Project Overview (README)',                        fr: 'ISMS Builder – Vue d\'ensemble du projet (README)',        nl: 'ISMS Builder – Projectoverzicht (README)',        hu: 'ISMS Builder – Projekt áttekintés (README)' },
+    title:         { de: 'ISMS Builder – Projektübersicht (README)',             en: 'ISMS Builder – Project Overview (README)',                        fr: 'ISMS Builder – Vue d\'ensemble du projet (README)',        nl: 'ISMS Builder – Projectoverzicht (README)',        hu: 'ISMS Builder – Projekt áttekintés (README)', et: 'ISMS Builder – Projekti ülevaade (README)' },
     srcFile:       path.join(PROJECT_ROOT, 'README.md'),
     refreshContent: true,
   },
   {
     seedId:        'seed_contributing',
-    title:         { de: 'Beitrag leisten – Developer Guide (CONTRIBUTING)',     en: 'Contributing – Developer Guide (CONTRIBUTING)',                   fr: 'Contribuer – Guide développeur (CONTRIBUTING)',           nl: 'Bijdragen – Ontwikkelaarshandleiding (CONTRIBUTING)',      hu: 'Közremuködes – Fejlesztoi útmutató (CONTRIBUTING)' },
+    title:         { de: 'Beitrag leisten – Developer Guide (CONTRIBUTING)',     en: 'Contributing – Developer Guide (CONTRIBUTING)',                   fr: 'Contribuer – Guide développeur (CONTRIBUTING)',           nl: 'Bijdragen – Ontwikkelaarshandleiding (CONTRIBUTING)',      hu: 'Közremuködes – Fejlesztoi útmutató (CONTRIBUTING)', et: 'Panustamine – arendaja juhend (CONTRIBUTING)' },
     srcFile:       path.join(PROJECT_ROOT, 'CONTRIBUTING.md'),
     refreshContent: true,
   },
   {
     seedId:        'seed_c4',
-    title:         { de: 'Architektur-Diagramme (C4 Model)',                    en: 'Architecture Diagrams (C4 Model)',                                fr: 'Diagrammes d\'architecture (Modèle C4)',                   nl: 'Architectuurdiagrammen (C4-model)',                        hu: 'Architektúradiagramok (C4 modell)' },
+    title:         { de: 'Architektur-Diagramme (C4 Model)',                    en: 'Architecture Diagrams (C4 Model)',                                fr: 'Diagrammes d\'architecture (Modèle C4)',                   nl: 'Architectuurdiagrammen (C4-model)',                        hu: 'Architektúradiagramok (C4 modell)', et: 'Arhitektuuridiagrammid (C4 mudel)' },
     srcFile:       path.join(ARCH_DOCS_ROOT, 'c4-diagrams.md'),
     refreshContent: true,
   },
   {
     seedId:        'seed_datamodel',
-    title:         { de: 'Datenmodell – JSON-Schemas aller Module',              en: 'Data Model – JSON Schemas of All Modules',                        fr: 'Modèle de données – Schémas JSON de tous les modules',    nl: 'Datamodel – JSON-schema\'s van alle modules',             hu: 'Adatmodell – Minden modul JSON sémái' },
+    title:         { de: 'Datenmodell – JSON-Schemas aller Module',              en: 'Data Model – JSON Schemas of All Modules',                        fr: 'Modèle de données – Schémas JSON de tous les modules',    nl: 'Datamodel – JSON-schema\'s van alle modules',             hu: 'Adatmodell – Minden modul JSON sémái', et: 'Andmemudel – kõigi moodulite JSON-skeemid' },
     srcFile:       path.join(ARCH_DOCS_ROOT, 'data-model.md'),
     refreshContent: true,
   },
   {
     seedId:        'seed_openapi',
-    title:         { de: 'API-Referenz (OpenAPI 3.0)',                           en: 'API Reference (OpenAPI 3.0)',                                      fr: 'Référence API (OpenAPI 3.0)',                              nl: 'API-referentie (OpenAPI 3.0)',                             hu: 'API-referencia (OpenAPI 3.0)' },
+    title:         { de: 'API-Referenz (OpenAPI 3.0)',                           en: 'API Reference (OpenAPI 3.0)',                                      fr: 'Référence API (OpenAPI 3.0)',                              nl: 'API-referentie (OpenAPI 3.0)',                             hu: 'API-referencia (OpenAPI 3.0)', et: 'API viide (OpenAPI 3.0)' },
     srcFile:       path.join(ARCH_DOCS_ROOT, 'openapi.yaml'),
     wrapCode:      'yaml',
     refreshContent: true,
   },
   {
     seedId:        'seed_isms_build_documentation',
-    title:         { de: 'ISMS Builder – Vollständige Architekturdokumentation', en: 'ISMS Builder – Full Architecture Documentation',                  fr: 'ISMS Builder – Documentation d\'architecture complète',   nl: 'ISMS Builder – Volledige architectuurdocumentatie',       hu: 'ISMS Builder – Teljes architektúra-dokumentáció' },
+    title:         { de: 'ISMS Builder – Vollständige Architekturdokumentation', en: 'ISMS Builder – Full Architecture Documentation',                  fr: 'ISMS Builder – Documentation d\'architecture complète',   nl: 'ISMS Builder – Volledige architectuurdocumentatie',       hu: 'ISMS Builder – Teljes architektúra-dokumentáció', et: 'ISMS Builder – täielik arhitektuuridokumentatsioon' },
     srcFile:       path.join(PROJECT_ROOT, 'docs/ISMS-build-documentation.md'),
     refreshContent: true,
   },
@@ -275,123 +286,155 @@ const ARCH_SEED = [
   },
   {
     seedId:        'seed_tmpl_usage',
-    title:         { de: 'Templates – Nutzung und Lebenszyklus',                   en: 'Templates – Usage and Lifecycle',                                 fr: 'Modèles – Utilisation et cycle de vie',                   nl: 'Sjablonen – Gebruik en levenscyclus',                     hu: 'Sablonok – Használat és életciklus' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/template-usage.md'),        en: path.join(PROJECT_ROOT, 'docs/template-usage.en.md'),        fr: path.join(PROJECT_ROOT, 'docs/template-usage.fr.md'),        nl: path.join(PROJECT_ROOT, 'docs/template-usage.nl.md'),        hu: path.join(PROJECT_ROOT, 'docs/template-usage.hu.md') },
+    title:         { de: 'Templates – Nutzung und Lebenszyklus',                   en: 'Templates – Usage and Lifecycle',                                 fr: 'Modèles – Utilisation et cycle de vie',                   nl: 'Sjablonen – Gebruik en levenscyclus',                     hu: 'Sablonok – Használat és életciklus', et: 'Mallid – kasutamine ja elutsükkel' },
+    srcFiles:      docFiles('template-usage'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_policy_acks',
-    title:         { de: 'Modul: Richtlinien-Bestätigung (Policy Acknowledgements)', en: 'Module: Policy Acknowledgements',                                fr: 'Module: Confirmations de politique',                       nl: 'Module: Beleidsbevestigingen',                            hu: 'Modul: Szabályzat-visszaigazolások' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-policy-acknowledgements.md'), en: path.join(PROJECT_ROOT, 'docs/module-policy-acknowledgements.en.md'), fr: path.join(PROJECT_ROOT, 'docs/module-policy-acknowledgements.fr.md'), nl: path.join(PROJECT_ROOT, 'docs/module-policy-acknowledgements.nl.md'), hu: path.join(PROJECT_ROOT, 'docs/module-policy-acknowledgements.hu.md') },
+    title:         { de: 'Modul: Richtlinien-Bestätigung (Policy Acknowledgements)', en: 'Module: Policy Acknowledgements',                                fr: 'Module: Confirmations de politique',                       nl: 'Module: Beleidsbevestigingen',                            hu: 'Modul: Szabályzat-visszaigazolások', et: 'Moodul: poliitikate kinnitused' },
+    srcFiles:      docFiles('module-policy-acknowledgements'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_gdpr',
-    title:         { de: 'Modul: DSGVO (Datenschutz)',                              en: 'Module: GDPR (Data Protection)',                                  fr: 'Module: RGPD (Protection des données)',                   nl: 'Module: AVG (Gegevensbescherming)',                       hu: 'Modul: GDPR (Adatvédelem)' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-gdpr.md'),            en: path.join(PROJECT_ROOT, 'docs/module-gdpr.en.md'),            fr: path.join(PROJECT_ROOT, 'docs/module-gdpr.fr.md'),            nl: path.join(PROJECT_ROOT, 'docs/module-gdpr.nl.md'),            hu: path.join(PROJECT_ROOT, 'docs/module-gdpr.hu.md') },
+    title:         { de: 'Modul: DSGVO (Datenschutz)',                              en: 'Module: GDPR (Data Protection)',                                  fr: 'Module: RGPD (Protection des données)',                   nl: 'Module: AVG (Gegevensbescherming)',                       hu: 'Modul: GDPR (Adatvédelem)', et: 'Moodul: IKÜM (andmekaitse)' },
+    srcFiles:      docFiles('module-gdpr'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_goals',
-    title:         { de: 'Modul: Sicherheitsziele (Goals)',                         en: 'Module: Security Goals',                                          fr: 'Module: Objectifs de sécurité',                          nl: 'Module: Beveiligingsdoelen',                              hu: 'Modul: Biztonsági célok' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-goals.md'),           en: path.join(PROJECT_ROOT, 'docs/module-goals.en.md'),           fr: path.join(PROJECT_ROOT, 'docs/module-goals.fr.md'),           nl: path.join(PROJECT_ROOT, 'docs/module-goals.nl.md'),           hu: path.join(PROJECT_ROOT, 'docs/module-goals.hu.md') },
+    title:         { de: 'Modul: Sicherheitsziele (Goals)',                         en: 'Module: Security Goals',                                          fr: 'Module: Objectifs de sécurité',                          nl: 'Module: Beveiligingsdoelen',                              hu: 'Modul: Biztonsági célok', et: 'Moodul: turvaeesmärgid' },
+    srcFiles:      docFiles('module-goals'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_assets',
-    title:         { de: 'Modul: Assets (Informationswerte)',                       en: 'Module: Assets (Information Assets)',                             fr: 'Module: Actifs (valeurs informatives)',                   nl: 'Module: Bedrijfsmiddelen',                                hu: 'Modul: Eszközök (Információs javak)' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-assets.md'),          en: path.join(PROJECT_ROOT, 'docs/module-assets.en.md'),          fr: path.join(PROJECT_ROOT, 'docs/module-assets.fr.md'),          nl: path.join(PROJECT_ROOT, 'docs/module-assets.nl.md'),          hu: path.join(PROJECT_ROOT, 'docs/module-assets.hu.md') },
+    title:         { de: 'Modul: Assets (Informationswerte)',                       en: 'Module: Assets (Information Assets)',                             fr: 'Module: Actifs (valeurs informatives)',                   nl: 'Module: Bedrijfsmiddelen',                                hu: 'Modul: Eszközök (Információs javak)', et: 'Moodul: varad (infovarad)' },
+    srcFiles:      docFiles('module-assets'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_suppliers',
-    title:         { de: 'Modul: Lieferantenbewertung',                             en: 'Module: Supplier Management',                                     fr: 'Module: Gestion des fournisseurs',                       nl: 'Module: Leveranciersbeheer',                              hu: 'Modul: Szállítói értékelés' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-suppliers.md'),       en: path.join(PROJECT_ROOT, 'docs/module-suppliers.en.md'),       fr: path.join(PROJECT_ROOT, 'docs/module-suppliers.fr.md'),       nl: path.join(PROJECT_ROOT, 'docs/module-suppliers.nl.md'),       hu: path.join(PROJECT_ROOT, 'docs/module-suppliers.hu.md') },
+    title:         { de: 'Modul: Lieferantenbewertung',                             en: 'Module: Supplier Management',                                     fr: 'Module: Gestion des fournisseurs',                       nl: 'Module: Leveranciersbeheer',                              hu: 'Modul: Szállítói értékelés', et: 'Moodul: tarnijate haldus' },
+    srcFiles:      docFiles('module-suppliers'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_bcm',
-    title:         { de: 'Modul: Business Continuity Management (BCM)',             en: 'Module: Business Continuity Management (BCM)',                    fr: 'Module: Gestion de la continuité des activités (BCM)',   nl: 'Module: Bedrijfscontinuïteitsbeheer (BCM)',               hu: 'Modul: Üzletmenet-folytonosság kezelése (BCM)' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-bcm.md'),             en: path.join(PROJECT_ROOT, 'docs/module-bcm.en.md'),             fr: path.join(PROJECT_ROOT, 'docs/module-bcm.fr.md'),             nl: path.join(PROJECT_ROOT, 'docs/module-bcm.nl.md'),             hu: path.join(PROJECT_ROOT, 'docs/module-bcm.hu.md') },
+    title:         { de: 'Modul: Business Continuity Management (BCM)',             en: 'Module: Business Continuity Management (BCM)',                    fr: 'Module: Gestion de la continuité des activités (BCM)',   nl: 'Module: Bedrijfscontinuïteitsbeheer (BCM)',               hu: 'Modul: Üzletmenet-folytonosság kezelése (BCM)', et: 'Moodul: talitluspidevuse juhtimine (BCM)' },
+    srcFiles:      docFiles('module-bcm'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_training',
-    title:         { de: 'Modul: Schulungen und Awareness',                         en: 'Module: Training and Awareness',                                  fr: 'Module: Formation et sensibilisation',                   nl: 'Module: Training en bewustwording',                       hu: 'Modul: Képzés és tudatosság' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-training.md'),        en: path.join(PROJECT_ROOT, 'docs/module-training.en.md'),        fr: path.join(PROJECT_ROOT, 'docs/module-training.fr.md'),        nl: path.join(PROJECT_ROOT, 'docs/module-training.nl.md'),        hu: path.join(PROJECT_ROOT, 'docs/module-training.hu.md') },
+    title:         { de: 'Modul: Schulungen und Awareness',                         en: 'Module: Training and Awareness',                                  fr: 'Module: Formation et sensibilisation',                   nl: 'Module: Training en bewustwording',                       hu: 'Modul: Képzés és tudatosság', et: 'Moodul: koolitus ja teadlikkus' },
+    srcFiles:      docFiles('module-training'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_governance',
-    title:         { de: 'Modul: Governance (ISMS-Steuerung)',                      en: 'Module: Governance (ISMS Management)',                            fr: 'Module: Gouvernance (Gestion SMSI)',                     nl: 'Module: Governance (ISMS-beheer)',                        hu: 'Modul: Irányítás (ISMS menedzsment)' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-governance.md'),      en: path.join(PROJECT_ROOT, 'docs/module-governance.en.md'),      fr: path.join(PROJECT_ROOT, 'docs/module-governance.fr.md'),      nl: path.join(PROJECT_ROOT, 'docs/module-governance.nl.md'),      hu: path.join(PROJECT_ROOT, 'docs/module-governance.hu.md') },
+    title:         { de: 'Modul: Governance (ISMS-Steuerung)',                      en: 'Module: Governance (ISMS Management)',                            fr: 'Module: Gouvernance (Gestion SMSI)',                     nl: 'Module: Governance (ISMS-beheer)',                        hu: 'Modul: Irányítás (ISMS menedzsment)', et: 'Moodul: juhtimine (ISMS-i juhtimine)' },
+    srcFiles:      docFiles('module-governance'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_legal',
-    title:         { de: 'Modul: Legal (Verträge und Rechtsdokumente)',             en: 'Module: Legal (Contracts and Legal Documents)',                   fr: 'Module: Juridique (Contrats et documents légaux)',       nl: 'Module: Juridisch (Contracten en rechtsdocumenten)',      hu: 'Modul: Jogi (Szerződések és jogi dokumentumok)' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-legal.md'),           en: path.join(PROJECT_ROOT, 'docs/module-legal.en.md'),           fr: path.join(PROJECT_ROOT, 'docs/module-legal.fr.md'),           nl: path.join(PROJECT_ROOT, 'docs/module-legal.nl.md'),           hu: path.join(PROJECT_ROOT, 'docs/module-legal.hu.md') },
+    title:         { de: 'Modul: Legal (Verträge und Rechtsdokumente)',             en: 'Module: Legal (Contracts and Legal Documents)',                   fr: 'Module: Juridique (Contrats et documents légaux)',       nl: 'Module: Juridisch (Contracten en rechtsdocumenten)',      hu: 'Modul: Jogi (Szerződések és jogi dokumentumok)', et: 'Moodul: õigus (lepingud ja õigusdokumendid)' },
+    srcFiles:      docFiles('module-legal'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_reports',
-    title:         { de: 'Modul: Reports und Exporte',                              en: 'Module: Reports and Exports',                                     fr: 'Module: Rapports et exportations',                      nl: 'Module: Rapporten en exports',                            hu: 'Modul: Jelentések és exportok' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-reports.md'),         en: path.join(PROJECT_ROOT, 'docs/module-reports.en.md'),         fr: path.join(PROJECT_ROOT, 'docs/module-reports.fr.md'),         nl: path.join(PROJECT_ROOT, 'docs/module-reports.nl.md'),         hu: path.join(PROJECT_ROOT, 'docs/module-reports.hu.md') },
+    title:         { de: 'Modul: Reports und Exporte',                              en: 'Module: Reports and Exports',                                     fr: 'Module: Rapports et exportations',                      nl: 'Module: Rapporten en exports',                            hu: 'Modul: Jelentések és exportok', et: 'Moodul: aruanded ja eksport' },
+    srcFiles:      docFiles('module-reports'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_audits',
-    title:         { de: 'Modul: Audit-Management',                                 en: 'Module: Audit Management',                                       fr: 'Module: Gestion des audits',                             nl: 'Module: Auditbeheer',                                     hu: 'Modul: Auditkezelés' },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-audits.md'),          en: path.join(PROJECT_ROOT, 'docs/module-audits.en.md'),          fr: path.join(PROJECT_ROOT, 'docs/module-audits.fr.md'),          nl: path.join(PROJECT_ROOT, 'docs/module-audits.nl.md'),          hu: path.join(PROJECT_ROOT, 'docs/module-audits.hu.md') },
+    title:         { de: 'Modul: Audit-Management',                                 en: 'Module: Audit Management',                                       fr: 'Module: Gestion des audits',                             nl: 'Module: Auditbeheer',                                     hu: 'Modul: Auditkezelés', et: 'Moodul: auditihaldus' },
+    srcFiles:      docFiles('module-audits'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_measures',
-    title:         { de: "Modul: Maßnahmenregister", en: "Module: Measures Register", fr: "Module: Registre des mesures", nl: "Module: Maatregelenregister", hu: "Modul: Intézkedésnyilvántartás" },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-measures.md'), en: path.join(PROJECT_ROOT, 'docs/module-measures.en.md'), fr: path.join(PROJECT_ROOT, 'docs/module-measures.fr.md'), nl: path.join(PROJECT_ROOT, 'docs/module-measures.nl.md'), hu: path.join(PROJECT_ROOT, 'docs/module-measures.hu.md') },
+    title:         { de: "Modul: Maßnahmenregister", en: "Module: Measures Register", fr: "Module: Registre des mesures", nl: "Module: Maatregelenregister", hu: "Modul: Intézkedésnyilvántartás", et: 'Moodul: abinõude register' },
+    srcFiles:      docFiles('module-measures'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_mobile_sync',
-    title:         { de: "Modul: Mobile App (Android) & Sync", en: "Module: Mobile App (Android) & Sync", fr: "Module: Application mobile (Android) et synchronisation", nl: "Module: Mobiele app (Android) en synchronisatie", hu: "Modul: Mobilalkalmazás (Android) és szinkronizálás" },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-mobile-sync.md'), en: path.join(PROJECT_ROOT, 'docs/module-mobile-sync.en.md'), fr: path.join(PROJECT_ROOT, 'docs/module-mobile-sync.fr.md'), nl: path.join(PROJECT_ROOT, 'docs/module-mobile-sync.nl.md'), hu: path.join(PROJECT_ROOT, 'docs/module-mobile-sync.hu.md') },
+    title:         { de: "Modul: Mobile App (Android) & Sync", en: "Module: Mobile App (Android) & Sync", fr: "Module: Application mobile (Android) et synchronisation", nl: "Module: Mobiele app (Android) en synchronisatie", hu: "Modul: Mobilalkalmazás (Android) és szinkronizálás", et: 'Moodul: mobiilirakendus (Android) ja sünkroonimine' },
+    srcFiles:      docFiles('module-mobile-sync'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
   },
   {
     seedId:        'seed_module_organisation',
-    title:         { de: "Modul: Organisation & Firmenlogo", en: "Module: Organisation & Company Logo", fr: "Module: Organisation et logo de l'entreprise", nl: "Module: Organisatie & bedrijfslogo", hu: "Modul: Szervezet és céglogó" },
-    srcFiles:      { de: path.join(PROJECT_ROOT, 'docs/module-organisation.md'), en: path.join(PROJECT_ROOT, 'docs/module-organisation.en.md'), fr: path.join(PROJECT_ROOT, 'docs/module-organisation.fr.md'), nl: path.join(PROJECT_ROOT, 'docs/module-organisation.nl.md'), hu: path.join(PROJECT_ROOT, 'docs/module-organisation.hu.md') },
+    title:         { de: "Modul: Organisation & Firmenlogo", en: "Module: Organisation & Company Logo", fr: "Module: Organisation et logo de l'entreprise", nl: "Module: Organisatie & bedrijfslogo", hu: "Modul: Szervezet és céglogó", et: 'Moodul: organisatsioon ja ettevõtte logo' },
+    srcFiles:      docFiles('module-organisation'),
     refreshContent: true,
     category:      'systemhandbuch',
     minRole:       null,
+  },
+  {
+    seedId:        'seed_module_ai_drafts',
+    title:         { de: "Modul: KI-Entwürfe (Policy-Assistent)", en: "Module: AI Drafts (Policy Assistant)", fr: "Module: Brouillons IA (assistant de politiques)", nl: "Module: AI-concepten (beleidsassistent)", hu: "Modul: AI-vázlatok (szabályzat-asszisztens)", et: 'Moodul: TI-mustandid (poliitikaabiline)' },
+    srcFiles:      docFiles('module-ai-drafts'),
+    refreshContent: true,
+    category:      'systemhandbuch',
+    minRole:       null,
+  },
+  {
+    seedId:        'seed_module_dsfa',
+    title:         { de: "Modul: Datenschutz-Folgenabschätzung (DSFA)", en: "Module: Data Protection Impact Assessment (DPIA)", fr: "Module: Analyse d'impact relative à la protection des données (AIPD)", nl: "Module: Gegevensbeschermingseffectbeoordeling (DPIA)", hu: "Modul: Adatvédelmi hatásvizsgálat (DPIA)", et: 'Moodul: andmekaitsealane mõjuhinnang' },
+    srcFiles:      docFiles('module-dsfa'),
+    refreshContent: true,
+    category:      'systemhandbuch',
+    minRole:       null,
+  },
+  {
+    seedId:        'seed_module_login_security',
+    title:         { de: "Modul: Anmeldung, Sitzungen und Produktivbetrieb", en: "Module: Sign-in, sessions and production use", fr: "Module: Connexion, sessions et mise en production", nl: "Module: Inloggen, sessies en productiegebruik", hu: "Modul: Bejelentkezés, munkamenetek és éles üzem", et: 'Moodul: sisselogimine, seansid ja tootmiskasutus' },
+    srcFiles:      docFiles('module-login-security'),
+    refreshContent: true,
+    category:      'systemhandbuch',
+    minRole:       null,
+  },
+  {
+    seedId:        'seed_admin_console',
+    title:         { de: "Administration (Admin-Konsole)", en: "Administration (Admin Console)", fr: "Administration (console d'administration)", nl: "Beheer (beheerconsole)", hu: "Adminisztráció (adminisztrációs konzol)", et: "Haldus (halduskonsool)" },
+    srcFiles:      docFiles('admin-console'),
+    refreshContent: true,
+    category:      'admin-intern',
+    minRole:       'admin',
   },
   {
     seedId:        'seed_changelog',
@@ -403,7 +446,7 @@ const ARCH_SEED = [
   },
   {
     seedId:        'seed_third_party_licenses',
-    title:         { de: 'Drittanbieter-Lizenzen (Third-Party Licenses)', en: 'Third-Party Licenses', fr: 'Licences tierces', nl: 'Licenties van derden', hu: 'Harmadik féltől származó licencek' },
+    title:         { de: 'Drittanbieter-Lizenzen (Third-Party Licenses)', en: 'Third-Party Licenses', fr: 'Licences tierces', nl: 'Licenties van derden', hu: 'Harmadik féltől származó licencek', et: 'Kolmandate osapoolte litsentsid' },
     srcFile:       path.join(PROJECT_ROOT, 'THIRD-PARTY-LICENSES.md'),
     refreshContent: true,
   },
@@ -495,6 +538,8 @@ const DEMO_GUIDE_CONTENT = `# Demo-Betrieb – Übersicht & Übergabe in den Pro
 | admin        | admin@example.com   | adminpass   | Administrator | Global | Voller Zugriff, CISO + DSO-Funktion |
 | alice        | alice@it.example    | alicepass   | Abteilungsleiter | IT  | Zugriff auf Guidance & Risiken      |
 | bob          | bob@hr.example      | bobpass     | Leser         | HR     | Nur-Lese-Zugriff                    |
+| carla        | carla@security.example | carlapass | Content Owner | Security | CISO-Funktion (kein Admin): DSFA vorbereiten und freigeben |
+| dana         | dana@privacy.example | danapass | Content Owner | Privacy | DSB-Funktion (kein Admin): DSFA-Stellungnahme eintragen |
 
 > **Sicherheitshinweis:** Diese Passwörter sind öffentlich bekannt. Vor dem Produktiveinsatz müssen alle Passwörter geändert werden.
 
@@ -507,7 +552,7 @@ Das System enthält realistische Beispieldaten für folgende Module:
 | Modul | Demo-Inhalt |
 |---|---|
 | **Richtlinien (Templates)** | Informationssicherheitsrichtlinie, Passwort-Policy, BYOD-Richtlinie, Backup-Policy, Zugangskontroll-Policy (je als Draft / Review / Approved) |
-| **SoA** | 313 Controls über 8 Frameworks (ISO 27001, BSI, NIS2, EUCS, EUAI, ISO 9001, CRA) — alle bearbeitbar |
+| **SoA** | Controls der mitgelieferten Frameworks (BSI IT-Grundschutz, NIS2, EUCS, EU AI Act, CRA) — alle bearbeitbar; ISO-Normtexte werden nicht mitgeliefert |
 | **Risikomanagement** | 12 realistische Risiken mit Multi-Framework-Verlinkung (Ransomware, Phishing, Insider-Threat, Supply-Chain-Angriff u.a.) |
 | **GDPR & Datenschutz** | Verarbeitungsverzeichnis (VVT), Auftragsverarbeitungsverträge (AV), TOMs, DSFA-Einträge, 72h-Timer-Demo |
 | **Assets** | 8 Unternehmens-Assets (Server, Workstations, ERP, Cloud-Services, Netzwerkinfrastruktur) mit Klassifizierung |
@@ -544,7 +589,7 @@ Das System enthält realistische Beispieldaten für folgende Module:
 
 | Erhalten | Geleert |
 |---|---|
-| SoA-Controls (alle 313) | Templates / Policies |
+| SoA-Controls | Templates / Policies |
 | Dropdown-Listen | Risiken |
 | Organisations-Einstellungen | Assets, BCM, Governance |
 | (Admin-User) | Lieferanten, Legal, Training |
@@ -560,7 +605,7 @@ Falls die Demo erneut gezeigt werden soll:
 1. **Admin-Konsole → Wartung → "Demo-Daten importieren"**
 2. Die beim Demo-Reset heruntergeladene JSON-Datei auswählen
 3. Alle Moduldaten werden wiederhergestellt
-4. alice (alice@it.example / alicepass) und bob (bob@hr.example / bobpass) werden ohne 2FA neu angelegt
+4. alice (alice@it.example / alicepass), bob (bob@hr.example / bobpass), carla (carla@security.example / carlapass) und dana (dana@privacy.example / danapass) werden ohne 2FA neu angelegt
 5. Der admin-Account bleibt unverändert
 
 ---
@@ -1077,6 +1122,10 @@ Das Statement of Applicability (SoA) ist ein Pflichtdokument nach ISO 27001 Kap.
 
 > **Hinweis:** ISO-Controls sind nicht im Lieferumfang enthalten. Eigene Controls können über \`scripts/import-iso-controls.sh\` importiert werden.
 
+> **Eigene Gruppen:** Für andere Rahmenwerke (z. B. NEN 7510, TISAX, Kundenanforderungen) legt ein Administrator über **„＋ Eigene Gruppe“** in der SoA ein eigenes Framework mit eigenem Tab an und importiert die Controls aus einer JSON-Datei — mit Vorschau, ohne mitgelieferte Normtexte. Importieren Sie nur Inhalte, die Sie lizenzrechtlich verwenden dürfen.
+
+> **Rechtlicher Hinweis:** Die Normtexte von ISO 27001/9000/9001, NEN 7510 und der TISAX-Prüfkataloge (VDA ISA) unterliegen den Rechten ihrer Herausgeber (Urheber- und Markenrecht) und werden von ISMS Builder nicht mitgeliefert. Beispiel-Controls in Demo-Daten sind eigene, erfundene Platzhaltertexte ohne Bezug zum Wortlaut der Normen — unvollständig und weder für Zertifizierungen noch für TISAX-Assessments verwendbar. Importieren Sie nur Texte, die Sie lizenzrechtlich verwenden dürfen. Das ist keine Rechtsberatung.
+
 ---
 
 ## SoA-Control bearbeiten
@@ -1172,7 +1221,7 @@ function _getDemoLang() {
   try {
     const d = JSON.parse(fs.readFileSync(path.join(_BASE, '.demo_lang_set'), 'utf8'))
     const l = d.lang
-    if (l && l !== 'skip') return ['de', 'en', 'fr', 'nl', 'hu'].includes(l) ? l : 'en'
+    if (l && l !== 'skip') return require('../languages').completeCodes().includes(l) ? l : 'en'
   } catch {}
   return 'en'
 }
@@ -1239,6 +1288,10 @@ The Statement of Applicability (SoA) is a mandatory document under ISO 27001 cla
 | Cyber Resilience Act | CRA | 12 | EU regulation, public |
 
 > **Note:** ISO controls are not included. Use \`scripts/import-iso-controls.sh\` to import your own.
+
+> **Own groups:** For other frameworks (e.g. NEN 7510, TISAX, customer requirements), an administrator creates a framework of its own with its own tab via **"＋ Own group"** in the SoA and imports the controls from a JSON file — with a preview and without any bundled standard texts. Only import content you are licensed to use.
+
+> **Legal notice:** The standard texts of ISO 27001/9000/9001, NEN 7510 and the TISAX assessment catalogues (VDA ISA) are subject to the rights of their publishers (copyright and trademark law) and are not shipped with ISMS Builder. Example controls in demo data are our own invented placeholder texts with no connection to the wording of the standards — incomplete and usable neither for certifications nor for TISAX assessments. Only import texts you are licensed to use. This is not legal advice.
 
 ---
 
@@ -1358,6 +1411,10 @@ La Déclaration d'applicabilité (SoA) est un document obligatoire selon la clau
 
 > **Note :** Les contrôles ISO ne sont pas inclus. Utilisez \`scripts/import-iso-controls.sh\` pour importer les vôtres.
 
+> **Groupes personnalisés :** Pour d'autres référentiels (p. ex. NEN 7510, TISAX, exigences client), un administrateur crée dans la DdA, via **« ＋ Groupe personnalisé »**, un référentiel propre avec son onglet et importe les contrôles depuis un fichier JSON — avec aperçu et sans texte de norme fourni. N'importez que des contenus que vous avez le droit d'utiliser.
+
+> **Avis juridique:** Les textes normatifs d'ISO 27001/9000/9001, de NEN 7510 et des catalogues d'évaluation TISAX (VDA ISA) sont soumis aux droits de leurs éditeurs (droit d'auteur et droit des marques) et ne sont pas fournis avec ISMS Builder. Les contrôles d'exemple des données de démonstration sont nos propres textes fictifs, sans lien avec le libellé des normes — incomplets et utilisables ni pour des certifications ni pour des évaluations TISAX. N'importez que des textes que vous avez le droit d'utiliser. Ceci n'est pas un conseil juridique.
+
 ---
 
 ## Modifier un contrôle
@@ -1476,6 +1533,10 @@ De Verklaring van Toepasselijkheid (SoA) is een verplicht document onder ISO 270
 
 > **Opmerking:** ISO-maatregelen zijn niet inbegrepen. Gebruik \`scripts/import-iso-controls.sh\` om uw eigen maatregelen te importeren.
 
+> **Eigen groepen:** Voor andere frameworks (bijv. NEN 7510, TISAX, klantvereisten) maakt een beheerder in de VvT via **‘＋ Eigen groep’** een eigen framework met een eigen tabblad aan en importeert de controls uit een JSON-bestand — met voorbeeldweergave en zonder meegeleverde normteksten. Importeer alleen inhoud waarvoor u een licentie hebt.
+
+> **Juridische kennisgeving:** De normteksten van ISO 27001/9000/9001, NEN 7510 en de TISAX-beoordelingscatalogi (VDA ISA) vallen onder de rechten van hun uitgevers (auteurs- en merkenrecht) en worden niet met ISMS Builder meegeleverd. Voorbeeld-controls in demogegevens zijn eigen, verzonnen plaatsaanduidingsteksten zonder verband met de formulering van de normen — onvolledig en bruikbaar noch voor certificeringen noch voor TISAX-assessments. Importeer alleen teksten die u mag gebruiken. Dit is geen juridisch advies.
+
 ---
 
 ## Een beheersmaatregel bewerken
@@ -1570,7 +1631,14 @@ function seedSoaGuide() {
   const lang = _getDemoLang()
   const data = SOA_GUIDE[lang] || SOA_GUIDE.en
   const docs = load()
-  if (_upsertSeed(docs, SOA_GUIDE_SEED_ID, { id: 'guid_soa_audit_guide', category: 'soa-audit', type: 'markdown', pinOrder: 1, minRole: null, ...data })) save(docs)
+  let changed = _upsertSeed(docs, SOA_GUIDE_SEED_ID, { id: 'guid_soa_audit_guide', category: 'soa-audit', type: 'markdown', pinOrder: 1, minRole: null, ...data })
+  // Rechtlicher Hinweis zu ISO/NEN 7510/TISAX in einen schon angelegten Artikel nachtragen (siehe frameworkNotice.js)
+  for (const d of docs) {
+    if (d.seedId !== SOA_GUIDE_SEED_ID || d.deletedAt) continue
+    const n = require('../frameworkNotice').patchContent(d.content)
+    if (n) { d.content = n; d.updatedAt = nowISO(); changed = true }
+  }
+  if (changed) save(docs)
 }
 
 // ── Policy-Prozesse Guide – bilingual ─────────────────────────────────────────
@@ -2236,6 +2304,8 @@ This document explains the demo environment and guides you through the transitio
 | admin | admin@example.com | adminpass | Admin | Global | Full access — all modules |
 | alice | alice@it.example | alicepass | Department Head | IT | Policies, Risks, Guidance (read+write) |
 | bob | bob@hr.example | bobpass | Reader | HR | Read-only |
+| carla | carla@security.example | carlapass | Content Owner | Security | CISO function (not an admin): prepare and approve DPIAs |
+| dana | dana@privacy.example | danapass | Content Owner | Privacy | DPO function (not an admin): enter the DPIA opinion |
 
 > **Security notice:** These passwords are publicly known. Change all passwords before going live.
 
@@ -2248,7 +2318,7 @@ The system contains realistic sample data for the following modules:
 | Module | Demo Content |
 |---|---|
 | **Policies** | Information Security Policy, Password Policy, BYOD Policy, Backup Policy, Access Control Policy |
-| **SoA** | 313 controls across 8 frameworks (ISO 27001, BSI, NIS2, EUCS, EUAI, ISO 9001, CRA) — all editable |
+| **SoA** | Controls of the built-in frameworks (BSI IT-Grundschutz, NIS2, EUCS, EU AI Act, CRA) — all editable; ISO standard texts are not shipped |
 | **Risk Management** | Realistic risks with multi-framework links (Ransomware, Phishing, Insider Threat, Supply Chain, …) |
 | **GDPR & Privacy** | RoPA, DPAs, TOMs, DPIA entries, 72h timer demo |
 | **Assets** | Company assets (servers, workstations, ERP, cloud services, network) with classification |
@@ -2284,7 +2354,7 @@ The system contains realistic sample data for the following modules:
 
 | Preserved | Cleared |
 |---|---|
-| SoA controls (all 313) | Policies / Templates |
+| SoA controls | Policies / Templates |
 | Dropdown lists | Risks |
 | Organisation settings | Assets, BCM, Governance |
 | (Admin user) | Suppliers, Legal, Training |
@@ -2300,7 +2370,7 @@ To demonstrate the system again:
 1. **Admin Console → Maintenance → "Import Demo Data"**
 2. Select the JSON file downloaded during Demo Reset
 3. All module data is restored
-4. alice (alice@it.example / alicepass) and bob (bob@hr.example / bobpass) are recreated without 2FA
+4. alice (alice@it.example / alicepass), bob (bob@hr.example / bobpass), carla (carla@security.example / carlapass) and dana (dana@privacy.example / danapass) are recreated without 2FA
 5. The admin account remains unchanged
 
 ---
@@ -2329,6 +2399,8 @@ Ce document explique l'environnement de démonstration et vous guide à travers 
 | admin | admin@example.com | adminpass | Admin | Global | Accès complet — tous les modules |
 | alice | alice@it.example | alicepass | Chef de département | IT | Politiques, Risques, Guidance (lecture+écriture) |
 | bob | bob@hr.example | bobpass | Lecteur | RH | Lecture seule |
+| carla | carla@security.example | carlapass | Content Owner | Security | Fonction RSSI (pas admin) : préparer et approuver les AIPD |
+| dana | dana@privacy.example | danapass | Content Owner | Privacy | Fonction DPD (pas admin) : saisir l’avis du DPD |
 
 > **Avertissement de sécurité :** Ces mots de passe sont publiquement connus. Changez tous les mots de passe avant la mise en production.
 
@@ -2341,7 +2413,7 @@ Le système contient des données d'exemple réalistes pour les modules suivants
 | Module | Contenu de démonstration |
 |---|---|
 | **Politiques** | Politique de sécurité de l'information, Politique de mots de passe, Politique BYOD, Politique de sauvegarde, Politique de contrôle d'accès |
-| **SoA** | 313 contrôles sur 8 référentiels (ISO 27001, BSI, NIS2, EUCS, EUAI, ISO 9001, CRA) — tous modifiables |
+| **SoA** | Contrôles des référentiels fournis (BSI IT-Grundschutz, NIS2, EUCS, EU AI Act, CRA) — tous modifiables ; les textes des normes ISO ne sont pas fournis |
 | **Gestion des risques** | Risques réalistes avec liens multi-référentiels (Ransomware, Phishing, Menace interne, Chaîne d'approvisionnement, …) |
 | **RGPD & Protection des données** | RoPA, DPA, TOMs, AIPD, minuterie 72h démo |
 | **Actifs** | Actifs de l'entreprise (serveurs, postes de travail, ERP, services cloud, réseau) avec classification |
@@ -2377,7 +2449,7 @@ Le système contient des données d'exemple réalistes pour les modules suivants
 
 | Conservé | Effacé |
 |---|---|
-| Contrôles SoA (tous les 313) | Politiques / Modèles |
+| Contrôles SoA | Politiques / Modèles |
 | Listes déroulantes | Risques |
 | Paramètres de l'organisation | Actifs, BCM, Gouvernance |
 | (Utilisateur Admin) | Fournisseurs, Juridique, Formation |
@@ -2393,7 +2465,7 @@ Pour démontrer à nouveau le système :
 1. **Console d'administration → Maintenance → "Importer les données de démonstration"**
 2. Sélectionner le fichier JSON téléchargé lors de la réinitialisation démo
 3. Toutes les données des modules sont restaurées
-4. alice (alice@it.example / alicepass) et bob (bob@hr.example / bobpass) sont recréés sans 2FA
+4. alice (alice@it.example / alicepass), bob (bob@hr.example / bobpass), carla (carla@security.example / carlapass) et dana (dana@privacy.example / danapass) sont recréés sans 2FA
 5. Le compte admin reste inchangé
 
 ---
@@ -2422,6 +2494,8 @@ Dit document legt de demo-omgeving uit en begeleidt u door de overgang naar prod
 | admin | admin@example.com | adminpass | Admin | Globaal | Volledige toegang — alle modules |
 | alice | alice@it.example | alicepass | Afdelingshoofd | IT | Beleid, Risico's, Guidance (lezen+schrijven) |
 | bob | bob@hr.example | bobpass | Lezer | HR | Alleen lezen |
+| carla | carla@security.example | carlapass | Content Owner | Security | CISO-functie (geen beheerder): DPIA’s voorbereiden en goedkeuren |
+| dana | dana@privacy.example | danapass | Content Owner | Privacy | FG-functie (geen beheerder): FG-advies invoeren |
 
 > **Beveiligingswaarschuwing:** Deze wachtwoorden zijn publiekelijk bekend. Wijzig alle wachtwoorden voordat u live gaat.
 
@@ -2434,7 +2508,7 @@ Het systeem bevat realistische voorbeeldgegevens voor de volgende modules:
 | Module | Demo-inhoud |
 |---|---|
 | **Beleid** | Informatiebeveiligingsbeleid, Wachtwoordbeleid, BYOD-beleid, Back-upbeleid, Toegangscontrolebeleid |
-| **SoA** | 313 maatregelen over 8 normen (ISO 27001, BSI, NIS2, EUCS, EUAI, ISO 9001, CRA) — allemaal bewerkbaar |
+| **SoA** | Maatregelen van de meegeleverde kaders (BSI IT-Grundschutz, NIS2, EUCS, EU AI Act, CRA) — allemaal bewerkbaar; ISO-normteksten worden niet meegeleverd |
 | **Risicobeheer** | Realistische risico's met multi-norm-koppelingen (Ransomware, Phishing, Insider Threat, Supply Chain, …) |
 | **AVG & Privacy** | Verwerkingsregister, AVG-overeenkomsten, TOMs, DPIA, 72u-timer demo |
 | **Activa** | Bedrijfsactiva (servers, werkstations, ERP, clouddiensten, netwerk) met classificatie |
@@ -2470,7 +2544,7 @@ Het systeem bevat realistische voorbeeldgegevens voor de volgende modules:
 
 | Behouden | Gewist |
 |---|---|
-| SoA-maatregelen (alle 313) | Beleid / Sjablonen |
+| SoA-maatregelen | Beleid / Sjablonen |
 | Keuzelijsten | Risico's |
 | Organisatie-instellingen | Activa, BCM, Governance |
 | (Admin-gebruiker) | Leveranciers, Juridisch, Training |
@@ -2486,7 +2560,7 @@ Om het systeem opnieuw te demonstreren:
 1. **Beheerconsole → Onderhoud → "Demogegevens importeren"**
 2. Selecteer het JSON-bestand dat tijdens de demo-reset is gedownload
 3. Alle modulegegevens worden hersteld
-4. alice (alice@it.example / alicepass) en bob (bob@hr.example / bobpass) worden opnieuw aangemaakt zonder 2FA
+4. alice (alice@it.example / alicepass), bob (bob@hr.example / bobpass), carla (carla@security.example / carlapass) en dana (dana@privacy.example / danapass) worden opnieuw aangemaakt zonder 2FA
 5. Het admin-account blijft ongewijzigd
 
 ---
@@ -2507,9 +2581,9 @@ const DEMO_DOC = {
 }
 
 // Patch seedDemoDoc to be language-aware
-// NOTE: same idempotency behaviour as _upsertSeed — content is only refreshed on language change.
-// After editing DEMO_GUIDE_CONTENT or DEMO_DOC_EN_CONTENT: manually delete the entry in
-// Guidance (soft-delete) → Admin → Papierkorb → permanently delete → restart server.
+// Der Demo-Artikel wird bei jedem Start mit dem aktuellen Text abgeglichen (wie die übrigen mitgelieferten Leitfäden mit refreshContent):
+// Änderungen an DEMO_GUIDE_CONTENT & Co. (z. B. neue Demo-Konten) erreichen so auch bestehende Installationen. Früher wurde der Text nur bei
+// einem Sprachwechsel erneuert, sodass vorhandene Instanzen veraltete Demo-Zugangsdaten zeigten.
 const _origSeedDemoDoc = seedDemoDoc
 function seedDemoDocI18n() {
   const lang = _getDemoLang()
@@ -2528,7 +2602,7 @@ function seedDemoDocI18n() {
     })
     changed = true
   } else {
-    if (existing.seedLang !== lang) {
+    if (existing.seedLang !== lang || existing.content !== content || existing.title !== title) {
       existing.title    = title
       existing.content  = content
       existing.seedLang = lang
@@ -3552,7 +3626,7 @@ const ROLE_GUIDES_I18N = {
 
 function seedRoleGuidesI18n() {
   const lang = _getDemoLang()
-  const langGuides = ROLE_GUIDES_I18N[lang] || ROLE_GUIDES_I18N.en
+  const langGuides = lang in ROLE_GUIDES_I18N ? ROLE_GUIDES_I18N[lang] : ROLE_GUIDES_I18N.en   // de: null = die deutschen Originale (ROLE_GUIDES); ein `||` machte daraus Englisch
   const docs = load()
   let changed = false
   for (const guide of ROLE_GUIDES) {
@@ -3820,11 +3894,31 @@ function _huText(name) {
   if (Object.keys(roles).length) ROLE_GUIDES_I18N.hu = roles
 })()
 
-// ── Systemhandbuch ISMS Build — Admin-Schnellreferenz ────────────────────────
+// ── Estnisch (et): Seed-Texte liegen als Markdown-Dateien in guidance-et/ (gleiche Dateinamen wie guidance-hu/) ──
+function _etText(name) {
+  try { return fs.readFileSync(path.join(__dirname, 'guidance-et', name), 'utf8').replace(/\n$/, '') } catch { return null }
+}
+;(function registerEstonian() {
+  const put = (target, key, title, file) => { const content = _etText(file); if (content) target[key] = { title, content } }
+  put(SOA_GUIDE, 'et', 'SoA ja audit – juhend', 'soa.md')
+  put(POLICY_GUIDE, 'et', 'Poliitikaprotsessid – loomine, ülevaatus ja kinnitamine', 'policy.md')
+  put(DEMO_DOC, 'et', 'Demorežiim – ülevaade ja üleminek tootmisse', 'demo.md')
+  put(ISO_NOTICE, 'et', '⚠ Õiguslik teade: ISO meetmed — vajalik käsitsi paigaldamine', 'iso.md')
+  const roles = {}
+  put(roles, 'seed_guide_ciso', 'Kasutusjuhend: CISO / infoturbejuht', 'seed_guide_ciso.md')
+  put(roles, 'seed_guide_dsb', 'Kasutusjuhend: andmekaitsespetsialist', 'seed_guide_dsb.md')
+  put(roles, 'seed_guide_revision', 'Kasutusjuhend: siseaudit', 'seed_guide_revision.md')
+  put(roles, 'seed_guide_qmb', 'Kasutusjuhend: QMO / kvaliteedijuht', 'seed_guide_qmb.md')
+  put(roles, 'seed_guide_abtlg', 'Kasutusjuhend: osakonnajuhataja / valdkonnaekspert', 'seed_guide_abtlg.md')
+  if (Object.keys(roles).length) ROLE_GUIDES_I18N.et = roles
+})()
+
+// ── Systemhandbuch ISMS Builder — Admin-Schnellreferenz ────────────────────────
 
 const SYSHANDBUCH_SEED_ID = 'seed_syshandbuch_quickref'
 
-const SYSHANDBUCH_CONTENT = `# Systemhandbuch ISMS Build — Schnellreferenz
+const SYSHANDBUCH_TITLE = 'Systemhandbuch ISMS Builder'
+const SYSHANDBUCH_CONTENT = `# Systemhandbuch ISMS Builder — Schnellreferenz
 
 > Kompakte Referenz für Administratoren und erfahrene Nutzer. Ausführliche Rollenanleitungen: **Handbuch → Rollen**.
 
@@ -3836,7 +3930,7 @@ const SYSHANDBUCH_CONTENT = `# Systemhandbuch ISMS Build — Schnellreferenz
 |---|---|---|---|
 | **Dashboard** | Dashboard | reader | ISMS-Gesamtübersicht, KPIs, Handlungsbedarf |
 | **Templates** | Alle Template-Typen | reader / editor | Richtlinien, Verfahren, Konzepte — mit Versionierung & Lifecycle |
-| **SoA** | Statement of Applicability | reader | 313 Controls (ISO 27001, BSI, NIS2, EUCS, EUAI, ISO 9001, CRA) |
+| **SoA** | Statement of Applicability | reader | Controls der mitgelieferten Frameworks (BSI, NIS2, EUCS, EU AI Act, CRA); ISO-Controls nur nach eigenem Import |
 | **Risiken** | Risikomanagement | reader | Risikoregister, Heatmap, Behandlungspläne, Auditor-Freigabe |
 | **DSGVO** | DSGVO & Datenschutz | reader | VVT, AVV, DSFA, Datenpannen, DSAR, TOMs, DSB |
 | **Findings** | Audit & Findings | reader | Audit-Feststellungen, Maßnahmenpläne, Statusverfolgung |
@@ -3999,7 +4093,7 @@ function seedSystemhandbuch() {
       type:           'markdown',
       pinOrder:       3,
       minRole:        null,
-      title:          'Systemhandbuch ISMS Build',
+      title:          SYSHANDBUCH_TITLE,
       content:        SYSHANDBUCH_CONTENT,
       createdAt:      nowISO(),
       updatedAt:      nowISO(),
@@ -4015,6 +4109,7 @@ function seedSystemhandbuch() {
     let changed = false
     if (existing.content !== SYSHANDBUCH_CONTENT) { existing.content = SYSHANDBUCH_CONTENT; changed = true }
     if (existing.pinOrder !== 3)                   { existing.pinOrder = 3;                   changed = true }
+    if (existing.title !== SYSHANDBUCH_TITLE)      { existing.title = SYSHANDBUCH_TITLE;      changed = true }
     if (existing.minRole  !== null)                { existing.minRole  = null;                changed = true }
     if (changed) { existing.updatedAt = nowISO(); save(docs) }
   }
@@ -4089,7 +4184,7 @@ if (STORAGE_BACKEND !== 'json') {
 
   async function _knexSeedRoleGuides() {
     const lang = _getDemoLang()
-    const langGuides = ROLE_GUIDES_I18N[lang] || ROLE_GUIDES_I18N.en
+    const langGuides = lang in ROLE_GUIDES_I18N ? ROLE_GUIDES_I18N[lang] : ROLE_GUIDES_I18N.en   // de: null = die deutschen Originale (ROLE_GUIDES); ein `||` machte daraus Englisch
     for (const guide of ROLE_GUIDES) {
       const override = langGuides ? langGuides[guide.seedId] : null
       const title   = override ? override.title   : guide.title
@@ -4108,6 +4203,7 @@ if (STORAGE_BACKEND !== 'json') {
       id: 'guid_soa_audit_guide', category: 'soa-audit', type: 'markdown',
       pinOrder: 1, minRole: null, ...data,
     })
+    await _knex.patchSeedContent(SOA_GUIDE_SEED_ID, require('../frameworkNotice').patchContent)   // Rechtlicher Hinweis nachtragen (frameworkNotice.js)
   }
 
   async function _knexSeedPolicyGuide() {
@@ -4131,7 +4227,7 @@ if (STORAGE_BACKEND !== 'json') {
   async function _knexSeedSystemhandbuch() {
     await _knex.upsertSeed(SYSHANDBUCH_SEED_ID, {
       id: 'guid_syshandbuch_quickref', category: 'systemhandbuch', type: 'markdown',
-      pinOrder: 3, minRole: null, title: 'Systemhandbuch ISMS Build',
+      pinOrder: 3, minRole: null, title: SYSHANDBUCH_TITLE,
       content: SYSHANDBUCH_CONTENT,
     })
   }

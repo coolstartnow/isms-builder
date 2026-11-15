@@ -31,6 +31,12 @@ const FRAMEWORKS = {
   CUSTOM:   { id: 'CUSTOM',   label: 'Custom Controls',         color: '#64748b' },
 }
 
+// Eigene Gruppen (data/soa-frameworks.json, db/soaFrameworkStore.js): eingebaute zuerst, dann die eigenen nach Anlage
+const frameworkDefs = require('../soaFrameworkDefs')
+const frameworkStore = require('./soaFrameworkStore')
+const allFrameworks = () => [...Object.values(FRAMEWORKS), ...frameworkStore.getAllSync().map(f => ({ id: f.id, label: f.label, color: f.color, custom: true }))]
+const frameworkMeta = id => allFrameworks().find(f => f.id === id)
+
 // ─────────────────────────────────────────────────────────────────
 // ISO 27001 / ISO 9000 / ISO 9001 controls are NOT bundled.
 // They are loaded at runtime from data/iso-controls.json if present.
@@ -342,7 +348,7 @@ async function reloadIsoControls() {
 const _jsonExports = {
   init: () => { store = load() },
 
-  getFrameworks: () => Object.values(FRAMEWORKS),
+  getFrameworks: () => allFrameworks(),
 
   getAll: ({ framework, theme } = {}) => {
     let all = Object.values(store)
@@ -386,7 +392,9 @@ const _jsonExports = {
   },
 
   getSummary: (framework) => {
-    const frameworks = framework ? [framework] : Object.keys(FRAMEWORKS)
+    const known = allFrameworks().map(f => f.id)
+    // defensiv: auch Kennungen, die nur in den Controls vorkommen (z. B. gelöschte Definitionsdatei), gehen nie aus den Kennzahlen verloren
+    const frameworks = framework ? [framework] : [...known, ...[...new Set(Object.values(store).map(c => c.framework))].filter(f => f && !known.includes(f))]
     const result = {}
     for (const fw of frameworks) {
       const controls = Object.values(store).filter(c => c.framework === fw)
@@ -397,8 +405,8 @@ const _jsonExports = {
       }
       result[fw] = {
         framework: fw,
-        label: FRAMEWORKS[fw]?.label || fw,
-        color: FRAMEWORKS[fw]?.color || '#888',
+        label: frameworkMeta(fw)?.label || fw,
+        color: frameworkMeta(fw)?.color || '#888',
         total: controls.length,
         applicable: applicable.length,
         notApplicable: controls.length - applicable.length,
@@ -414,11 +422,18 @@ const _jsonExports = {
   createCustomControl: (body, { changedBy } = {}) => {
     const title = (body.title || '').trim()
     if (!title) throw new Error('title required')
+    // optional: eigene Gruppe statt des Sammel-Tabs CUSTOM, und eine frei gewählte Kennung (global eindeutig)
+    const framework = body.framework ? String(body.framework).trim() : 'CUSTOM'
+    if (framework !== 'CUSTOM' && !frameworkStore.getByIdSync(framework)) throw new Error('invalid_framework')
+    const wanted = body.controlId ? String(body.controlId).trim() : ''
+    if (wanted && !frameworkDefs.isValidControlId(wanted)) throw new Error('invalid_control_id')
+    if (wanted && Object.prototype.hasOwnProperty.call(store, wanted)) throw new Error('id_conflict')
     const now = new Date().toISOString()
-    const id   = 'CUSTOM-' + Date.now()
+    let id = wanted || (framework === 'CUSTOM' ? 'CUSTOM-' : framework + '-') + Date.now()
+    while (!wanted && Object.prototype.hasOwnProperty.call(store, id)) id += 'x'   // zwei Anlagen in derselben Millisekunde
     store[id] = {
       id,
-      framework:        'CUSTOM',
+      framework,
       theme:            (body.theme || 'Custom').trim(),
       title,
       description:      (body.description || '').trim(),
@@ -457,6 +472,35 @@ const _jsonExports = {
     save(store)
     return { ok: true }
   },
+
+  // Import in eine eigene Gruppe (Plan: server/soaFrameworkDefs.planImport): neue Controls anlegen, vorhandene derselben Gruppe
+  // nur in Titel/Thema/Beschreibung auffrischen — Anwendbarkeit, Status, Verantwortliche, Begründung und Verknüpfungen bleiben. → { added, updated }
+  importControls: (frameworkId, accepted, { changedBy } = {}) => {
+    const now = new Date().toISOString()
+    let added = 0, updated = 0
+    for (const c of accepted) {
+      const cur = Object.prototype.hasOwnProperty.call(store, c.id) ? store[c.id] : null
+      if (cur) {
+        if (cur.framework !== frameworkId) continue   // Schutz: nie ein Control einer anderen Gruppe verändern
+        cur.title = c.title; cur.theme = c.theme
+        if (c.description !== undefined) cur.description = c.description
+        cur.updatedAt = now; cur.updatedBy = changedBy || 'unknown'
+        updated++
+      } else {
+        store[c.id] = {
+          id: c.id, framework: frameworkId, theme: c.theme, title: c.title, description: c.description || '',
+          applicable: true, status: 'not_started', owner: '', justification: '', linkedTemplates: [],
+          createdAt: now, updatedAt: now, updatedBy: changedBy || 'unknown', isCustom: true,
+        }
+        added++
+      }
+    }
+    if (added || updated) save(store)
+    return { added, updated }
+  },
+
+  // Anzahl der Controls einer Gruppe (Löschsperre)
+  countControls: framework => Object.values(store).filter(c => c.framework === framework).length,
 
   FRAMEWORKS,
   IMPLEMENTATION_STATUSES

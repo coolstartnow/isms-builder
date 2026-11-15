@@ -197,4 +197,49 @@ describe(`DB-Backend-Routen [${BACKEND}] — #70 Regression`, () => {
     const res = await authedGet(app, adminCookie, '/audits/gibt-es-nicht')
     expect(res.body.error).toBe('Nicht gefunden')          // Standard der Organisation oben auf Deutsch gesetzt
   })
+
+  // interne Prüfung (2026-10-24): reports.js rief Speicher ohne await auf → unter SQL-Backends 500 (TypeError: …map/filter is not a function).
+  test('Berichte /reports/compliance, framework, gap, matrix antworten 200 mit Daten', async () => {
+    for (const p of ['/reports/compliance', '/reports/framework', '/reports/gap', '/reports/matrix']) {
+      const res = await authedGet(app, adminCookie, p)
+      expect([p, res.status]).toEqual([p, 200])
+      expect(res.body).toBeTruthy()
+    }
+    const fw = await authedGet(app, adminCookie, '/reports/framework')
+    expect(Array.isArray(fw.body)).toBe(true)
+    expect(fw.body.length).toBeGreaterThan(0)
+  })
+
+  // Platzhalter % und _ im Filter dürfen nicht als LIKE-Muster wirken.
+  test('Audit-Log-Filter user: % und _ sind keine Platzhalter', async () => {
+    const all = await authedGet(app, adminCookie, '/admin/audit-log')
+    expect(all.body.total).toBeGreaterThan(0)
+    for (const w of ['%', '_']) {
+      const res = await authedGet(app, adminCookie, '/admin/audit-log?user=' + encodeURIComponent(w))
+      expect([w, res.status, Number(res.body.total)]).toEqual([w, 200, 0])
+    }
+  })
+
+  // Treibertext darf nicht in 500-Antworten stehen (zentraler Filter in server/asyncSafe.js).
+  test('500-Antworten enthalten keinen Treiber- oder Interna-Text', async () => {
+    const express = require('express')
+    const request = require('supertest')
+    const { maskServerErrors } = require('../server/asyncSafe')
+    const mini = express()
+    mini.use(maskServerErrors)
+    mini.get('/x', (req, res) => res.status(500).json({ error: 'SQLITE_ERROR: no such table: suppliers_v2' }))
+    mini.get('/y', (req, res) => res.status(501).json({ error: 'Nur JSON-Speicher' }))
+    const a = await request(mini).get('/x')
+    expect(a.status).toBe(500)
+    expect(a.body.error).toBe('Internal server error')
+    // Eingabefehler der Datenbank (zu lang, Nullbyte, außerhalb des Bereichs) sind 400, nicht 500
+    mini.get('/z1', (req, res) => res.status(500).json({ error: 'Data too long for column \'name\' at row 1' }))
+    mini.get('/z2', (req, res) => res.status(500).json({ error: 'insert into "suppliers" ... - value too long for type character varying(255)' }))
+    mini.get('/z3', (req, res) => res.status(500).json({ error: 'invalid byte sequence for encoding "UTF8": 0x00' }))
+    mini.get('/z4', (req, res, next) => next(Object.assign(new Error('boom'), { code: 'ER_DATA_TOO_LONG' })))
+    mini.use((err, req, res, next) => require('../server/asyncSafe').errorHandler(err, req, res, next))
+    for (const u of ['/z1', '/z2', '/z3', '/z4']) { const r = await request(mini).get(u); expect([u, r.status, r.body.error]).toEqual([u, 400, 'Invalid request.']) }
+    const b = await request(mini).get('/y')
+    expect(b.body.error).toBe('Nur JSON-Speicher')
+  })
 })

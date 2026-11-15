@@ -65,6 +65,16 @@ describe('Mobile-Sync: Zugang', () => {
   })
 })
 
+describe('Mobile-Sync: Kennungen neuer Datensätze (GHSA-m8g6, Nachtrag 1.81.2)', () => {
+  test('Kennungen mit Sonderzeichen werden abgelehnt, normale Kennungen angenommen', async () => {
+    const evil = ["x');alert(1);//", '"><img src=x onerror=1>', 'a b', '<b>']
+    const res = await push(full, { risks: [...evil, 'ok-1.A_b:2'].map(id => ({ id, title: 'T', probability: 2, impact: 2 })) })
+    expect(res.status).toBe(200)
+    expect(res.body.rejected.map(r => r.id).sort()).toEqual([...evil].sort())
+    expect(res.body.accepted.risks.map(r => r.id)).toEqual(['ok-1.A_b:2'])
+  })
+})
+
 describe('Mobile-Sync: Pull', () => {
   test('liefert nur die erlaubten Module, mit Serverzeit', async () => {
     const res = await get(risksOnly, '/sync/pull')
@@ -81,7 +91,7 @@ describe('Mobile-Sync: Pull', () => {
 
   test('alle Module bei vollem Zugang', async () => {
     const res = await get(full, '/sync/pull')
-    expect(Object.keys(res.body.modules).sort()).toEqual(['assets', 'findings', 'guidance', 'measures', 'risks', 'soa', 'templates'])
+    expect(Object.keys(res.body.modules).sort()).toEqual(['assets', 'findings', 'guidance', 'measures', 'risks', 'soa', 'soaFrameworks', 'templates'])
   })
 
   test('unbekanntes Modul / ungültiges since → 400', async () => {
@@ -172,6 +182,29 @@ describe('Mobile-Sync: Push', () => {
   })
 })
 
+describe('Mobile-Sync: Body wird erst nach der Schlüsselprüfung gelesen (Härtung 1.84.0-beta.17)', () => {
+  const raw = (url, body, token) => { const r = request(app).post(url).set('Content-Type', 'application/json'); if (token) r.set('Authorization', `Bearer ${token}`); return r.send(body) }
+
+  test('Push ohne/mit falschem Schlüssel: 401 vor dem Lesen — auch bei ungültigem JSON und bei großem Body', async () => {
+    expect((await raw('/sync/push', '{kaputt')).status).toBe(401)                               // früher 400 (Parser lief vor der Prüfung)
+    expect((await raw('/sync/push', JSON.stringify({ x: 'a'.repeat(3 * 1024 * 1024) }))).status).toBe(401)   // früher: 3 MB vollständig geparst
+    expect((await raw('/sync/push', '{kaputt', 'ISMS-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA')).status).toBe(401)
+  })
+
+  test('Einrichtung ohne Anmeldung: kleines Limit (413), ungültiges JSON → 400, falscher Code → 401', async () => {
+    expect((await raw('/sync/enroll', JSON.stringify({ code: 'AAAA-AAAA-AAAA', deviceName: 'x'.repeat(8192) }))).status).toBe(413)
+    expect((await raw('/sync/enroll', '{kaputt')).status).toBe(400)
+    expect((await raw('/sync/enroll', JSON.stringify({ code: 'AAAA-AAAA-AAAA', deviceName: 'Test' }))).status).toBe(401)
+  })
+
+  test('Mit gültigem Schlüssel: großer Push geht weiter, tief verschachteltes JSON → 400, Server läuft weiter', async () => {
+    const big = await push(full, { risks: [{ id: 'risk_big2', title: 'Groß', description: 'x'.repeat(2 * 1024 * 1024) }] })
+    expect(big.status).toBe(200)   // 2 MB: weit über dem globalen 100-kB-Limit, unter den 20 MB des Sync
+    expect((await raw('/sync/push', '['.repeat(5000) + ']'.repeat(5000), full)).status).toBe(400)
+    expect((await get(full, '/sync/me')).status).toBe(200)
+  })
+})
+
 describe('Mobile-Sync: nur JSON-Speicher', () => {
   test('mit anderem Speicher-Backend antwortet der Sync mit 501 und nennt den Grund', async () => {
     const old = process.env.STORAGE_BACKEND
@@ -182,5 +215,47 @@ describe('Mobile-Sync: nur JSON-Speicher', () => {
         expect(res.body.error).toMatch(/STORAGE_BACKEND=json/)
       }
     } finally { process.env.STORAGE_BACKEND = old }
+  })
+})
+
+// interne Prüfung (2026-10-24): Autorenangaben setzt der Server, nicht die App.
+describe('Mobile-Sync: Autorenangaben lassen sich nicht fälschen', () => {
+  test('createdBy/updatedBy/deletedBy aus der App werden ignoriert (neu und Änderung)', async () => {
+    const rec = { id: 'syn5-risk', title: 'Fälschung', probability: 2, impact: 2, createdBy: 'admin', updatedBy: 'admin', deletedBy: 'admin' }
+    expect((await push(full, { risks: [rec] })).status).toBe(200)
+    const first = (await get(full, '/sync/pull')).body
+    const r1 = findRisk(first, 'syn5-risk')
+    expect(r1).toBeTruthy()
+    expect(String(r1.createdBy)).toMatch(/^sync:/)
+    expect(String(r1.updatedBy)).toMatch(/^sync:/)
+    const again = await push(full, { risks: [{ ...rec, title: 'Fälschung 2', baseUpdatedAt: r1.updatedAt, createdBy: 'ciso', updatedBy: 'ciso' }] })
+    expect(again.status).toBe(200)
+    const r2 = findRisk((await get(full, '/sync/pull')).body, 'syn5-risk')
+    expect(String(r2.createdBy)).toMatch(/^sync:/)
+    expect(String(r2.updatedBy)).toMatch(/^sync:/)
+  })
+})
+function findRisk(body, id) {
+  const m = body.modules && body.modules.risks
+  const list = Array.isArray(m) ? m : (m && (m.items || m.records || m.data)) || []
+  return list.find(r => r.id === id)
+}
+
+describe('Mobile-Sync: Daten-Epoche (Härtung 1.84.0-beta.18)', () => {
+  test('Abruf nennt die Epoche; sie bleibt stabil und ändert sich nach einem Datenaustausch', async () => {
+    const e1 = (await get(full, '/sync/pull')).body.epoch
+    expect(typeof e1).toBe('string'); expect(e1.length).toBeGreaterThan(5)
+    expect((await get(full, '/sync/pull')).body.epoch).toBe(e1)
+    await require('../server/reloadStores').reloadAll()   // wie nach Demo-Import/Demo-Bündel/Demo-Reset
+    const e2 = (await get(full, '/sync/pull')).body.epoch
+    expect(e2).not.toBe(e1)
+  })
+
+  test('Datensatz mit altem Zeitstempel: kommt per Abruf mit since NICHT, ohne since schon — deshalb braucht das Gerät die Epoche', async () => {
+    const old = { id: 'risk_alt_1', title: 'Alt', createdAt: '2020-01-01T00:00:00.000Z', updatedAt: '2020-01-01T00:00:00.000Z' }
+    const f = path.join(dataDir, 'risks.json'); const list = JSON.parse(fs.readFileSync(f, 'utf8')); list.push(old); fs.writeFileSync(f, JSON.stringify(list))
+    const since = new Date().toISOString()
+    expect((await get(full, `/sync/pull?modules=risks&since=${encodeURIComponent(since)}`)).body.modules.risks.some(r => r.id === 'risk_alt_1')).toBe(false)
+    expect((await get(full, '/sync/pull?modules=risks')).body.modules.risks.some(r => r.id === 'risk_alt_1')).toBe(true)
   })
 })

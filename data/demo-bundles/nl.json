@@ -594,16 +594,16 @@
     "guidance.json": [
       {
         "id": "guidance_nl_001",
-        "title": "ISMS Build – Systeemhandboek",
+        "title": "ISMS Builder – Systeemhandboek",
         "category": "systemhandbuch",
-        "content": "# ISMS Build – Systeemhandboek\n\nDit handboek beschrijft de architectuur, configuratie en het beheer van het ISMS Build-platform voor Demo BV.\n\n## Modules\n- Risicobeheer\n- AVG & Gegevensbescherming\n- Leveranciersbeheer\n- Bedrijfscontinuïteit\n\n## Toegangsbeheer\nGebaseerd op rolgebaseerde toegangscontrole (RBAC).",
+        "content": "# ISMS Builder – Systeemhandboek\n\n## Overzicht\n\nISMS Builder is een zelf gehoste webapplicatie voor het informatiebeveiligingsmanagementsysteem (ISMS): documenten met vrijgave, verklaring van toepasselijkheid (SoA), risico’s en maatregelen, assets, audits, gegevensbescherming, bedrijfscontinuïteit (BCM), leveranciers en bewijsvoering op één plek.\n\n## Waar vind ik wat?\n\n- **Handleidingen voor de modules** staan in deze categorie „Systeemhandboek”, bijvoorbeeld „Beheer”, „SoA” en „Aanmelden, sessies en productiegebruik”.\n- **Rollen en rechten** worden beschreven in de handleiding „Rollen & verantwoordelijkheden”.\n- **Projectoverzicht, architectuur en wijzigingen** vindt u als README, architectuurdocumentatie en changelog ook in deze categorie.\n\n## Over de demogegevens\n\nDit artikel hoort bij de demogegevens. Inhoud, namen en cijfers in de demo zijn fictief.\n",
         "status": "published",
         "owner": "CISO",
         "linkedControls": [],
         "linkedPolicies": [],
         "attachments": [],
         "createdAt": "2026-01-01T09:00:00.000Z",
-        "updatedAt": "2026-01-01T09:00:00.000Z",
+        "updatedAt": "2026-11-15T00:00:00.000Z",
         "createdBy": "admin"
       },
       {

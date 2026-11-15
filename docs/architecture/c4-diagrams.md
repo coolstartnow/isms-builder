@@ -50,7 +50,7 @@ C4Container
 
   Container_Boundary(server, "ISMS Builder Server") {
     Container(spa, "Single-Page Application", "Vanilla JS, HTML, CSS", "Atlassian Dark Theme SPA — all modules rendered client-side")
-    Container(api, "REST API", "Node.js / Express", "17 route modules, JWT auth, RBAC, multer file uploads")
+    Container(api, "REST API", "Node.js / Express", "17 route modules, JWT auth with server-side sessions (one per account), RBAC, multer file uploads")
     Container(auth, "Auth Module", "JWT + bcryptjs + TOTP", "Cookie-based sessions, 2FA enforcement, role ranks")
   }
 

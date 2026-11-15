@@ -28,6 +28,10 @@ Az alkalmazhatósági nyilatkozat (Statement of Applicability, SoA) az ISO 27001
 
 > **Megjegyzés:** Az ISO-intézkedések nem részei a csomagnak. A saját intézkedések importálásához használja a `scripts/import-iso-controls.sh` szkriptet.
 
+> **Saját csoportok:** Más keretrendszerekhez (pl. NEN 7510, TISAX, ügyfélkövetelmények) a rendszergazda a SoA-ban a **„＋ Saját csoport”** gombbal önálló keretrendszert hoz létre saját füllel, és JSON-fájlból importálja a kontrollokat — előnézettel, szabványszövegek nélkül. Csak olyan tartalmat importáljon, amelynek használatára jogosult.
+
+> **Jogi megjegyzés:** Az ISO 27001/9000/9001, a NEN 7510 és a TISAX értékelési katalógusok (VDA ISA) szabványszövegeire a kiadóik jogai (szerzői jog és védjegyjog) vonatkoznak, és az ISMS Builder nem szállítja őket. A demóadatokban lévő példa-kontrollok saját, kitalált helyőrző szövegek, a szabványok szövegéhez nincs közük — hiányosak, és sem tanúsításra, sem TISAX-értékelésre nem használhatók. Csak olyan szöveget importáljon, amelynek használatára jogosult. Ez nem jogi tanács.
+
 ---
 
 ## Intézkedés szerkesztése

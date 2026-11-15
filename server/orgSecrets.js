@@ -1,7 +1,7 @@
 // © 2026 Claude Hecker — ISMS Builder — AGPL-3.0
 'use strict'
 // Geheimnisse sind nur schreibbar: Der Server liefert sie nie mehr aus – auch nicht an Administratoren, auch nicht im Export.
-// Gespeicherte Dienst-Zugangsdaten (SMTP-Passwort, WebDAV-App-Passwort) bleiben beim Speichern erhalten, wenn das Feld leer ist;
+// Gespeicherte Dienst-Zugangsdaten (SMTP-Passwort, WebDAV-App-Passwort, API-Schlüssel der KI-Anbindung) bleiben beim Speichern erhalten, wenn das Feld leer ist;
 // ein neuer Wert ersetzt sie, ein ausdrückliches Löschen-Kennzeichen entfernt sie. Benutzer-Passwort-Hashes und 2FA-Geheimnisse
 // verlassen den Server nicht (auch nicht im Datenexport).
 
@@ -11,6 +11,12 @@ const SECRETS = [
   ['webdavSettings', 'appPassword', 'appPasswordSet', 'clearAppPassword'],
 ]
 const USER_SECRET_FIELDS = ['passwordHash', 'totpSecret']
+// Flache Geheimnisse (direkt in den Einstellungen, keine Gruppe): [Feld, Kennzeichen „gesetzt“]. Der API-Schlüssel der KI-Anbindung
+// wird ausschließlich über PUT /admin/ai-settings gesetzt (dort geprüft); über PUT /admin/org-settings ist er nicht schreibbar.
+const FLAT_SECRETS = [
+  ['aiApiKey', 'aiApiKeySet'],
+]
+const FLAT_CLEAR_FLAGS = ['clearAiApiKey']
 
 // Einstellungen für die Ausgabe: Geheimnis entfernt, stattdessen „gesetzt“ ja/nein
 function redactOrgSettings(settings) {
@@ -20,6 +26,11 @@ function redactOrgSettings(settings) {
     const { [field]: secret, [setFlag]: _ignored, ...rest } = out[group]
     out[group] = { ...rest, [setFlag]: typeof secret === 'string' && secret.length > 0 }
   }
+  for (const [field, setFlag] of FLAT_SECRETS) {
+    const secret = out[field]
+    delete out[field]
+    out[setFlag] = typeof secret === 'string' && secret.length > 0
+  }
   return out
 }
 
@@ -28,6 +39,8 @@ function redactOrgSettings(settings) {
 function prepareOrgPatch(patch) {
   const out = { ...(patch || {}) }
   delete out.logo   // Das Logo hat eigene Endpunkte (/admin/logo); nur lesend in den Einstellungen
+  for (const [field, setFlag] of FLAT_SECRETS) { delete out[field]; delete out[setFlag] }   // flache Geheimnisse haben einen eigenen Endpunkt
+  for (const flag of FLAT_CLEAR_FLAGS) delete out[flag]
   for (const [group, field, setFlag, clearFlag] of SECRETS) {
     if (!out[group] || typeof out[group] !== 'object' || Array.isArray(out[group])) continue
     const g = { ...out[group] }
@@ -50,4 +63,4 @@ function sanitizeExportFile(name, content) {
   return content
 }
 
-module.exports = { redactOrgSettings, prepareOrgPatch, sanitizeExportFile, USER_SECRET_FIELDS }
+module.exports = { redactOrgSettings, prepareOrgPatch, sanitizeExportFile, USER_SECRET_FIELDS, FLAT_SECRETS }

@@ -93,7 +93,7 @@ echo ""
 echo -e "${YELLOW}Achtung:${RESET} 2FA für Benutzer '${BOLD}${TARGET_USER}${RESET}' wird zurückgesetzt."
 echo "  → totpSecret  wird geleert"
 echo "  → totpVerified wird auf false gesetzt"
-echo "  → Der Benutzer kann sich danach ohne TOTP einloggen"
+echo "  → Der Benutzer kann sich danach ohne TOTP einloggen — NUR wenn die 2FA-Pflicht aus ist (sonst 403 ENFORCE_2FA)"
 echo ""
 read -rp "Fortfahren? [j/N] " CONFIRM
 
@@ -129,6 +129,7 @@ PYEOF
 
 echo ""
 echo -e "${GREEN}✓ 2FA für '${TARGET_USER}' wurde zurückgesetzt.${RESET}"
-echo "  Der Benutzer kann sich jetzt ohne TOTP einloggen."
+echo "  Der Benutzer kann sich jetzt ohne TOTP einloggen, wenn die 2FA-Pflicht ausgeschaltet ist."
+echo "  Bei eingeschalteter Pflicht (Aussperrung): node scripts/emergency-2fa.js status  /  disable-policy (Server vorher beenden)."
 echo "  Beim nächsten Besuch der Einstellungen kann 2FA neu eingerichtet werden."
 echo ""

@@ -16,7 +16,7 @@ const dataDir = () => process.env.DATA_DIR || path.join(__dirname, '../data')
 const metaFile = () => path.join(dataDir(), 'org-logo.json')
 const imageFile = ext => path.join(dataDir(), 'org-logo.' + ext)
 const requiredFlag = () => path.join(dataDir(), '.logo_required')
-const DEMO_LOGO = path.join(__dirname, '../data/demo-bundles/isms-builder-logo.png')
+const DEMO_LOGO = require('./paths').staticDataPath('demo-bundles', 'isms-builder-logo.png')   // mitgelieferte Datei (Programmstand), nicht Nutzerdaten
 
 // Dateityp und Größe aus den Bytes lesen → { mime, width, height } oder null
 function inspect(buf) {

@@ -10,7 +10,7 @@ const guidanceStore = require('../db/guidanceStore')
 const embeddingStore = require('../ai/embeddingStore')
 
 const guidanceUpload = multer({
-  dest: path.join(__dirname, '../../data/guidance/files/'),
+  dest: require('../paths').dataPath('guidance', 'files') + path.sep,
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['.pdf', '.docx', '.doc']
@@ -20,8 +20,8 @@ const guidanceUpload = multer({
   }
 })
 
-const DEMO_LANG_FILE = path.join(__dirname, '../../data/.demo_lang_set')
-const SUPPORTED_LANGS = ['de', 'en', 'fr', 'nl', 'hu']
+const DEMO_LANG_FILE = require('../paths').dataPath('.demo_lang_set')   // dieselbe Datei wie routes/admin.js und routes/auth.js
+const SUPPORTED_LANGS = require('../languages').completeCodes()
 
 async function _syncSeedLang(lang) {
   try {

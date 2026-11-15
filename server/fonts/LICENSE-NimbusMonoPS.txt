@@ -1,0 +1,22 @@
+Nimbus Mono PS (NimbusMonoPS-Regular.otf)
+(URW)++ base 35 font set — https://github.com/ArtifexSoftware/urw-base35-fonts
+
+Copyright (URW)++, Copyright 2014 by (URW)++ Design & Development
+
+SPDX-License-Identifier: AGPL-3.0-only WITH PS-or-PDF-font-exception-20170817
+
+The full text of the GNU Affero General Public License, version 3 is the file
+COPYING of the upstream project and the file LICENSE in the root of this project
+(also available at https://www.gnu.org/licenses/agpl-3.0.txt).
+
+Text of the font exception (SPDX: PS-or-PDF-font-exception-20170817,
+https://spdx.org/licenses/PS-or-PDF-font-exception-20170817.html):
+
+The font and related files in this directory are distributed under the
+GNU AFFERO GENERAL PUBLIC LICENSE Version 3 (see the file COPYING), with
+the following exemption:
+
+As a special exception, permission is granted to include these font
+programs in a Postscript or PDF file that consists of a document that
+contains text to be displayed or printed using this font, regardless
+of the conditions or license applying to the document itself.

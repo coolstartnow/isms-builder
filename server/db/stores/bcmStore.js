@@ -125,7 +125,7 @@ module.exports = {
       date: fields.date || '', conductor: fields.conductor || '',
       participants: Array.isArray(fields.participants) ? fields.participants : [],
       linkedPlanId: fields.linkedPlanId || '', result: fields.result || 'planned',
-      findings: fields.findings || '', actions: fields.actions || '',
+      scenario: String(fields.scenario || '').slice(0, 8000), findings: fields.findings || '', actions: fields.actions || '',
       nextExercise: fields.nextExercise || '',
       linkedControls: Array.isArray(fields.linkedControls) ? fields.linkedControls : [],
       linkedPolicies: Array.isArray(fields.linkedPolicies) ? fields.linkedPolicies : [],
@@ -142,8 +142,8 @@ module.exports = {
     if (!row) return null
     const item = rowToItem(row)
     const allowed = ['title','type','date','conductor','participants','linkedPlanId',
-      'result','findings','actions','nextExercise','linkedControls','linkedPolicies']
-    for (const k of allowed) { if (patch[k] !== undefined) item[k] = patch[k] }
+      'result','scenario','findings','actions','nextExercise','linkedControls','linkedPolicies']
+    for (const k of allowed) { if (patch[k] !== undefined) item[k] = k === 'scenario' ? String(patch[k] || '').slice(0, 8000) : patch[k] }
     item.updatedAt = nowISO()
     if (changedBy) item.updatedBy = changedBy
     await getDb()('bcm_entries').where('id', id).update({ data: JSON.stringify(item), updated_at: item.updatedAt })
@@ -152,6 +152,45 @@ module.exports = {
   deleteExercise: async (id) => {
     const affected = await getDb()('bcm_entries').where('id', id).where('bcm_type', 'exercise').whereNull('deleted_at').update({ deleted_at: nowISO() })
     return affected > 0
+  },
+
+  // Anforderungen (Register einer BCM-Norm): Definitionen `req`, Bearbeitungsstand `req_assess` — gleiche Funktionen wie im JSON-Speicher
+  getRequirements: async () => {
+    const rows = await getDb()('bcm_entries').where('bcm_type', 'req').whereNull('deleted_at')
+    return rows.map(rowToItem)
+  },
+  upsertRequirements: async (rows, { importedBy } = {}) => {
+    const db = getDb(), now = nowISO()
+    let added = 0, updated = 0
+    for (const row of rows) {
+      const rowId = `req_${row.framework}_${row.id}`
+      const cur = await db('bcm_entries').where('id', rowId).where('bcm_type', 'req').first()
+      if (cur) {
+        const item = { ..._json(cur.data, {}), ...row, retired: false, updatedAt: now }
+        await db('bcm_entries').where('id', rowId).update({ data: JSON.stringify(item), updated_at: now, deleted_at: null })
+        updated++
+      } else {
+        const item = { ...row, retired: false, importedBy: importedBy || 'system', createdAt: now, updatedAt: now }
+        await db('bcm_entries').insert({ id: rowId, bcm_type: 'req', data: JSON.stringify(item), created_by: importedBy || 'system', created_at: now, updated_at: now })
+        added++
+      }
+    }
+    return { added, updated }
+  },
+  getAssessments: async () => {
+    const rows = await getDb()('bcm_entries').where('bcm_type', 'req_assess').whereNull('deleted_at')
+    return rows.map(r => ({ ..._json(r.data, {}) }))
+  },
+  setAssessment: async (framework, id, value, { changedBy } = {}) => {
+    const db = getDb(), now = nowISO()
+    const defs = (await db('bcm_entries').where('bcm_type', 'req').whereNull('deleted_at')).map(r => _json(r.data, {}))
+    if (!defs.some(r => r.framework === framework && r.id === id)) return null
+    const rec = { ...value, framework, id, updatedAt: now, updatedBy: changedBy || 'system' }
+    const rowId = `reqa_${framework}_${id}`
+    const cur = await db('bcm_entries').where('id', rowId).first()
+    if (cur) await db('bcm_entries').where('id', rowId).update({ data: JSON.stringify(rec), updated_at: now })
+    else await db('bcm_entries').insert({ id: rowId, bcm_type: 'req_assess', data: JSON.stringify(rec), created_by: changedBy || 'system', created_at: now, updated_at: now })
+    return rec
   },
 
   getSummary: async () => {
@@ -175,6 +214,9 @@ module.exports = {
       bia: { total: biaRows.length, critical: biaCritical, withoutPlan },
       plans: { total: planRows.length, approved: plansApproved, tested: plansTested, overdueTest, nextTestSoon },
       exercises: { total: exRows.length, upcoming, lastResult },
+      requirements: require('../../bcmRequirements').summarize(
+        (await db('bcm_entries').where('bcm_type', 'req').whereNull('deleted_at')).map(r => _json(r.data, {})),
+        (await db('bcm_entries').where('bcm_type', 'req_assess').whereNull('deleted_at')).map(r => _json(r.data, {}))),
     }
   },
 }

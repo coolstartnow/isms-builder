@@ -168,3 +168,23 @@ describe('Sichere KI-Entwürfe: was gesendet wird', () => {
     expect(text).not.toContain('Besonderer Hinweistext')
   })
 })
+
+describe('POST /api/ai/fill-placeholders (von Hand eingefügte Texte)', () => {
+  test('ersetzt Platzhalter aus den Organisationsdaten und meldet offene; Editor darf, Leser nicht', async () => {
+    const { authedPut: put } = require('./setup/authHelper')
+    await put(app, adminCookie, '/admin/org-settings', { orgName: 'Nordlicht AG', cisoName: 'Erika Beispiel', gdpoName: '', ismsScope: 'Gesamtunternehmen' })
+    const body = { text: '# Titel\n\n{{COMPANY_NAME}}, [ISMS_OWNER], {{ isms scope }}, {{DATA_PROTECTION_OFFICER}}, {{ANDERES}} und [Firmenname]' }
+    const res = await authedPost(app, editorCookie, '/api/ai/fill-placeholders', body)
+    expect(res.status).toBe(200)
+    expect(res.body.text).toBe('# Titel\n\nNordlicht AG, Erika Beispiel, Gesamtunternehmen, {{DATA_PROTECTION_OFFICER}}, {{ANDERES}} und [Firmenname]')
+    expect(res.body.replaced).toBe(3)
+    expect(res.body.unresolved).toEqual(['DATA_PROTECTION_OFFICER'])
+    const readerCookie = await loginAs(app, 'reader')
+    expect((await authedPost(app, readerCookie, '/api/ai/fill-placeholders', body)).status).toBe(403)
+  })
+  test('400 ohne Text; Text ohne Platzhalter bleibt unverändert', async () => {
+    expect((await authedPost(app, editorCookie, '/api/ai/fill-placeholders', {})).status).toBe(400)
+    const res = await authedPost(app, editorCookie, '/api/ai/fill-placeholders', { text: 'Nichts {zu} ersetzen [hier]' })
+    expect(res.body).toMatchObject({ text: 'Nichts {zu} ersetzen [hier]', replaced: 0, unresolved: [] })
+  })
+})

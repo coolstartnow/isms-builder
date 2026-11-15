@@ -27,6 +27,7 @@ function loadTjs({ navigatorLanguage = 'en-US', storedLang = null } = {}) {
   const localStorage = makeLocalStorageMock()
   if (storedLang) localStorage.setItem('isms_lang', storedLang)
   const navigator = { language: navigatorLanguage }
+  win.LANGUAGES = require('../ui/i18n/languages.js') // t.js liest die Sprachen aus dem Register
   // eslint-disable-next-line no-new-func
   new Function('window', 'navigator', 'localStorage', T_JS_SRC)(win, navigator, localStorage)
   return { win, localStorage }

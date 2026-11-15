@@ -66,3 +66,6 @@ echo "   cd $(basename "$PROJECT_DIR")"
 echo "   npm start          # direkt mit Node.js"
 echo "   docker compose up -d --build   # via Docker"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Übersicht der lokalen Sicherungen nachführen (optional, nur wenn das Hilfswerkzeug vorhanden ist; Fehler hier sind unkritisch)
+[ -f "$HOME/isms-backup-tools/bkreport.py" ] && python3 "$HOME/isms-backup-tools/bkreport.py" >/dev/null 2>&1 || true

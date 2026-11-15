@@ -20,6 +20,10 @@
 
 *Risico's op de telefoon*
 
+![Een eigen SoA-groep als eigen tabblad (verzonnen voorbeeld)](images/mobile/soa-groups.png)
+
+*Een eigen SoA-groep als eigen tabblad (verzonnen voorbeeld)*
+
 ![Tablet in liggende stand: menu en inhoud naast elkaar](images/mobile/tablet-risks.png)
 
 *Tablet in liggende stand: menu en inhoud naast elkaar*
@@ -66,6 +70,10 @@ Beheerders maken synchronisatieaccounts aan onder *Beheer → Gebruikers* in het
 - **Rechten per module:** *geen toegang*, *lezen* of *lezen en schrijven* (documenten/sjablonen, SoA, risico's, activa, bevindingen). Guidance is alleen-lezen. Voorbeeld: het account van de auditor mag risico's en bevindingen lezen en schrijven en verder niets.
 - **Geldig tot** (optioneel).
 - **Apparaten:** een account kan meerdere apparaten hebben (bijv. telefoon en tablet van de CISO). Elk apparaat heeft een **eigen sleutel**. De lijst toont apparaatnaam en “laatst gebruikt”; een verloren apparaat kan afzonderlijk worden geblokkeerd (✕) zonder de andere te raken.
+
+### Eigen SoA-groepen
+
+Eigen SoA-groepen (frameworks die een beheerder op de server heeft aangemaakt) worden met de SoA gesynchroniseerd. **Bekijken** mogen accounts die de SoA of *Eigen SoA-groepen* kunnen lezen; zonder de groepsdefinitie hebben de controls van een eigen groep in de app geen naam en kleur. **Aanmaken, hernoemen, kleur wijzigen en lege groepen verwijderen** vereist het recht *Eigen SoA-groepen (beheer)* = *lezen en schrijven* — synchronisatieaccounts zijn geen beheerders; de serverbeheerder verleent deze toegang hier. Schrijfrecht op de SoA alleen is niet genoeg. De servercontroles blijven ongewijzigd (ID, gereserveerde ID's van ingebouwde frameworks, kleur `#RRGGBB`, naam maximaal 120 tekens); een groep met controls kan niet worden verwijderd. Een groep importeren uit een bestand maakt ook controls aan en vereist daarom bovendien schrijfrecht op de SoA (het voorbeeld werkt met alleen het groepsrecht). **Minimale serverversie voor deze functie: 1.84.0.**
 
 ### Een apparaat instellen (QR-code)
 
@@ -158,7 +166,7 @@ Alle aanroepen behalve `/sync/enroll` dragen de header `Authorization: Bearer <a
 | GET | `/sync/pull?since=<ISO>&modules=a,b` | Wijzigingen sinds `since`, inclusief verwijderde records, alleen voor leesbare modules (expliciet gevraagde maar niet toegestane staan onder `denied`). Het antwoord bevat `serverTime` voor de volgende pull. |
 | POST | `/sync/push` | `{ protocolVersion, changes: { <module>: [records met baseUpdatedAt] } }` — antwoord: `accepted`, `conflicts`, `rejected`. |
 
-Het beheer van synchronisatieaccounts (`/admin/sync-accounts`) is alleen voor beheerders. Modules: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`. Beschreven in `docs/architecture/openapi.yaml`.
+Het beheer van synchronisatieaccounts (`/admin/sync-accounts`) is alleen voor beheerders. Modules: `templates`, `soa`, `risks`, `assets`, `findings`, `guidance`, `soaFrameworks`. Beschreven in `docs/architecture/openapi.yaml`.
 
 ## Beveiliging
 
@@ -178,3 +186,23 @@ Het beheer van synchronisatieaccounts (`/admin/sync-accounts`) is alleen voor be
 - De interface kent geen rechten per module: ze onderscheidt alleen “mag ergens schrijven” en “alleen lezen”. De exacte controle per module vindt plaats bij het opslaan.
 - Auditbevindingen worden gesynchroniseerd, maar hebben in de app nog geen eigen weergave.
 - De app bevat de serverlogica van de versie waarmee ze is gebouwd. Bouw de app na een serverupdate ook opnieuw (`npm run build:android` in het project `isms-builder-mobile`).
+
+## Veelgestelde vragen (FAQ)
+
+**De synchronisatie meldt „Sync complete”, maar er ontbreken gegevens op het toestel (bijv. documentsjablonen, maatregelen, risico's, assets).**
+De synchronisatie haalt alleen records op die *sinds de laatste synchronisatie zijn gewijzigd* (tijdstempel `updatedAt`). Komen gegevens **met een oud tijdstempel** pas *na* de laatste synchronisatie op de server — demo-import, geladen demopakket, herstel uit een back-up, handmatig vervangen bestanden —, dan beschouwt het toestel ze als „ongewijzigd” en ontvangt ze nooit. Met hoofdsysteem 1.84 en app 1.6 herkent de app dit zelf: de server meldt een *data-epoch* die bij elke serverstart en na elke vervanging van gegevens verandert, waarna de app **alle** gegevens eenmalig opnieuw laadt. Handmatig: **Alle gegevens opnieuw laden** in het synchronisatiepaneel (app 1.6). Met oudere versies helpt *Toestel resetten* en opnieuw instellen via QR-code — niet verzonden wijzigingen gaan daarbij verloren; synchroniseer dus eerst of gebruik *Alleen wijzigingen exporteren*.
+
+**Ik moet elk conflict afzonderlijk bevestigen en telkens de pincode invoeren.**
+Vanaf app 1.6 verschijnen conflicten als aanvinklijst: vink de items aan (aanvankelijk is niets geselecteerd), gebruik *Alles selecteren* en het modulefilter en los ze op met **één** groepsactie — de pincode wordt maar één keer gevraagd.
+
+**De telefoon weigert het certificaat van mijn server.**
+Een enkel zelfondertekend servercertificaat wordt op sommige toestellen niet geaccepteerd (waargenomen op een Android 16-tablet). Betrouwbaar: maak **een eigen CA**, onderteken daarmee een servercertificaat waarin het adres (IP of naam) in `subjectAltName` staat, en installeer de **CA** op de telefoon als **„CA-certificaat”** (niet als „VPN- en app-gebruikerscertificaat”). Controleer: staat ze onder *Vertrouwde inloggegevens → Gebruiker*? Een browsermelding „niet veilig” zegt niets over het vertrouwen van de app. Verwijder een CA die alleen voor tests is gemaakt daarna van de telefoon.
+
+**Welke poort gebruikt de synchronisatie?**
+Geen eigen poort: hetzelfde adres en dezelfde poort als de webinterface (`https://host[:poort]`). Eén firewallregel en één certificaat volstaan.
+
+**In de guidance-artikelen ontbreken afbeeldingen.**
+De meegeleverde artikelen bevatten hun afbeeldingen in de app (vanaf app 1.6). Afbeeldingen die gebruikers in eigen artikelen koppelen, levert de app niet mee — ze staan alleen op de server. Wie ze in de app nodig heeft, past de app-build aan (`scripts/sync-ui.sh`).
+
+**Een document uit het demopakket ontbreekt (bijv. „Rollen & verantwoordelijkheden”) nadat ik guidance-artikelen heb verwijderd.**
+Het demopakket levert documenten en gegevens als gewone records — anders dan de *seed-artikelen* (bijv. de gebruikershandleidingen onder *Rollen*, de systeemhandleiding, de leidraden), die de server bij elke start opnieuw aanmaakt als ze ontbreken. Een verwijderd pakketdocument komt daarom **niet vanzelf terug**. Voorkomen: verwijder geen hele categorieën; **herstel** verwijderde artikelen eerst uit de *prullenbak*, zolang die niet is geleegd. Na definitief verwijderen: maak het document opnieuw aan (de tekst staat in het demopakket, `data/demo-bundles/<taal>.json`) of laad het demopakket opnieuw — dat vervangt de demogegevens en is in productie geblokkeerd. Op de toestellen verschijnt een nieuw aangemaakt document bij de volgende synchronisatie.
