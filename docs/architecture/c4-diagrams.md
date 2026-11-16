@@ -82,7 +82,7 @@ C4Component
 
     Component(idx, "index.js", "Express app setup", "Mounts all routers, serves UI with auth guard, starts HTTPS/HTTP")
 
-    Component_Boundary(routes, "server/routes/ — Express Routers") {
+    Boundary(routes, "server/routes/ — Express Routers") {
       Component(r_auth, "auth.js", "Router", "Login, logout, whoami, /me/password, 2FA setup/verify/disable")
       Component(r_tmpl, "templates.js", "Router", "Template CRUD, versioning, lifecycle, hierarchy, attachments, entities")
       Component(r_soa, "soa.js", "Router", "SoA controls, frameworks, crossmap, bidirectional template links")
@@ -102,10 +102,10 @@ C4Component
       Component(r_trash, "trash.js", "Router", "Soft-delete trash, permanent delete, restore, full JSON export")
     }
 
-    Component_Boundary(stores, "server/db/ — Data Stores") {
+    Boundary(stores, "server/db/ — Data Stores") {
       Component(s_json, "jsonStore.js", "Store", "Template persistence (JSON)")
       Component(s_sqlite, "sqliteStore.js", "Store", "Template persistence (SQLite, same API)")
-      Component(s_soa, "soaStore.js", "Store", "313 SoA controls, all frameworks, seed + merge")
+      Component(s_soa, "soaStore.js", "Store", "SoA controls of all frameworks, seed + merge")
       Component(s_risk, "riskStore.js", "Store", "Risks + treatments, soft-delete")
       Component(s_gdpr, "gdprStore.js", "Store", "9 GDPR sub-modules")
       Component(s_gov, "governanceStore.js", "Store", "Reviews, actions, meetings")
