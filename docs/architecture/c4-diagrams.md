@@ -78,7 +78,7 @@ What are the internal building blocks of the API server?
 C4Component
   title Component Diagram – API Server (server/)
 
-  Container_Boundary(api, "Express API Server") {
+  Component_Boundary(api, "Express API Server") {
 
     Component(idx, "index.js", "Express app setup", "Mounts all routers, serves UI with auth guard, starts HTTPS/HTTP")
 
